@@ -1,0 +1,141 @@
+<wsdl:definitions targetNamespace="http://api.enterpriseservices.multiplusfidelidade.com.br/wsdl/PartnerToken-v1" xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/" xmlns:WL5G3N3="http://schemas.xmlsoap.org/wsdl/soap/" xmlns:WL5G3N2="http://api.enterpriseservices.multiplusfidelidade.com.br/wsdl/PartnerToken-v1" xmlns:WL5G3N0="http://schemas.xmlsoap.org/wsdl/" xmlns:WL5G3N1="http://api.enterpriseservices.multiplusfidelidade.com.br/wsdl/PartnerToken-v1.0">
+    <wsp:Policy wsu:Id="wss_username_token_service_policy" xmlns:wsp="http://schemas.xmlsoap.org/ws/2004/09/policy" xmlns="http://schemas.xmlsoap.org/ws/2004/09/policy" xmlns:wsu="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+        <sp:SupportingTokens xmlns:sp="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy">
+            <wsp:Policy>
+                <sp:UsernameToken sp:IncludeToken="http://schemas.xmlsoap.org/ws/2005/07/securitypolicy/IncludeToken/AlwaysToRecipient">
+                    <wsp:Policy>
+                        <sp:WssUsernameToken10/>
+                    </wsp:Policy>
+                </sp:UsernameToken>
+            </wsp:Policy>
+        </sp:SupportingTokens>
+    </wsp:Policy>
+    <wsdl:types>
+        <xs:schema elementFormDefault="qualified" targetNamespace="http://api.enterpriseservices.multiplusfidelidade.com.br/wsdl/PartnerToken-v1.0" xmlns:WL5G3N0="http://schemas.xmlsoap.org/ws/2004/09/policy" xmlns:WL5G3N1="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd" xmlns:WL5G3N2="http://schemas.xmlsoap.org/wsdl/" xmlns:WL5G3N3="http://api.enterpriseservices.multiplusfidelidade.com.br/wsdl/PartnerToken-v1.0" xmlns:WL5G3N4="http://api.enterpriseservices.multiplusfidelidade.com.br/wsdl/PartnerToken-v1" xmlns:WL5G3N5="http://schemas.xmlsoap.org/wsdl/soap/" xmlns:fault="http://api.enterpriseservices.multiplusfidelidade.com.br/xsd/2011/10/fault" xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/" xmlns:tns="http://api.enterpriseservices.multiplusfidelidade.com.br/wsdl/PartnerToken-v1.0" xmlns:v1_0="http://api.enterpriseservices.multiplusfidelidade.com.br/wsdl/PartnerToken-v1.0" xmlns:wsp="http://schemas.xmlsoap.org/ws/2004/09/policy" xmlns:xs="http://www.w3.org/2001/XMLSchema">
+            <xs:import namespace="http://api.enterpriseservices.multiplusfidelidade.com.br/xsd/2011/10/fault" schemaLocation="Fault.xsd"/>
+            <xs:element name="CreateTokenInput">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element name="OrderId" type="xs:string"/>
+                        <xs:element name="User" type="xs:string"/>
+                        <xs:element name="PartnerId" type="xs:decimal"/>
+                        <xs:element name="SkuId" type="xs:string"/>
+                        <xs:element name="Quantity" type="xs:int"/>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="CreateTokenOutput">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element name="OrderId" type="xs:decimal"/>
+                        <xs:element name="PartnerId" type="xs:decimal"/>
+                        <xs:element name="OnlineIntegration" type="xs:decimal"/>
+                        <xs:element name="TokenId" type="xs:string"/>
+                        <xs:element name="MultiplusNumber" type="xs:string"/>
+                        <xs:element name="ExpirationDate" type="xs:dateTime"/>
+                        <xs:element name="IsValid" type="xs:boolean"/>
+                        <xs:element name="ProductPartner" type="xs:string"/>
+                        <xs:element name="Quantity" type="xs:int"/>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="GetTokenInput">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element name="TokenId" type="xs:string"/>
+                        <xs:element name="ProductPartner" type="xs:string"/>
+                        <xs:element name="Quantity" type="xs:int"/>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="GetTokenOutput">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element name="OrderId" type="xs:decimal"/>
+                        <xs:element name="PartnerId" type="xs:decimal"/>
+                        <xs:element name="OnlineIntegration" type="xs:decimal"/>
+                        <xs:element name="TokenId" type="xs:string"/>
+                        <xs:element name="MultiplusNumber" type="xs:string"/>
+                        <xs:element name="ExpirationDate" type="xs:dateTime"/>
+                        <xs:element name="IsValid" type="xs:boolean"/>
+                        <xs:element name="ProductPartner" type="xs:string"/>
+                        <xs:element name="Quantity" type="xs:int"/>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="PartnerTokenFault" type="fault:PartnerTokenFault"/>
+            <xs:element name="TokenErrorFault" type="fault:TokenErrorFault"/>
+        </xs:schema>
+    </wsdl:types>
+    <wsdl:message name="CreateTokenInput">
+        <wsdl:part name="CreateTokenInput" element="WL5G3N1:CreateTokenInput"/>
+    </wsdl:message>
+    <wsdl:message name="CreateTokenOutput">
+        <wsdl:part name="CreateTokenOutput" element="WL5G3N1:CreateTokenOutput"/>
+    </wsdl:message>
+    <wsdl:message name="PartnerTokenFault">
+        <wsdl:part name="PartnerTokenFault" element="WL5G3N1:PartnerTokenFault"/>
+    </wsdl:message>
+    <wsdl:message name="TokenErrorFault">
+        <wsdl:part name="TokenErrorFault" element="WL5G3N1:TokenErrorFault"/>
+    </wsdl:message>
+    <wsdl:message name="GetTokenInput">
+        <wsdl:part name="GetTokenInput" element="WL5G3N1:GetTokenInput"/>
+    </wsdl:message>
+    <wsdl:message name="GetTokenOutput">
+        <wsdl:part name="GetTokenOutput" element="WL5G3N1:GetTokenOutput"/>
+    </wsdl:message>
+    <wsdl:portType name="PartnerTokenPortType_v1_0">
+        <wsdl:operation name="CreateToken">
+            <wsdl:input message="WL5G3N2:CreateTokenInput"/>
+            <wsdl:output message="WL5G3N2:CreateTokenOutput"/>
+            <wsdl:fault name="PartnerTokenFault" message="WL5G3N2:PartnerTokenFault"/>
+            <wsdl:fault name="TokenErrorFault" message="WL5G3N2:TokenErrorFault"/>
+        </wsdl:operation>
+        <wsdl:operation name="GetToken">
+            <wsdl:input message="WL5G3N2:GetTokenInput"/>
+            <wsdl:output message="WL5G3N2:GetTokenOutput"/>
+            <wsdl:fault name="PartnerTokenFault" message="WL5G3N2:PartnerTokenFault"/>
+            <wsdl:fault name="TokenErrorFault" message="WL5G3N2:TokenErrorFault"/>
+        </wsdl:operation>
+    </wsdl:portType>
+    <wsdl:binding name="PartnerTokenBinding_v1_0" type="WL5G3N2:PartnerTokenPortType_v1_0">
+        <WL5G3N3:binding style="document" transport="http://schemas.xmlsoap.org/soap/http"/>
+        <wsp:PolicyReference URI="#wss_username_token_service_policy" wsdl:required="false" xmlns:wsp="http://schemas.xmlsoap.org/ws/2004/09/policy"/>
+        <wsdl:operation name="CreateToken">
+            <WL5G3N3:operation/>
+            <wsdl:input>
+                <WL5G3N3:body use="literal"/>
+            </wsdl:input>
+            <wsdl:output>
+                <WL5G3N3:body use="literal"/>
+            </wsdl:output>
+            <wsdl:fault name="PartnerTokenFault">
+                <WL5G3N3:fault name="PartnerTokenFault" use="literal"/>
+            </wsdl:fault>
+            <wsdl:fault name="TokenErrorFault">
+                <WL5G3N3:fault name="TokenErrorFault" use="literal"/>
+            </wsdl:fault>
+        </wsdl:operation>
+        <wsdl:operation name="GetToken">
+            <WL5G3N3:operation/>
+            <wsdl:input>
+                <WL5G3N3:body use="literal"/>
+            </wsdl:input>
+            <wsdl:output>
+                <WL5G3N3:body use="literal"/>
+            </wsdl:output>
+            <wsdl:fault name="PartnerTokenFault">
+                <WL5G3N3:fault name="PartnerTokenFault" use="literal"/>
+            </wsdl:fault>
+            <wsdl:fault name="TokenErrorFault">
+                <WL5G3N3:fault name="TokenErrorFault" use="literal"/>
+            </wsdl:fault>
+        </wsdl:operation>
+    </wsdl:binding>
+    <wsdl:service name="PartnerTokenService_v1_0">
+        <wsdl:port name="PartnerTokenPort" binding="WL5G3N2:PartnerTokenBinding_v1_0">
+            <WL5G3N3:address location="http://hosoa054mul:9000/EnterpriseServices/Proxy/PartnerTokenService"/>
+        </wsdl:port>
+    </wsdl:service>
+</wsdl:definitions>

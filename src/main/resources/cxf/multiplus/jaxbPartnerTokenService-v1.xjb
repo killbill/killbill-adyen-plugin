@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jaxb:bindings version="2.0"
+               xmlns:jaxb="http://java.sun.com/xml/ns/jaxb"
+               xmlns:xjc="http://java.sun.com/xml/ns/jaxb/xjc"
+               xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+               xmlns:multiplus-tokenservice="http://api.enterpriseservices.multiplusfidelidade.com.br/wsdl/PartnerToken-v1.0"
+               xmlns:multiplus-tokenfault="http://api.enterpriseservices.multiplusfidelidade.com.br/xsd/2011/10/fault"
+               xsd:schemaLocation="http://java.sun.com/xml/ns/jaxb http://java.sun.com/xml/ns/jaxb/bindingschema_2_0.xsd"
+        >
+    <jaxb:globalBindings>
+        <xjc:generateElementProperty>false</xjc:generateElementProperty>
+        <jaxb:javaType name="java.lang.String" xmlType="xsd:dateTime"
+                       parseMethod="org.killbill.cxf.util.MultiplusDateTimeCustomBinder.parseDateTime"
+                       printMethod="org.killbill.cxf.util.MultiplusDateTimeCustomBinder.printDateTime"
+                />
+    </jaxb:globalBindings>
+
+    <jaxb:bindings scd="x-schema::multiplus-tokenservice">
+        <jaxb:schemaBindings>
+            <jaxb:package name="org.killbill.multiplus.tokenservice"/>
+        </jaxb:schemaBindings>
+    </jaxb:bindings>
+    <jaxb:bindings scd="x-schema::multiplus-tokenfault">
+        <jaxb:schemaBindings>
+            <jaxb:package name="org.killbill.multiplus.tokenservice.fault"/>
+        </jaxb:schemaBindings>
+    </jaxb:bindings>
+
+</jaxb:bindings>

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jaxws:bindings version="2.0"
+                xmlns:jaxws="http://java.sun.com/xml/ns/jaxws"
+                xmlns:xjc="http://java.sun.com/xml/ns/jaxb/xjc"
+                xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+                xsd:schemaLocation="http://java.sun.com/xml/ns/jaxws http://java.sun.com/xml/ns/jaxws/wsdl_customizationschema_2_0.xsd"
+                wsdlLocation="PartnerTokenService-v1.wsdl"
+        >
+    <jaxws:package name="de.groupon.api.payment.psp.multiplus.tokenservice"/>
+
+    <jaxws:bindings node="wsdl:definitions/wsdl:portType[@name='PartnerTokenPortType_v1_0']">
+        <jaxws:class name="TokenService"/>
+    </jaxws:bindings>
+    <jaxws:bindings node="wsdl:definitions/wsdl:service[@name='PartnerTokenService_v1_0']">
+        <jaxws:class name="TokenServiceClient"/>
+    </jaxws:bindings>
+
+</jaxws:bindings>

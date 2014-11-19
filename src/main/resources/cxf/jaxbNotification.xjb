@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jaxb:bindings version="2.0" 
+	xmlns:jaxb="http://java.sun.com/xml/ns/jaxb" 
+	xmlns:xjc="http://java.sun.com/xml/ns/jaxb/xjc" 
+	xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+	xmlns:adyenNotification="http://notification.services.adyen.com"
+	xmlns:adyenCommon="http://common.services.adyen.com"
+xsd:schemaLocation="
+http://java.sun.com/xml/ns/jaxb http://java.sun.com/xml/ns/jaxb/bindingschema_2_0.xsd"
+>
+	<jaxb:globalBindings>
+		<xjc:generateElementProperty>false</xjc:generateElementProperty>
+        <!--jaxb:javaType name="org.joda.time.DateTime" xmlType="xsd:dateTime"
+            parseMethod="org.killbill.cxf.util.XSDateTimeCustomBinder.parseDateTime"
+            printMethod="org.killbill.cxf.util.XSDateTimeCustomBinder.printDateTime"
+        /-->
+	</jaxb:globalBindings>
+	
+	<jaxb:bindings scd="x-schema::adyenCommon">
+		<jaxb:schemaBindings>
+			<jaxb:package name="org.killbill.adyen.common"/>
+		</jaxb:schemaBindings>
+	</jaxb:bindings>
+
+	<jaxb:bindings scd="x-schema::adyenNotification">
+		<jaxb:schemaBindings>
+			<jaxb:package name="org.killbill.adyen.notification"/>
+		</jaxb:schemaBindings>
+	</jaxb:bindings>
+    
+</jaxb:bindings>

@@ -1,0 +1,13 @@
+*.class
+
+# Package Files #
+*.jar
+*.war
+*.ear
+
+.idea
+*.iml
+target
+
+dependency-reduced-pom.xml
+dependency-reduced-pom.xml.bak

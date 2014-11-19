@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xsd:schema attributeFormDefault="unqualified"
+	elementFormDefault="qualified"
+	targetNamespace="http://api.enterpriseservices.multiplusfidelidade.com.br/xsd/2011/10/fault"
+	xmlns:tns="http://api.enterpriseservices.multiplusfidelidade.com.br/xsd/2011/10/fault"
+	xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+	<xsd:complexType name="Fault">
+		<xsd:sequence>
+			<xsd:element name="Message" type="xsd:string" />
+		</xsd:sequence>
+	</xsd:complexType>
+	<xsd:complexType name="PartnerTokenFault">
+		<xsd:complexContent>
+			<xsd:extension base="tns:Fault" />
+		</xsd:complexContent>
+	</xsd:complexType>
+	<xsd:complexType name="TokenErrorFault">
+		<xsd:complexContent>
+			<xsd:extension base="tns:Fault" />
+		</xsd:complexContent>
+	</xsd:complexType>
+</xsd:schema>
+	
