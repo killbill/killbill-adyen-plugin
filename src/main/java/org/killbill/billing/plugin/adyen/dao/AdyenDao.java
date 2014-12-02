@@ -16,105 +16,321 @@
 
 package org.killbill.billing.plugin.adyen.dao;
 
-import org.jooq.Result;
-import org.jooq.SQLDialect;
-import org.jooq.impl.DSL;
-import org.killbill.adyen.payment.PaymentResult;
-import org.killbill.billing.plugin.adyen.dao.gen.Tables;
-import org.killbill.billing.plugin.adyen.dao.gen.tables.records.AdyenPluginGatewayResponsesRecord;
-
-import javax.sql.DataSource;
-import java.io.UnsupportedEncodingException;
 import java.math.BigDecimal;
-import java.net.URLDecoder;
 import java.sql.Connection;
 import java.sql.SQLException;
-import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
-import static org.killbill.billing.plugin.adyen.dao.gen.tables.AdyenPluginGatewayResponses.ADYEN_PLUGIN_GATEWAY_RESPONSES;
+import javax.annotation.Nullable;
+import javax.sql.DataSource;
 
-public final class AdyenDao {
+import org.joda.time.DateTime;
+import org.jooq.impl.DSL;
+import org.killbill.billing.catalog.api.Currency;
+import org.killbill.billing.payment.api.TransactionType;
+import org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi;
+import org.killbill.billing.plugin.adyen.client.model.NotificationItem;
+import org.killbill.billing.plugin.adyen.client.model.PaymentModificationResponse;
+import org.killbill.billing.plugin.adyen.client.model.PurchaseResult;
+import org.killbill.billing.plugin.adyen.dao.gen.tables.AdyenPaymentMethods;
+import org.killbill.billing.plugin.adyen.dao.gen.tables.AdyenResponses;
+import org.killbill.billing.plugin.adyen.dao.gen.tables.records.AdyenNotificationsRecord;
+import org.killbill.billing.plugin.adyen.dao.gen.tables.records.AdyenPaymentMethodsRecord;
+import org.killbill.billing.plugin.adyen.dao.gen.tables.records.AdyenResponsesRecord;
+import org.killbill.billing.plugin.dao.payment.PluginPaymentDao;
 
-    private final DataSource dataSource;
-    private final SQLDialect dialect;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.base.Functions;
+import com.google.common.base.Joiner;
+import com.google.common.collect.Iterables;
 
-    public AdyenDao(final DataSource dataSource, final SQLDialect dialect) {
-        this.dataSource = dataSource;
-        this.dialect = dialect;
+import static org.killbill.billing.plugin.adyen.dao.gen.tables.AdyenNotifications.ADYEN_NOTIFICATIONS;
+import static org.killbill.billing.plugin.adyen.dao.gen.tables.AdyenResponses.ADYEN_RESPONSES;
+
+public class AdyenDao extends PluginPaymentDao<AdyenResponsesRecord, AdyenResponses, AdyenPaymentMethodsRecord, AdyenPaymentMethods> {
+
+    private static final ObjectMapper objectMapper = new ObjectMapper();
+    private static final Joiner JOINER = Joiner.on(",");
+
+    public AdyenDao(final DataSource dataSource) throws SQLException {
+        super(AdyenResponses.ADYEN_RESPONSES, AdyenPaymentMethods.ADYEN_PAYMENT_METHODS, dataSource);
     }
 
-    public void insertPaymentResult(final UUID kbAccountId, final UUID kbPaymentId, final String transactionType, final PaymentResult result) throws SQLException {
-        execute(dataSource.getConnection(), new WithConnectionCallback<Void>() {
-            @Override
-            public Void withConnection(Connection conn) throws SQLException {
-                DSL.using(conn, dialect).insertInto(Tables.ADYEN_PLUGIN_GATEWAY_RESPONSES,
-                        ADYEN_PLUGIN_GATEWAY_RESPONSES.KB_ACCOUNT_ID,
-                        ADYEN_PLUGIN_GATEWAY_RESPONSES.KB_PAYMENT_ID,
-                        ADYEN_PLUGIN_GATEWAY_RESPONSES.TRANSACTION_TYPE,
-                        ADYEN_PLUGIN_GATEWAY_RESPONSES.AUTH_CODE,
-                        ADYEN_PLUGIN_GATEWAY_RESPONSES.DCC_AMOUNT,
-                        ADYEN_PLUGIN_GATEWAY_RESPONSES.DCC_CURRENCY,
-                        ADYEN_PLUGIN_GATEWAY_RESPONSES.DCC_SIGNATURE,
-                        ADYEN_PLUGIN_GATEWAY_RESPONSES.ISSUER_URL,
-                        ADYEN_PLUGIN_GATEWAY_RESPONSES.MD,
-                        ADYEN_PLUGIN_GATEWAY_RESPONSES.PA_REQUEST,
-                        ADYEN_PLUGIN_GATEWAY_RESPONSES.PSP_REFERENCE,
-                        ADYEN_PLUGIN_GATEWAY_RESPONSES.REFUSAL_REASON,
-                        ADYEN_PLUGIN_GATEWAY_RESPONSES.RESULT_CODE)
-                        .values(kbAccountId.toString(),
-                                kbPaymentId.toString(),
-                                transactionType,
-                                result.getAuthCode(),
-                                (result.getDccAmount() == null || result.getDccAmount().getValue() == null) ? null : BigDecimal.valueOf(result.getDccAmount().getValue()),
-                                (result.getDccAmount() == null) ? null : result.getDccAmount().getCurrency(),
-                                result.getDccSignature(),
-                                result.getIssuerUrl(),
-                                result.getMd(),
-                                result.getPaRequest(),
-                                result.getPspReference(),
-                                result.getRefusalReason(),
-                                result.getResultCode())
-                        .execute();
-                return null;
-            }
-        });
+    // Responses
+
+    public void addResponse(final UUID kbAccountId,
+                            final UUID kbPaymentId,
+                            final UUID kbPaymentTransactionId,
+                            final TransactionType transactionType,
+                            final BigDecimal amount,
+                            final Currency currency,
+                            final PurchaseResult result,
+                            final DateTime utcNow,
+                            final UUID kbTenantId) throws SQLException {
+        final String errorCodes = getErrorCodes(result);
+        final String dccAmountValue = getProperty(AdyenPaymentPluginApi.PROPERTY_DCC_AMOUNT_VALUE, result);
+        final String additionalData = getAdditionalData(result);
+
+        execute(dataSource.getConnection(),
+                new WithConnectionCallback<Void>() {
+                    @Override
+                    public Void withConnection(final Connection conn) throws SQLException {
+                        DSL.using(conn, dialect, settings)
+                           .insertInto(ADYEN_RESPONSES,
+                                       ADYEN_RESPONSES.KB_ACCOUNT_ID,
+                                       ADYEN_RESPONSES.KB_PAYMENT_ID,
+                                       ADYEN_RESPONSES.KB_PAYMENT_TRANSACTION_ID,
+                                       ADYEN_RESPONSES.TRANSACTION_TYPE,
+                                       ADYEN_RESPONSES.AMOUNT,
+                                       ADYEN_RESPONSES.CURRENCY,
+                                       ADYEN_RESPONSES.PSP_RESULT,
+                                       ADYEN_RESPONSES.PSP_REFERENCE,
+                                       ADYEN_RESPONSES.AUTH_CODE,
+                                       ADYEN_RESPONSES.RESULT_CODE,
+                                       ADYEN_RESPONSES.REFUSAL_REASON,
+                                       ADYEN_RESPONSES.REFERENCE,
+                                       ADYEN_RESPONSES.PSP_ERROR_CODES,
+                                       ADYEN_RESPONSES.PAYMENT_INTERNAL_REF,
+                                       ADYEN_RESPONSES.FORM_URL,
+                                       ADYEN_RESPONSES.DCC_AMOUNT,
+                                       ADYEN_RESPONSES.DCC_CURRENCY,
+                                       ADYEN_RESPONSES.DCC_SIGNATURE,
+                                       ADYEN_RESPONSES.ISSUER_URL,
+                                       ADYEN_RESPONSES.MD,
+                                       ADYEN_RESPONSES.PA_REQUEST,
+                                       ADYEN_RESPONSES.ADDITIONAL_DATA,
+                                       ADYEN_RESPONSES.CREATED_DATE,
+                                       ADYEN_RESPONSES.KB_TENANT_ID)
+                           .values(kbAccountId.toString(),
+                                   kbPaymentId.toString(),
+                                   kbPaymentTransactionId.toString(),
+                                   transactionType.toString(),
+                                   amount,
+                                   currency,
+                                   result.getResult() == null ? null : result.getResult().toString(),
+                                   result.getPspReference(),
+                                   result.getAuthCode(),
+                                   result.getResultCode(),
+                                   result.getReason(),
+                                   result.getReference(),
+                                   errorCodes,
+                                   result.getPaymentInternalRef(),
+                                   result.getFormUrl(),
+                                   dccAmountValue == null ? null : new BigDecimal(dccAmountValue),
+                                   getProperty(AdyenPaymentPluginApi.PROPERTY_DCC_AMOUNT_CURRENCY, result),
+                                   getProperty(AdyenPaymentPluginApi.PROPERTY_DCC_SIGNATURE, result),
+                                   getProperty(AdyenPaymentPluginApi.PROPERTY_ISSUER_URL, result),
+                                   getProperty(AdyenPaymentPluginApi.PROPERTY_MD, result),
+                                   getProperty(AdyenPaymentPluginApi.PROPERTY_PA_REQ, result),
+                                   additionalData,
+                                   toTimestamp(utcNow),
+                                   kbTenantId.toString())
+                           .execute();
+                        return null;
+                    }
+                });
     }
 
-    private String urlDecode(final String input) {
-        if (input == null) {
+    public void addResponse(final UUID kbAccountId,
+                            final UUID kbPaymentId,
+                            final UUID kbPaymentTransactionId,
+                            final TransactionType transactionType,
+                            @Nullable final BigDecimal amount,
+                            @Nullable final Currency currency,
+                            final PaymentModificationResponse result,
+                            final DateTime utcNow,
+                            final UUID kbTenantId) throws SQLException {
+        final String dccAmountValue = getProperty(AdyenPaymentPluginApi.PROPERTY_DCC_AMOUNT_VALUE, result);
+        final String additionalData = getAdditionalData(result);
+
+        execute(dataSource.getConnection(),
+                new WithConnectionCallback<Void>() {
+                    @Override
+                    public Void withConnection(final Connection conn) throws SQLException {
+                        DSL.using(conn, dialect, settings)
+                           .insertInto(ADYEN_RESPONSES,
+                                       ADYEN_RESPONSES.KB_ACCOUNT_ID,
+                                       ADYEN_RESPONSES.KB_PAYMENT_ID,
+                                       ADYEN_RESPONSES.KB_PAYMENT_TRANSACTION_ID,
+                                       ADYEN_RESPONSES.TRANSACTION_TYPE,
+                                       ADYEN_RESPONSES.AMOUNT,
+                                       ADYEN_RESPONSES.CURRENCY,
+                                       ADYEN_RESPONSES.PSP_RESULT,
+                                       ADYEN_RESPONSES.PSP_REFERENCE,
+                                       ADYEN_RESPONSES.AUTH_CODE,
+                                       ADYEN_RESPONSES.RESULT_CODE,
+                                       ADYEN_RESPONSES.REFUSAL_REASON,
+                                       ADYEN_RESPONSES.REFERENCE,
+                                       ADYEN_RESPONSES.PSP_ERROR_CODES,
+                                       ADYEN_RESPONSES.PAYMENT_INTERNAL_REF,
+                                       ADYEN_RESPONSES.FORM_URL,
+                                       ADYEN_RESPONSES.DCC_AMOUNT,
+                                       ADYEN_RESPONSES.DCC_CURRENCY,
+                                       ADYEN_RESPONSES.DCC_SIGNATURE,
+                                       ADYEN_RESPONSES.ISSUER_URL,
+                                       ADYEN_RESPONSES.MD,
+                                       ADYEN_RESPONSES.PA_REQUEST,
+                                       ADYEN_RESPONSES.ADDITIONAL_DATA,
+                                       ADYEN_RESPONSES.CREATED_DATE,
+                                       ADYEN_RESPONSES.KB_TENANT_ID)
+                           .values(kbAccountId.toString(),
+                                   kbPaymentId.toString(),
+                                   kbPaymentTransactionId.toString(),
+                                   transactionType.toString(),
+                                   amount,
+                                   currency,
+                                   result.getResponse(),
+                                   result.getPspReference(),
+                                   null,
+                                   null,
+                                   null,
+                                   null,
+                                   null,
+                                   null,
+                                   null,
+                                   dccAmountValue == null ? null : new BigDecimal(dccAmountValue),
+                                   getProperty(AdyenPaymentPluginApi.PROPERTY_DCC_AMOUNT_CURRENCY, result),
+                                   getProperty(AdyenPaymentPluginApi.PROPERTY_DCC_SIGNATURE, result),
+                                   getProperty(AdyenPaymentPluginApi.PROPERTY_ISSUER_URL, result),
+                                   getProperty(AdyenPaymentPluginApi.PROPERTY_MD, result),
+                                   getProperty(AdyenPaymentPluginApi.PROPERTY_PA_REQ, result),
+                                   additionalData,
+                                   toTimestamp(utcNow),
+                                   kbTenantId.toString())
+                           .execute();
+                        return null;
+                    }
+                });
+    }
+
+    public AdyenResponsesRecord getResponse(final String pspReference) throws SQLException {
+        return execute(dataSource.getConnection(),
+                       new WithConnectionCallback<AdyenResponsesRecord>() {
+                           @Override
+                           public AdyenResponsesRecord withConnection(final Connection conn) throws SQLException {
+                               return DSL.using(conn, dialect, settings)
+                                         .selectFrom(ADYEN_RESPONSES)
+                                         .where(ADYEN_RESPONSES.PSP_REFERENCE.equal(pspReference))
+                                         .orderBy(ADYEN_RESPONSES.RECORD_ID.desc())
+                                         .fetchOne();
+                           }
+                       });
+    }
+
+    // Notifications
+
+    public void addNotification(@Nullable final UUID kbAccountId,
+                                @Nullable final UUID kbPaymentId,
+                                @Nullable final UUID kbPaymentTransactionId,
+                                @Nullable final TransactionType transactionType,
+                                final NotificationItem notification,
+                                final DateTime utcNow,
+                                @Nullable final UUID kbTenantId) throws SQLException {
+        final String additionalData = getAdditionalData(notification.getAdditionalData());
+
+        execute(dataSource.getConnection(),
+                new WithConnectionCallback<Void>() {
+                    @Override
+                    public Void withConnection(final Connection conn) throws SQLException {
+                        DSL.using(conn, dialect, settings)
+                           .insertInto(ADYEN_NOTIFICATIONS,
+                                       ADYEN_NOTIFICATIONS.KB_ACCOUNT_ID,
+                                       ADYEN_NOTIFICATIONS.KB_PAYMENT_ID,
+                                       ADYEN_NOTIFICATIONS.KB_PAYMENT_TRANSACTION_ID,
+                                       ADYEN_NOTIFICATIONS.TRANSACTION_TYPE,
+                                       ADYEN_NOTIFICATIONS.AMOUNT,
+                                       ADYEN_NOTIFICATIONS.CURRENCY,
+                                       ADYEN_NOTIFICATIONS.EVENT_CODE,
+                                       ADYEN_NOTIFICATIONS.EVENT_DATE,
+                                       ADYEN_NOTIFICATIONS.MERCHANT_ACCOUNT_CODE,
+                                       ADYEN_NOTIFICATIONS.MERCHANT_REFERENCE,
+                                       ADYEN_NOTIFICATIONS.OPERATIONS,
+                                       ADYEN_NOTIFICATIONS.ORIGINAL_REFERENCE,
+                                       ADYEN_NOTIFICATIONS.PAYMENT_METHOD,
+                                       ADYEN_NOTIFICATIONS.PSP_REFERENCE,
+                                       ADYEN_NOTIFICATIONS.REASON,
+                                       ADYEN_NOTIFICATIONS.SUCCESS,
+                                       ADYEN_NOTIFICATIONS.ADDITIONAL_DATA,
+                                       ADYEN_NOTIFICATIONS.CREATED_DATE,
+                                       ADYEN_NOTIFICATIONS.KB_TENANT_ID)
+                           .values(kbAccountId == null ? null : kbAccountId.toString(),
+                                   kbPaymentId == null ? null : kbPaymentId.toString(),
+                                   kbPaymentTransactionId == null ? null : kbPaymentTransactionId.toString(),
+                                   transactionType == null ? null : transactionType.toString(),
+                                   notification.getAmount(),
+                                   notification.getCurrency(),
+                                   notification.getEventCode(),
+                                   toTimestamp(notification.getEventDate()),
+                                   notification.getMerchantAccountCode(),
+                                   notification.getMerchantReference(),
+                                   getString(notification.getOperations()),
+                                   notification.getOriginalReference(),
+                                   notification.getPaymentMethod(),
+                                   notification.getPspReference(),
+                                   notification.getReason(),
+                                   fromBoolean(notification.getSuccess()),
+                                   additionalData,
+                                   toTimestamp(utcNow),
+                                   kbTenantId == null ? null : kbTenantId.toString())
+                           .execute();
+                        return null;
+                    }
+                });
+    }
+
+    public AdyenNotificationsRecord getNotification(final String pspReference) throws SQLException {
+        return execute(dataSource.getConnection(),
+                       new WithConnectionCallback<AdyenNotificationsRecord>() {
+                           @Override
+                           public AdyenNotificationsRecord withConnection(final Connection conn) throws SQLException {
+                               return DSL.using(conn, dialect, settings)
+                                         .selectFrom(ADYEN_NOTIFICATIONS)
+                                         .where(ADYEN_NOTIFICATIONS.PSP_REFERENCE.equal(pspReference))
+                                         .orderBy(ADYEN_NOTIFICATIONS.RECORD_ID.desc())
+                                         .fetchOne();
+                           }
+                       });
+    }
+
+    private String getErrorCodes(final PurchaseResult result) {
+        return getString(result.getErrorCodes());
+    }
+
+    private String getString(@Nullable final Iterable iterable) {
+        if (iterable == null || !iterable.iterator().hasNext()) {
+            return null;
+        } else {
+            return JOINER.join(Iterables.transform(iterable, Functions.toStringFunction()));
+        }
+    }
+
+    private String getProperty(final String key, final PurchaseResult result) {
+        return getProperty(key, result.getFormParameter());
+    }
+
+    private String getProperty(final String key, final PaymentModificationResponse response) {
+        return getProperty(key, response.getAdditionalData());
+    }
+
+    private String getAdditionalData(final PurchaseResult result) throws SQLException {
+        return getAdditionalData(result.getFormParameter());
+    }
+
+    private String getAdditionalData(final PaymentModificationResponse response) throws SQLException {
+        return getAdditionalData(response.getAdditionalData());
+    }
+
+    private String getAdditionalData(final Map additionalData) throws SQLException {
+        if (additionalData == null || additionalData.isEmpty()) {
             return null;
         }
+
         try {
-            return URLDecoder.decode(input, "UTF-8");
-        } catch (UnsupportedEncodingException e) {
-            // STEPH may need more thinking about that case
-            throw new RuntimeException(e);
+            return objectMapper.writeValueAsString(additionalData);
+        } catch (final JsonProcessingException e) {
+            throw new SQLException(e);
         }
     }
-
-    public List<AdyenPluginGatewayResponsesRecord> getEntriesForPaymentId(final UUID kbPaymentId) throws SQLException {
-        return execute(dataSource.getConnection(), new WithConnectionCallback<List<AdyenPluginGatewayResponsesRecord>>() {
-            @Override
-            public List<AdyenPluginGatewayResponsesRecord> withConnection(Connection conn) throws SQLException {
-                final Result<AdyenPluginGatewayResponsesRecord> records = DSL.using(conn, dialect).selectFrom(Tables.ADYEN_PLUGIN_GATEWAY_RESPONSES)
-                        .where(ADYEN_PLUGIN_GATEWAY_RESPONSES.KB_PAYMENT_ID.equal(kbPaymentId.toString()))
-                        .fetch();
-                return records;
-            }
-        });
-    }
-
-    private interface WithConnectionCallback<T> {
-        public T withConnection(final Connection conn) throws SQLException;
-    }
-
-    private <T> T execute(final Connection conn, WithConnectionCallback<T> callback) throws SQLException {
-        try {
-            return callback.withConnection(conn);
-        } finally {
-            conn.close();
-        }
-    }
-
 }

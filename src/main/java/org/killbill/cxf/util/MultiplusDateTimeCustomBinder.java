@@ -18,15 +18,14 @@ package org.killbill.cxf.util;
 
 public class MultiplusDateTimeCustomBinder {
 
-    public static String parseDateTime(String s) {
+    public static String parseDateTime(final String s) {
         return s;
     }
 
-    public static String printDateTime(String s) {
+    public static String printDateTime(final String s) {
         return s;
     }
 
     private MultiplusDateTimeCustomBinder() {
     }
-
 }

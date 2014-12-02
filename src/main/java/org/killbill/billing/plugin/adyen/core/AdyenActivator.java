@@ -16,29 +16,34 @@
 
 package org.killbill.billing.plugin.adyen.core;
 
-import org.jooq.SQLDialect;
+import java.util.Dictionary;
+import java.util.Hashtable;
+
+import javax.servlet.Servlet;
+import javax.servlet.http.HttpServlet;
+
 import org.killbill.billing.osgi.api.OSGIPluginProperties;
 import org.killbill.billing.payment.plugin.api.PaymentPluginApi;
 import org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi;
 import org.killbill.billing.plugin.adyen.client.AdyenConfigProperties;
 import org.killbill.billing.plugin.adyen.client.AdyenPaymentPortRegistry;
-import org.killbill.billing.plugin.adyen.client.AdyenRequestSender;
 import org.killbill.billing.plugin.adyen.client.PaymentPortRegistry;
+import org.killbill.billing.plugin.adyen.client.jaxws.HttpHeaderInterceptor;
+import org.killbill.billing.plugin.adyen.client.jaxws.LoggingInInterceptor;
+import org.killbill.billing.plugin.adyen.client.jaxws.LoggingOutInterceptor;
+import org.killbill.billing.plugin.adyen.client.payment.builder.AdyenRequestFactory;
+import org.killbill.billing.plugin.adyen.client.payment.converter.PaymentInfoConverterManagement;
+import org.killbill.billing.plugin.adyen.client.payment.converter.impl.PaymentInfoConverterService;
+import org.killbill.billing.plugin.adyen.client.payment.service.AdyenPaymentRequestSender;
+import org.killbill.billing.plugin.adyen.client.payment.service.AdyenPaymentServiceProviderPort;
+import org.killbill.billing.plugin.adyen.client.payment.service.Signer;
 import org.killbill.billing.plugin.adyen.dao.AdyenDao;
 import org.killbill.clock.Clock;
 import org.killbill.clock.DefaultClock;
 import org.killbill.killbill.osgi.libs.killbill.KillbillActivatorBase;
 import org.killbill.killbill.osgi.libs.killbill.OSGIKillbillEventDispatcher.OSGIKillbillEventHandler;
-import org.killbill.killbill.osgi.libs.killbill.OSGIKillbillLogService;
 import org.osgi.framework.BundleContext;
 import org.osgi.service.log.LogService;
-import org.skife.config.ConfigurationObjectFactory;
-
-import javax.servlet.Servlet;
-import javax.servlet.http.HttpServlet;
-import java.util.Dictionary;
-import java.util.Hashtable;
-import java.util.Properties;
 
 public class AdyenActivator extends KillbillActivatorBase {
 
@@ -49,27 +54,24 @@ public class AdyenActivator extends KillbillActivatorBase {
         super.start(context);
 
         // For safety, we want to enter with context class loader set to the Felix bundle and not the one from the web app.
-        // This is not stricly required in that initialization but if we were to do fancy things-- like initializing apache cxf
+        // This is not strictly required in that initialization but if we were to do fancy things (like initializing apache cxf),
         // that would break without it.
         Thread.currentThread().setContextClassLoader(this.getClass().getClassLoader());
 
         logService.log(LogService.LOG_INFO, "Entering AdyenActivator start");
 
-
-        // Register a servlet (optional)
-        final AdyenServlet adyenServlet = new AdyenServlet(logService);
+        // Register the servlet
+        final AdyenServlet adyenServlet = new AdyenServlet();
         registerServlet(context, adyenServlet);
 
-        final AdyenDao dao = new AdyenDao(dataSource.getDataSource(), SQLDialect.MYSQL);
-
+        // Register the payment plugin
         final Clock clock = new DefaultClock();
-
-        final AdyenConfig config = readAdyenConfigFromProperties(configProperties.getProperties());
-
-        final AdyenConfigProperties configProperties = new AdyenConfigProperties(config);
-        final AdyenRequestSender adyenClient = initializeAdyenClient(configProperties, logService);
-        final AdyenPaymentPluginApi pluginApi = new AdyenPaymentPluginApi(killbillAPI, dao, clock, logService, adyenClient, configProperties.getMerchantAccount("DE"));
+        final AdyenDao dao = new AdyenDao(dataSource.getDataSource());
+        final AdyenConfigProperties adyenConfigProperties = new AdyenConfigProperties(configProperties.getProperties());
+        final AdyenPaymentServiceProviderPort adyenClient = initializeAdyenClient(adyenConfigProperties);
+        final AdyenPaymentPluginApi pluginApi = new AdyenPaymentPluginApi(adyenConfigProperties, adyenClient, killbillAPI, configProperties, logService, clock, dao);
         registerPaymentPluginApi(context, pluginApi);
+
         logService.log(LogService.LOG_INFO, "Exiting AdyenActivator start");
     }
 
@@ -78,7 +80,6 @@ public class AdyenActivator extends KillbillActivatorBase {
         Thread.currentThread().setContextClassLoader(this.getClass().getClassLoader());
         logService.log(LogService.LOG_INFO, "AdyenActivator stopping");
         super.stop(context);
-        // Do additional work on shutdown (optional)
     }
 
     @Override
@@ -86,15 +87,19 @@ public class AdyenActivator extends KillbillActivatorBase {
         return null;
     }
 
+    private AdyenPaymentServiceProviderPort initializeAdyenClient(final AdyenConfigProperties adyenConfigProperties) throws Exception {
+        final PaymentInfoConverterManagement paymentInfoConverterManagement = new PaymentInfoConverterService();
 
-    private AdyenConfig readAdyenConfigFromProperties(final Properties properties) {
-        return new ConfigurationObjectFactory(properties).build(AdyenConfig.class);
-    }
+        final Signer signer = new Signer(adyenConfigProperties);
+        final AdyenRequestFactory adyenRequestFactory = new AdyenRequestFactory(paymentInfoConverterManagement, adyenConfigProperties, signer);
 
-    private AdyenRequestSender initializeAdyenClient(final AdyenConfigProperties configProperties, OSGIKillbillLogService logService) throws Exception {
-        final PaymentPortRegistry portRegistry = new AdyenPaymentPortRegistry(configProperties, logService);
-        final AdyenRequestSender adyenClient = new AdyenRequestSender(portRegistry);
-        return adyenClient;
+        final LoggingInInterceptor loggingInInterceptor = new LoggingInInterceptor();
+        final LoggingOutInterceptor loggingOutInterceptor = new LoggingOutInterceptor();
+        final HttpHeaderInterceptor httpHeaderInterceptor = new HttpHeaderInterceptor();
+        final PaymentPortRegistry adyenPaymentPortRegistry = new AdyenPaymentPortRegistry(adyenConfigProperties, loggingInInterceptor, loggingOutInterceptor, httpHeaderInterceptor);
+        final AdyenPaymentRequestSender adyenPaymentRequestSender = new AdyenPaymentRequestSender(adyenPaymentPortRegistry);
+
+        return new AdyenPaymentServiceProviderPort(paymentInfoConverterManagement, adyenRequestFactory, adyenPaymentRequestSender);
     }
 
     private void registerServlet(final BundleContext context, final HttpServlet servlet) {
@@ -108,5 +113,4 @@ public class AdyenActivator extends KillbillActivatorBase {
         props.put(OSGIPluginProperties.PLUGIN_NAME_PROP, PLUGIN_NAME);
         registrar.registerService(context, PaymentPluginApi.class, api, props);
     }
-
 }

@@ -16,46 +16,29 @@
 
 package org.killbill.billing.plugin.adyen.core;
 
-import com.google.common.base.Charsets;
-import com.google.common.io.CharStreams;
-import com.google.common.io.InputSupplier;
-import org.osgi.service.log.LogService;
-
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServlet;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.UnsupportedEncodingException;
-import java.net.URLDecoder;
 import java.util.HashMap;
 import java.util.Map;
 
-public class AdyenServlet extends HttpServlet {
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 
-    private final LogService logService;
+import org.killbill.billing.plugin.core.PluginServlet;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-    public AdyenServlet(final LogService logService) {
-        this.logService = logService;
-    }
+public class AdyenServlet extends PluginServlet {
+
+    private static final Logger logger = LoggerFactory.getLogger(AdyenServlet.class);
 
     @Override
     protected void doGet(final HttpServletRequest req, final HttpServletResponse resp) throws ServletException, IOException {
-        // Find me on http://127.0.0.1:8080/plugins/killbill-adyen
-        logService.log(LogService.LOG_INFO, "It works!");
     }
 
     @Override
-    protected void doPost(HttpServletRequest req, HttpServletResponse resp)
-            throws ServletException, IOException {
-
-        final InputStream input = req.getInputStream();
-        String formUrlEncoded = CharStreams.toString(CharStreams.newReaderSupplier(new InputSupplier<InputStream>() {
-            public InputStream getInput() throws IOException {
-                return input;
-            }
-        }, Charsets.UTF_8));
+    protected void doPost(final HttpServletRequest req, final HttpServletResponse resp) throws ServletException, IOException {
+        final String formUrlEncoded = getRequestData(req);
 
         final String[] keyValuePairs = formUrlEncoded.split("\\&");
         final Map<String, String> parameters = new HashMap<String, String>();
@@ -69,14 +52,14 @@ public class AdyenServlet extends HttpServlet {
             }
         }
 
-        StringBuffer tmp = new StringBuffer("TermUrl parameters:\n\n");
-        for (String key: parameters.keySet()) {
+        final StringBuffer tmp = new StringBuffer("TermUrl parameters:\n\n");
+        for (final String key : parameters.keySet()) {
             tmp.append(key);
             tmp.append(": ");
             tmp.append(parameters.get(key));
             tmp.append("\n\n");
         }
 
-        logService.log(LogService.LOG_INFO, tmp.toString());
+        logger.info(tmp.toString());
     }
 }

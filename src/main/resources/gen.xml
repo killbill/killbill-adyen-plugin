@@ -60,7 +60,7 @@
                  case-sensitivity. Depending on your database, this might be
                  important! You can create case-insensitive regular expressions
                  using this syntax: (?i:expr) -->
-            <includes>adyen_plugin_gateway_responses</includes>
+            <includes>adyen_.*</includes>
 
             <!-- All elements that are excluded from your schema (A Java regular expression.
                  Use the pipe to separate several expressions). Excludes match before

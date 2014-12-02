@@ -16,112 +16,108 @@
 
 package org.killbill.billing.plugin.adyen.client;
 
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
+import javax.xml.namespace.QName;
+import javax.xml.ws.BindingProvider;
+import javax.xml.ws.Service;
+import javax.xml.ws.soap.SOAPBinding;
+
+import org.apache.cxf.common.logging.LogUtils;
+import org.apache.cxf.common.logging.Slf4jLogger;
 import org.apache.cxf.endpoint.Client;
 import org.apache.cxf.endpoint.Endpoint;
 import org.apache.cxf.frontend.ClientProxy;
 import org.apache.cxf.transport.http.HTTPConduit;
 import org.killbill.adyen.payment.Payment;
 import org.killbill.adyen.payment.PaymentPortType;
-import org.osgi.service.log.LogService;
+import org.killbill.billing.plugin.adyen.client.jaxws.HttpHeaderInterceptor;
+import org.killbill.billing.plugin.adyen.client.jaxws.IgnoreUnexpectedElementsEventHandler;
+import org.killbill.billing.plugin.adyen.client.jaxws.LoggingInInterceptor;
+import org.killbill.billing.plugin.adyen.client.jaxws.LoggingOutInterceptor;
 
-import javax.xml.namespace.QName;
-import javax.xml.ws.BindingProvider;
-import javax.xml.ws.Service;
-import javax.xml.ws.soap.SOAPBinding;
-import java.net.URL;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-
-import static com.google.common.base.Preconditions.checkNotNull;
-import static org.killbill.billing.plugin.adyen.client.AdyenConfigProperties.gbToUK;
-
+import com.google.common.base.Preconditions;
 
 public class AdyenPaymentPortRegistry implements PaymentPortRegistry {
 
-    private final AdyenConfigProperties config;
-    private final Map<String, Object> services;
-    private final LogService logService;
-
     private final static String PAYMENT_SERVICE_SUFFIX = "-paymentService";
 
+    private final AdyenConfigProperties config;
+    private final LoggingOutInterceptor loggingOutInterceptor;
+    private final LoggingInInterceptor loggingInInterceptor;
+    private final HttpHeaderInterceptor httpHeaderInterceptor;
+    private final Map<String, Object> services;
 
-    public AdyenPaymentPortRegistry(AdyenConfigProperties config, LogService logService)
-            throws Exception {
-        this.logService = logService;
-        this.config = checkNotNull(config, "config");
+    public AdyenPaymentPortRegistry(final AdyenConfigProperties config,
+                                    final LoggingInInterceptor loggingInInterceptor,
+                                    final LoggingOutInterceptor loggingOutInterceptor,
+                                    final HttpHeaderInterceptor httpHeaderInterceptor) {
+        this.loggingInInterceptor = loggingInInterceptor;
+        this.loggingOutInterceptor = loggingOutInterceptor;
+        this.config = Preconditions.checkNotNull(config, "config");
+        config.addOnChangeFunction(new ClearServices());
         this.services = new ConcurrentHashMap<String, Object>();
+        this.httpHeaderInterceptor = httpHeaderInterceptor;
     }
-
 
     @Override
     public PaymentPortType getPaymentPort(final String countryIsoCode) {
+        final String countryCode = AdyenConfigProperties.gbToUK(countryIsoCode);
 
-        final String countryCode = gbToUK(countryIsoCode);
-
-        if (!this.services.containsKey(checkNotNull(countryCode) + PAYMENT_SERVICE_SUFFIX)) {
-            Object service = createService(Payment.SERVICE, Payment.PaymentHttpPort, PaymentPortType.class, config.getPaymentUrl(),
-                    config.getUserName(countryCode), config.getPassword(countryCode));
+        if (!this.services.containsKey(countryCode + PAYMENT_SERVICE_SUFFIX)) {
+            final Object service = createService(Payment.SERVICE,
+                                                 Payment.PaymentHttpPort,
+                                                 config.getPaymentUrl(),
+                                                 config.getUserName(countryCode),
+                                                 config.getPassword(countryCode),
+                                                 null);
             this.services.put(countryCode + PAYMENT_SERVICE_SUFFIX, service);
         }
         return (PaymentPortType) this.services.get(countryCode + PAYMENT_SERVICE_SUFFIX);
     }
 
+    private PaymentPortType createService(final QName service,
+                                          final QName portName,
+                                          final String address,
+                                          final String userName,
+                                          final String password,
+                                          final String timeout) {
+        Preconditions.checkNotNull(service, "service");
+        Preconditions.checkNotNull(portName, "portName");
+        Preconditions.checkNotNull(address, "address");
+        Preconditions.checkNotNull(userName, "username");
+        Preconditions.checkNotNull(password, "password");
 
-    private Object createService(final QName service,
-                                 final QName portName,
-                                 final Class<?> serviceEndpointInterfaceClass,
-                                 final String address,
-                                 final String userName,
-                                 final String password) {
+        // Delegate logging to slf4j (see also https://github.com/killbill/killbill-platform/tree/master/osgi-bundles/libs/slf4j-osgi)
+        LogUtils.setLoggerClass(Slf4jLogger.class);
 
-        return createService(service, portName, serviceEndpointInterfaceClass, address, userName, password, null);
-    }
-
-    private Object createService(final QName service,
-                                 final QName portName,
-                                 final Class<?> serviceEndpointInterfaceClass,
-                                 final String address,
-                                 final String userName,
-                                 final String password,
-                                 final String timeout) {
-        checkNotNull(service, "service");
-        checkNotNull(portName, "portName");
-        checkNotNull(serviceEndpointInterfaceClass, "serviceEndpointInterfaceClass");
-        checkNotNull(address, "address");
-        checkNotNull(userName, "userName");
-        checkNotNull(password, "password");
-        // we don't use an wsdl as we don't want the hassle with retrieving it online(that may change, be unavailable)
-        // or from the right location in all our different deployments
-
-        logService.log(LogService.LOG_INFO, "Initializing Adyen gateway client..." +
-                ", service = " + service +
-                ", address = " + address +
-                ", portName = " + portName +
-                ", userName = " + userName
-                /* + ", password = " + password */);
-
-        //URL uri = this.getClass().getClassLoader().getResource("cxf/Payment.wsdl");
-        //Service result = Service.create(uri, service);
-        Service result = Service.create(null, service);
-
-        // configure the endPointAddress
+        final Service result = Service.create(null, service);
         result.addPort(portName, SOAPBinding.SOAP11HTTP_BINDING, address);
-        // configure username/pw
-        Object port = result.getPort(portName, serviceEndpointInterfaceClass);
-        Client client = ClientProxy.getClient(port);
+        final PaymentPortType port = result.getPort(portName, PaymentPortType.class);
+        final Client client = ClientProxy.getClient(port);
         client.getEndpoint().put("jaxb-validation-event-handler", new IgnoreUnexpectedElementsEventHandler());
+        final HTTPConduit conduit = (HTTPConduit) client.getConduit();
+        conduit.getClient().setAllowChunking(config.getAllowChunking());
         if (timeout != null) {
-            HTTPConduit conduit = (HTTPConduit) client.getConduit();
             conduit.getClient().setReceiveTimeout(Long.valueOf(timeout));
         }
         ((BindingProvider) port).getRequestContext().put(BindingProvider.USERNAME_PROPERTY, userName);
         ((BindingProvider) port).getRequestContext().put(BindingProvider.PASSWORD_PROPERTY, password);
-        // configure logging interceptors
-        // it seems this can be done only using cxf
-        Endpoint endpoint = client.getEndpoint();
-        endpoint.getInInterceptors().add(new ObfuscatingLoggingInInterceptor());
-        endpoint.getOutInterceptors().add(new ObfuscatingLoggingOutInterceptor());
-        logService.log(LogService.LOG_INFO, "Done initializing Adyen gateway client...");
+
+        final Endpoint endpoint = client.getEndpoint();
+        endpoint.getInInterceptors().add(loggingInInterceptor);
+        endpoint.getOutInterceptors().add(loggingOutInterceptor);
+        endpoint.getOutInterceptors().add(httpHeaderInterceptor);
+
         return port;
+    }
+
+    private class ClearServices implements Runnable {
+
+        @Override
+        public void run() {
+            services.clear();
+        }
     }
 }

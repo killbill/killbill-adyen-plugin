@@ -19,5 +19,6 @@ package org.killbill.billing.plugin.adyen.client;
 import org.killbill.adyen.payment.PaymentPortType;
 
 public interface PaymentPortRegistry {
+
     PaymentPortType getPaymentPort(String countryIsoCode);
 }

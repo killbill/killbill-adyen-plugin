@@ -1,34 +1,164 @@
-# killbill-adyen-plugin
+killbill-adyen-plugin
+=====================
 
-## What is it?
+Plugin to use [Adyen](https://www.adyen.com/home/) as a gateway.
 
-This is a Kill Bill plugin to connect to Adyen (to be used as a payment gateway)
+Release builds are available on [Maven Central](http://search.maven.org/#search%7Cga%7C1%7Cg%3A%22org.kill-bill.billing.plugin.java%22%20AND%20a%3A%22adyen-plugin%22) with coordinates `org.kill-bill.billing.plugin.java:adyen-plugin`.
 
-## Status
+Requirements
+------------
 
-Currently this is just a partial implementation, that was used to demo the use of 3DS call on top of Adyen.
+The plugin needs a database. The latest version of the schema can be found here: https://github.com/killbill/killbill-adyen-plugin/blob/master/src/main/resources/ddl.sql.
 
-However, the heavy lifting work required to make OSGI work with org.apache.cxf (used to provide all the glue to make SOAP calls) is working correctly. At this stage this is just a matter to implement the remaing calls (credit, capture, similarly to what has been done to authorization).
+Configuration
+-------------
 
-## Configuration
+The following System Properties are required:
 
-Build the plugin using `mvn clean install`
+* `org.killbill.billing.plugin.adyen.merchantAccount`: your merchant account(s)
+* `org.killbill.billing.plugin.adyen.username`: your username(s)
+* `org.killbill.billing.plugin.adyen.password`: your password(s)
+* `org.killbill.billing.plugin.adyen.paymentUrl`: SOAP Payment service url (i.e. `https://pal-test.adyen.com/pal/servlet/soap/Payment` or `https://pal-live.adyen.com/pal/servlet/soap/Payment`)
 
-Add the configuration parameters for Adyen plugin:
-* org.killbill.billing.plugin.adyen.merchantAccounts=...
-* org.killbill.billing.plugin.adyen.userNames=...
-* org.killbill.billing.plugin.adyen.passwords=...
-* org.killbill.billing.plugin.adyen.paymentUrl=...
+The format for the merchant account(s), username(s) and password(s) is `XX#YY|XX#YY|...` where:
 
+* `XX` is the country code (DE, FR, etc.)
+* `YY` is the value (merchant account, username of the form `ws@Company.[YourCompanyAccount]` or password)
 
+If you have a single country, omit the country code part.
 
-Then install it under `<PLUGIN_INSTALL>/plugins/java/killbill-adyen/<VERSION>`, where:
-* `PLUGIN_INSTALL` is by default `/var/tmp/bundles` or the value of the system property `org.killbill.osgi.bundle.install.dir`
-* `VERSION` is a string that should match the version of your plugin
+To configure HPP:
 
-For e.g: `/var/tmp/bundles/plugins/java/killbill-adyen/0.0.1-SNAPSHOT/adyen-plugin-0.0.1-SNAPSHOT-jar-with-dependencies.jar`
+* `org.killbill.billing.plugin.adyen.hpp.target`: host payment page url (e.g. https://test.adyen.com/hpp/pay.shtml)
+* `org.killbill.billing.plugin.adyen.hmac.secret`: your hmac secret(s)
+* `org.killbill.billing.plugin.adyen.skin`: you skin code(s)
 
-## Start KIll Bill
+The format for secrets and skins is the same as above if you support multiple countries.
 
-You can use `./bin/start-server -s` from the main [killbill repo](https://github.com/killbill/killbill), or use the [executable war] (http://killbill.io/downloads/)
+Usage
+-----
 
+Add a payment method:
+
+```
+curl -v \
+     -u admin:password \
+     -H "X-Killbill-ApiKey: bob" \
+     -H "X-Killbill-ApiSecret: lazar" \
+     -H "Content-Type: application/json" \
+     -H "X-Killbill-CreatedBy: demo" \
+     -X POST \
+     --data-binary '{
+       "pluginName": "killbill-adyen",
+       "pluginInfo": {
+         "properties": [
+           {
+             "key": "ccLastName",
+             "value": "KillBill"
+           },
+           {
+             "key": "ccExpirationMonth",
+             "value": 8
+           },
+           {
+             "key": "ccExpirationYear",
+             "value": 2018
+           },
+           {
+             "key": "ccNumber",
+             "value": 4111111111111111
+           },
+           {
+             "key": "ccVerificationValue",
+             "value": 737
+           }
+         ]
+       }
+     }' \
+     "http://127.0.0.1:8080/1.0/kb/accounts/<ACCOUNT_ID>/paymentMethods?isDefault=true"
+```
+
+Notes:
+* Make sure to replace *ACCOUNT_ID* with the id of the Kill Bill account
+* Details for working payment methods are available here: https://www.adyen.com/home/support/knowledgebase/implementation-articles.html
+
+To trigger a payment:
+
+```
+curl -v \
+     -u admin:password \
+     -H "X-Killbill-ApiKey: bob" \
+     -H "X-Killbill-ApiSecret: lazar" \
+     -H "Content-Type: application/json" \
+     -H "X-Killbill-CreatedBy: demo" \
+     -X POST \
+     --data-binary '{"transactionType":"AUTHORIZE","amount":"5","currency":"EUR","transactionExternalKey":"INV-'$(uuidgen)'-PURCHASE"}' \
+    "http://127.0.0.1:8080/1.0/kb/accounts/<ACCOUNT_ID>/payments?pluginProperty=country=DE"
+```
+
+Notes:
+* Make sure to replace *ACCOUNT_ID* with the id of the Kill Bill account
+* The country plugin property will be used to retrieve your merchant account
+
+At this point, the payment will be in *PENDING* state, until we receive a notification from Adyen. You can verify the state of the transaction by listing the payments:
+
+```
+curl -v \
+     -u admin:password \
+     -H "X-Killbill-ApiKey: bob" \
+     -H "X-Killbill-ApiSecret: lazar" \
+     -H "Content-Type: application/json" \
+     -H "X-Killbill-CreatedBy: demo" \
+    "http://127.0.0.1:8080/1.0/kb/accounts/<ACCOUNT_ID>/payments?withPluginInfo=true"
+```
+
+You can simulate a notification from Adyen as follows:
+
+```
+curl -v \
+     -u admin:password \
+     -H "X-Killbill-ApiKey: bob" \
+     -H "X-Killbill-ApiSecret: lazar" \
+     -H "Content-Type: application/json" \
+     -H "X-Killbill-CreatedBy: demo" \
+     -X POST \
+     --data-binary '<?xml version="1.0" encoding="UTF-8"?>
+<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <soap:Body>
+    <ns1:sendNotification xmlns:ns1="http://notification.services.adyen.com">
+      <ns1:notification>
+        <live xmlns="http://notification.services.adyen.com">true</live>
+        <notificationItems xmlns="http://notification.services.adyen.com">
+          <NotificationRequestItem>
+            <additionalData xsi:nil="true"/>
+            <amount>
+              <currency xmlns="http://common.services.adyen.com">EUR</currency>
+              <value xmlns="http://common.services.adyen.com">2995</value>
+            </amount>
+            <eventCode>AUTHORISATION</eventCode>
+            <eventDate>2013-04-15T06:59:22.278+02:00</eventDate>
+            <merchantAccountCode>TestMerchant</merchantAccountCode>
+            <merchantReference>325147059</merchantReference>
+            <operations>
+              <string>CANCEL</string>
+              <string>CAPTURE</string>
+              <string>REFUND</string>
+            </operations>
+            <originalReference xsi:nil="true"/>
+            <paymentMethod>visa</paymentMethod>
+            <pspReference>4823660019473428</pspReference>
+            <reason>111647:7629:5/2014</reason>
+            <success>true</success>
+          </NotificationRequestItem>
+        </notificationItems>
+      </ns1:notification>
+    </ns1:sendNotification>
+  </soap:Body>
+</soap:Envelope>' \
+    "http://127.0.0.1:8080/1.0/kb/paymentGateways/notification/killbill-adyen"
+```
+
+Notes:
+* Make sure to replace *pspReference* with the psp reference of your payment (see the *adyen_responses* table)
+* If *success* is true, the payment transaction state will be *SUCCESS* and the payment state *AUTH_SUCCESS*
+* If *success* is false, the payment transaction state will be *PAYMENT_FAILURE* and the payment state *AUTH_FAILED*
