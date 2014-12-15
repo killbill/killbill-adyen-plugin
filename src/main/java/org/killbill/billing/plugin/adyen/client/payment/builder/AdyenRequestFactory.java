@@ -179,7 +179,6 @@ public class AdyenRequestFactory {
                                         final String customerId,
                                         final Locale customerLocale) throws SignatureGenerationException {
         final String countryCode = AdyenConfigProperties.gbToUK(customerLocale.getCountry());
-        Preconditions.checkState(!Strings.isNullOrEmpty(countryCode), "userData#customerLocale#countryCode");
 
         final String skin = adyenConfigProperties.getSkin(countryIsoCode);
         Preconditions.checkState(!Strings.isNullOrEmpty(skin), "skin for " + countryIsoCode);
@@ -197,7 +196,7 @@ public class AdyenRequestFactory {
                                                                  .withShopperEmail(customerEmail)
                                                                  .withShopperReference(customerId)
                                                                  .withRecurringContract(paymentProvider)
-                                                                 .withResURL(serverUrl + resultUrl)
+                                                                 .withResURL(resultUrl == null ? serverUrl : serverUrl + resultUrl)
                                                                  .withSessionValidity(sessionValidityString)
                                                                  .withBrandCodeAndOrAllowedMethods(paymentInfo)
                                                                  .withShopperLocale(paymentProvider.getPaymentType(), customerLocale)

@@ -30,7 +30,8 @@ import static org.killbill.billing.plugin.adyen.client.model.WebFrontendType.POP
 public enum PaymentType {
 
     ELV(1, "elv", "ec", null, null, null, 1, NO_CREDITCARD),
-    CREDITCARD(2, new String[]{"creditcard", "visa", "mc", "bijcard", "visadankort"}, "creditcard", null, null, null, 2, IS_CREDITCARD), // gc & allpago don't support multiple cards through one type
+    // "card" is a magic word, see section 2.9 of the HPP Integration manual
+    CREDITCARD(2, new String[]{"card", "visa", "mc", "bijcard", "visadankort"}, "creditcard", null, null, null, 2, IS_CREDITCARD), // gc & allpago don't support multiple cards through one type
     MAESTROUK(3, new String[]{"maestrouk", "solo"}, "maestrouk", null, 117, "MAESTRO", 2, NO_CREDITCARD),
     AMEX(4, "amex", "amex", null, 2, "AMEX", 2, IS_CREDITCARD),
     CARTE_BLEUE(5, "carte_bleue", "carte_bleue", null, 130, "CARTEBLEUE", 2, IS_CREDITCARD),
@@ -112,6 +113,7 @@ public enum PaymentType {
     TRUSTLY(81, "trustly", "trustly", FORWARDING_FRONTEND, null, null, 6, NO_CREDITCARD),
     MULTIBANCO(82, "multibanco", "multibanco", FORWARDING_FRONTEND, null, null, 6, NO_CREDITCARD),
     SEPA_DIRECT_DEBIT(83, "sepadirectdebit", "sepadirectdebit", null, null, null, 6, NO_CREDITCARD),
+    BANK_TRANSFER(84, "bankTransfer", "bankTransfer", null, null, null, 6, NO_CREDITCARD),
 
     EMPTY(null, "", null, null, null, null, 6, NO_CREDITCARD); // extra payment type for better caching of recurring payment infos (when were is no info object available we use this payment type)
 
@@ -151,8 +153,10 @@ public enum PaymentType {
         return this.id;
     }
 
+    // Note! This will be used as the allowedMethods and brandCode parameters for HPP
+    // See the section 2.9 of the HPP Integration Manual at https://www.adyen.com/home/support/manuals
     public String getName() {
-        return this.names[0]; // always use the first name as unique name for everything
+        return this.names[0];
     }
 
     public static PaymentType getByName(final String name) {

@@ -17,8 +17,10 @@
 package org.killbill.billing.plugin.adyen.api;
 
 import java.math.BigDecimal;
+import java.net.URISyntaxException;
 import java.sql.SQLException;
 import java.util.Locale;
+import java.util.Map;
 import java.util.UUID;
 
 import javax.annotation.Nullable;
@@ -37,6 +39,7 @@ import org.killbill.billing.payment.plugin.api.GatewayNotification;
 import org.killbill.billing.payment.plugin.api.HostedPaymentPageFormDescriptor;
 import org.killbill.billing.payment.plugin.api.PaymentMethodInfoPlugin;
 import org.killbill.billing.payment.plugin.api.PaymentPluginApiException;
+import org.killbill.billing.payment.plugin.api.PaymentPluginStatus;
 import org.killbill.billing.payment.plugin.api.PaymentTransactionInfoPlugin;
 import org.killbill.billing.plugin.adyen.client.AdyenConfigProperties;
 import org.killbill.billing.plugin.adyen.client.model.OrderData;
@@ -50,9 +53,12 @@ import org.killbill.billing.plugin.adyen.client.model.PurchaseResult;
 import org.killbill.billing.plugin.adyen.client.model.SplitSettlementData;
 import org.killbill.billing.plugin.adyen.client.model.UserData;
 import org.killbill.billing.plugin.adyen.client.model.paymentinfo.CreditCard;
+import org.killbill.billing.plugin.adyen.client.model.paymentinfo.WebPaymentFrontend;
 import org.killbill.billing.plugin.adyen.client.notification.AdyenNotificationHandler;
 import org.killbill.billing.plugin.adyen.client.notification.AdyenNotificationService;
 import org.killbill.billing.plugin.adyen.client.payment.exception.ModificationFailedException;
+import org.killbill.billing.plugin.adyen.client.payment.exception.SignatureGenerationException;
+import org.killbill.billing.plugin.adyen.client.payment.service.AdyenPaymentServiceProviderHostedPaymentPagePort;
 import org.killbill.billing.plugin.adyen.client.payment.service.AdyenPaymentServiceProviderPort;
 import org.killbill.billing.plugin.adyen.core.KillbillAdyenNotificationHandler;
 import org.killbill.billing.plugin.adyen.dao.AdyenDao;
@@ -72,6 +78,7 @@ import org.osgi.service.log.LogService;
 import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
+import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterables;
 
@@ -85,6 +92,24 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
     public static final String PROPERTY_IP = "ip";
     public static final String PROPERTY_HOLDER_NAME = "holderName";
     public static final String PROPERTY_SHIP_BEFORE_DATE = "shipBeforeDate";
+    public static final String PROPERTY_PAYMENT_PROVIDER_TYPE = "paymentProviderType";
+    public static final String PROPERTY_PAYMENT_EXTERNAL_KEY = "paymentExternalKey";
+    public static final String PROPERTY_SERVER_URL = "serverUrl";
+    public static final String PROPERTY_RESULT_URL = "resultUrl";
+
+    public static final String PROPERTY_ADDITIONAL_DATA = "additionalData";
+    public static final String PROPERTY_EVENT_CODE = "eventCode";
+    public static final String PROPERTY_EVENT_DATE = "eventDate";
+    public static final String PROPERTY_MERCHANT_ACCOUNT_CODE = "merchantAccountCode";
+    public static final String PROPERTY_MERCHANT_REFERENCE = "merchantReference";
+    public static final String PROPERTY_OPERATIONS = "operations";
+    public static final String PROPERTY_ORIGINAL_REFERENCE = "originalReference";
+    public static final String PROPERTY_PAYMENT_METHOD = "paymentMethod";
+    public static final String PROPERTY_PSP_REFERENCE = "pspReference";
+    public static final String PROPERTY_REASON = "reason";
+    public static final String PROPERTY_SUCCESS = "success";
+
+    public static final String PROPERTY_FROM_HPP = "fromHPP";
 
     // 3-D Secure
     public static final String PROPERTY_PA_REQ = "PaReq";
@@ -97,13 +122,15 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
 
     private final AdyenConfigProperties adyenConfigProperties;
     private final AdyenPaymentServiceProviderPort adyenClient;
+    private final AdyenPaymentServiceProviderHostedPaymentPagePort adyenHppClient;
     private final AdyenDao dao;
     private final AdyenNotificationService adyenNotificationService;
 
-    public AdyenPaymentPluginApi(final AdyenConfigProperties adyenConfigProperties, final AdyenPaymentServiceProviderPort adyenClient, final OSGIKillbillAPI killbillApi, final OSGIConfigPropertiesService osgiConfigPropertiesService, final OSGIKillbillLogService logService, final Clock clock, final AdyenDao dao) throws JAXBException {
+    public AdyenPaymentPluginApi(final AdyenConfigProperties adyenConfigProperties, final AdyenPaymentServiceProviderPort adyenClient, final AdyenPaymentServiceProviderHostedPaymentPagePort adyenHppClient, final OSGIKillbillAPI killbillApi, final OSGIConfigPropertiesService osgiConfigPropertiesService, final OSGIKillbillLogService logService, final Clock clock, final AdyenDao dao) throws JAXBException {
         super(killbillApi, osgiConfigPropertiesService, logService, clock, dao);
         this.adyenConfigProperties = adyenConfigProperties;
         this.adyenClient = adyenClient;
+        this.adyenHppClient = adyenHppClient;
         this.dao = dao;
 
         final KillbillAdyenNotificationHandler adyenNotificationHandler = new KillbillAdyenNotificationHandler(killbillApi, dao, clock);
@@ -170,7 +197,19 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
 
     @Override
     public PaymentTransactionInfoPlugin purchasePayment(final UUID kbAccountId, final UUID kbPaymentId, final UUID kbTransactionId, final UUID kbPaymentMethodId, final BigDecimal amount, final Currency currency, final Iterable<PluginProperty> properties, final CallContext context) throws PaymentPluginApiException {
-        throw new PaymentPluginApiException(null, "PURCHASE: unsupported operation");
+        final boolean fromHPP = Boolean.valueOf(PluginProperties.findPluginPropertyValue(PROPERTY_FROM_HPP, properties));
+        if (!fromHPP) {
+            throw new PaymentPluginApiException(null, "PURCHASE: unsupported operation");
+        } else {
+            // We are processing a notification, see KillbillAdyenNotificationHandler
+            final DateTime utcNow = clock.getUTCNow();
+            try {
+                dao.addResponse(kbAccountId, kbPaymentId, kbTransactionId, TransactionType.PURCHASE, amount, currency, PluginProperties.toMap(properties), utcNow, context.getTenantId());
+                return new AdyenPaymentTransactionInfoPlugin(kbPaymentId, kbTransactionId, TransactionType.PURCHASE, amount, currency, utcNow, PaymentPluginStatus.PROCESSED);
+            } catch (final SQLException e) {
+                throw new PaymentPluginApiException("HPP notification came through, but we encountered a database error", e);
+            }
+        }
     }
 
     @Override
@@ -220,7 +259,43 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
 
     @Override
     public HostedPaymentPageFormDescriptor buildFormDescriptor(final UUID kbAccountId, final Iterable<PluginProperty> customFields, final Iterable<PluginProperty> properties, final CallContext context) throws PaymentPluginApiException {
-        return null;
+        final Iterable<PluginProperty> mergedProperties = PluginProperties.merge(customFields, properties);
+
+        final String amountString = PluginProperties.findPluginPropertyValue(PROPERTY_AMOUNT, mergedProperties);
+        Preconditions.checkState(!Strings.isNullOrEmpty(amountString), "amount not specified");
+        final long amount = new BigDecimal(amountString).longValue();
+
+        final Account account = getAccount(kbAccountId, context);
+
+        final PaymentData paymentData = buildPaymentData(account, mergedProperties, context);
+        final OrderData orderData = buildOrderData(account, mergedProperties);
+        final UserData userData = buildUserData(account, mergedProperties);
+
+        final String serverUrl = PluginProperties.findPluginPropertyValue(PROPERTY_SERVER_URL, mergedProperties);
+        Preconditions.checkState(!Strings.isNullOrEmpty(serverUrl), "serverUrl not specified");
+        final String resultUrl = PluginProperties.findPluginPropertyValue(PROPERTY_RESULT_URL, mergedProperties);
+
+        try {
+            // Need to store on disk the mapping payment <-> user because Adyen's notification won't provide the latter
+            dao.addHppRequest(kbAccountId, paymentData.getPaymentTxnInternalRef(), PluginProperties.toMap(mergedProperties), clock.getUTCNow(), context.getTenantId());
+        } catch (final SQLException e) {
+            throw new PaymentPluginApiException("Unable to store HPP request", e);
+        }
+
+        final Map<String, String> formParameter;
+        try {
+            formParameter = adyenHppClient.getFormParameter(amount, paymentData, orderData, userData, serverUrl, resultUrl);
+        } catch (final SignatureGenerationException e) {
+            throw new PaymentPluginApiException("Unable to generate signature", e);
+        }
+
+        final String formUrl = adyenHppClient.getFormUrl(paymentData);
+
+        try {
+            return new AdyenHostedPaymentPageFormDescriptor(kbAccountId, formUrl, formParameter);
+        } catch (final URISyntaxException e) {
+            throw new PaymentPluginApiException("Unable to generate valid HPP url", e);
+        }
     }
 
     @Override
@@ -313,6 +388,7 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
         }
     }
 
+    // For API
     private PaymentData buildPaymentData(final Account account, final UUID kbPaymentId, final UUID kbTransactionId, final UUID kbPaymentMethodId, final Currency currency, final Iterable<PluginProperty> properties, final CallContext context) {
         final PaymentData<PaymentInfo> paymentData = new PaymentData<PaymentInfo>();
 
@@ -341,6 +417,17 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
         return paymentData;
     }
 
+    // For HPP
+    private PaymentData buildPaymentData(final Account account, final Iterable<PluginProperty> properties, final CallContext context) {
+        final PaymentData<WebPaymentFrontend> paymentData = new PaymentData<WebPaymentFrontend>();
+        final String internalRef = PluginProperties.getValue(PROPERTY_PAYMENT_EXTERNAL_KEY, UUID.randomUUID().toString(), properties);
+        paymentData.setPaymentInternalRef(internalRef);
+        paymentData.setPaymentTxnInternalRef(internalRef);
+        paymentData.setPaymentInfo(buildPaymentInfo(account, properties, context));
+        return paymentData;
+    }
+
+    // For API
     // TODO Generify
     private PaymentInfo buildPaymentInfo(final Account account, final UUID kbPaymentMethodId, final Currency currency, final Iterable<PluginProperty> properties, final CallContext context) {
         final AdyenPaymentMethodsRecord paymentMethodsRecord = getAdyenPaymentMethodsRecord(kbPaymentMethodId, context);
@@ -384,6 +471,12 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
         return null;
     }
 
+    // For HPP
+    private WebPaymentFrontend buildPaymentInfo(final Account account, final Iterable<PluginProperty> properties, final CallContext context) {
+        final PaymentProvider paymentProvider = buildPaymentProvider(account, (UUID) null, null, properties, context);
+        return new WebPaymentFrontend(paymentProvider);
+    }
+
     private AdyenPaymentMethodsRecord getAdyenPaymentMethodsRecord(final UUID kbPaymentMethodId, final CallContext context) {
         AdyenPaymentMethodsRecord paymentMethodsRecord = null;
         try {
@@ -394,8 +487,8 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
         return paymentMethodsRecord;
     }
 
-    private PaymentProvider buildPaymentProvider(final Account account, final UUID kbPaymentMethodId, @Nullable final Currency currency, final Iterable<PluginProperty> properties, final CallContext context) {
-        final AdyenPaymentMethodsRecord paymentMethodsRecord = getAdyenPaymentMethodsRecord(kbPaymentMethodId, context);
+    private PaymentProvider buildPaymentProvider(final Account account, @Nullable final UUID kbPaymentMethodId, @Nullable final Currency currency, final Iterable<PluginProperty> properties, final CallContext context) {
+        final AdyenPaymentMethodsRecord paymentMethodsRecord = kbPaymentMethodId == null ? null : getAdyenPaymentMethodsRecord(kbPaymentMethodId, context);
         return buildPaymentProvider(account, paymentMethodsRecord, currency, properties, context);
     }
 
@@ -405,9 +498,15 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
         final String pluginPropertyCountry = PluginProperties.findPluginPropertyValue(PROPERTY_COUNTRY, properties);
         final String paymentProviderCountryIsoCode = pluginPropertyCountry == null ? account.getCountry() : pluginPropertyCountry;
 
-        final String pluginPropertyCCType = PluginProperties.findPluginPropertyValue(PROPERTY_CC_TYPE, properties);
-        final String paymentMethodCCType = paymentMethodsRecord == null || paymentMethodsRecord.getCcType() == null ? null : paymentMethodsRecord.getCcType();
-        final PaymentType paymentProviderPaymentType = pluginPropertyCCType == null ? (paymentMethodCCType == null ? PaymentType.CREDITCARD : PaymentType.valueOf(paymentMethodCCType)) : PaymentType.valueOf(pluginPropertyCCType);
+        final PaymentType paymentProviderPaymentType;
+        final String pluginPropertyPaymentProviderType = PluginProperties.findPluginPropertyValue(PROPERTY_PAYMENT_PROVIDER_TYPE, properties);
+        if (pluginPropertyPaymentProviderType != null) {
+            paymentProviderPaymentType = PaymentType.valueOf(pluginPropertyPaymentProviderType);
+        } else {
+            final String pluginPropertyCCType = PluginProperties.findPluginPropertyValue(PROPERTY_CC_TYPE, properties);
+            final String paymentMethodCCType = paymentMethodsRecord == null || paymentMethodsRecord.getCcType() == null ? null : paymentMethodsRecord.getCcType();
+            paymentProviderPaymentType = pluginPropertyCCType == null ? (paymentMethodCCType == null ? PaymentType.CREDITCARD : PaymentType.valueOf(paymentMethodCCType)) : PaymentType.valueOf(pluginPropertyCCType);
+        }
 
         final PaymentProvider paymentProvider = new PaymentProvider(adyenConfigProperties);
         if (paymentProviderCurrency != null) {
@@ -422,7 +521,7 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
     private UserData buildUserData(@Nullable final Account account, final Iterable<PluginProperty> properties) {
         final UserData userData = new UserData();
 
-        final String accountCustomerId = account == null ? null : account.getExternalKey();
+        final String accountCustomerId = account == null ? null : (account.getExternalKey() == null ? account.getId().toString() : account.getExternalKey());
         userData.setCustomerId(PluginProperties.getValue(PROPERTY_CUSTOMER_ID, accountCustomerId, properties));
 
         final String propertyLocaleString = PluginProperties.findPluginPropertyValue(PROPERTY_CUSTOMER_LOCALE, properties);
@@ -451,7 +550,8 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
         orderData.setHolderName(PluginProperties.getValue(PROPERTY_HOLDER_NAME, accountName, properties));
 
         final String propertyShipBeforeDate = PluginProperties.findPluginPropertyValue(PROPERTY_SHIP_BEFORE_DATE, properties);
-        orderData.setShipBeforeDate(propertyShipBeforeDate == null ? null : new DateTime(propertyShipBeforeDate));
+        // Mandatory for HPP
+        orderData.setShipBeforeDate(propertyShipBeforeDate == null ? clock.getUTCNow().plusHours(1) : new DateTime(propertyShipBeforeDate));
 
         return orderData;
     }

@@ -16,6 +16,7 @@
 
 package org.killbill.billing.plugin.adyen.core;
 
+import java.math.BigDecimal;
 import java.sql.SQLException;
 import java.util.UUID;
 
@@ -25,19 +26,30 @@ import org.joda.time.DateTime;
 import org.killbill.adyen.notification.NotificationRequestItem;
 import org.killbill.billing.account.api.Account;
 import org.killbill.billing.account.api.AccountApiException;
+import org.killbill.billing.catalog.api.Currency;
 import org.killbill.billing.payment.api.Payment;
 import org.killbill.billing.payment.api.PaymentApiException;
+import org.killbill.billing.payment.api.PaymentMethod;
+import org.killbill.billing.payment.api.PluginProperty;
 import org.killbill.billing.payment.api.TransactionType;
 import org.killbill.billing.plugin.adyen.api.AdyenCallContext;
+import org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi;
 import org.killbill.billing.plugin.adyen.client.model.NotificationItem;
 import org.killbill.billing.plugin.adyen.client.notification.AdyenNotificationHandler;
 import org.killbill.billing.plugin.adyen.dao.AdyenDao;
+import org.killbill.billing.plugin.adyen.dao.gen.tables.records.AdyenHppRequestsRecord;
 import org.killbill.billing.plugin.adyen.dao.gen.tables.records.AdyenResponsesRecord;
+import org.killbill.billing.plugin.api.PluginProperties;
 import org.killbill.billing.util.callcontext.CallContext;
+import org.killbill.billing.util.callcontext.TenantContext;
 import org.killbill.clock.Clock;
 import org.killbill.killbill.osgi.libs.killbill.OSGIKillbillAPI;
 
 import com.google.common.base.Objects;
+import com.google.common.base.Predicate;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Iterables;
 
 public class KillbillAdyenNotificationHandler implements AdyenNotificationHandler {
 
@@ -193,25 +205,160 @@ public class KillbillAdyenNotificationHandler implements AdyenNotificationHandle
     }
 
     private void handleNotification(@Nullable final TransactionType transactionType, final NotificationRequestItem item) {
-        final AdyenResponsesRecord record;
+        final NotificationItem notification = new NotificationItem(item);
+        final DateTime utcNow = clock.getUTCNow();
+
+        UUID kbAccountId = null;
+        UUID kbPaymentId = null;
+        UUID kbPaymentTransactionId = null;
+        UUID kbTenantId = null;
         try {
-            record = dao.getResponse(item.getPspReference());
+            // First, determine if the notification is for an API call or HPP request
+            final AdyenResponsesRecord record = getResponseRecord(item);
+            if (record != null) {
+                // API
+                kbAccountId = UUID.fromString(record.getKbAccountId());
+                kbTenantId = UUID.fromString(record.getKbTenantId());
+                kbPaymentId = UUID.fromString(record.getKbPaymentId());
+                kbPaymentTransactionId = UUID.fromString(record.getKbPaymentTransactionId());
+            } else {
+                // HPP
+                final AdyenHppRequestsRecord hppRequest = getHppRequest(notification);
+                if (hppRequest != null) {
+                    kbAccountId = UUID.fromString(hppRequest.getKbAccountId());
+                    kbTenantId = UUID.fromString(hppRequest.getKbTenantId());
+                }
+                // Otherwise, maybe REPORT_AVAILABLE notification?
+            }
+
+            if (kbAccountId != null && kbTenantId != null) {
+                // Retrieve the account
+                final CallContext context = new AdyenCallContext(utcNow, kbTenantId);
+                final Account account = getAccount(kbAccountId, context);
+
+                // Update Kill Bill
+                if (record != null) {
+                    notifyKillBill(account, kbPaymentTransactionId, notification, context);
+                } else {
+                    final Payment payment = recordPayment(account, notification, context);
+                    kbPaymentId = payment.getId();
+                    kbPaymentTransactionId = payment.getTransactions().iterator().next().getPaymentId();
+                }
+            }
+        } finally {
+            recordNotification(kbAccountId, kbPaymentId, kbPaymentTransactionId, transactionType, notification, utcNow, kbTenantId);
+        }
+    }
+
+    private AdyenResponsesRecord getResponseRecord(final NotificationRequestItem item) {
+        try {
+            return dao.getResponse(item.getPspReference());
         } catch (final SQLException e) {
             // Have Adyen retry
             throw new RuntimeException("Unable to retrieve response for pspReference " + item.getPspReference(), e);
         }
+    }
 
-        final UUID kbAccountId = record == null ? null : UUID.fromString(record.getKbAccountId());
-        final UUID kbPaymentId = record == null ? null : UUID.fromString(record.getKbPaymentId());
-        final UUID kbPaymentTransactionId = record == null ? null : UUID.fromString(record.getKbPaymentTransactionId());
-        final NotificationItem notification = new NotificationItem(item);
-        final DateTime utcNow = clock.getUTCNow();
-        final UUID kbTenantId = record == null ? null : UUID.fromString(record.getKbTenantId());
+    private AdyenHppRequestsRecord getHppRequest(final NotificationItem notification) {
+        try {
+            return dao.getHppRequest(notification.getMerchantReference());
+        } catch (final SQLException e) {
+            throw new RuntimeException("Unable to retrieve HPP request for merchantReference " + notification.getMerchantReference(), e);
+        }
+    }
 
-        recordNotification(kbAccountId, kbPaymentId, kbPaymentTransactionId, transactionType, notification, utcNow, kbTenantId);
+    private Account getAccount(final UUID kbAccountId, final CallContext context) {
+        try {
+            return osgiKillbillAPI.getAccountUserApi().getAccountById(kbAccountId, context);
+        } catch (final AccountApiException e) {
+            // Have Adyen retry
+            throw new RuntimeException("Failed to retrieve account " + kbAccountId, e);
+        }
+    }
 
-        if (kbAccountId != null && kbPaymentTransactionId != null && kbTenantId != null) {
-            notifyKillBill(kbAccountId, kbPaymentTransactionId, notification.getSuccess(), utcNow, kbTenantId);
+    private Payment notifyKillBill(final Account account, final UUID kbPaymentTransactionId, final NotificationItem notification, final CallContext context) {
+        final Boolean isSuccess = Objects.firstNonNull(notification.getSuccess(), false);
+        try {
+            return osgiKillbillAPI.getPaymentApi().notifyPendingTransactionOfStateChanged(account, kbPaymentTransactionId, isSuccess, context);
+        } catch (final PaymentApiException e) {
+            // Have Adyen retry
+            throw new RuntimeException("Failed to notify Kill Bill for kbPaymentTransactionId " + kbPaymentTransactionId, e);
+        }
+    }
+
+    private Payment recordPayment(final Account account, final NotificationItem notification, final CallContext context) {
+        final UUID kbPaymentMethodId = getAdyenKbPaymentMethodId(account.getId(), context);
+        final UUID kbPaymentId = null;
+        final BigDecimal amount = notification.getAmount();
+        final Currency currency = Currency.valueOf(notification.getCurrency());
+        final String paymentExternalKey = notification.getMerchantReference();
+        final String paymentTransactionExternalKey = notification.getMerchantReference();
+
+        final ImmutableMap.Builder<String, Object> pluginPropertiesMapBuilder = new ImmutableMap.Builder<String, Object>();
+        pluginPropertiesMapBuilder.put(AdyenPaymentPluginApi.PROPERTY_FROM_HPP, true);
+        pluginPropertiesMapBuilder.put(AdyenPaymentPluginApi.PROPERTY_MERCHANT_REFERENCE, notification.getMerchantReference());
+        pluginPropertiesMapBuilder.put(AdyenPaymentPluginApi.PROPERTY_PSP_REFERENCE, notification.getPspReference());
+        pluginPropertiesMapBuilder.put(AdyenPaymentPluginApi.PROPERTY_AMOUNT, amount);
+        pluginPropertiesMapBuilder.put(AdyenPaymentPluginApi.PROPERTY_CURRENCY, currency);
+
+        if (notification.getAdditionalData() != null) {
+            pluginPropertiesMapBuilder.put(AdyenPaymentPluginApi.PROPERTY_ADDITIONAL_DATA, notification.getAdditionalData());
+        }
+        if (notification.getEventCode() != null) {
+            pluginPropertiesMapBuilder.put(AdyenPaymentPluginApi.PROPERTY_EVENT_CODE, notification.getEventCode());
+        }
+        if (notification.getEventDate() != null) {
+            pluginPropertiesMapBuilder.put(AdyenPaymentPluginApi.PROPERTY_EVENT_DATE, notification.getEventDate());
+        }
+        if (notification.getMerchantAccountCode() != null) {
+            pluginPropertiesMapBuilder.put(AdyenPaymentPluginApi.PROPERTY_MERCHANT_ACCOUNT_CODE, notification.getMerchantAccountCode());
+        }
+        if (notification.getOperations() != null) {
+            pluginPropertiesMapBuilder.put(AdyenPaymentPluginApi.PROPERTY_OPERATIONS, notification.getOperations());
+        }
+        if (notification.getOriginalReference() != null) {
+            pluginPropertiesMapBuilder.put(AdyenPaymentPluginApi.PROPERTY_ORIGINAL_REFERENCE, notification.getOriginalReference());
+        }
+        if (notification.getPaymentMethod() != null) {
+            pluginPropertiesMapBuilder.put(AdyenPaymentPluginApi.PROPERTY_PAYMENT_METHOD, notification.getPaymentMethod());
+        }
+        if (notification.getReason() != null) {
+            pluginPropertiesMapBuilder.put(AdyenPaymentPluginApi.PROPERTY_REASON, notification.getReason());
+        }
+        if (notification.getSuccess() != null) {
+            pluginPropertiesMapBuilder.put(AdyenPaymentPluginApi.PROPERTY_SUCCESS, notification.getSuccess());
+        }
+        final ImmutableMap<String, Object> purchasePropertiesMap = pluginPropertiesMapBuilder.build();
+        final Iterable<PluginProperty> purchaseProperties = PluginProperties.buildPluginProperties(purchasePropertiesMap);
+
+        try {
+            return osgiKillbillAPI.getPaymentApi().createPurchase(account,
+                                                                  kbPaymentMethodId,
+                                                                  kbPaymentId,
+                                                                  amount,
+                                                                  currency,
+                                                                  paymentExternalKey,
+                                                                  paymentTransactionExternalKey,
+                                                                  purchaseProperties,
+                                                                  context);
+        } catch (final PaymentApiException e) {
+            // Have Adyen retry
+            throw new RuntimeException("Failed to record purchase", e);
+        }
+    }
+
+    private UUID getAdyenKbPaymentMethodId(final UUID kbAccountId, final TenantContext context) {
+        try {
+            return Iterables.<PaymentMethod>find(osgiKillbillAPI.getPaymentApi().getAccountPaymentMethods(kbAccountId, false, ImmutableList.<PluginProperty>of(), context),
+                                                 new Predicate<PaymentMethod>() {
+                                                     @Override
+                                                     public boolean apply(final PaymentMethod paymentMethod) {
+                                                         return AdyenActivator.PLUGIN_NAME.equals(paymentMethod.getPluginName());
+                                                     }
+                                                 }).getId();
+        } catch (final PaymentApiException e) {
+            // Have Adyen retry
+            throw new RuntimeException("Failed to locate Adyen payment method for account " + kbAccountId, e);
         }
     }
 
@@ -227,28 +374,6 @@ public class KillbillAdyenNotificationHandler implements AdyenNotificationHandle
         } catch (final SQLException e) {
             // Have Adyen retry
             throw new RuntimeException("Unable to record notification " + notification, e);
-        }
-    }
-
-    private Payment notifyKillBill(final UUID kbAccountId,
-                                   final UUID kbPaymentTransactionId,
-                                   final Boolean isSuccess,
-                                   final DateTime utcNow,
-                                   final UUID kbTenantId) {
-        final CallContext context = new AdyenCallContext(utcNow, kbTenantId);
-        final Account account;
-        try {
-            account = osgiKillbillAPI.getAccountUserApi().getAccountById(kbAccountId, context);
-        } catch (final AccountApiException e) {
-            // Have Adyen retry
-            throw new RuntimeException("Failed to retrieve account " + kbAccountId, e);
-        }
-
-        try {
-            return osgiKillbillAPI.getPaymentApi().notifyPendingTransactionOfStateChanged(account, kbPaymentTransactionId, Objects.firstNonNull(isSuccess, false), context);
-        } catch (final PaymentApiException e) {
-            // Have Adyen retry
-            throw new RuntimeException("Failed to notify Kill Bill for kbPaymentTransactionId " + kbPaymentTransactionId, e);
         }
     }
 }

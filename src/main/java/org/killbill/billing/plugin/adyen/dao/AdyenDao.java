@@ -35,6 +35,7 @@ import org.killbill.billing.plugin.adyen.client.model.PaymentModificationRespons
 import org.killbill.billing.plugin.adyen.client.model.PurchaseResult;
 import org.killbill.billing.plugin.adyen.dao.gen.tables.AdyenPaymentMethods;
 import org.killbill.billing.plugin.adyen.dao.gen.tables.AdyenResponses;
+import org.killbill.billing.plugin.adyen.dao.gen.tables.records.AdyenHppRequestsRecord;
 import org.killbill.billing.plugin.adyen.dao.gen.tables.records.AdyenNotificationsRecord;
 import org.killbill.billing.plugin.adyen.dao.gen.tables.records.AdyenPaymentMethodsRecord;
 import org.killbill.billing.plugin.adyen.dao.gen.tables.records.AdyenResponsesRecord;
@@ -46,6 +47,7 @@ import com.google.common.base.Functions;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Iterables;
 
+import static org.killbill.billing.plugin.adyen.dao.gen.tables.AdyenHppRequests.ADYEN_HPP_REQUESTS;
 import static org.killbill.billing.plugin.adyen.dao.gen.tables.AdyenNotifications.ADYEN_NOTIFICATIONS;
 import static org.killbill.billing.plugin.adyen.dao.gen.tables.AdyenResponses.ADYEN_RESPONSES;
 
@@ -56,6 +58,51 @@ public class AdyenDao extends PluginPaymentDao<AdyenResponsesRecord, AdyenRespon
 
     public AdyenDao(final DataSource dataSource) throws SQLException {
         super(AdyenResponses.ADYEN_RESPONSES, AdyenPaymentMethods.ADYEN_PAYMENT_METHODS, dataSource);
+    }
+
+    // HPP requests
+
+    public void addHppRequest(final UUID kbAccountId,
+                              final String transactionExternalKey,
+                              final Map additionalDataMap,
+                              final DateTime utcNow,
+                              final UUID kbTenantId) throws SQLException {
+        final String additionalData = getAdditionalData(additionalDataMap);
+
+        execute(dataSource.getConnection(),
+                new WithConnectionCallback<Void>() {
+                    @Override
+                    public Void withConnection(final Connection conn) throws SQLException {
+                        DSL.using(conn, dialect, settings)
+                           .insertInto(ADYEN_HPP_REQUESTS,
+                                       ADYEN_HPP_REQUESTS.KB_ACCOUNT_ID,
+                                       ADYEN_HPP_REQUESTS.TRANSACTION_EXTERNAL_KEY,
+                                       ADYEN_HPP_REQUESTS.ADDITIONAL_DATA,
+                                       ADYEN_HPP_REQUESTS.CREATED_DATE,
+                                       ADYEN_HPP_REQUESTS.KB_TENANT_ID)
+                           .values(kbAccountId.toString(),
+                                   transactionExternalKey,
+                                   additionalData,
+                                   toTimestamp(utcNow),
+                                   kbTenantId.toString())
+                           .execute();
+                        return null;
+                    }
+                });
+    }
+
+    public AdyenHppRequestsRecord getHppRequest(final String merchantReference) throws SQLException {
+        return execute(dataSource.getConnection(),
+                       new WithConnectionCallback<AdyenHppRequestsRecord>() {
+                           @Override
+                           public AdyenHppRequestsRecord withConnection(final Connection conn) throws SQLException {
+                               return DSL.using(conn, dialect, settings)
+                                         .selectFrom(ADYEN_HPP_REQUESTS)
+                                         .where(ADYEN_HPP_REQUESTS.TRANSACTION_EXTERNAL_KEY.equal(merchantReference))
+                                         .orderBy(ADYEN_HPP_REQUESTS.RECORD_ID.desc())
+                                         .fetchOne();
+                           }
+                       });
     }
 
     // Responses

@@ -162,3 +162,51 @@ Notes:
 * Make sure to replace *pspReference* with the psp reference of your payment (see the *adyen_responses* table)
 * If *success* is true, the payment transaction state will be *SUCCESS* and the payment state *AUTH_SUCCESS*
 * If *success* is false, the payment transaction state will be *PAYMENT_FAILURE* and the payment state *AUTH_FAILED*
+
+To generate an HPP url:
+
+```
+curl -v \
+     -u admin:password \
+     -H "X-Killbill-ApiKey: bob" \
+     -H "X-Killbill-ApiSecret: lazar" \
+     -H "Content-Type: application/json" \
+     -H "X-Killbill-CreatedBy: demo" \
+     -X POST \
+     --data-binary '{
+       "formFields": [
+         {
+           "key": "country",
+           "value": "DE"
+         },
+         {
+           "key": "paymentProviderType",
+           "value": "CREDITCARD"
+         },
+         {
+           "key": "serverUrl",
+           "value": "http://killbill.io"
+         },
+         {
+           "key": "resultUrl",
+           "value": "?q=test+adyen+redirect+success"
+         },
+         {
+           "key": "amount",
+           "value": 10
+         },
+         {
+           "key": "currency",
+           "value": "USD"
+         }
+       ]
+     }' \
+     "http://127.0.0.1:8080/1.0/kb/paymentGateways/hosted/form/<ACCOUNT_ID>"
+```
+
+Notes:
+* Make sure to replace *ACCOUNT_ID* with the id of the Kill Bill account
+* *country* is used to retrieve the skin and the merchant account
+* *serverUrl* and *resultUrl* are used to redirect the user after the completion of the payment flow (success or failure)
+* Change *paymentProviderType* to the type of payment method in the HPP (see https://github.com/killbill/killbill-adyen-plugin/blob/master/src/main/java/org/killbill/billing/plugin/adyen/client/model/PaymentType.java)
+* At this point, no payment has been created in Kill Bill. The payment will be recorded when processing the notification

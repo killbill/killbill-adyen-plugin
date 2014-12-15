@@ -35,9 +35,32 @@ import org.killbill.billing.plugin.adyen.dao.gen.tables.records.AdyenResponsesRe
 import org.killbill.billing.plugin.api.PluginProperties;
 import org.killbill.billing.plugin.api.payment.PluginPaymentTransactionInfoPlugin;
 
+import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 
 public class AdyenPaymentTransactionInfoPlugin extends PluginPaymentTransactionInfoPlugin {
+
+    public AdyenPaymentTransactionInfoPlugin(final UUID kbPaymentId,
+                                             final UUID kbTransactionPaymentPaymentId,
+                                             final TransactionType transactionType,
+                                             final BigDecimal amount,
+                                             final Currency currency,
+                                             final DateTime utcNow,
+                                             final PaymentPluginStatus paymentPluginStatus) {
+        super(kbPaymentId,
+              kbTransactionPaymentPaymentId,
+              transactionType,
+              amount,
+              currency,
+              paymentPluginStatus,
+              null,
+              null,
+              null,
+              null,
+              utcNow,
+              utcNow,
+              ImmutableList.<PluginProperty>of());
+    }
 
     public AdyenPaymentTransactionInfoPlugin(final UUID kbPaymentId,
                                              final UUID kbTransactionPaymentPaymentId,
@@ -112,8 +135,8 @@ public class AdyenPaymentTransactionInfoPlugin extends PluginPaymentTransactionI
               UUID.fromString(record.getKbPaymentTransactionId()),
               TransactionType.valueOf(record.getTransactionType()),
               record.getAmount(),
-              record.getCurrency() == null ? null : Currency.valueOf(record.getCurrency()),
-              record.getPspResult() == null ? null : getPaymentPluginStatus(PaymentServiceProviderResult.getPaymentResultForId(record.getPspResult())),
+              Strings.isNullOrEmpty(record.getCurrency()) ? null : Currency.valueOf(record.getCurrency()),
+              Strings.isNullOrEmpty(record.getPspResult()) ? null : getPaymentPluginStatus(PaymentServiceProviderResult.getPaymentResultForId(record.getPspResult())),
               record.getResultCode(),
               record.getRefusalReason(),
               record.getPspReference(),

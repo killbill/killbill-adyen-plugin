@@ -35,6 +35,7 @@ import org.killbill.billing.plugin.adyen.client.payment.builder.AdyenRequestFact
 import org.killbill.billing.plugin.adyen.client.payment.converter.PaymentInfoConverterManagement;
 import org.killbill.billing.plugin.adyen.client.payment.converter.impl.PaymentInfoConverterService;
 import org.killbill.billing.plugin.adyen.client.payment.service.AdyenPaymentRequestSender;
+import org.killbill.billing.plugin.adyen.client.payment.service.AdyenPaymentServiceProviderHostedPaymentPagePort;
 import org.killbill.billing.plugin.adyen.client.payment.service.AdyenPaymentServiceProviderPort;
 import org.killbill.billing.plugin.adyen.client.payment.service.Signer;
 import org.killbill.billing.plugin.adyen.dao.AdyenDao;
@@ -69,7 +70,8 @@ public class AdyenActivator extends KillbillActivatorBase {
         final AdyenDao dao = new AdyenDao(dataSource.getDataSource());
         final AdyenConfigProperties adyenConfigProperties = new AdyenConfigProperties(configProperties.getProperties());
         final AdyenPaymentServiceProviderPort adyenClient = initializeAdyenClient(adyenConfigProperties);
-        final AdyenPaymentPluginApi pluginApi = new AdyenPaymentPluginApi(adyenConfigProperties, adyenClient, killbillAPI, configProperties, logService, clock, dao);
+        final AdyenPaymentServiceProviderHostedPaymentPagePort adyenHppClient = initializeHppAdyenClient(adyenConfigProperties);
+        final AdyenPaymentPluginApi pluginApi = new AdyenPaymentPluginApi(adyenConfigProperties, adyenClient, adyenHppClient, killbillAPI, configProperties, logService, clock, dao);
         registerPaymentPluginApi(context, pluginApi);
 
         logService.log(LogService.LOG_INFO, "Exiting AdyenActivator start");
@@ -100,6 +102,15 @@ public class AdyenActivator extends KillbillActivatorBase {
         final AdyenPaymentRequestSender adyenPaymentRequestSender = new AdyenPaymentRequestSender(adyenPaymentPortRegistry);
 
         return new AdyenPaymentServiceProviderPort(paymentInfoConverterManagement, adyenRequestFactory, adyenPaymentRequestSender);
+    }
+
+    private AdyenPaymentServiceProviderHostedPaymentPagePort initializeHppAdyenClient(final AdyenConfigProperties adyenConfigProperties) {
+        final PaymentInfoConverterManagement paymentInfoConverterManagement = new PaymentInfoConverterService();
+
+        final Signer signer = new Signer(adyenConfigProperties);
+        final AdyenRequestFactory adyenRequestFactory = new AdyenRequestFactory(paymentInfoConverterManagement, adyenConfigProperties, signer);
+
+        return new AdyenPaymentServiceProviderHostedPaymentPagePort(adyenConfigProperties, adyenRequestFactory);
     }
 
     private void registerServlet(final BundleContext context, final HttpServlet servlet) {

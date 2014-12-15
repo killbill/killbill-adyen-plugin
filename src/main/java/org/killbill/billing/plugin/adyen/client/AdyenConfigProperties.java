@@ -110,7 +110,7 @@ public class AdyenConfigProperties {
      * @return same as input, except for when the input is GB, then UK is returned
      */
     public static String gbToUK(final String countryIsoCode) {
-        if (countryIsoCode == null) {
+        if (Strings.isNullOrEmpty(countryIsoCode)) {
             return null;
         }
         return countryIsoCode.equalsIgnoreCase("GB") ? "UK" : countryIsoCode;

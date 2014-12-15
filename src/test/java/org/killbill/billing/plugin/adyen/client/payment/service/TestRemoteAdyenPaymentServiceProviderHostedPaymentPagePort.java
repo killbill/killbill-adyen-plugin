@@ -16,8 +16,6 @@
 
 package org.killbill.billing.plugin.adyen.client.payment.service;
 
-import java.io.UnsupportedEncodingException;
-import java.net.URLEncoder;
 import java.util.Currency;
 import java.util.Locale;
 import java.util.Map;
@@ -32,6 +30,7 @@ import org.killbill.billing.plugin.adyen.client.model.PaymentProvider;
 import org.killbill.billing.plugin.adyen.client.model.PaymentType;
 import org.killbill.billing.plugin.adyen.client.model.UserData;
 import org.killbill.billing.plugin.adyen.client.model.paymentinfo.WebPaymentFrontend;
+import org.killbill.billing.plugin.util.http.QueryComputer;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -73,20 +72,8 @@ public class TestRemoteAdyenPaymentServiceProviderHostedPaymentPagePort extends 
         Assert.assertNotNull(formUrl);
 
         // For manual testing
-        System.out.println("Redirect to " + formUrl + "?" + buildQueryParameters(formParameter));
+        final String fullQueryString = QueryComputer.URL_ENCODING_ENABLED_QUERY_COMPUTER.computeFullQueryString(null, formParameter);
+        System.out.println("Redirect to " + formUrl + "?" + fullQueryString);
         System.out.flush();
-    }
-
-    private String buildQueryParameters(final Map<String, String> map) throws UnsupportedEncodingException {
-        final StringBuilder sb = new StringBuilder();
-        for (final Map.Entry<String, String> entry : map.entrySet()) {
-            if (sb.length() > 0) {
-                sb.append("&");
-            }
-            if (entry.getKey() != null && entry.getValue() != null) {
-                sb.append(String.format("%s=%s", URLEncoder.encode(entry.getKey(), "UTF-8"), URLEncoder.encode(entry.getValue(), "UTF-8")));
-            }
-        }
-        return sb.toString();
     }
 }

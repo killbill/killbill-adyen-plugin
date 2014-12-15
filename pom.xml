@@ -22,7 +22,7 @@
     <parent>
         <artifactId>killbill-oss-parent</artifactId>
         <groupId>org.kill-bill.billing</groupId>
-        <version>0.9.4-SNAPSHOT</version>
+        <version>0.9.5-SNAPSHOT</version>
     </parent>
     <groupId>org.kill-bill.billing.plugin.java</groupId>
     <artifactId>adyen-plugin</artifactId>
@@ -127,19 +127,15 @@
         <dependency>
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>
-            <version>15.0</version>
             <scope>compile</scope>
         </dependency>
         <dependency>
             <groupId>org.skife.config</groupId>
             <artifactId>config-magic</artifactId>
-            <version>0.14</version>
-            <scope>compile</scope>
         </dependency>
         <dependency>
             <groupId>org.jooq</groupId>
             <artifactId>jooq</artifactId>
-            <version>3.5.0</version>
         </dependency>
         <!-- CXF for adyen service -->
         <dependency>

@@ -1,5 +1,18 @@
 /*! SET storage_engine=INNODB */;
 
+drop table if exists adyen_hpp_requests;
+create table adyen_hpp_requests (
+  record_id int(11) unsigned not null auto_increment
+, kb_account_id char(36) not null
+, transaction_external_key varchar(255) not null
+, additional_data longtext default null
+, created_date datetime not null
+, kb_tenant_id char(36) not null
+, primary key(record_id)
+) /*! CHARACTER SET utf8 COLLATE utf8_bin */;
+create index adyen_hpp_requests_kb_account_id on adyen_hpp_requests(kb_account_id);
+create index adyen_hpp_requests_kb_transaction_external_key on adyen_hpp_requests(transaction_external_key);
+
 drop table if exists adyen_responses;
 create table adyen_responses (
   record_id int(11) unsigned not null auto_increment
@@ -24,7 +37,7 @@ create table adyen_responses (
 , issuer_url varchar(1024)
 , md varchar(512)
 , pa_request varchar(512)
-, additional_data longtext
+, additional_data longtext default null
 , created_date datetime not null
 , kb_tenant_id char(36) not null
 , primary key(record_id)
@@ -52,7 +65,7 @@ create table adyen_notifications (
 , psp_reference varchar(64)
 , reason varchar(64)
 , success boolean not null default false
-, additional_data longtext
+, additional_data longtext default null
 , created_date datetime not null
 , kb_tenant_id char(36)
 , primary key(record_id)
@@ -88,7 +101,7 @@ create table adyen_payment_methods (
 , country varchar(255) default null
 , is_default boolean not null default false
 , is_deleted boolean not null default false
-, additional_data longtext
+, additional_data longtext default null
 , created_date datetime not null
 , updated_date datetime not null
 , kb_tenant_id char(36) not null

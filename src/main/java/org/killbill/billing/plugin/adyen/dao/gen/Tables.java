@@ -17,6 +17,11 @@ package org.killbill.billing.plugin.adyen.dao.gen;
 public class Tables {
 
 	/**
+	 * The table killbill.adyen_hpp_requests
+	 */
+	public static final org.killbill.billing.plugin.adyen.dao.gen.tables.AdyenHppRequests ADYEN_HPP_REQUESTS = org.killbill.billing.plugin.adyen.dao.gen.tables.AdyenHppRequests.ADYEN_HPP_REQUESTS;
+
+	/**
 	 * The table killbill.adyen_notifications
 	 */
 	public static final org.killbill.billing.plugin.adyen.dao.gen.tables.AdyenNotifications ADYEN_NOTIFICATIONS = org.killbill.billing.plugin.adyen.dao.gen.tables.AdyenNotifications.ADYEN_NOTIFICATIONS;

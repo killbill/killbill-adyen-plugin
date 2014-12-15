@@ -26,10 +26,12 @@ import org.killbill.billing.payment.api.Payment;
 import org.killbill.billing.payment.api.PaymentTransaction;
 import org.killbill.billing.payment.api.PluginProperty;
 import org.killbill.billing.payment.api.TransactionType;
+import org.killbill.billing.payment.plugin.api.HostedPaymentPageFormDescriptor;
 import org.killbill.billing.payment.plugin.api.PaymentPluginStatus;
 import org.killbill.billing.payment.plugin.api.PaymentTransactionInfoPlugin;
 import org.killbill.billing.plugin.TestUtils;
 import org.killbill.billing.plugin.adyen.TestWithEmbeddedDBBase;
+import org.killbill.billing.plugin.api.PluginProperties;
 import org.killbill.billing.util.callcontext.CallContext;
 import org.killbill.clock.Clock;
 import org.killbill.clock.DefaultClock;
@@ -42,6 +44,7 @@ import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 import com.google.common.base.Function;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 
@@ -66,7 +69,7 @@ public class TestAdyenPaymentPluginApi extends TestWithEmbeddedDBBase {
         final OSGIKillbillLogService logService = TestUtils.buildLogService();
 
         final OSGIConfigPropertiesService configPropertiesService = Mockito.mock(OSGIConfigPropertiesService.class);
-        adyenPaymentPluginApi = new AdyenPaymentPluginApi(adyenConfigProperties, adyenPaymentServiceProviderPort, killbillApi, configPropertiesService, logService, clock, dao);
+        adyenPaymentPluginApi = new AdyenPaymentPluginApi(adyenConfigProperties, adyenPaymentServiceProviderPort, adyenPaymentServiceProviderHostedPaymentPagePort, killbillApi, configPropertiesService, logService, clock, dao);
 
         // Magic details at https://www.adyen.com/home/support/knowledgebase/implementation-articles.html
         propertiesWithCCInfo = toProperties(ImmutableMap.<String, String>of(AdyenPaymentPluginApi.PROPERTY_CC_LAST_NAME, "Dupont",
@@ -161,6 +164,23 @@ public class TestAdyenPaymentPluginApi extends TestWithEmbeddedDBBase {
                                                                                                   propertiesWithCCInfo,
                                                                                                   context);
         verifyPaymentTransactionInfoPlugin(refundTransaction, refundInfoPlugin);
+    }
+
+    @Test(groups = "slow")
+    public void testHPP() throws Exception {
+        final Map<String, String> customFieldsMap = ImmutableMap.<String, String>of(AdyenPaymentPluginApi.PROPERTY_AMOUNT, "10",
+                                                                                    AdyenPaymentPluginApi.PROPERTY_SERVER_URL, "http://killbill.io",
+                                                                                    AdyenPaymentPluginApi.PROPERTY_CURRENCY, DEFAULT_CURRENCY.name(),
+                                                                                    AdyenPaymentPluginApi.PROPERTY_COUNTRY, DEFAULT_COUNTRY);
+        final Iterable<PluginProperty> customFields = PluginProperties.buildPluginProperties(customFieldsMap);
+        final HostedPaymentPageFormDescriptor descriptor = adyenPaymentPluginApi.buildFormDescriptor(payment.getAccountId(), customFields, ImmutableList.<PluginProperty>of(), context);
+        Assert.assertEquals(descriptor.getKbAccountId(), payment.getAccountId());
+        Assert.assertEquals(descriptor.getFormMethod(), "GET");
+        Assert.assertNotNull(descriptor.getFormUrl());
+
+        // For manual testing
+        System.out.println("Redirect to: " + descriptor.getFormUrl());
+        System.out.flush();
     }
 
     private void verifyPaymentTransactionInfoPlugin(final PaymentTransaction paymentTransaction, final PaymentTransactionInfoPlugin paymentTransactionInfoPlugin) {
