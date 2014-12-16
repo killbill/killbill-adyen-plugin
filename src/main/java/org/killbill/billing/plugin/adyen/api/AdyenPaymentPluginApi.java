@@ -525,7 +525,7 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
         userData.setCustomerId(PluginProperties.getValue(PROPERTY_CUSTOMER_ID, accountCustomerId, properties));
 
         final String propertyLocaleString = PluginProperties.findPluginPropertyValue(PROPERTY_CUSTOMER_LOCALE, properties);
-        final Locale propertyCustomerLocale = propertyLocaleString == null ? null : new Locale(propertyLocaleString);
+        final Locale propertyCustomerLocale = propertyLocaleString == null ? null : Locale.forLanguageTag(propertyLocaleString);
         final Locale accountLocale = account == null || account.getLocale() == null ? null : new Locale(account.getLocale());
         userData.setCustomerLocale(propertyCustomerLocale == null ? accountLocale : propertyCustomerLocale);
 
