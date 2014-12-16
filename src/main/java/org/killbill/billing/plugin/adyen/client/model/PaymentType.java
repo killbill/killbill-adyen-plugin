@@ -114,6 +114,9 @@ public enum PaymentType {
     MULTIBANCO(82, "multibanco", "multibanco", FORWARDING_FRONTEND, null, null, 6, NO_CREDITCARD),
     SEPA_DIRECT_DEBIT(83, "sepadirectdebit", "sepadirectdebit", null, null, null, 6, NO_CREDITCARD),
     BANK_TRANSFER(84, "bankTransfer", "bankTransfer", null, null, null, 6, NO_CREDITCARD),
+    BARRAS(85, "barras", "barras", null, null, null, 6, NO_CREDITCARD),
+    BALOTO(86, "baloto", "baloto", null, null, null, 6, NO_CREDITCARD),
+    ACHCOLOMBIA(87, "achcolombia", "achcolombia", null, null, null, 6, NO_CREDITCARD),
 
     EMPTY(null, "", null, null, null, null, 6, NO_CREDITCARD); // extra payment type for better caching of recurring payment infos (when were is no info object available we use this payment type)
 
