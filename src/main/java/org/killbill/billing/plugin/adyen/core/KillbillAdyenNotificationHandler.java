@@ -242,7 +242,7 @@ public class KillbillAdyenNotificationHandler implements AdyenNotificationHandle
                 } else {
                     final Payment payment = recordPayment(account, notification, context);
                     kbPaymentId = payment.getId();
-                    kbPaymentTransactionId = payment.getTransactions().iterator().next().getPaymentId();
+                    kbPaymentTransactionId = payment.getTransactions().iterator().next().getId();
                 }
             }
         } finally {
