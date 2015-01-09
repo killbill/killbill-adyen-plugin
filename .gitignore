@@ -13,3 +13,4 @@ dependency-reduced-pom.xml
 dependency-reduced-pom.xml.bak
 
 src/test/resources/adyen.properties
+release.properties
