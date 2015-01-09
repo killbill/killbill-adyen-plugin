@@ -38,6 +38,8 @@ The format for secrets and skins is the same as above if you support multiple co
 Usage
 -----
 
+### Credit cards
+
 Add a payment method:
 
 ```
@@ -162,6 +164,8 @@ Notes:
 * Make sure to replace *pspReference* with the psp reference of your payment (see the *adyen_responses* table)
 * If *success* is true, the payment transaction state will be *SUCCESS* and the payment state *AUTH_SUCCESS*
 * If *success* is false, the payment transaction state will be *PAYMENT_FAILURE* and the payment state *AUTH_FAILED*
+
+### HPP
 
 To generate an HPP url:
 
