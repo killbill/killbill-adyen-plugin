@@ -317,7 +317,7 @@ public class AdyenDao extends PluginPaymentDao<AdyenResponsesRecord, AdyenRespon
                                    notification.getPaymentMethod(),
                                    notification.getPspReference(),
                                    notification.getReason(),
-                                   fromBoolean(notification.getSuccess()),
+                                   notification.getSuccess() == null ? FALSE : fromBoolean(notification.getSuccess()),
                                    additionalData,
                                    toTimestamp(utcNow),
                                    kbTenantId == null ? null : kbTenantId.toString())
