@@ -5,6 +5,8 @@ cache:
   directories:
       - $HOME/.m2
 
+before_script: '[ "${TRAVIS_PULL_REQUEST}" = "false" ] && printf "org.killbill.billing.plugin.adyen.merchantAccount=\${env.ADYEN_MERCHANT_ACCOUNT}\\norg.killbill.billing.plugin.adyen.username=\${env.ADYEN_USERNAME}\\norg.killbill.billing.plugin.adyen.password=\${env.ADYEN_PASSWORD}\\norg.killbill.billing.plugin.adyen.paymentUrl=https://pal-test.adyen.com/pal/servlet/soap/Payment\\n" > src/test/resources/adyen.properties'
+after_script: rm -f src/test/resources/adyen.properties
 script: if [[ -v COMMAND ]]; then $COMMAND; else travis_retry mvn clean install $PHASE | egrep -v 'Download|Install'; [ ${PIPESTATUS[0]} == 0 ]; fi
 # Remove --quiet to avoid timeouts
 install: mvn -U install -DskipTests=true | egrep -v 'Download|Install'
@@ -21,17 +23,17 @@ matrix:
   allow_failures:
     - jdk: oraclejdk8
   include:
-    - env: PHASE="-Ptravis-nodb"
+    - env: PHASE="-Ptravis"
       jdk: openjdk7
-    - env: PHASE="-Ptravis-nodb"
+    - env: PHASE="-Ptravis"
       jdk: oraclejdk7
-    - env: PHASE="-Ptravis-nodb,jdk17"
+    - env: PHASE="-Ptravis,jdk17"
       jdk: openjdk7
-    - env: PHASE="-Ptravis-nodb,jdk17"
+    - env: PHASE="-Ptravis,jdk17"
       jdk: oraclejdk7
-    - env: PHASE="-Ptravis-nodb,jdk18"
+    - env: PHASE="-Ptravis,jdk18"
       jdk: oraclejdk8
   fast_finish: true
 
 after_success:
-  - '[ "${TRAVIS_PULL_REQUEST}" = "false" ] && echo "<settings><servers><server><id>sonatype-nexus-snapshots</id><username>\${env.OSSRH_USER}</username><password>\${env.OSSRH_PASS}</password></server></servers></settings>" > ~/settings.xml && mvn deploy -DskipTests=true --settings ~/settings.xml | egrep -v "Download|Install|Upload" ; rm -f ~/settings.xml'
+  - '[ "${TRAVIS_PULL_REQUEST}" = "false" ] && echo "<settings><servers><server><id>sonatype-nexus-snapshots</id><username>\${env.OSSRH_USER}</username><password>\${env.OSSRH_PASS}</password></server></servers></settings>" > ~/settings.xml && travis_wait mvn deploy -DskipTests=true --settings ~/settings.xml | egrep -v "Download|Install|Upload" ; rm -f ~/settings.xml'
