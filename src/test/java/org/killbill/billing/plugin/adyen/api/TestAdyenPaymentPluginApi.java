@@ -71,12 +71,11 @@ public class TestAdyenPaymentPluginApi extends TestWithEmbeddedDBBase {
         final OSGIConfigPropertiesService configPropertiesService = Mockito.mock(OSGIConfigPropertiesService.class);
         adyenPaymentPluginApi = new AdyenPaymentPluginApi(adyenConfigProperties, adyenPaymentServiceProviderPort, adyenPaymentServiceProviderHostedPaymentPagePort, killbillApi, configPropertiesService, logService, clock, dao);
 
-        // Magic details at https://www.adyen.com/home/support/knowledgebase/implementation-articles.html
         propertiesWithCCInfo = toProperties(ImmutableMap.<String, String>of(AdyenPaymentPluginApi.PROPERTY_CC_LAST_NAME, "Dupont",
-                                                                            AdyenPaymentPluginApi.PROPERTY_CC_NUMBER, "4111111111111111",
-                                                                            AdyenPaymentPluginApi.PROPERTY_CC_EXPIRATION_MONTH, "08",
-                                                                            AdyenPaymentPluginApi.PROPERTY_CC_EXPIRATION_YEAR, "2018",
-                                                                            AdyenPaymentPluginApi.PROPERTY_CC_VERIFICATION_VALUE, "737"));
+                                                                            AdyenPaymentPluginApi.PROPERTY_CC_NUMBER, CC_NUMBER,
+                                                                            AdyenPaymentPluginApi.PROPERTY_CC_EXPIRATION_MONTH, String.valueOf(CC_EXPIRATION_MONTH),
+                                                                            AdyenPaymentPluginApi.PROPERTY_CC_EXPIRATION_YEAR, String.valueOf(CC_EXPIRATION_YEAR),
+                                                                            AdyenPaymentPluginApi.PROPERTY_CC_VERIFICATION_VALUE, CC_VERIFICATION_VALUE));
     }
 
     @Test(groups = "slow")

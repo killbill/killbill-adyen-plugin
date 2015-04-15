@@ -163,13 +163,12 @@ public class TestRemoteAdyenPaymentServiceProviderPort extends TestRemoteBase {
         paymentProvider.setCountryIsoCode(DEFAULT_COUNTRY);
         paymentProvider.setPaymentType(PaymentType.CREDITCARD);
 
-        // Magic details at https://www.adyen.com/home/support/knowledgebase/implementation-articles.html
         final CreditCard paymentInfo = new CreditCard(paymentProvider);
         paymentInfo.setCcHolderName("Dupont");
-        paymentInfo.setCcNumber("4111111111111111");
-        paymentInfo.setValidUntilMonth(8);
-        paymentInfo.setValidUntilYear(2018);
-        paymentInfo.setCcSecCode("737");
+        paymentInfo.setCcNumber(CC_NUMBER);
+        paymentInfo.setValidUntilMonth(CC_EXPIRATION_MONTH);
+        paymentInfo.setValidUntilYear(CC_EXPIRATION_YEAR);
+        paymentInfo.setCcSecCode(CC_VERIFICATION_VALUE);
 
         return paymentInfo;
     }

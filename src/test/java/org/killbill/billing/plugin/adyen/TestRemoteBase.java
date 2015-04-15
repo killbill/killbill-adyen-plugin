@@ -46,6 +46,13 @@ public abstract class TestRemoteBase {
     protected static final Currency DEFAULT_CURRENCY = Currency.EUR;
     protected static final String DEFAULT_COUNTRY = "DE";
 
+    // Magic details at https://www.adyen.com/home/support/knowledgebase/implementation-articles.html
+    // Note: make sure to use the Amex one, as Visa/MC is not always configured by default
+    protected static final String CC_NUMBER = "370000000000002";
+    protected static final int CC_EXPIRATION_MONTH = 8;
+    protected static final int CC_EXPIRATION_YEAR = 2018;
+    protected static final String CC_VERIFICATION_VALUE = "7373";
+
     protected AdyenConfigProperties adyenConfigProperties;
     protected AdyenPaymentServiceProviderPort adyenPaymentServiceProviderPort;
     protected AdyenPaymentServiceProviderHostedPaymentPagePort adyenPaymentServiceProviderHostedPaymentPagePort;
