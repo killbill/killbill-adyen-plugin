@@ -8,12 +8,12 @@ Release builds are available on [Maven Central](http://search.maven.org/#search%
 Requirements
 ------------
 
-The plugin needs a database. The latest version of the schema can be found here: https://github.com/killbill/killbill-adyen-plugin/blob/master/src/main/resources/ddl.sql.
+The plugin needs a database. The latest version of the schema can be found [here](https://github.com/killbill/killbill-adyen-plugin/blob/master/src/main/resources/ddl.sql).
 
 Configuration
 -------------
 
-The following System Properties are required:
+The following properties are required:
 
 * `org.killbill.billing.plugin.adyen.merchantAccount`: your merchant account(s)
 * `org.killbill.billing.plugin.adyen.username`: your username(s)
@@ -27,13 +27,34 @@ The format for the merchant account(s), username(s) and password(s) is `XX#YY|XX
 
 If you have a single country, omit the country code part.
 
-To configure HPP:
+To configure Hosted Payment Pages (HPP):
 
 * `org.killbill.billing.plugin.adyen.hpp.target`: host payment page url (e.g. https://test.adyen.com/hpp/pay.shtml)
 * `org.killbill.billing.plugin.adyen.hmac.secret`: your hmac secret(s)
 * `org.killbill.billing.plugin.adyen.skin`: you skin code(s)
 
 The format for secrets and skins is the same as above if you support multiple countries.
+
+These properties can be specified globally via System Properties or on a per tenant basis:
+
+```
+curl -v \
+     -X POST \
+     -u admin:password \
+     -H 'X-Killbill-ApiKey: bob' \
+     -H 'X-Killbill-ApiSecret: lazar' \
+     -H 'X-Killbill-CreatedBy: admin' \
+     -H 'Content-Type: text/plain' \
+     -d 'org.killbill.billing.plugin.adyen.paymentUrl=WWW
+org.killbill.billing.plugin.adyen.merchantAccount=XXX
+org.killbill.billing.plugin.adyen.username=YYY
+org.killbill.billing.plugin.adyen.password=ZZZ' \
+     http://127.0.0.1:8080/1.0/kb/tenants/uploadPluginConfig/killbill-adyen
+```
+
+### Kill Bill
+
+To avoid runtime errors (such as `ClassCastException`), starting Kill Bill with the System Property `com.sun.xml.bind.v2.bytecode.ClassTailor.noOptimize=true` is recommended.
 
 Usage
 -----
@@ -213,5 +234,5 @@ Notes:
 * *country* is used to retrieve the skin and the merchant account
 * *customerLocale* (e.g. *es_CO*) can be used to specify Adyen's *countryCode* parameter (to override the filtering of payment methods based on IP address). This will also be used to specify the *shopperLocale* parameter
 * *serverUrl* and *resultUrl* are used to redirect the user after the completion of the payment flow (success or failure)
-* Change *paymentProviderType* to the type of payment method in the HPP (see https://github.com/killbill/killbill-adyen-plugin/blob/master/src/main/java/org/killbill/billing/plugin/adyen/client/model/PaymentType.java)
+* Change *paymentProviderType* to the type of payment method in the HPP (see [PaymentType.java](https://github.com/killbill/killbill-adyen-plugin/blob/master/src/main/java/org/killbill/billing/plugin/adyen/client/model/PaymentType.java))
 * At this point, no payment has been created in Kill Bill. The payment will be recorded when processing the notification
