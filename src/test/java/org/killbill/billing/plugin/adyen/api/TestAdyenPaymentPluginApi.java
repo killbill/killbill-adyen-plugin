@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Groupon, Inc
+ * Copyright 2014-2015 Groupon, Inc
  *
  * Groupon licenses this file to you under the Apache License, version 2.0
  * (the "License"); you may not use this file except in compliance with the
@@ -69,7 +69,7 @@ public class TestAdyenPaymentPluginApi extends TestWithEmbeddedDBBase {
         final OSGIKillbillLogService logService = TestUtils.buildLogService();
 
         final OSGIConfigPropertiesService configPropertiesService = Mockito.mock(OSGIConfigPropertiesService.class);
-        adyenPaymentPluginApi = new AdyenPaymentPluginApi(adyenConfigProperties, adyenPaymentServiceProviderPort, adyenPaymentServiceProviderHostedPaymentPagePort, killbillApi, configPropertiesService, logService, clock, dao);
+        adyenPaymentPluginApi = new AdyenPaymentPluginApi(adyenConfigurationHandler, adyenHostedPaymentPageConfigurationHandler, killbillApi, configPropertiesService, logService, clock, dao);
 
         propertiesWithCCInfo = toProperties(ImmutableMap.<String, String>of(AdyenPaymentPluginApi.PROPERTY_CC_LAST_NAME, "Dupont",
                                                                             AdyenPaymentPluginApi.PROPERTY_CC_NUMBER, CC_NUMBER,

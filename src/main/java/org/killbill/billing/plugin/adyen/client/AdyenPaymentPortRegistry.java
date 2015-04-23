@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Groupon, Inc
+ * Copyright 2014-2015 Groupon, Inc
  *
  * Groupon licenses this file to you under the Apache License, version 2.0
  * (the "License"); you may not use this file except in compliance with the
@@ -16,6 +16,8 @@
 
 package org.killbill.billing.plugin.adyen.client;
 
+import java.io.IOException;
+import java.lang.reflect.Proxy;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -47,7 +49,7 @@ public class AdyenPaymentPortRegistry implements PaymentPortRegistry {
     private final LoggingOutInterceptor loggingOutInterceptor;
     private final LoggingInInterceptor loggingInInterceptor;
     private final HttpHeaderInterceptor httpHeaderInterceptor;
-    private final Map<String, Object> services;
+    private final Map<String, PaymentPortType> services;
 
     public AdyenPaymentPortRegistry(final AdyenConfigProperties config,
                                     final LoggingInInterceptor loggingInInterceptor,
@@ -56,9 +58,19 @@ public class AdyenPaymentPortRegistry implements PaymentPortRegistry {
         this.loggingInInterceptor = loggingInInterceptor;
         this.loggingOutInterceptor = loggingOutInterceptor;
         this.config = Preconditions.checkNotNull(config, "config");
-        config.addOnChangeFunction(new ClearServices());
-        this.services = new ConcurrentHashMap<String, Object>();
+        this.services = new ConcurrentHashMap<String, PaymentPortType>();
         this.httpHeaderInterceptor = httpHeaderInterceptor;
+    }
+
+    @Override
+    public void close() throws IOException {
+        for (final PaymentPortType service : services.values()) {
+            try {
+                // See ClientProxy.getClient
+                ((ClientProxy) Proxy.getInvocationHandler(service)).close();
+            } catch (final RuntimeException ignored) {
+            }
+        }
     }
 
     @Override
@@ -66,15 +78,15 @@ public class AdyenPaymentPortRegistry implements PaymentPortRegistry {
         final String countryCode = AdyenConfigProperties.gbToUK(countryIsoCode);
 
         if (!this.services.containsKey(countryCode + PAYMENT_SERVICE_SUFFIX)) {
-            final Object service = createService(Payment.SERVICE,
-                                                 Payment.PaymentHttpPort,
-                                                 config.getPaymentUrl(),
-                                                 config.getUserName(countryCode),
-                                                 config.getPassword(countryCode),
-                                                 null);
+            final PaymentPortType service = createService(Payment.SERVICE,
+                                                          Payment.PaymentHttpPort,
+                                                          config.getPaymentUrl(),
+                                                          config.getUserName(countryCode),
+                                                          config.getPassword(countryCode),
+                                                          null);
             this.services.put(countryCode + PAYMENT_SERVICE_SUFFIX, service);
         }
-        return (PaymentPortType) this.services.get(countryCode + PAYMENT_SERVICE_SUFFIX);
+        return this.services.get(countryCode + PAYMENT_SERVICE_SUFFIX);
     }
 
     private PaymentPortType createService(final QName service,
@@ -111,13 +123,5 @@ public class AdyenPaymentPortRegistry implements PaymentPortRegistry {
         endpoint.getOutInterceptors().add(httpHeaderInterceptor);
 
         return port;
-    }
-
-    private class ClearServices implements Runnable {
-
-        @Override
-        public void run() {
-            services.clear();
-        }
     }
 }

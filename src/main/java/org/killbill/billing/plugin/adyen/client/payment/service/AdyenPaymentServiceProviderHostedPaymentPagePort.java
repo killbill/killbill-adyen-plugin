@@ -16,6 +16,8 @@
 
 package org.killbill.billing.plugin.adyen.client.payment.service;
 
+import java.io.Closeable;
+import java.io.IOException;
 import java.util.Map;
 
 import org.killbill.billing.plugin.adyen.client.AdyenConfigProperties;
@@ -34,7 +36,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 
-public class AdyenPaymentServiceProviderHostedPaymentPagePort {
+public class AdyenPaymentServiceProviderHostedPaymentPagePort implements Closeable {
 
     private static final Logger logger = LoggerFactory.getLogger("adyen");
 
@@ -45,6 +47,11 @@ public class AdyenPaymentServiceProviderHostedPaymentPagePort {
                                                             final AdyenRequestFactory adyenRequestFactory) {
         this.adyenConfigProperties = adyenConfigProperties;
         this.adyenRequestFactory = adyenRequestFactory;
+    }
+
+    @Override
+    public void close() throws IOException {
+        // No-op for now
     }
 
     public Map<String, String> getFormParameter(final Long amount, final PaymentData paymentData, final OrderData orderData, final UserData userData, final String serverUrl, final String resultUrl) throws SignatureGenerationException {
@@ -97,6 +104,10 @@ public class AdyenPaymentServiceProviderHostedPaymentPagePort {
             logger.error("Could not verify signature, exception was: ", e);
             return false;
         }
+    }
+
+    public AdyenConfigProperties getAdyenConfigProperties() {
+        return adyenConfigProperties;
     }
 
     private String toPaymentRef(final Long paymentId) {

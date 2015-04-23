@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Groupon, Inc
+ * Copyright 2014-2015 Groupon, Inc
  *
  * Groupon licenses this file to you under the Apache License, version 2.0
  * (the "License"); you may not use this file except in compliance with the
@@ -16,19 +16,12 @@
 
 package org.killbill.billing.plugin.adyen.client;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
 
-import javax.annotation.Nullable;
-
-import com.google.common.base.Function;
 import com.google.common.base.Strings;
-import com.google.common.collect.ImmutableMap;
 
 public class AdyenConfigProperties {
 
@@ -39,30 +32,6 @@ public class AdyenConfigProperties {
 
     private static final Locale LOCALE_EN_UK = new Locale("en", "UK");
 
-    private final List<Runnable> onChangeFunctions = Collections.synchronizedList(new ArrayList<Runnable>());
-
-    private Map<String, Function<String, Void>> propertiesToObserve = ImmutableMap.<String, Function<String, Void>>builder()
-                                                                                  .put(PROPERTY_PREFIX + "allowChunking", new SetAllowChunking())
-                                                                                  .put(PROPERTY_PREFIX + "hpp.target", new SetHppTarget())
-                                                                                  .put(PROPERTY_PREFIX + "recurring.receiveTimeout", new SetRecurringReceiveTimeout())
-                                                                                  .put(PROPERTY_PREFIX + "recurring.connectionTimeout", new SetRecurringConnectionTimeout())
-                                                                                  .put(PROPERTY_PREFIX + "recurringWsdlUrl", new SetRecurringWsdlUrl())
-                                                                                  .put(PROPERTY_PREFIX + "recurringUrl", new SetRecurringUrl())
-                                                                                  .put(PROPERTY_PREFIX + "paymentWsdlUrl", new SetPaymentWsdlUrl())
-                                                                                  .put(PROPERTY_PREFIX + "paymentUrl", new SetPaymentUrl())
-                                                                                  .put(PROPERTY_PREFIX + "hmac.secret", new SetSecrets())
-                                                                                  .put(PROPERTY_PREFIX + "password", new SetPasswords())
-                                                                                  .put(PROPERTY_PREFIX + "username", new SetUserNames())
-                                                                                  .put(PROPERTY_PREFIX + "merchantAccount", new SetMerchantAccounts())
-                                                                                  .put(PROPERTY_PREFIX + "skin", new SetSkins())
-                                                                                  .put(PROPERTY_PREFIX + "threeDSTermUrl", new Set3DSTermUrl())
-                                                                                  .put(PROPERTY_PREFIX + "hppTargetOverride", new SetHppTargetOverride())
-                                                                                  .put(PROPERTY_PREFIX + "hppVariantOverride", new SetHppVariantOverride())
-                                                                                  .put(PROPERTY_PREFIX + "acquirersList", new SetAcquirersList())
-                                                                                  .put(PROPERTY_PREFIX + "defaultAcquirer", new SetDefaultAcquirer())
-                                                                                  .put(PROPERTY_PREFIX + "defaultCountryIsoCode", new SetDefaultCountryIsoCode())
-                                                                                  .build();
-
     private final Map<String, String> merchantAccountMap = new ConcurrentHashMap<String, String>();
     private final Map<String, String> countryCodeMap = new ConcurrentHashMap<String, String>();
     private final Map<String, String> userMap = new ConcurrentHashMap<String, String>();
@@ -70,35 +39,62 @@ public class AdyenConfigProperties {
     private final Map<String, String> skinMap = new ConcurrentHashMap<String, String>();
     private final Map<String, String> secretMap = new ConcurrentHashMap<String, String>();
 
-    private String merchantAccounts;
-    private String userNames;
-    private String passwords;
-    private String skins;
-    private String hmacSecrets;
-    private String paymentUrl;
-    private String paymentWsdlUrl;
-    private String recurringUrl;
-    private String recurringWsdlUrl;
-    private String recurringConnectionTimeout;
-    private String recurringReceiveTimeout;
-    private String hppTarget;
-    private String allowChunking;
-    private String threeDSTermUrl;
-    private String hppTargetOverride;
-    private String hppVariantOverride;
-    private String acquirersList;
-    private String defaultAcquirer;
-    private String defaultCountryIsoCode;
+    private final String merchantAccounts;
+    private final String userNames;
+    private final String passwords;
+    private final String skins;
+    private final String hmacSecrets;
+    private final String paymentUrl;
+    private final String paymentWsdlUrl;
+    private final String recurringUrl;
+    private final String recurringWsdlUrl;
+    private final String recurringConnectionTimeout;
+    private final String recurringReceiveTimeout;
+    private final String hppTarget;
+    private final String allowChunking;
+    private final String threeDSTermUrl;
+    private final String hppTargetOverride;
+    private final String hppVariantOverride;
+    private final String acquirersList;
+    private final String defaultAcquirer;
+    private final String defaultCountryIsoCode;
 
     public AdyenConfigProperties(final Properties properties) {
-        for (final Map.Entry<String, Function<String, Void>> propertyToObserve : propertiesToObserve.entrySet()) {
-            final String propertyName = propertyToObserve.getKey();
-            final Function<String, Void> consumer = propertyToObserve.getValue();
+        this.allowChunking = properties.getProperty(PROPERTY_PREFIX + "allowChunking");
+        this.hppTarget = properties.getProperty(PROPERTY_PREFIX + "hpp.target");
+        this.recurringReceiveTimeout = properties.getProperty(PROPERTY_PREFIX + "recurring.receiveTimeout");
+        this.recurringConnectionTimeout = properties.getProperty(PROPERTY_PREFIX + "recurring.connectionTimeout");
+        this.recurringWsdlUrl = properties.getProperty(PROPERTY_PREFIX + "recurringWsdlUrl");
+        this.recurringUrl = properties.getProperty(PROPERTY_PREFIX + "recurringUrl");
+        this.paymentWsdlUrl = properties.getProperty(PROPERTY_PREFIX + "paymentWsdlUrl");
+        this.paymentUrl = properties.getProperty(PROPERTY_PREFIX + "paymentUrl");
+        this.threeDSTermUrl = properties.getProperty(PROPERTY_PREFIX + "threeDSTermUrl");
+        this.hppTargetOverride = properties.getProperty(PROPERTY_PREFIX + "hppTargetOverride");
+        this.hppVariantOverride = properties.getProperty(PROPERTY_PREFIX + "hppVariantOverride");
+        this.acquirersList = properties.getProperty(PROPERTY_PREFIX + "acquirersList");
+        this.defaultAcquirer = properties.getProperty(PROPERTY_PREFIX + "defaultAcquirer");
+        this.defaultCountryIsoCode = properties.getProperty(PROPERTY_PREFIX + "defaultCountryIsoCode");
 
-            if (properties.containsKey(propertyName)) {
-                final Object property = properties.get(propertyName);
-                final String value = property != null ? property.toString() : null;
-                consumer.apply(value);
+        this.hmacSecrets = properties.getProperty(PROPERTY_PREFIX + "hmac.secret");
+        refillMap(secretMap, hmacSecrets);
+
+        this.passwords = properties.getProperty(PROPERTY_PREFIX + "password");
+        refillMap(passwordMap, passwords);
+
+        this.userNames = properties.getProperty(PROPERTY_PREFIX + "username");
+        refillMap(userMap, userNames);
+
+        this.skins = properties.getProperty(PROPERTY_PREFIX + "skin");
+        refillMap(skinMap, skins);
+
+        this.merchantAccounts = properties.getProperty(PROPERTY_PREFIX + "merchantAccount");
+        merchantAccountMap.clear();
+        if (merchantAccounts != null && merchantAccounts.contains(ENTRY_DELIMITER)) {
+            for (final String account : merchantAccounts.split("\\" + ENTRY_DELIMITER)) {
+                final String countryIsoCode = account.split(KEY_VALUE_DELIMITER)[0];
+                final String merchantAccount = account.split(KEY_VALUE_DELIMITER)[1];
+                merchantAccountMap.put(countryIsoCode, merchantAccount);
+                countryCodeMap.put(merchantAccount, countryIsoCode);
             }
         }
     }
@@ -239,175 +235,6 @@ public class AdyenConfigProperties {
         return defaultCountryIsoCode;
     }
 
-    public void addOnChangeFunction(final Runnable executeOnChange) {
-        onChangeFunctions.add(executeOnChange);
-    }
-
-    private class SetAllowChunking extends ChangeAttributeFunction {
-
-        @Override
-        public void onApply(final String input) {
-            allowChunking = input;
-        }
-    }
-
-    private class SetHppTarget extends ChangeAttributeFunction {
-
-        @Override
-        public void onApply(final String input) {
-            hppTarget = input;
-        }
-    }
-
-    private class SetRecurringReceiveTimeout extends ChangeAttributeFunction {
-
-        @Override
-        public void onApply(final String input) {
-            recurringReceiveTimeout = input;
-        }
-    }
-
-    private class SetRecurringConnectionTimeout extends ChangeAttributeFunction {
-
-        @Override
-        public void onApply(final String input) {
-            recurringConnectionTimeout = input;
-        }
-    }
-
-    private class SetRecurringWsdlUrl extends ChangeAttributeFunction {
-
-        @Override
-        public void onApply(final String input) {
-            recurringWsdlUrl = input;
-        }
-    }
-
-    private class SetRecurringUrl extends ChangeAttributeFunction {
-
-        @Override
-        public void onApply(final String input) {
-            recurringUrl = input;
-        }
-    }
-
-    private class SetPaymentWsdlUrl extends ChangeAttributeFunction {
-
-        @Override
-        public void onApply(final String input) {
-            paymentWsdlUrl = input;
-        }
-    }
-
-    private class SetPaymentUrl extends ChangeAttributeFunction {
-
-        @Override
-        public void onApply(final String input) {
-            paymentUrl = input;
-        }
-    }
-
-    private class Set3DSTermUrl extends ChangeAttributeFunction {
-
-        @Override
-        public void onApply(final String input) {
-            threeDSTermUrl = input;
-        }
-    }
-
-    private class SetHppTargetOverride extends ChangeAttributeFunction {
-
-        @Override
-        public void onApply(final String input) {
-            hppTargetOverride = input;
-        }
-    }
-
-    private class SetHppVariantOverride extends ChangeAttributeFunction {
-
-        @Override
-        public void onApply(final String input) {
-            hppVariantOverride = input;
-        }
-    }
-
-    private class SetAcquirersList extends ChangeAttributeFunction {
-
-        @Override
-        public void onApply(final String input) {
-            acquirersList = input;
-        }
-    }
-
-    private class SetDefaultAcquirer extends ChangeAttributeFunction {
-
-        @Override
-        public void onApply(final String input) {
-            defaultAcquirer = input;
-        }
-    }
-
-    private class SetDefaultCountryIsoCode extends ChangeAttributeFunction {
-
-        @Override
-        public void onApply(final String input) {
-            defaultCountryIsoCode = input;
-        }
-    }
-
-    private class SetSecrets extends ChangeAttributeFunction {
-
-        @Override
-        public void onApply(final String input) {
-            hmacSecrets = input;
-            refillMap(secretMap, hmacSecrets);
-        }
-    }
-
-    private class SetSkins extends ChangeAttributeFunction {
-
-        @Override
-        public void onApply(final String input) {
-            skins = input;
-            refillMap(skinMap, skins);
-        }
-    }
-
-    private class SetPasswords extends ChangeAttributeFunction {
-
-        @Override
-        public void onApply(final String input) {
-            passwords = input;
-            refillMap(passwordMap, passwords);
-        }
-    }
-
-    private class SetUserNames extends ChangeAttributeFunction {
-
-        @Override
-        public void onApply(final String input) {
-            userNames = input;
-            refillMap(userMap, userNames);
-        }
-    }
-
-    private class SetMerchantAccounts extends ChangeAttributeFunction {
-
-        @Override
-        public void onApply(final String input) {
-            merchantAccountMap.clear();
-            merchantAccounts = input;
-            if (merchantAccounts.contains(ENTRY_DELIMITER)) {
-                for (final String account : merchantAccounts.split("\\" + ENTRY_DELIMITER)) {
-                    final String countryIsoCode = account.split(KEY_VALUE_DELIMITER)[0];
-                    final String merchantAccount = account.split(KEY_VALUE_DELIMITER)[1];
-                    merchantAccountMap.put(countryIsoCode, merchantAccount);
-                    countryCodeMap.put(merchantAccount, countryIsoCode);
-                }
-            }
-        }
-    }
-
     private void refillMap(final Map<String, String> map, final String stringToSplit) {
         map.clear();
         if (!Strings.isNullOrEmpty(stringToSplit) && stringToSplit.contains(ENTRY_DELIMITER)) {
@@ -415,24 +242,5 @@ public class AdyenConfigProperties {
                 map.put(entry.split("#")[0], entry.split(KEY_VALUE_DELIMITER)[1]);
             }
         }
-    }
-
-    private abstract class ChangeAttributeFunction implements Function<String, Void> {
-
-        @Nullable
-        @Override
-        public Void apply(@Nullable final String input) {
-            if (Strings.isNullOrEmpty(input)) {
-                return null;
-            }
-
-            onApply(input);
-            for (final Runnable function : onChangeFunctions) {
-                function.run();
-            }
-            return null;
-        }
-
-        public abstract void onApply(String input);
     }
 }

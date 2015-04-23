@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Groupon, Inc
+ * Copyright 2014-2015 Groupon, Inc
  *
  * Groupon licenses this file to you under the Apache License, version 2.0
  * (the "License"); you may not use this file except in compliance with the
@@ -16,6 +16,9 @@
 
 package org.killbill.billing.plugin.adyen.client.payment.service;
 
+import java.io.Closeable;
+import java.io.IOException;
+
 import org.killbill.adyen.payment.DirectDebitRequest;
 import org.killbill.adyen.payment.DirectDebitResponse;
 import org.killbill.adyen.payment.ModificationRequest;
@@ -27,7 +30,7 @@ import org.killbill.adyen.payment.PaymentResult;
 import org.killbill.adyen.payment.ServiceException;
 import org.killbill.billing.plugin.adyen.client.PaymentPortRegistry;
 
-public class AdyenPaymentRequestSender {
+public class AdyenPaymentRequestSender implements Closeable {
 
     private final PaymentPortRegistry adyenPaymentPortRegistry;
 
@@ -65,5 +68,10 @@ public class AdyenPaymentRequestSender {
     public ModificationResult capture(final String countryIsoCode, final ModificationRequest modificationRequest) throws ServiceException {
         final PaymentPortType paymentPort = adyenPaymentPortRegistry.getPaymentPort(countryIsoCode);
         return paymentPort.capture(modificationRequest);
+    }
+
+    @Override
+    public void close() throws IOException {
+        adyenPaymentPortRegistry.close();
     }
 }

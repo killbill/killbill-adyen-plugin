@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Groupon, Inc
+ * Copyright 2014-2015 Groupon, Inc
  *
  * Groupon licenses this file to you under the Apache License, version 2.0
  * (the "License"); you may not use this file except in compliance with the
@@ -19,6 +19,7 @@ package org.killbill.billing.plugin.adyen;
 import java.io.IOException;
 import java.util.Properties;
 
+import org.killbill.billing.account.api.Account;
 import org.killbill.billing.catalog.api.Currency;
 import org.killbill.billing.plugin.TestUtils;
 import org.killbill.billing.plugin.adyen.client.AdyenConfigProperties;
@@ -34,6 +35,11 @@ import org.killbill.billing.plugin.adyen.client.payment.service.AdyenPaymentRequ
 import org.killbill.billing.plugin.adyen.client.payment.service.AdyenPaymentServiceProviderHostedPaymentPagePort;
 import org.killbill.billing.plugin.adyen.client.payment.service.AdyenPaymentServiceProviderPort;
 import org.killbill.billing.plugin.adyen.client.payment.service.Signer;
+import org.killbill.billing.plugin.adyen.core.AdyenActivator;
+import org.killbill.billing.plugin.adyen.core.AdyenConfigurationHandler;
+import org.killbill.billing.plugin.adyen.core.AdyenHostedPaymentPageConfigurationHandler;
+import org.killbill.killbill.osgi.libs.killbill.OSGIKillbillAPI;
+import org.killbill.killbill.osgi.libs.killbill.OSGIKillbillLogService;
 import org.testng.annotations.BeforeClass;
 
 public abstract class TestRemoteBase {
@@ -54,6 +60,8 @@ public abstract class TestRemoteBase {
     protected static final String CC_VERIFICATION_VALUE = "7373";
 
     protected AdyenConfigProperties adyenConfigProperties;
+    protected AdyenConfigurationHandler adyenConfigurationHandler;
+    protected AdyenHostedPaymentPageConfigurationHandler adyenHostedPaymentPageConfigurationHandler;
     protected AdyenPaymentServiceProviderPort adyenPaymentServiceProviderPort;
     protected AdyenPaymentServiceProviderHostedPaymentPagePort adyenPaymentServiceProviderHostedPaymentPagePort;
 
@@ -74,6 +82,16 @@ public abstract class TestRemoteBase {
 
         adyenPaymentServiceProviderPort = new AdyenPaymentServiceProviderPort(paymentInfoConverterManagement, adyenRequestFactory, adyenPaymentRequestSender);
         adyenPaymentServiceProviderHostedPaymentPagePort = new AdyenPaymentServiceProviderHostedPaymentPagePort(adyenConfigProperties, adyenRequestFactory);
+
+        final Account account = TestUtils.buildAccount(Currency.BTC, "US");
+        final OSGIKillbillAPI killbillAPI = TestUtils.buildOSGIKillbillAPI(account, TestUtils.buildPayment(account.getId(), account.getPaymentMethodId(), account.getCurrency()), null);
+        final OSGIKillbillLogService logService = TestUtils.buildLogService();
+
+        adyenConfigurationHandler = new AdyenConfigurationHandler(AdyenActivator.PLUGIN_NAME, killbillAPI, logService);
+        adyenConfigurationHandler.setDefaultConfigurable(adyenPaymentServiceProviderPort);
+
+        adyenHostedPaymentPageConfigurationHandler = new AdyenHostedPaymentPageConfigurationHandler(AdyenActivator.PLUGIN_NAME, killbillAPI, logService);
+        adyenHostedPaymentPageConfigurationHandler.setDefaultConfigurable(adyenPaymentServiceProviderHostedPaymentPagePort);
     }
 
     private AdyenConfigProperties getAdyenConfigProperties() throws IOException {

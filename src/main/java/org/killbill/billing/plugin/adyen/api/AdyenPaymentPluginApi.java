@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Groupon, Inc
+ * Copyright 2014-2015 Groupon, Inc
  *
  * Groupon licenses this file to you under the Apache License, version 2.0
  * (the "License"); you may not use this file except in compliance with the
@@ -59,7 +59,8 @@ import org.killbill.billing.plugin.adyen.client.notification.AdyenNotificationSe
 import org.killbill.billing.plugin.adyen.client.payment.exception.ModificationFailedException;
 import org.killbill.billing.plugin.adyen.client.payment.exception.SignatureGenerationException;
 import org.killbill.billing.plugin.adyen.client.payment.service.AdyenPaymentServiceProviderHostedPaymentPagePort;
-import org.killbill.billing.plugin.adyen.client.payment.service.AdyenPaymentServiceProviderPort;
+import org.killbill.billing.plugin.adyen.core.AdyenConfigurationHandler;
+import org.killbill.billing.plugin.adyen.core.AdyenHostedPaymentPageConfigurationHandler;
 import org.killbill.billing.plugin.adyen.core.KillbillAdyenNotificationHandler;
 import org.killbill.billing.plugin.adyen.dao.AdyenDao;
 import org.killbill.billing.plugin.adyen.dao.gen.tables.AdyenPaymentMethods;
@@ -120,17 +121,21 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
     public static final String PROPERTY_ISSUER_URL = "issuerUrl";
     public static final String PROPERTY_TERM_URL = "TermUrl";
 
-    private final AdyenConfigProperties adyenConfigProperties;
-    private final AdyenPaymentServiceProviderPort adyenClient;
-    private final AdyenPaymentServiceProviderHostedPaymentPagePort adyenHppClient;
+    private final AdyenConfigurationHandler adyenConfigurationHandler;
+    private final AdyenHostedPaymentPageConfigurationHandler adyenHppConfigurationHandler;
     private final AdyenDao dao;
     private final AdyenNotificationService adyenNotificationService;
 
-    public AdyenPaymentPluginApi(final AdyenConfigProperties adyenConfigProperties, final AdyenPaymentServiceProviderPort adyenClient, final AdyenPaymentServiceProviderHostedPaymentPagePort adyenHppClient, final OSGIKillbillAPI killbillApi, final OSGIConfigPropertiesService osgiConfigPropertiesService, final OSGIKillbillLogService logService, final Clock clock, final AdyenDao dao) throws JAXBException {
+    public AdyenPaymentPluginApi(final AdyenConfigurationHandler adyenConfigurationHandler,
+                                 final AdyenHostedPaymentPageConfigurationHandler adyenHppConfigurationHandler,
+                                 final OSGIKillbillAPI killbillApi,
+                                 final OSGIConfigPropertiesService osgiConfigPropertiesService,
+                                 final OSGIKillbillLogService logService,
+                                 final Clock clock,
+                                 final AdyenDao dao) throws JAXBException {
         super(killbillApi, osgiConfigPropertiesService, logService, clock, dao);
-        this.adyenConfigProperties = adyenConfigProperties;
-        this.adyenClient = adyenClient;
-        this.adyenHppClient = adyenHppClient;
+        this.adyenConfigurationHandler = adyenConfigurationHandler;
+        this.adyenHppConfigurationHandler = adyenHppConfigurationHandler;
         this.dao = dao;
 
         final KillbillAdyenNotificationHandler adyenNotificationHandler = new KillbillAdyenNotificationHandler(killbillApi, dao, clock);
@@ -163,7 +168,7 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
                                          new TransactionExecutor<PurchaseResult, RuntimeException>() {
                                              @Override
                                              public PurchaseResult execute(final Long amount, final PaymentData paymentData, final OrderData orderData, final UserData userData, final String termUrl, final SplitSettlementData splitSettlementData) {
-                                                 return adyenClient.authorise(amount, paymentData, orderData, userData, termUrl, splitSettlementData);
+                                                 return adyenConfigurationHandler.getConfigurable(context.getTenantId()).authorise(amount, paymentData, orderData, userData, termUrl, splitSettlementData);
                                              }
                                          },
                                          kbAccountId,
@@ -182,7 +187,7 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
                                           new TransactionExecutor<PaymentModificationResponse, ModificationFailedException>() {
                                               @Override
                                               public PaymentModificationResponse execute(@Nullable final Long transactionAmount, final PaymentProvider paymentProvider, final String pspReference, final SplitSettlementData splitSettlementData) throws ModificationFailedException {
-                                                  return adyenClient.capture(transactionAmount, paymentProvider, pspReference, splitSettlementData);
+                                                  return adyenConfigurationHandler.getConfigurable(context.getTenantId()).capture(transactionAmount, paymentProvider, pspReference, splitSettlementData);
                                               }
                                           },
                                           kbAccountId,
@@ -218,7 +223,7 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
                                           new TransactionExecutor<PaymentModificationResponse, ModificationFailedException>() {
                                               @Override
                                               public PaymentModificationResponse execute(@Nullable final Long transactionAmount, final PaymentProvider paymentProvider, final String pspReference, final SplitSettlementData splitSettlementData) throws ModificationFailedException {
-                                                  return adyenClient.cancel(paymentProvider, pspReference, splitSettlementData);
+                                                  return adyenConfigurationHandler.getConfigurable(context.getTenantId()).cancel(paymentProvider, pspReference, splitSettlementData);
                                               }
                                           },
                                           kbAccountId,
@@ -242,7 +247,7 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
                                           new TransactionExecutor<PaymentModificationResponse, ModificationFailedException>() {
                                               @Override
                                               public PaymentModificationResponse execute(@Nullable final Long transactionAmount, final PaymentProvider paymentProvider, final String pspReference, final SplitSettlementData splitSettlementData) throws ModificationFailedException {
-                                                  return adyenClient.refund(transactionAmount, paymentProvider, pspReference, splitSettlementData);
+                                                  return adyenConfigurationHandler.getConfigurable(context.getTenantId()).refund(transactionAmount, paymentProvider, pspReference, splitSettlementData);
                                               }
                                           },
                                           kbAccountId,
@@ -282,14 +287,16 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
             throw new PaymentPluginApiException("Unable to store HPP request", e);
         }
 
+        final AdyenPaymentServiceProviderHostedPaymentPagePort hostedPaymentPagePort = adyenHppConfigurationHandler.getConfigurable(context.getTenantId());
+
         final Map<String, String> formParameter;
         try {
-            formParameter = adyenHppClient.getFormParameter(amount, paymentData, orderData, userData, serverUrl, resultUrl);
+            formParameter = hostedPaymentPagePort.getFormParameter(amount, paymentData, orderData, userData, serverUrl, resultUrl);
         } catch (final SignatureGenerationException e) {
             throw new PaymentPluginApiException("Unable to generate signature", e);
         }
 
-        final String formUrl = adyenHppClient.getFormUrl(paymentData);
+        final String formUrl = hostedPaymentPagePort.getFormUrl(paymentData);
 
         try {
             return new AdyenHostedPaymentPageFormDescriptor(kbAccountId, formUrl, formParameter);
@@ -507,6 +514,9 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
             final String paymentMethodCCType = paymentMethodsRecord == null || paymentMethodsRecord.getCcType() == null ? null : paymentMethodsRecord.getCcType();
             paymentProviderPaymentType = pluginPropertyCCType == null ? (paymentMethodCCType == null ? PaymentType.CREDITCARD : PaymentType.valueOf(paymentMethodCCType)) : PaymentType.valueOf(pluginPropertyCCType);
         }
+
+        // A bit of a hack - it would be nice to be able to isolate AdyenConfigProperties
+        final AdyenConfigProperties adyenConfigProperties = adyenHppConfigurationHandler.getConfigurable(context.getTenantId()).getAdyenConfigProperties();
 
         final PaymentProvider paymentProvider = new PaymentProvider(adyenConfigProperties);
         if (paymentProviderCurrency != null) {
