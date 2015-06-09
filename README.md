@@ -5,6 +5,13 @@ Plugin to use [Adyen](https://www.adyen.com/home/) as a gateway.
 
 Release builds are available on [Maven Central](http://search.maven.org/#search%7Cga%7C1%7Cg%3A%22org.kill-bill.billing.plugin.java%22%20AND%20a%3A%22adyen-plugin%22) with coordinates `org.kill-bill.billing.plugin.java:adyen-plugin`.
 
+Kill Bill compatibility
+-----------------------
+
+| Plugin version | Kill Bill version |
+| -------------: | ----------------: |
+| 0.1.y          | 0.14.z            |
+
 Requirements
 ------------
 
