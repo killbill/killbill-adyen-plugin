@@ -209,21 +209,28 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
 
     @Override
     public PaymentTransactionInfoPlugin purchasePayment(final UUID kbAccountId, final UUID kbPaymentId, final UUID kbTransactionId, final UUID kbPaymentMethodId, final BigDecimal amount, final Currency currency, final Iterable<PluginProperty> properties, final CallContext context) throws PaymentPluginApiException {
+        final AdyenResponsesRecord adyenResponsesRecord;
+
         final boolean fromHPP = Boolean.valueOf(PluginProperties.findPluginPropertyValue(PROPERTY_FROM_HPP, properties));
         if (!fromHPP) {
-            throw new PaymentPluginApiException(null, "PURCHASE: unsupported operation");
+            // We already have a record for that payment transaction, update the response row with additional properties
+            // (the API can be called for instance after the user is redirected back from the HPP to store the PSP reference)
+            try {
+                adyenResponsesRecord = dao.updateResponse(kbTransactionId, properties, context.getTenantId());
+            } catch (final SQLException e) {
+                throw new PaymentPluginApiException("HPP notification came through, but we encountered a database error", e);
+            }
         } else {
             // We are either processing a notification (see KillbillAdyenNotificationHandler) or creating a PENDING payment for HPP (see buildFormDescriptor)
-
-            final PaymentPluginStatus paymentPluginStatus = PaymentPluginStatus.valueOf(PluginProperties.getValue(PROPERTY_FROM_HPP_TRANSACTION_STATUS, "PROCESSED", properties));
             final DateTime utcNow = clock.getUTCNow();
             try {
-                dao.addResponse(kbAccountId, kbPaymentId, kbTransactionId, TransactionType.PURCHASE, amount, currency, PluginProperties.toMap(properties), utcNow, context.getTenantId());
-                return new AdyenPaymentTransactionInfoPlugin(kbPaymentId, kbTransactionId, TransactionType.PURCHASE, amount, currency, utcNow, paymentPluginStatus);
+                adyenResponsesRecord = dao.addAdyenResponse(kbAccountId, kbPaymentId, kbTransactionId, TransactionType.PURCHASE, amount, currency, PluginProperties.toMap(properties), utcNow, context.getTenantId());
             } catch (final SQLException e) {
                 throw new PaymentPluginApiException("HPP notification came through, but we encountered a database error", e);
             }
         }
+
+        return buildPaymentTransactionInfoPlugin(adyenResponsesRecord);
     }
 
     @Override
