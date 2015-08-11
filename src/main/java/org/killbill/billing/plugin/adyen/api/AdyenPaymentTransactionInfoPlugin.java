@@ -136,7 +136,7 @@ public class AdyenPaymentTransactionInfoPlugin extends PluginPaymentTransactionI
               TransactionType.valueOf(record.getTransactionType()),
               record.getAmount(),
               Strings.isNullOrEmpty(record.getCurrency()) ? null : Currency.valueOf(record.getCurrency()),
-              Strings.isNullOrEmpty(record.getPspResult()) ? null : getPaymentPluginStatus(PaymentServiceProviderResult.getPaymentResultForId(record.getPspResult())),
+              Strings.isNullOrEmpty(record.getPspResult()) ? PaymentPluginStatus.UNDEFINED : getPaymentPluginStatus(PaymentServiceProviderResult.getPaymentResultForId(record.getPspResult())),
               record.getResultCode(),
               record.getRefusalReason(),
               record.getPspReference(),
@@ -144,6 +144,16 @@ public class AdyenPaymentTransactionInfoPlugin extends PluginPaymentTransactionI
               new DateTime(record.getCreatedDate(), DateTimeZone.UTC),
               new DateTime(record.getCreatedDate(), DateTimeZone.UTC),
               AdyenModelPluginBase.buildPluginProperties(record.getAdditionalData()));
+    }
+
+    @Override
+    public PaymentPluginStatus getStatus() {
+        final String hppTransactionStatus = PluginProperties.findPluginPropertyValue(AdyenPaymentPluginApi.PROPERTY_FROM_HPP_TRANSACTION_STATUS, getProperties());
+        if (hppTransactionStatus != null) {
+            return PaymentPluginStatus.valueOf(hppTransactionStatus);
+        } else {
+            return super.getStatus();
+        }
     }
 
     private static PaymentPluginStatus getPaymentPluginStatus(final PaymentServiceProviderResult pspResult) {
