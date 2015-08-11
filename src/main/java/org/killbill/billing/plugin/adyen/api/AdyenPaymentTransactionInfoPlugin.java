@@ -152,8 +152,9 @@ public class AdyenPaymentTransactionInfoPlugin extends PluginPaymentTransactionI
             case REDIRECT_SHOPPER:
             case RECEIVED:
             case PENDING:
-            case AUTHORISED:
                 return PaymentPluginStatus.PENDING;
+            case AUTHORISED:
+                return PaymentPluginStatus.PROCESSED;
             case REFUSED:
             case ERROR:
             case CANCELLED:

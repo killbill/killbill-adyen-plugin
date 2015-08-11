@@ -199,8 +199,7 @@ public class TestAdyenPaymentPluginApi extends TestWithEmbeddedDBBase {
         }
         Assert.assertNotNull(paymentTransactionInfoPlugin.getCreatedDate());
         Assert.assertNotNull(paymentTransactionInfoPlugin.getEffectiveDate());
-        // Always pending if successful
-        Assert.assertEquals(paymentTransactionInfoPlugin.getStatus(), PaymentPluginStatus.PENDING);
+        Assert.assertEquals(paymentTransactionInfoPlugin.getStatus(), paymentTransaction.getTransactionType() == TransactionType.AUTHORIZE ? PaymentPluginStatus.PROCESSED : PaymentPluginStatus.PENDING);
 
         final String expectedGatewayError;
         switch (paymentTransaction.getTransactionType()) {
