@@ -16,9 +16,11 @@
 
 package org.killbill.billing.plugin.adyen.dao;
 
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
@@ -28,6 +30,7 @@ import javax.sql.DataSource;
 import org.joda.time.DateTime;
 import org.jooq.impl.DSL;
 import org.killbill.billing.catalog.api.Currency;
+import org.killbill.billing.payment.api.PluginProperty;
 import org.killbill.billing.payment.api.TransactionType;
 import org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi;
 import org.killbill.billing.plugin.adyen.client.model.NotificationItem;
@@ -39,12 +42,14 @@ import org.killbill.billing.plugin.adyen.dao.gen.tables.records.AdyenHppRequests
 import org.killbill.billing.plugin.adyen.dao.gen.tables.records.AdyenNotificationsRecord;
 import org.killbill.billing.plugin.adyen.dao.gen.tables.records.AdyenPaymentMethodsRecord;
 import org.killbill.billing.plugin.adyen.dao.gen.tables.records.AdyenResponsesRecord;
+import org.killbill.billing.plugin.api.PluginProperties;
 import org.killbill.billing.plugin.dao.payment.PluginPaymentDao;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Functions;
 import com.google.common.base.Joiner;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 
 import static org.killbill.billing.plugin.adyen.dao.gen.tables.AdyenHppRequests.ADYEN_HPP_REQUESTS;
@@ -106,6 +111,53 @@ public class AdyenDao extends PluginPaymentDao<AdyenResponsesRecord, AdyenRespon
     }
 
     // Responses
+
+    public AdyenResponsesRecord addAdyenResponse(final UUID kbAccountId,
+                                                 final UUID kbPaymentId,
+                                                 final UUID kbPaymentTransactionId,
+                                                 final TransactionType transactionType,
+                                                 final BigDecimal amount,
+                                                 final Currency currency,
+                                                 final Map additionalData,
+                                                 final DateTime utcNow,
+                                                 final UUID kbTenantId) throws SQLException {
+        return execute(dataSource.getConnection(),
+                       new WithConnectionCallback<AdyenResponsesRecord>() {
+                           @Override
+                           public AdyenResponsesRecord withConnection(final Connection conn) throws SQLException {
+                               DSL.using(conn, dialect, settings)
+                                  .insertInto(ADYEN_RESPONSES,
+                                              ADYEN_RESPONSES.KB_ACCOUNT_ID,
+                                              ADYEN_RESPONSES.KB_PAYMENT_ID,
+                                              ADYEN_RESPONSES.KB_PAYMENT_TRANSACTION_ID,
+                                              ADYEN_RESPONSES.TRANSACTION_TYPE,
+                                              ADYEN_RESPONSES.AMOUNT,
+                                              ADYEN_RESPONSES.CURRENCY,
+                                              ADYEN_RESPONSES.PSP_REFERENCE,
+                                              ADYEN_RESPONSES.ADDITIONAL_DATA,
+                                              ADYEN_RESPONSES.CREATED_DATE,
+                                              ADYEN_RESPONSES.KB_TENANT_ID)
+                                  .values(kbAccountId.toString(),
+                                          kbPaymentId.toString(),
+                                          kbPaymentTransactionId.toString(),
+                                          transactionType.toString(),
+                                          amount,
+                                          currency == null ? null : currency.name(),
+                                          getProperty(AdyenPaymentPluginApi.PROPERTY_PSP_REFERENCE, additionalData),
+                                          asString(additionalData),
+                                          toTimestamp(utcNow),
+                                          kbTenantId.toString())
+                                  .execute();
+
+                               return DSL.using(conn, dialect, settings)
+                                         .selectFrom(ADYEN_RESPONSES)
+                                         .where(ADYEN_RESPONSES.KB_PAYMENT_TRANSACTION_ID.equal(kbPaymentTransactionId.toString()))
+                                         .and(ADYEN_RESPONSES.KB_TENANT_ID.equal(kbTenantId.toString()))
+                                         .orderBy(ADYEN_RESPONSES.RECORD_ID.desc())
+                                         .fetchOne();
+                           }
+                       });
+    }
 
     public void addResponse(final UUID kbAccountId,
                             final UUID kbPaymentId,
@@ -252,6 +304,45 @@ public class AdyenDao extends PluginPaymentDao<AdyenResponsesRecord, AdyenRespon
                 });
     }
 
+    public AdyenResponsesRecord updateResponse(final UUID kbPaymentTransactionId, final Iterable<PluginProperty> pluginProperties, final UUID kbTenantId) throws SQLException {
+        final Map<String, Object> properties = PluginProperties.toMap(pluginProperties);
+
+        return execute(dataSource.getConnection(),
+                       new WithConnectionCallback<AdyenResponsesRecord>() {
+                           @Override
+                           public AdyenResponsesRecord withConnection(final Connection conn) throws SQLException {
+                               final AdyenResponsesRecord response = DSL.using(conn, dialect, settings)
+                                                                        .selectFrom(ADYEN_RESPONSES)
+                                                                        .where(ADYEN_RESPONSES.KB_PAYMENT_TRANSACTION_ID.equal(kbPaymentTransactionId.toString()))
+                                                                        .and(ADYEN_RESPONSES.KB_TENANT_ID.equal(kbTenantId.toString()))
+                                                                        .orderBy(ADYEN_RESPONSES.RECORD_ID.desc())
+                                                                        .fetchOne();
+
+                               if (response == null) {
+                                   throw new SQLException("Unable to retrieve response row for kbPaymentTransactionId " + kbPaymentTransactionId);
+                               }
+
+                               final Map originalData = new HashMap(fromAdditionalData(response.getAdditionalData()));
+                               originalData.putAll(properties);
+                               final String mergedAdditionalData = getAdditionalData(originalData);
+
+                               DSL.using(conn, dialect, settings)
+                                  .update(ADYEN_RESPONSES)
+                                  .set(ADYEN_RESPONSES.PSP_REFERENCE, getProperty(AdyenPaymentPluginApi.PROPERTY_PSP_REFERENCE, properties))
+                                  .set(ADYEN_RESPONSES.ADDITIONAL_DATA, mergedAdditionalData)
+                                  .where(ADYEN_RESPONSES.RECORD_ID.equal(response.getRecordId()))
+                                  .execute();
+
+                               return DSL.using(conn, dialect, settings)
+                                         .selectFrom(ADYEN_RESPONSES)
+                                         .where(ADYEN_RESPONSES.KB_PAYMENT_TRANSACTION_ID.equal(kbPaymentTransactionId.toString()))
+                                         .and(ADYEN_RESPONSES.KB_TENANT_ID.equal(kbTenantId.toString()))
+                                         .orderBy(ADYEN_RESPONSES.RECORD_ID.desc())
+                                         .fetchOne();
+                           }
+                       });
+    }
+
     public AdyenResponsesRecord getResponse(final String pspReference) throws SQLException {
         return execute(dataSource.getConnection(),
                        new WithConnectionCallback<AdyenResponsesRecord>() {
@@ -377,6 +468,18 @@ public class AdyenDao extends PluginPaymentDao<AdyenResponsesRecord, AdyenRespon
         try {
             return objectMapper.writeValueAsString(additionalData);
         } catch (final JsonProcessingException e) {
+            throw new SQLException(e);
+        }
+    }
+
+    private Map fromAdditionalData(final String additionalData) throws SQLException {
+        if (additionalData == null) {
+            return ImmutableMap.of();
+        }
+
+        try {
+            return objectMapper.readValue(additionalData, Map.class);
+        } catch (final IOException e) {
             throw new SQLException(e);
         }
     }

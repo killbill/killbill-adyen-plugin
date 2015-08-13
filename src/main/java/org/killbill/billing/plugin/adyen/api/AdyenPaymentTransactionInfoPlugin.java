@@ -136,7 +136,7 @@ public class AdyenPaymentTransactionInfoPlugin extends PluginPaymentTransactionI
               TransactionType.valueOf(record.getTransactionType()),
               record.getAmount(),
               Strings.isNullOrEmpty(record.getCurrency()) ? null : Currency.valueOf(record.getCurrency()),
-              Strings.isNullOrEmpty(record.getPspResult()) ? null : getPaymentPluginStatus(PaymentServiceProviderResult.getPaymentResultForId(record.getPspResult())),
+              Strings.isNullOrEmpty(record.getPspResult()) ? PaymentPluginStatus.UNDEFINED : getPaymentPluginStatus(PaymentServiceProviderResult.getPaymentResultForId(record.getPspResult())),
               record.getResultCode(),
               record.getRefusalReason(),
               record.getPspReference(),
@@ -146,14 +146,25 @@ public class AdyenPaymentTransactionInfoPlugin extends PluginPaymentTransactionI
               AdyenModelPluginBase.buildPluginProperties(record.getAdditionalData()));
     }
 
+    @Override
+    public PaymentPluginStatus getStatus() {
+        final String hppTransactionStatus = PluginProperties.findPluginPropertyValue(AdyenPaymentPluginApi.PROPERTY_FROM_HPP_TRANSACTION_STATUS, getProperties());
+        if (hppTransactionStatus != null) {
+            return PaymentPluginStatus.valueOf(hppTransactionStatus);
+        } else {
+            return super.getStatus();
+        }
+    }
+
     private static PaymentPluginStatus getPaymentPluginStatus(final PaymentServiceProviderResult pspResult) {
         switch (pspResult) {
             case INITIALISED:
             case REDIRECT_SHOPPER:
             case RECEIVED:
             case PENDING:
-            case AUTHORISED:
                 return PaymentPluginStatus.PENDING;
+            case AUTHORISED:
+                return PaymentPluginStatus.PROCESSED;
             case REFUSED:
             case ERROR:
             case CANCELLED:

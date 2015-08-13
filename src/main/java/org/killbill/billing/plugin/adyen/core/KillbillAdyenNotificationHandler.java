@@ -213,16 +213,14 @@ public class KillbillAdyenNotificationHandler implements AdyenNotificationHandle
         UUID kbPaymentTransactionId = null;
         UUID kbTenantId = null;
         try {
-            // First, determine if the notification is for an API call or HPP request
+            // First, determine if we already have a payment for that notification
             final AdyenResponsesRecord record = getResponseRecord(item);
             if (record != null) {
-                // API
                 kbAccountId = UUID.fromString(record.getKbAccountId());
                 kbTenantId = UUID.fromString(record.getKbTenantId());
                 kbPaymentId = UUID.fromString(record.getKbPaymentId());
                 kbPaymentTransactionId = UUID.fromString(record.getKbPaymentTransactionId());
             } else {
-                // HPP
                 final AdyenHppRequestsRecord hppRequest = getHppRequest(notification);
                 if (hppRequest != null) {
                     kbAccountId = UUID.fromString(hppRequest.getKbAccountId());
@@ -238,6 +236,7 @@ public class KillbillAdyenNotificationHandler implements AdyenNotificationHandle
 
                 // Update Kill Bill
                 if (record != null) {
+                    updateResponse(kbPaymentTransactionId, notification, kbTenantId);
                     notifyKillBill(account, kbPaymentTransactionId, notification, context);
                 } else {
                     final Payment payment = recordPayment(account, notification, context);
@@ -374,6 +373,17 @@ public class KillbillAdyenNotificationHandler implements AdyenNotificationHandle
         } catch (final SQLException e) {
             // Have Adyen retry
             throw new RuntimeException("Unable to record notification " + notification, e);
+        }
+    }
+
+    private void updateResponse(final UUID kbTransactionId, final NotificationItem notification, final UUID kbTenantId) {
+        final ImmutableMap<String, String> properties = ImmutableMap.<String, String>of(AdyenPaymentPluginApi.PROPERTY_PSP_REFERENCE, notification.getPspReference());
+        final Iterable<PluginProperty> pluginProperties = PluginProperties.buildPluginProperties(properties);
+        try {
+            dao.updateResponse(kbTransactionId, pluginProperties, kbTenantId);
+        } catch (final SQLException e) {
+            // Have Adyen retry
+            throw new RuntimeException("Unable to update response " + notification, e);
         }
     }
 }
