@@ -27,10 +27,6 @@ import java.util.UUID;
 import javax.annotation.Nullable;
 import javax.xml.bind.JAXBException;
 
-import com.google.common.base.MoreObjects;
-import com.google.common.base.Preconditions;
-import com.google.common.base.Predicate;
-import com.google.common.base.Strings;
 import org.joda.time.DateTime;
 import org.killbill.billing.account.api.Account;
 import org.killbill.billing.catalog.api.Currency;
@@ -86,6 +82,10 @@ import org.killbill.killbill.osgi.libs.killbill.OSGIKillbillAPI;
 import org.killbill.killbill.osgi.libs.killbill.OSGIKillbillLogService;
 import org.osgi.service.log.LogService;
 
+import com.google.common.base.MoreObjects;
+import com.google.common.base.Preconditions;
+import com.google.common.base.Predicate;
+import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
@@ -553,7 +553,7 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
     }
 
     private static String holderName(final String firstName, final String lastName) {
-        return String.format("%s%s%s", firstName, firstName == null ? "" : " ", lastName);
+        return String.format("%s%s", firstName == null ? "" : firstName + " ", lastName);
     }
 
     // For HPP
