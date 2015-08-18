@@ -25,17 +25,17 @@ public interface PaymentInfoConverter<T extends PaymentInfo> {
     /**
      * @return the payment type this converter is handling
      */
-    public PaymentType getPaymentType();
+    PaymentType getPaymentType();
 
     /**
      * Convert a PaymentInfo Object into an object understandable by the payment service provider
      */
-    public Object convertPaymentInfoToPSPTransferObject(String holderName, T paymentInfo);
+    Object convertPaymentInfoToPSPTransferObject(String holderName, T paymentInfo);
 
     /**
      * Return the matching BrowserInfo element for 3-D Secure authorisation (needed for maestro, optional for MasterCard/Visa)
      *
      * @return the BrowserInfo object or null if not needed
      */
-    public Object convertPaymentInfoFor3DSecureAuth(Long billedAmount, Card card);
+    Object convertPaymentInfoFor3DSecureAuth(Long billedAmount, Card card);
 }

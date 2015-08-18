@@ -58,6 +58,17 @@ public abstract class TestRemoteBase {
     protected static final int CC_EXPIRATION_MONTH = 8;
     protected static final int CC_EXPIRATION_YEAR = 2018;
     protected static final String CC_VERIFICATION_VALUE = "7373";
+    protected static final String CC_TYPE = "amex";
+
+    protected static final String DD_IBAN = "DE87123456781234567890";
+    protected static final String DD_BIC = "TESTDE01XXX";
+    protected static final String DD_HOLDER_NAME = "A. Schneider";
+    protected static final String DD_TYPE = "sepadirectdebit";
+
+    protected static final String ELV_ACCOUNT_NUMBER = "1234567890";
+    protected static final String ELV_BLZ = "12345678";
+    protected static final String ELV_HOLDER_NAME = "Bill Killson";
+    protected static final String ELV_TYPE = "elv";
 
     protected AdyenConfigProperties adyenConfigProperties;
     protected AdyenConfigurationHandler adyenConfigurationHandler;

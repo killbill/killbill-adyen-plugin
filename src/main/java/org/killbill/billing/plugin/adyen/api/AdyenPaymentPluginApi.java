@@ -19,6 +19,7 @@ package org.killbill.billing.plugin.adyen.api;
 import java.math.BigDecimal;
 import java.net.URISyntaxException;
 import java.sql.SQLException;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
@@ -54,6 +55,8 @@ import org.killbill.billing.plugin.adyen.client.model.PurchaseResult;
 import org.killbill.billing.plugin.adyen.client.model.SplitSettlementData;
 import org.killbill.billing.plugin.adyen.client.model.UserData;
 import org.killbill.billing.plugin.adyen.client.model.paymentinfo.CreditCard;
+import org.killbill.billing.plugin.adyen.client.model.paymentinfo.Elv;
+import org.killbill.billing.plugin.adyen.client.model.paymentinfo.SepaDirectDebit;
 import org.killbill.billing.plugin.adyen.client.model.paymentinfo.WebPaymentFrontend;
 import org.killbill.billing.plugin.adyen.client.notification.AdyenNotificationHandler;
 import org.killbill.billing.plugin.adyen.client.notification.AdyenNotificationService;
@@ -79,7 +82,7 @@ import org.killbill.killbill.osgi.libs.killbill.OSGIKillbillAPI;
 import org.killbill.killbill.osgi.libs.killbill.OSGIKillbillLogService;
 import org.osgi.service.log.LogService;
 
-import com.google.common.base.Objects;
+import com.google.common.base.MoreObjects;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.base.Strings;
@@ -127,6 +130,11 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
     public static final String PROPERTY_DCC_SIGNATURE = "dccSignature";
     public static final String PROPERTY_ISSUER_URL = "issuerUrl";
     public static final String PROPERTY_TERM_URL = "TermUrl";
+
+    public static final String PROPERTY_DD_HOLDER_NAME = "ddHolderName";
+    public static final String PROPERTY_DD_ACCOUNT_NUMBER = "ddNumber";
+    public static final String PROPERTY_DD_BANK_IDENTIFIER_CODE = "ddBic";
+    public static final String PROPERTY_DD_BANKLEITZAHL = "ddBlz";
 
     private final AdyenConfigurationHandler adyenConfigurationHandler;
     private final AdyenHostedPaymentPageConfigurationHandler adyenHppConfigurationHandler;
@@ -457,47 +465,95 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
     }
 
     // For API
-    // TODO Generify
     private PaymentInfo buildPaymentInfo(final Account account, final UUID kbPaymentMethodId, final Currency currency, final Iterable<PluginProperty> properties, final CallContext context) {
         final AdyenPaymentMethodsRecord paymentMethodsRecord = getAdyenPaymentMethodsRecord(kbPaymentMethodId, context);
         final PaymentProvider paymentProvider = buildPaymentProvider(account, paymentMethodsRecord, currency, properties, context);
 
-        // By convention, support the same keys as the Ruby plugins (https://github.com/killbill/killbill-plugin-framework-ruby/blob/master/lib/killbill/helpers/active_merchant/payment_plugin.rb)
-        final String pluginPropertyCcNumber = PluginProperties.findPluginPropertyValue(PROPERTY_CC_NUMBER, properties);
-        final String paymentMethodCcNumber = paymentMethodsRecord == null ? null : paymentMethodsRecord.getCcNumber();
-        final String ccNumber = pluginPropertyCcNumber == null ? paymentMethodCcNumber : pluginPropertyCcNumber;
-        if (ccNumber != null) {
-            final String paymentMethodExpirationMonth = paymentMethodsRecord == null ? null : paymentMethodsRecord.getCcExpMonth();
-            final String ccExpirationMonth = PluginProperties.getValue(PROPERTY_CC_EXPIRATION_MONTH, paymentMethodExpirationMonth, properties);
+        final String paymentMethodsRecordCcType = paymentMethodsRecord != null ? paymentMethodsRecord.getCcType() : null;
+        final String ccType = PluginProperties.getValue(PROPERTY_CC_TYPE, paymentMethodsRecordCcType, properties);
 
-            final String paymentMethodExpirationYear = paymentMethodsRecord == null ? null : paymentMethodsRecord.getCcExpYear();
-            final String ccExpirationYear = PluginProperties.getValue(PROPERTY_CC_EXPIRATION_YEAR, paymentMethodExpirationYear, properties);
-
-            final String paymentMethodVerificationValue = paymentMethodsRecord == null ? null : paymentMethodsRecord.getCcVerificationValue();
-            final String ccVerificationValue = PluginProperties.getValue(PROPERTY_CC_VERIFICATION_VALUE, paymentMethodVerificationValue, properties);
-
-            final String paymentMethodCcFirstName = paymentMethodsRecord == null ? null : paymentMethodsRecord.getCcFirstName();
-            final String ccFirstName = PluginProperties.getValue(PROPERTY_CC_FIRST_NAME, paymentMethodCcFirstName, properties);
-
-            final String paymentMethodCcLastName = paymentMethodsRecord == null ? null : paymentMethodsRecord.getCcLastName();
-            final String ccLastName = PluginProperties.getValue(PROPERTY_CC_LAST_NAME, paymentMethodCcLastName, properties);
-
-            final CreditCard paymentInfo = new CreditCard(paymentProvider);
-            paymentInfo.setCcHolderName(String.format("%s%s%s", ccFirstName, ccFirstName == null ? "" : " ", ccLastName));
-            paymentInfo.setCcNumber(ccNumber);
-            if (ccExpirationMonth != null) {
-                paymentInfo.setValidUntilMonth(Integer.valueOf(ccExpirationMonth));
-            }
-            if (ccExpirationYear != null) {
-                paymentInfo.setValidUntilYear(Integer.valueOf(ccExpirationYear));
-            }
-            if (ccVerificationValue != null) {
-                paymentInfo.setCcSecCode(ccVerificationValue);
-            }
-
-            return paymentInfo;
+        if ("sepadirectdebit".equals(ccType)) {
+            return buildSepaDirectDebit(paymentMethodsRecord, paymentProvider, properties);
+        } else if ("elv".equals(ccType)) {
+            return buildElv(paymentMethodsRecord, paymentProvider, properties);
+        } else {
+            return buildCreditCard(paymentMethodsRecord, paymentProvider, properties);
         }
-        return null;
+    }
+
+    private CreditCard buildCreditCard(final AdyenPaymentMethodsRecord paymentMethodsRecord, final PaymentProvider paymentProvider, final Iterable<PluginProperty> properties) {
+        final AdyenPaymentMethodsRecord nonNullPaymentMethodsRecord = paymentMethodsRecord == null ? new AdyenPaymentMethodsRecord() : paymentMethodsRecord;
+        final CreditCard creditCard = new CreditCard(paymentProvider);
+
+        // By convention, support the same keys as the Ruby plugins (https://github.com/killbill/killbill-plugin-framework-ruby/blob/master/lib/killbill/helpers/active_merchant/payment_plugin.rb)
+        final String ccNumber = PluginProperties.getValue(PROPERTY_CC_NUMBER, nonNullPaymentMethodsRecord.getCcNumber(), properties);
+        creditCard.setCcNumber(ccNumber);
+
+        final String ccFirstName = PluginProperties.getValue(PROPERTY_CC_FIRST_NAME, nonNullPaymentMethodsRecord.getCcFirstName(), properties);
+        final String ccLastName = PluginProperties.getValue(PROPERTY_CC_LAST_NAME, nonNullPaymentMethodsRecord.getCcLastName(), properties);
+        creditCard.setCcHolderName(holderName(ccFirstName, ccLastName));
+
+        final String ccExpirationMonth = PluginProperties.getValue(PROPERTY_CC_EXPIRATION_MONTH, nonNullPaymentMethodsRecord.getCcExpMonth(), properties);
+        if (ccExpirationMonth != null) {
+            creditCard.setValidUntilMonth(Integer.valueOf(ccExpirationMonth));
+        }
+
+        final String ccExpirationYear = PluginProperties.getValue(PROPERTY_CC_EXPIRATION_YEAR, nonNullPaymentMethodsRecord.getCcExpYear(), properties);
+        if (ccExpirationYear != null) {
+            creditCard.setValidUntilYear(Integer.valueOf(ccExpirationYear));
+        }
+
+        final String ccVerificationValue = PluginProperties.getValue(PROPERTY_CC_VERIFICATION_VALUE, nonNullPaymentMethodsRecord.getCcVerificationValue(), properties);
+        if (ccVerificationValue != null) {
+            creditCard.setCcSecCode(ccVerificationValue);
+        }
+
+        return creditCard;
+    }
+
+    private SepaDirectDebit buildSepaDirectDebit(final AdyenPaymentMethodsRecord paymentMethodsRecord, final PaymentProvider paymentProvider, final Iterable<PluginProperty> properties) {
+        final AdyenPaymentMethodsRecord nonNullPaymentMethodsRecord = paymentMethodsRecord == null ? new AdyenPaymentMethodsRecord() : paymentMethodsRecord;
+        final List<PluginProperty> additionalProperties = buildPaymentMethodPlugin(nonNullPaymentMethodsRecord).getProperties();
+        final SepaDirectDebit sepaDirectDebit = new SepaDirectDebit(paymentProvider);
+
+        final String ddAccountNumber = PluginProperties.getValue(PROPERTY_DD_ACCOUNT_NUMBER, nonNullPaymentMethodsRecord.getCcNumber(), additionalProperties);
+        sepaDirectDebit.setIban(ddAccountNumber);
+
+        final String paymentMethodHolderName = holderName(nonNullPaymentMethodsRecord.getCcFirstName(), nonNullPaymentMethodsRecord.getCcLastName());
+        final String ddHolderName = PluginProperties.getValue(PROPERTY_DD_HOLDER_NAME, paymentMethodHolderName, additionalProperties);
+        sepaDirectDebit.setSepaAccountHolder(ddHolderName);
+
+        final String paymentMethodBic = PluginProperties.findPluginPropertyValue(PROPERTY_DD_BANK_IDENTIFIER_CODE, additionalProperties);
+        final String ddBic = PluginProperties.getValue(PROPERTY_DD_BANK_IDENTIFIER_CODE, paymentMethodBic, additionalProperties);
+        sepaDirectDebit.setBic(ddBic);
+
+        final String countryCode = MoreObjects.firstNonNull(nonNullPaymentMethodsRecord.getCountry(), paymentProvider.getCountryIsoCode());
+        sepaDirectDebit.setCountryCode(countryCode);
+
+        return sepaDirectDebit;
+    }
+
+    private Elv buildElv(final AdyenPaymentMethodsRecord paymentMethodsRecord, final PaymentProvider paymentProvider, final Iterable<PluginProperty> properties) {
+        final AdyenPaymentMethodsRecord nonNullPaymentMethodsRecord = paymentMethodsRecord == null ? new AdyenPaymentMethodsRecord() : paymentMethodsRecord;
+        final List<PluginProperty> additionalProperties = buildPaymentMethodPlugin(nonNullPaymentMethodsRecord).getProperties();
+        final Elv elv = new Elv(paymentProvider);
+
+        final String ddAccountNumber = PluginProperties.getValue(PROPERTY_DD_ACCOUNT_NUMBER, nonNullPaymentMethodsRecord.getCcNumber(), additionalProperties);
+        elv.setElvKontoNummer(ddAccountNumber);
+
+        final String paymentMethodHolderName = holderName(nonNullPaymentMethodsRecord.getCcFirstName(), nonNullPaymentMethodsRecord.getCcLastName());
+        final String ddHolderName = PluginProperties.getValue(PROPERTY_DD_HOLDER_NAME, paymentMethodHolderName, additionalProperties);
+        elv.setElvAccountHolder(ddHolderName);
+
+        final String paymentMethodBlz = PluginProperties.findPluginPropertyValue(PROPERTY_DD_BANKLEITZAHL, additionalProperties);
+        final String ddBlz = PluginProperties.getValue(PROPERTY_DD_BANKLEITZAHL, paymentMethodBlz, additionalProperties);
+        elv.setElvBlz(ddBlz);
+
+        return elv;
+    }
+
+    private static String holderName(final String firstName, final String lastName) {
+        return String.format("%s%s", firstName == null ? "" : firstName + " ", lastName);
     }
 
     // For HPP
@@ -534,7 +590,7 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
         } else {
             final String pluginPropertyCCType = PluginProperties.findPluginPropertyValue(PROPERTY_CC_TYPE, properties);
             final String paymentMethodCCType = paymentMethodsRecord == null || paymentMethodsRecord.getCcType() == null ? null : paymentMethodsRecord.getCcType();
-            paymentProviderPaymentType = pluginPropertyCCType == null ? (paymentMethodCCType == null ? PaymentType.CREDITCARD : PaymentType.valueOf(paymentMethodCCType)) : PaymentType.valueOf(pluginPropertyCCType.toUpperCase());
+            paymentProviderPaymentType = pluginPropertyCCType == null ? (paymentMethodCCType == null ? PaymentType.CREDITCARD : PaymentType.getByName(paymentMethodCCType)) : PaymentType.getByName(pluginPropertyCCType);
         }
 
         // A bit of a hack - it would be nice to be able to isolate AdyenConfigProperties
@@ -564,10 +620,10 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
         final String accountEmail = account == null ? null : account.getEmail();
         userData.setEmail(PluginProperties.getValue(PROPERTY_EMAIL, accountEmail, properties));
 
-        final String accountFirstName = account == null || account.getName() == null ? null : account.getName().substring(0, Objects.firstNonNull(account.getFirstNameLength(), account.getName().length()));
+        final String accountFirstName = account == null || account.getName() == null ? null : account.getName().substring(0, MoreObjects.firstNonNull(account.getFirstNameLength(), account.getName().length()));
         userData.setFirstName(PluginProperties.getValue(PROPERTY_FIRST_NAME, accountFirstName, properties));
 
-        final String accountLastName = account == null || account.getName() == null ? null : account.getName().substring(Objects.firstNonNull(account.getFirstNameLength(), account.getName().length()), account.getName().length());
+        final String accountLastName = account == null || account.getName() == null ? null : account.getName().substring(MoreObjects.firstNonNull(account.getFirstNameLength(), account.getName().length()), account.getName().length());
         userData.setLastName(PluginProperties.getValue(PROPERTY_LAST_NAME, accountLastName, properties));
 
         userData.setIP(PluginProperties.findPluginPropertyValue(PROPERTY_IP, properties));
