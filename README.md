@@ -193,6 +193,82 @@ Notes:
 * If *success* is true, the payment transaction state will be *SUCCESS* and the payment state *AUTH_SUCCESS*
 * If *success* is false, the payment transaction state will be *PAYMENT_FAILURE* and the payment state *AUTH_FAILED*
 
+### SEPA
+
+The APIs are similar to the Credit Card use-case. Here is an example payload for the add payment method call:
+
+```
+curl -v \
+     -u admin:password \
+     -H "X-Killbill-ApiKey: bob" \
+     -H "X-Killbill-ApiSecret: lazar" \
+     -H "Content-Type: application/json" \
+     -H "X-Killbill-CreatedBy: demo" \
+     -X POST \
+     --data-binary '{
+       "pluginName": "killbill-adyen",
+       "pluginInfo": {
+         "properties": [
+           {
+             "key": "ccType",
+             "value": "sepadirectdebit"
+           },
+           {
+             "key": "ddHolderName",
+             "value": "A. Schneider"
+           },
+           {
+             "key": "ddNumber",
+             "value": "DE87123456781234567890"
+           },
+           {
+             "key": "ddBic",
+             "value": "TESTDE01XXX"
+           }
+         ]
+       }
+     }' \
+     "http://127.0.0.1:8080/1.0/kb/accounts/<ACCOUNT_ID>/paymentMethods?isDefault=true"
+```
+
+### ELV
+
+The APIs are similar to the Credit Card use-case. Here is an example payload for the add payment method call:
+
+```
+curl -v \
+     -u admin:password \
+     -H "X-Killbill-ApiKey: bob" \
+     -H "X-Killbill-ApiSecret: lazar" \
+     -H "Content-Type: application/json" \
+     -H "X-Killbill-CreatedBy: demo" \
+     -X POST \
+     --data-binary '{
+       "pluginName": "killbill-adyen",
+       "pluginInfo": {
+         "properties": [
+           {
+             "key": "ccType",
+             "value": "elv"
+           },
+           {
+             "key": "ddHolderName",
+             "value": "Bill Killson"
+           },
+           {
+             "key": "ddNumber",
+             "value": "1234567890"
+           },
+           {
+             "key": "ddBlz",
+             "value": "12345678"
+           }
+         ]
+       }
+     }' \
+     "http://127.0.0.1:8080/1.0/kb/accounts/<ACCOUNT_ID>/paymentMethods?isDefault=true"
+```
+
 ### HPP
 
 To generate an HPP url:
