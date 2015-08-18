@@ -222,7 +222,7 @@ public class TestAdyenPaymentPluginApi extends TestWithEmbeddedDBBase {
 
     @Test(groups = "slow")
     public void testAuthorizeAndMultipleCapturesELV() throws Exception {
-        adyenPaymentPluginApi.addPaymentMethod(payment.getAccountId(), payment.getPaymentMethodId(), adyenPaymentMethodPluginElv(), true, propertiesWithSepaInfo, context);
+        adyenPaymentPluginApi.addPaymentMethod(payment.getAccountId(), payment.getPaymentMethodId(), adyenPaymentMethodPluginElv(), true, propertiesWithElvInfo, context);
 
         final PaymentTransaction authorizationTransaction = TestUtils.buildPaymentTransaction(payment, TransactionType.AUTHORIZE, DEFAULT_CURRENCY);
         final PaymentTransaction captureTransaction1 = TestUtils.buildPaymentTransaction(payment, TransactionType.CAPTURE, DEFAULT_CURRENCY);
