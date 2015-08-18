@@ -513,7 +513,8 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
 
     private SepaDirectDebit buildSepaDirectDebit(final AdyenPaymentMethodsRecord paymentMethodsRecord, final PaymentProvider paymentProvider, final Iterable<PluginProperty> properties) {
         final AdyenPaymentMethodsRecord nonNullPaymentMethodsRecord = paymentMethodsRecord == null ? new AdyenPaymentMethodsRecord() : paymentMethodsRecord;
-        final List<PluginProperty> additionalProperties = buildPaymentMethodPlugin(nonNullPaymentMethodsRecord).getProperties();
+        final List<PluginProperty> additionalPropertiesFromRecord = buildPaymentMethodPlugin(nonNullPaymentMethodsRecord).getProperties();
+        final Iterable<PluginProperty> additionalProperties = PluginProperties.merge(additionalPropertiesFromRecord, properties);
         final SepaDirectDebit sepaDirectDebit = new SepaDirectDebit(paymentProvider);
 
         final String ddAccountNumber = PluginProperties.getValue(PROPERTY_DD_ACCOUNT_NUMBER, nonNullPaymentMethodsRecord.getCcNumber(), additionalProperties);
@@ -535,7 +536,8 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
 
     private Elv buildElv(final AdyenPaymentMethodsRecord paymentMethodsRecord, final PaymentProvider paymentProvider, final Iterable<PluginProperty> properties) {
         final AdyenPaymentMethodsRecord nonNullPaymentMethodsRecord = paymentMethodsRecord == null ? new AdyenPaymentMethodsRecord() : paymentMethodsRecord;
-        final List<PluginProperty> additionalProperties = buildPaymentMethodPlugin(nonNullPaymentMethodsRecord).getProperties();
+        final List<PluginProperty> additionalPropertiesFromRecord = buildPaymentMethodPlugin(nonNullPaymentMethodsRecord).getProperties();
+        final Iterable<PluginProperty> additionalProperties = PluginProperties.merge(additionalPropertiesFromRecord, properties);
         final Elv elv = new Elv(paymentProvider);
 
         final String ddAccountNumber = PluginProperties.getValue(PROPERTY_DD_ACCOUNT_NUMBER, nonNullPaymentMethodsRecord.getCcNumber(), additionalProperties);
