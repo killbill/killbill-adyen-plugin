@@ -34,10 +34,15 @@ public class PaymentInfoConverterService implements PaymentInfoConverterManageme
 
     public PaymentInfoConverterService() {
         this(ImmutableList.<PaymentInfoConverter<? extends PaymentInfo>>of(
-                new CreditCardConverter(),
                 new AmexConverter(),
-                new SepaDirectDebitConverter(),
-                new ElvConverter()));
+                new DinersConverter(),
+                new CreditCardConverter(),
+                new ElvConverter(),
+                new MaestroConverter(),
+                new MaestroUKConverter(),
+                new MasterCardConverter(),
+                new VisaConverter(),
+                new SepaDirectDebitConverter()));
     }
 
     public PaymentInfoConverterService(final List<PaymentInfoConverter<? extends PaymentInfo>> paymentInfoConverterList) {
