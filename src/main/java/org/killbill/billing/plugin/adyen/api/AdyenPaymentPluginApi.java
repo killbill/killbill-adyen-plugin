@@ -588,7 +588,7 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
         final PaymentType paymentProviderPaymentType;
         final String pluginPropertyPaymentProviderType = PluginProperties.findPluginPropertyValue(PROPERTY_PAYMENT_PROVIDER_TYPE, properties);
         if (pluginPropertyPaymentProviderType != null) {
-            paymentProviderPaymentType = PaymentType.valueOf(pluginPropertyPaymentProviderType);
+            paymentProviderPaymentType = PaymentType.getByName(pluginPropertyPaymentProviderType);
         } else {
             final String pluginPropertyCCType = PluginProperties.findPluginPropertyValue(PROPERTY_CC_TYPE, properties);
             final String paymentMethodCCType = paymentMethodsRecord == null || paymentMethodsRecord.getCcType() == null ? null : paymentMethodsRecord.getCcType();

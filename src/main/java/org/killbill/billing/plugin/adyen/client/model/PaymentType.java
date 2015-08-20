@@ -166,7 +166,7 @@ public enum PaymentType {
         final Collection<PaymentType> result = Collections2.filter(Arrays.asList(PaymentType.values()), new Predicate<PaymentType>() {
             @Override
             public boolean apply(final PaymentType input) {
-                return input.getName().equals(name);
+                return input.getName().equalsIgnoreCase(name);
             }
         });
         return result.size() == 1 ? result.iterator().next() : null;
