@@ -32,7 +32,12 @@ public class TestAdyenNotificationService {
                                                              "        <live xmlns=\"http://notification.services.adyen.com\">true</live>\n" +
                                                              "        <notificationItems xmlns=\"http://notification.services.adyen.com\">\n" +
                                                              "          <NotificationRequestItem>\n" +
-                                                             "            <additionalData xsi:nil=\"true\"/>\n" +
+                                                             "            <additionalData>\n" +
+                                                             "              <entry>\n" +
+                                                             "                <key xsi:type=\"xsd:string\">hmacSignature</key>\n" +
+                                                             "                <value xsi:type=\"xsd:string\">XlhIGK7wKAFJ1D1aqceFwLkXSL1XXf1DWBVhUo17rqo=</value>\n" +
+                                                             "              </entry>\n" +
+                                                             "            </additionalData>\n" +
                                                              "            <amount>\n" +
                                                              "              <currency xmlns=\"http://common.services.adyen.com\">EUR</currency>\n" +
                                                              "              <value xmlns=\"http://common.services.adyen.com\">2995</value>\n" +
