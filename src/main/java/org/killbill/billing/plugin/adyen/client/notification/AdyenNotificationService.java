@@ -26,11 +26,13 @@ import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Marshaller;
 import javax.xml.bind.Unmarshaller;
+import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.soap.MessageFactory;
 import javax.xml.soap.SOAPException;
 import javax.xml.soap.SOAPMessage;
+import javax.xml.transform.dom.DOMSource;
 
 import org.killbill.adyen.notification.NotificationRequestItem;
 import org.killbill.adyen.notification.ObjectFactory;
@@ -43,6 +45,8 @@ import org.w3c.dom.Document;
 
 import com.google.common.base.Charsets;
 import com.google.common.base.Objects;
+import org.w3c.dom.Node;
+import org.xml.sax.SAXException;
 
 public class AdyenNotificationService {
 
@@ -209,11 +213,16 @@ public class AdyenNotificationService {
         return null;
     }
 
-    private SendNotification parse(final InputStream inputStream) throws JAXBException, SOAPException, IOException {
+    private SendNotification parse(final InputStream inputStream) throws ParserConfigurationException, IOException, SAXException , JAXBException {
+        final DocumentBuilderFactory builderFactory = DocumentBuilderFactory.newInstance();
+        builderFactory.setNamespaceAware(true);
+        final DocumentBuilder builder = builderFactory.newDocumentBuilder();
+        final Document document = builder.parse(inputStream);
+        final Node sendNotificationNode = document.getElementsByTagNameNS("http://notification.services.adyen.com", "sendNotification").item(0);
+
         final Unmarshaller unmarshaller = jaxbContext.createUnmarshaller();
         // Use SOAPMessage to handle the envelope
-        final SOAPMessage message = MessageFactory.newInstance().createMessage(null, inputStream);
-        return (SendNotification) unmarshaller.unmarshal(message.getSOAPBody().extractContentAsDocument());
+        return (SendNotification) unmarshaller.unmarshal(new DOMSource(sendNotificationNode));
     }
 
     private ByteArrayOutputStream createSendNotificationResponse(final String value) throws JAXBException, SOAPException, ParserConfigurationException, IOException {
