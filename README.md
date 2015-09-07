@@ -320,3 +320,34 @@ Notes:
 * *serverUrl* and *resultUrl* are used to redirect the user after the completion of the payment flow (success or failure)
 * Change *paymentProviderType* to the type of payment method in the HPP (see [PaymentType.java](https://github.com/killbill/killbill-adyen-plugin/blob/master/src/main/java/org/killbill/billing/plugin/adyen/client/model/PaymentType.java))
 * At this point, no payment has been created in Kill Bill. The payment will be recorded when processing the notification
+
+Plugin properties
+-----------------
+
+| Key                      | Description                                   |
+| -----------------------: | :-------------------------------------------- |
+| ccNumber                 | Credit card number                            |
+| ccType                   | Credit card brand                             |
+| ccFirstName              | Credit card holder first name                 |
+| ccLastName               | Credit card holder last name                  |
+| ccExpirationMonth        | Credit card expiration month                  |
+| ccExpirationYear         | Credit card expiration year                   |
+| ccStartMonth             | Credit card start month                       |
+| ccStartYear              | Credit card start year                        |
+| ccVerificationValue      | CVC/CVV/CVN                                   |
+| dccAmount                | Payable amount                                |
+| dccCurrency              | The three-character ISO currency code         |
+| ddNumber                 | Direct Debit card number                      |
+| ddHolderName             | Direct Debit holder name                      |
+| ddBic                    | Direct Debit bank identification code (SEPA)  |
+| ddBlz                    | Direct Debit Bankleitzahl (ELV)               |
+| email                    | Purchaser email                               |
+| address1                 | Billing address first line                    |
+| address2                 | Billing address second line                   |
+| city                     | Billing address city                          |
+| zip                      | Billing address zip code                      |
+| state                    | Billing address state                         |
+| country                  | Billing address country                       |
+| PaReq                    | 3D-Secure Pa Request                          |
+| MD                       | 3D-Secure Message Digest                      |
+| TermUrl                  | 3D-Secure Term URL                            |
