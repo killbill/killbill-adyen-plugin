@@ -300,21 +300,22 @@ public class TestAdyenPaymentPluginApi extends TestWithEmbeddedDBBase {
 
         verifyPaymentTransactionInfoPlugin(authorizationTransaction1, authorizationInfoPlugin1);
 
-        final List<RecurringDetail> recurringSetailList = adyenRecurringClient.getRecurringDetailList(DEFAULT_COUNTRY,
+        final List<RecurringDetail> recurringDetailList = adyenRecurringClient.getRecurringDetailList(DEFAULT_COUNTRY,
                 propertiesForRecurring.get(AdyenPaymentPluginApi.PROPERTY_CUSTOMER_ID),
                 adyenConfigProperties.getMerchantAccount(DEFAULT_COUNTRY),
                 "RECURRING");
 
-        if (recurringSetailList.isEmpty()) {
+        if (recurringDetailList.isEmpty()) {
             fail("No recurring details for " + propertiesForRecurring.get(AdyenPaymentPluginApi.PROPERTY_CUSTOMER_ID));
         }
 
         final Iterable<PluginProperty> propertiesWithRecurringDetailInfo = toProperties(ImmutableMap.<String, String>builder()
                                                                                                     .putAll(propertiesForRecurring)
-                                                                                                    .put(AdyenPaymentPluginApi.PROPERTY_RECURRING_DETAIL_ID, recurringSetailList.get(0).getRecurringDetailReference())
+                                                                                                    .put(AdyenPaymentPluginApi.PROPERTY_RECURRING_DETAIL_ID, recurringDetailList.get(0).getRecurringDetailReference())
                                                                                                     .put(AdyenPaymentPluginApi.PROPERTY_RECURRING_TYPE, "RECURRING")
                                                                                                     .build());
 
+        // TODO: Doing the second Auth with the same Mocks (Payment, killBillApi, ...) is a bit hacky, but the SOAP request to Adyen Test goes out properly nevertheless, so we kept it like this for now
         final PaymentTransactionInfoPlugin authorizationInfoPlugin2 = adyenPaymentPluginApi.authorizePayment(payment.getAccountId(),
                                                                                                              payment.getId(),
                                                                                                              authorizationTransaction2.getId(),
@@ -356,22 +357,23 @@ public class TestAdyenPaymentPluginApi extends TestWithEmbeddedDBBase {
 
         verifyPaymentTransactionInfoPlugin(authorizationTransaction1, authorizationInfoPlugin1);
 
-        final List<RecurringDetail> recurringSetailList = adyenRecurringClient.getRecurringDetailList(DEFAULT_COUNTRY,
+        final List<RecurringDetail> recurringDetailList = adyenRecurringClient.getRecurringDetailList(DEFAULT_COUNTRY,
                                                                                                       propertiesForRecurring.get(AdyenPaymentPluginApi.PROPERTY_CUSTOMER_ID),
                                                                                                       adyenConfigProperties.getMerchantAccount(DEFAULT_COUNTRY),
                                                                                                       "ONECLICK");
 
-        if (recurringSetailList.isEmpty()) {
+        if (recurringDetailList.isEmpty()) {
             fail("No recurring details for " + propertiesForRecurring.get(AdyenPaymentPluginApi.PROPERTY_CUSTOMER_ID));
         }
 
         final Iterable<PluginProperty> propertiesWithRecurringDetailInfo = toProperties(ImmutableMap.<String, String>builder()
                                                                                                     .putAll(propertiesForRecurring)
-                                                                                                    .put(AdyenPaymentPluginApi.PROPERTY_RECURRING_DETAIL_ID, recurringSetailList.get(0).getRecurringDetailReference())
+                                                                                                    .put(AdyenPaymentPluginApi.PROPERTY_RECURRING_DETAIL_ID, recurringDetailList.get(0).getRecurringDetailReference())
                                                                                                     .put(AdyenPaymentPluginApi.PROPERTY_CC_VERIFICATION_VALUE, CC_VERIFICATION_VALUE)
                                                                                                     .put(AdyenPaymentPluginApi.PROPERTY_RECURRING_TYPE, "ONECLICK")
                                                                                                     .build());
 
+        // TODO: Doing the second Auth with the same Mocks (Payment, killBillApi, ...) is a bit hacky, but the SOAP request to Adyen Test goes out properly nevertheless, so we kept it like this for now
         final PaymentTransactionInfoPlugin authorizationInfoPlugin2 = adyenPaymentPluginApi.authorizePayment(payment.getAccountId(),
                                                                                                              payment.getId(),
                                                                                                              authorizationTransaction2.getId(),
