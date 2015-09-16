@@ -44,7 +44,7 @@ import org.slf4j.LoggerFactory;
 import org.w3c.dom.Document;
 
 import com.google.common.base.Charsets;
-import com.google.common.base.Objects;
+import com.google.common.base.MoreObjects;
 import org.w3c.dom.Node;
 import org.xml.sax.SAXException;
 
@@ -193,7 +193,7 @@ public class AdyenNotificationService {
     }
 
     private void logNotification(final NotificationRequestItem item) {
-        final String itemAsString = Objects.toStringHelper(item)
+        final String itemAsString = MoreObjects.toStringHelper(item)
                                            .add("eventCode", item.getEventCode())
                                            .add("pspReference", item.getPspReference())
                                            .add("originalReference", item.getOriginalReference())

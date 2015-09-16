@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jaxws:bindings version="2.0" 
+	xmlns:jaxws="http://java.sun.com/xml/ns/jaxws" 
+	xmlns:xjc="http://java.sun.com/xml/ns/jaxb/xjc" 
+	xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+	xmlns:adyenPayment="http://payment.services.adyen.com"
+	xmlns:adyenRecurring="http://recurring.services.adyen.com"
+	xmlns:adyenCommon="http://common.services.adyen.com"
+    xsd:schemaLocation="http://java.sun.com/xml/ns/jaxws http://java.sun.com/xml/ns/jaxws/wsdl_customizationschema_2_0.xsd"
+    wsdlLocation="Recurring.wsdl">
+
+	<jaxws:package name="org.killbill.adyen.recurring"/>
+
+</jaxws:bindings>

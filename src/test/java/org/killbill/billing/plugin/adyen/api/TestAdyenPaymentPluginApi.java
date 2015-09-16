@@ -20,8 +20,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-import javax.annotation.Nullable;
-
+import com.google.common.base.Strings;
+import org.killbill.adyen.recurring.RecurringDetail;
 import org.killbill.billing.account.api.Account;
 import org.killbill.billing.payment.api.Payment;
 import org.killbill.billing.payment.api.PaymentMethodPlugin;
@@ -35,6 +35,7 @@ import org.killbill.billing.plugin.TestUtils;
 import org.killbill.billing.plugin.adyen.TestWithEmbeddedDBBase;
 import org.killbill.billing.plugin.adyen.dao.AdyenDao;
 import org.killbill.billing.plugin.adyen.dao.gen.tables.records.AdyenPaymentMethodsRecord;
+import org.killbill.billing.plugin.adyen.recurring.AdyenRecurringClient;
 import org.killbill.billing.plugin.api.PluginProperties;
 import org.killbill.billing.util.callcontext.CallContext;
 import org.killbill.clock.Clock;
@@ -56,15 +57,18 @@ import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.PROPER
 import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.PROPERTY_DD_BANK_IDENTIFIER_CODE;
 import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.PROPERTY_DD_BANKLEITZAHL;
 import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.PROPERTY_DD_HOLDER_NAME;
+import static org.testng.Assert.fail;
 
 public class TestAdyenPaymentPluginApi extends TestWithEmbeddedDBBase {
 
     private Payment payment;
     private CallContext context;
     private AdyenPaymentPluginApi adyenPaymentPluginApi;
+    private AdyenRecurringClient adyenRecurringClient;
     private Iterable<PluginProperty> propertiesWithCCInfo;
     private Iterable<PluginProperty> propertiesWithSepaInfo;
     private Iterable<PluginProperty> propertiesWithElvInfo;
+    private Map<String, String> propertiesForRecurring;
 
     @BeforeMethod(groups = "slow")
     public void setUp() throws Exception {
@@ -82,20 +86,26 @@ public class TestAdyenPaymentPluginApi extends TestWithEmbeddedDBBase {
         final OSGIConfigPropertiesService configPropertiesService = Mockito.mock(OSGIConfigPropertiesService.class);
         adyenPaymentPluginApi = new AdyenPaymentPluginApi(adyenConfigurationHandler, adyenHostedPaymentPageConfigurationHandler, killbillApi, configPropertiesService, logService, clock, dao);
 
+        adyenRecurringClient = new AdyenRecurringClient(adyenConfigProperties);
+
         propertiesWithCCInfo = toProperties(ImmutableMap.<String, String>builder()
-                .put(AdyenPaymentPluginApi.PROPERTY_CC_TYPE, CC_TYPE)
-                .put(AdyenPaymentPluginApi.PROPERTY_CC_LAST_NAME, "Dupont")
-                .put(AdyenPaymentPluginApi.PROPERTY_CC_NUMBER, CC_NUMBER)
-                .put(AdyenPaymentPluginApi.PROPERTY_CC_EXPIRATION_MONTH, String.valueOf(CC_EXPIRATION_MONTH))
-                .put(AdyenPaymentPluginApi.PROPERTY_CC_EXPIRATION_YEAR, String.valueOf(CC_EXPIRATION_YEAR))
-                .put(AdyenPaymentPluginApi.PROPERTY_CC_VERIFICATION_VALUE, CC_VERIFICATION_VALUE).build());
+                                                        .put(AdyenPaymentPluginApi.PROPERTY_CC_TYPE, CC_TYPE)
+                                                        .put(AdyenPaymentPluginApi.PROPERTY_CC_LAST_NAME, "Dupont")
+                                                        .put(AdyenPaymentPluginApi.PROPERTY_CC_NUMBER, CC_NUMBER)
+                                                        .put(AdyenPaymentPluginApi.PROPERTY_CC_EXPIRATION_MONTH, String.valueOf(CC_EXPIRATION_MONTH))
+                                                        .put(AdyenPaymentPluginApi.PROPERTY_CC_EXPIRATION_YEAR, String.valueOf(CC_EXPIRATION_YEAR))
+                                                        .put(AdyenPaymentPluginApi.PROPERTY_CC_VERIFICATION_VALUE, CC_VERIFICATION_VALUE).build());
 
         propertiesWithSepaInfo = toProperties(ImmutableMap.of(AdyenPaymentPluginApi.PROPERTY_CC_TYPE, DD_TYPE));
         propertiesWithElvInfo = toProperties(ImmutableMap.of(AdyenPaymentPluginApi.PROPERTY_CC_TYPE, ELV_TYPE));
+        final String customerId = UUID.randomUUID().toString();
+        propertiesForRecurring = ImmutableMap.of(AdyenPaymentPluginApi.PROPERTY_CUSTOMER_ID, customerId,
+                                                 AdyenPaymentPluginApi.PROPERTY_EMAIL, customerId + "0@example.com");
     }
 
     @Test(groups = "slow")
     public void testAuthorizeAndMultipleCaptures() throws Exception {
+        adyenPaymentPluginApi.addPaymentMethod(payment.getAccountId(), payment.getPaymentMethodId(), adyenPaymentMethodPluginCC(), true, propertiesWithCCInfo, context);
         final PaymentTransaction authorizationTransaction = TestUtils.buildPaymentTransaction(payment, TransactionType.AUTHORIZE, DEFAULT_CURRENCY);
         final PaymentTransaction captureTransaction1 = TestUtils.buildPaymentTransaction(payment, TransactionType.CAPTURE, DEFAULT_CURRENCY);
         final PaymentTransaction captureTransaction2 = TestUtils.buildPaymentTransaction(payment, TransactionType.CAPTURE, DEFAULT_CURRENCY);
@@ -133,6 +143,7 @@ public class TestAdyenPaymentPluginApi extends TestWithEmbeddedDBBase {
 
     @Test(groups = "slow")
     public void testAuthorizeAndVoid() throws Exception {
+        adyenPaymentPluginApi.addPaymentMethod(payment.getAccountId(), payment.getPaymentMethodId(), adyenPaymentMethodPluginCC(), true, propertiesWithCCInfo, context);
         final PaymentTransaction authorizationTransaction = TestUtils.buildPaymentTransaction(payment, TransactionType.AUTHORIZE, DEFAULT_CURRENCY);
         final PaymentTransaction voidTransaction = TestUtils.buildPaymentTransaction(payment, TransactionType.VOID, DEFAULT_CURRENCY);
 
@@ -157,6 +168,7 @@ public class TestAdyenPaymentPluginApi extends TestWithEmbeddedDBBase {
 
     @Test(groups = "slow", enabled = false, description = "Purchase is not yet supported")
     public void testPurchaseAndRefund() throws Exception {
+        adyenPaymentPluginApi.addPaymentMethod(payment.getAccountId(), payment.getPaymentMethodId(), adyenPaymentMethodPluginCC(), true, propertiesWithCCInfo, context);
         final PaymentTransaction purchaseTransaction = TestUtils.buildPaymentTransaction(payment, TransactionType.PURCHASE, DEFAULT_CURRENCY);
         final PaymentTransaction refundTransaction = TestUtils.buildPaymentTransaction(payment, TransactionType.REFUND, DEFAULT_CURRENCY);
 
@@ -260,6 +272,119 @@ public class TestAdyenPaymentPluginApi extends TestWithEmbeddedDBBase {
     }
 
     @Test(groups = "slow")
+    public void testAuthorizeRecurringDetailRecurring() throws Exception {
+        final Iterable<PluginProperty> propertiesWithCCForRecurring = toProperties(ImmutableMap.<String, String>builder()
+                                                                                               .putAll(propertiesForRecurring)
+                                                                                               .put(AdyenPaymentPluginApi.PROPERTY_CC_TYPE, CC_TYPE)
+                                                                                               .put(AdyenPaymentPluginApi.PROPERTY_CC_LAST_NAME, "Dupont")
+                                                                                               .put(AdyenPaymentPluginApi.PROPERTY_CC_NUMBER, CC_NUMBER)
+                                                                                               .put(AdyenPaymentPluginApi.PROPERTY_CC_EXPIRATION_MONTH, String.valueOf(CC_EXPIRATION_MONTH))
+                                                                                               .put(AdyenPaymentPluginApi.PROPERTY_CC_EXPIRATION_YEAR, String.valueOf(CC_EXPIRATION_YEAR))
+                                                                                               .put(AdyenPaymentPluginApi.PROPERTY_CC_VERIFICATION_VALUE, CC_VERIFICATION_VALUE)
+                                                                                               .put(AdyenPaymentPluginApi.PROPERTY_RECURRING_TYPE, "RECURRING")
+                                                                                               .build());
+
+        adyenPaymentPluginApi.addPaymentMethod(payment.getAccountId(), payment.getPaymentMethodId(), adyenPaymentMethodPluginCC(), true, propertiesWithCCForRecurring, context);
+
+        final PaymentTransaction authorizationTransaction1 = TestUtils.buildPaymentTransaction(payment, TransactionType.AUTHORIZE, DEFAULT_CURRENCY);
+        final PaymentTransaction authorizationTransaction2 = TestUtils.buildPaymentTransaction(payment, TransactionType.AUTHORIZE, DEFAULT_CURRENCY);
+
+        final PaymentTransactionInfoPlugin authorizationInfoPlugin1 = adyenPaymentPluginApi.authorizePayment(payment.getAccountId(),
+                                                                                                             payment.getId(),
+                                                                                                             authorizationTransaction1.getId(),
+                                                                                                             payment.getPaymentMethodId(),
+                                                                                                             authorizationTransaction1.getAmount(),
+                                                                                                             authorizationTransaction1.getCurrency(),
+                                                                                                             propertiesWithCCForRecurring,
+                                                                                                             context);
+
+        verifyPaymentTransactionInfoPlugin(authorizationTransaction1, authorizationInfoPlugin1);
+
+        final List<RecurringDetail> recurringSetailList = adyenRecurringClient.getRecurringDetailList(DEFAULT_COUNTRY,
+                propertiesForRecurring.get(AdyenPaymentPluginApi.PROPERTY_CUSTOMER_ID),
+                adyenConfigProperties.getMerchantAccount(DEFAULT_COUNTRY),
+                "RECURRING");
+
+        if (recurringSetailList.isEmpty()) {
+            fail("No recurring details for " + propertiesForRecurring.get(AdyenPaymentPluginApi.PROPERTY_CUSTOMER_ID));
+        }
+
+        final Iterable<PluginProperty> propertiesWithRecurringDetailInfo = toProperties(ImmutableMap.<String, String>builder()
+                                                                                                    .putAll(propertiesForRecurring)
+                                                                                                    .put(AdyenPaymentPluginApi.PROPERTY_RECURRING_DETAIL_ID, recurringSetailList.get(0).getRecurringDetailReference())
+                                                                                                    .put(AdyenPaymentPluginApi.PROPERTY_RECURRING_TYPE, "RECURRING")
+                                                                                                    .build());
+
+        final PaymentTransactionInfoPlugin authorizationInfoPlugin2 = adyenPaymentPluginApi.authorizePayment(payment.getAccountId(),
+                                                                                                             payment.getId(),
+                                                                                                             authorizationTransaction2.getId(),
+                                                                                                             payment.getPaymentMethodId(),
+                                                                                                             authorizationTransaction2.getAmount(),
+                                                                                                             authorizationTransaction2.getCurrency(),
+                                                                                                             propertiesWithRecurringDetailInfo,
+                                                                                                             context);
+
+        verifyPaymentTransactionInfoPlugin(authorizationTransaction2, authorizationInfoPlugin2);
+    }
+
+    @Test(groups = "slow")
+    public void testAuthorizeRecurringDetailOneClick() throws Exception {
+        final Iterable<PluginProperty> propertiesWithCCForRecurring = toProperties(ImmutableMap.<String, String>builder()
+                                                                                               .putAll(propertiesForRecurring)
+                                                                                               .put(AdyenPaymentPluginApi.PROPERTY_CC_TYPE, CC_TYPE)
+                                                                                               .put(AdyenPaymentPluginApi.PROPERTY_CC_LAST_NAME, "Dupont")
+                                                                                               .put(AdyenPaymentPluginApi.PROPERTY_CC_NUMBER, CC_NUMBER)
+                                                                                               .put(AdyenPaymentPluginApi.PROPERTY_CC_EXPIRATION_MONTH, String.valueOf(CC_EXPIRATION_MONTH))
+                                                                                               .put(AdyenPaymentPluginApi.PROPERTY_CC_EXPIRATION_YEAR, String.valueOf(CC_EXPIRATION_YEAR))
+                                                                                               .put(AdyenPaymentPluginApi.PROPERTY_CC_VERIFICATION_VALUE, CC_VERIFICATION_VALUE)
+                                                                                               .put(AdyenPaymentPluginApi.PROPERTY_RECURRING_TYPE, "ONECLICK")
+                                                                                               .build());
+
+        adyenPaymentPluginApi.addPaymentMethod(payment.getAccountId(), payment.getPaymentMethodId(), adyenPaymentMethodPluginCC(), true, propertiesWithCCForRecurring, context);
+
+        final PaymentTransaction authorizationTransaction1 = TestUtils.buildPaymentTransaction(payment, TransactionType.AUTHORIZE, DEFAULT_CURRENCY);
+        final PaymentTransaction authorizationTransaction2 = TestUtils.buildPaymentTransaction(payment, TransactionType.AUTHORIZE, DEFAULT_CURRENCY);
+
+        final PaymentTransactionInfoPlugin authorizationInfoPlugin1 = adyenPaymentPluginApi.authorizePayment(payment.getAccountId(),
+                                                                                                             payment.getId(),
+                                                                                                             authorizationTransaction1.getId(),
+                                                                                                             payment.getPaymentMethodId(),
+                                                                                                             authorizationTransaction1.getAmount(),
+                                                                                                             authorizationTransaction1.getCurrency(),
+                                                                                                             propertiesWithCCForRecurring,
+                                                                                                             context);
+
+        verifyPaymentTransactionInfoPlugin(authorizationTransaction1, authorizationInfoPlugin1);
+
+        final List<RecurringDetail> recurringSetailList = adyenRecurringClient.getRecurringDetailList(DEFAULT_COUNTRY,
+                                                                                                      propertiesForRecurring.get(AdyenPaymentPluginApi.PROPERTY_CUSTOMER_ID),
+                                                                                                      adyenConfigProperties.getMerchantAccount(DEFAULT_COUNTRY),
+                                                                                                      "ONECLICK");
+
+        if (recurringSetailList.isEmpty()) {
+            fail("No recurring details for " + propertiesForRecurring.get(AdyenPaymentPluginApi.PROPERTY_CUSTOMER_ID));
+        }
+
+        final Iterable<PluginProperty> propertiesWithRecurringDetailInfo = toProperties(ImmutableMap.<String, String>builder()
+                                                                                                    .putAll(propertiesForRecurring)
+                                                                                                    .put(AdyenPaymentPluginApi.PROPERTY_RECURRING_DETAIL_ID, recurringSetailList.get(0).getRecurringDetailReference())
+                                                                                                    .put(AdyenPaymentPluginApi.PROPERTY_CC_VERIFICATION_VALUE, CC_VERIFICATION_VALUE)
+                                                                                                    .put(AdyenPaymentPluginApi.PROPERTY_RECURRING_TYPE, "ONECLICK")
+                                                                                                    .build());
+
+        final PaymentTransactionInfoPlugin authorizationInfoPlugin2 = adyenPaymentPluginApi.authorizePayment(payment.getAccountId(),
+                                                                                                             payment.getId(),
+                                                                                                             authorizationTransaction2.getId(),
+                                                                                                             payment.getPaymentMethodId(),
+                                                                                                             authorizationTransaction2.getAmount(),
+                                                                                                             authorizationTransaction2.getCurrency(),
+                                                                                                             propertiesWithRecurringDetailInfo,
+                                                                                                             context);
+
+        verifyPaymentTransactionInfoPlugin(authorizationTransaction2, authorizationInfoPlugin2);
+    }
+
+    @Test(groups = "slow")
     public void testHPP() throws Exception {
         final Map<String, String> customFieldsMap = ImmutableMap.<String, String>of(AdyenPaymentPluginApi.PROPERTY_AMOUNT, "10",
                                                                                     AdyenPaymentPluginApi.PROPERTY_SERVER_URL, "http://killbill.io",
@@ -275,6 +400,7 @@ public class TestAdyenPaymentPluginApi extends TestWithEmbeddedDBBase {
         System.out.println("Redirect to: " + descriptor.getFormUrl());
         System.out.flush();
     }
+
     private void verifyPaymentTransactionInfoPlugin(final PaymentTransaction paymentTransaction, final PaymentTransactionInfoPlugin paymentTransactionInfoPlugin) {
         verifyPaymentTransactionInfoPlugin(paymentTransaction, paymentTransactionInfoPlugin, null);
     }
@@ -330,36 +456,42 @@ public class TestAdyenPaymentPluginApi extends TestWithEmbeddedDBBase {
     }
 
     private Iterable<PluginProperty> toProperties(final Map<String, String> propertiesString) {
-        return Iterables.transform(propertiesString.keySet(),
-                                   new Function<String, PluginProperty>() {
+        return Iterables.transform(propertiesString.entrySet(),
+                                   new Function<Map.Entry<String, String>, PluginProperty>() {
                                        @Override
-                                       public PluginProperty apply(@Nullable final String input) {
-                                           return new PluginProperty(input, propertiesString.get(input), false);
+                                       public PluginProperty apply(final Map.Entry<String, String> input) {
+                                           return new PluginProperty(input.getKey(), input.getValue(), false);
                                        }
                                    });
     }
 
+    private PaymentMethodPlugin adyenPaymentMethodPluginCC() {
+        return adyenPaymentMethodPlugin(payment.getPaymentMethodId().toString(), null);
+    }
+
     private PaymentMethodPlugin adyenPaymentMethodPluginSepaDirectDebit() {
-        final AdyenPaymentMethodsRecord record = new AdyenPaymentMethodsRecord();
-        record.setKbPaymentMethodId(payment.getPaymentMethodId().toString());
-        record.setIsDefault(AdyenDao.TRUE);
-        record.setAdditionalData("{"
+        return adyenPaymentMethodPlugin(payment.getPaymentMethodId().toString(), "{"
                 + '"' + PROPERTY_DD_HOLDER_NAME + "\":\"" + DD_HOLDER_NAME + "\","
                 + '"' + PROPERTY_DD_ACCOUNT_NUMBER + "\":\"" + DD_IBAN + "\","
                 + '"' + PROPERTY_DD_BANK_IDENTIFIER_CODE + "\":\"" + DD_BIC + '"'
                 + '}');
-        return new AdyenPaymentMethodPlugin(record);
     }
 
     private PaymentMethodPlugin adyenPaymentMethodPluginElv() {
-        final AdyenPaymentMethodsRecord record = new AdyenPaymentMethodsRecord();
-        record.setKbPaymentMethodId(payment.getPaymentMethodId().toString());
-        record.setIsDefault(AdyenDao.TRUE);
-        record.setAdditionalData("{"
+        return adyenPaymentMethodPlugin(payment.getPaymentMethodId().toString(), "{"
                 + '"' + PROPERTY_DD_HOLDER_NAME + "\":\"" + ELV_HOLDER_NAME + "\","
                 + '"' + PROPERTY_DD_ACCOUNT_NUMBER + "\":\"" + ELV_ACCOUNT_NUMBER + "\","
                 + '"' + PROPERTY_DD_BANKLEITZAHL + "\":\"" + ELV_BLZ + '"'
                 + '}');
+    }
+
+    private static PaymentMethodPlugin adyenPaymentMethodPlugin(final String paymentMethodId, final String additionalData) {
+        final AdyenPaymentMethodsRecord record = new AdyenPaymentMethodsRecord();
+        record.setKbPaymentMethodId(paymentMethodId);
+        record.setIsDefault(AdyenDao.TRUE);
+        if (!Strings.isNullOrEmpty(additionalData)) {
+            record.setAdditionalData(additionalData);
+        }
         return new AdyenPaymentMethodPlugin(record);
     }
 

@@ -32,7 +32,7 @@ import org.killbill.billing.plugin.adyen.client.payment.converter.PaymentInfoCon
 import org.killbill.billing.plugin.adyen.client.payment.converter.PaymentInfoConverterManagement;
 import org.killbill.billing.plugin.adyen.client.payment.converter.impl.NullObjectConverter;
 
-import com.google.common.base.Objects;
+import com.google.common.base.MoreObjects;
 import com.google.common.base.Strings;
 
 public class PaymentRequestBuilder extends RequestBuilder<PaymentRequest> {
@@ -60,14 +60,14 @@ public class PaymentRequestBuilder extends RequestBuilder<PaymentRequest> {
         if (initialRequest.getAdditionalData() == null) {
             initialRequest.setAdditionalData(new AnyType2AnyTypeMap());
         }
-        if (paymentInfo.isContinousAuthenticationEnabled()) {
+        if (paymentInfo.isContinuousAuthenticationEnabled()) {
             initialRequest.setShopperInteraction(CONTINOUS_AUTHENTICATION_ADYEN);
         }
         return initialRequest;
     }
 
     private PaymentRequest createRequestForPaymentInfo(final String holderName) {
-        final PaymentInfoConverter<PaymentInfo> converter = Objects.<PaymentInfoConverter>firstNonNull(paymentInfoConverterManagement.getConverterForPaymentInfo(paymentInfo), NULL_CONVERTER);
+        final PaymentInfoConverter<PaymentInfo> converter = MoreObjects.<PaymentInfoConverter>firstNonNull(paymentInfoConverterManagement.getConverterForPaymentInfo(paymentInfo), NULL_CONVERTER);
         final Object convertedObject = converter.convertPaymentInfoToPSPTransferObject(holderName, paymentInfo);
         if (convertedObject instanceof PaymentRequest) {
             return (PaymentRequest) convertedObject;

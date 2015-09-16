@@ -21,7 +21,7 @@ import java.util.Map;
 
 import javax.annotation.Nullable;
 
-import com.google.common.base.Objects;
+import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
@@ -74,15 +74,15 @@ public class PurchaseResult extends FrontendForm {
                            final String paymentInternalRef,
                            final String formUrl,
                            final Map<String, String> formParameter) {
-        super(Objects.firstNonNull(formParameter, ImmutableMap.<String, String>of()), formUrl);
+        super(MoreObjects.firstNonNull(formParameter, ImmutableMap.<String, String>of()), formUrl);
 
-        this.result = Objects.firstNonNull(result, PaymentServiceProviderResult.REDIRECT_SHOPPER);
+        this.result = MoreObjects.firstNonNull(result, PaymentServiceProviderResult.REDIRECT_SHOPPER);
         this.authCode = authCode;
         this.pspReference = pspReference;
         this.reason = reason;
-        this.resultCode = Objects.firstNonNull(resultCode, this.result.getId());
+        this.resultCode = MoreObjects.firstNonNull(resultCode, this.result.getId());
         this.reference = reference;
-        this.errorCodes = Objects.firstNonNull(errorCodes, ImmutableList.<PaymentServiceProviderErrorCodes>of());
+        this.errorCodes = MoreObjects.firstNonNull(errorCodes, ImmutableList.<PaymentServiceProviderErrorCodes>of());
         this.paymentInternalRef = paymentInternalRef;
     }
 
