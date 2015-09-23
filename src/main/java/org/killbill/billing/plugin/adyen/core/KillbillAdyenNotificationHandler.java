@@ -27,6 +27,7 @@ import org.killbill.adyen.notification.NotificationRequestItem;
 import org.killbill.billing.account.api.Account;
 import org.killbill.billing.account.api.AccountApiException;
 import org.killbill.billing.catalog.api.Currency;
+import org.killbill.billing.osgi.api.OSGIMetrics;
 import org.killbill.billing.payment.api.Payment;
 import org.killbill.billing.payment.api.PaymentApiException;
 import org.killbill.billing.payment.api.PaymentMethod;
@@ -56,11 +57,13 @@ public class KillbillAdyenNotificationHandler implements AdyenNotificationHandle
     private final OSGIKillbillAPI osgiKillbillAPI;
     private final AdyenDao dao;
     private final Clock clock;
+    private final OSGIMetrics killbillMetrics;
 
-    public KillbillAdyenNotificationHandler(final OSGIKillbillAPI osgiKillbillAPI, final AdyenDao dao, final Clock clock) {
+    public KillbillAdyenNotificationHandler(final OSGIKillbillAPI osgiKillbillAPI, final AdyenDao dao, final Clock clock, final OSGIMetrics killbillMetrics) {
         this.osgiKillbillAPI = osgiKillbillAPI;
         this.dao = dao;
         this.clock = clock;
+        this.killbillMetrics = killbillMetrics;
     }
 
     @Override
@@ -205,6 +208,17 @@ public class KillbillAdyenNotificationHandler implements AdyenNotificationHandle
     }
 
     private void handleNotification(@Nullable final TransactionType transactionType, final NotificationRequestItem item) {
+        final String metricName;
+        if (item.isSuccess() == Boolean.TRUE) {
+            metricName = "notification." + item.getEventCode() + ".success";
+        } else {
+            metricName = "notification." + item.getEventCode() + ".failure";
+        }
+        killbillMetrics.markMeter(metricName);
+        if (item.getAmount() != null) {
+            killbillMetrics.recordHistogramValue(metricName + ".amount", item.getAmount().getValue());
+        }
+
         final NotificationItem notification = new NotificationItem(item);
         final DateTime utcNow = clock.getUTCNow();
 

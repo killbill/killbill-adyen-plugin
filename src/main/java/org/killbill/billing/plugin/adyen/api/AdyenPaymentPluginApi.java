@@ -30,6 +30,7 @@ import javax.xml.bind.JAXBException;
 import org.joda.time.DateTime;
 import org.killbill.billing.account.api.Account;
 import org.killbill.billing.catalog.api.Currency;
+import org.killbill.billing.osgi.api.OSGIMetrics;
 import org.killbill.billing.payment.api.Payment;
 import org.killbill.billing.payment.api.PaymentApiException;
 import org.killbill.billing.payment.api.PaymentMethod;
@@ -139,6 +140,7 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
     private final AdyenConfigurationHandler adyenConfigurationHandler;
     private final AdyenHostedPaymentPageConfigurationHandler adyenHppConfigurationHandler;
     private final AdyenDao dao;
+    private final OSGIMetrics killbillMetrics;
     private final AdyenNotificationService adyenNotificationService;
 
     public AdyenPaymentPluginApi(final AdyenConfigurationHandler adyenConfigurationHandler,
@@ -147,13 +149,15 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
                                  final OSGIConfigPropertiesService osgiConfigPropertiesService,
                                  final OSGIKillbillLogService logService,
                                  final Clock clock,
-                                 final AdyenDao dao) throws JAXBException {
+                                 final AdyenDao dao,
+                                 final OSGIMetrics killbillMetrics) throws JAXBException {
         super(killbillApi, osgiConfigPropertiesService, logService, clock, dao);
         this.adyenConfigurationHandler = adyenConfigurationHandler;
         this.adyenHppConfigurationHandler = adyenHppConfigurationHandler;
         this.dao = dao;
+        this.killbillMetrics = killbillMetrics;
 
-        final KillbillAdyenNotificationHandler adyenNotificationHandler = new KillbillAdyenNotificationHandler(killbillApi, dao, clock);
+        final KillbillAdyenNotificationHandler adyenNotificationHandler = new KillbillAdyenNotificationHandler(killbillApi, dao, clock, killbillMetrics);
         this.adyenNotificationService = new AdyenNotificationService(ImmutableList.<AdyenNotificationHandler>of(adyenNotificationHandler));
     }
 
@@ -288,12 +292,14 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
 
     @Override
     public HostedPaymentPageFormDescriptor buildFormDescriptor(final UUID kbAccountId, final Iterable<PluginProperty> customFields, final Iterable<PluginProperty> properties, final CallContext context) throws PaymentPluginApiException {
+        killbillMetrics.markMeter("hpp");
         final Iterable<PluginProperty> mergedProperties = PluginProperties.merge(customFields, properties);
 
         final String amountString = PluginProperties.findPluginPropertyValue(PROPERTY_AMOUNT, mergedProperties);
         Preconditions.checkState(!Strings.isNullOrEmpty(amountString), "amount not specified");
         final BigDecimal amountBD = new BigDecimal(amountString);
         final long amount = amountBD.longValue();
+        killbillMetrics.recordHistogramValue("hpp.amount", amount);
 
         final Account account = getAccount(kbAccountId, context);
 
@@ -337,6 +343,7 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
 
     @Override
     public GatewayNotification processNotification(final String notification, final Iterable<PluginProperty> properties, final CallContext context) throws PaymentPluginApiException {
+        killbillMetrics.markMeter("notification");
         final String notificationResponse = adyenNotificationService.handleNotifications(notification);
         return new AdyenGatewayNotification(notificationResponse);
     }
@@ -362,23 +369,50 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
                                                                    final Currency currency,
                                                                    final Iterable<PluginProperty> properties,
                                                                    final CallContext context) throws PaymentPluginApiException {
-        final Account account = getAccount(kbAccountId, context);
-
-        final Long transactionAmount = (amount == null ? null : amount.longValue());
-        final PaymentData paymentData = buildPaymentData(account, kbPaymentId, kbTransactionId, kbPaymentMethodId, currency, properties, context);
-        final OrderData orderData = buildOrderData(account, properties);
-        final UserData userData = buildUserData(account, properties);
-        final String termUrl = PluginProperties.findPluginPropertyValue(PROPERTY_TERM_URL, properties);
-        final SplitSettlementData splitSettlementData = null;
-        final DateTime utcNow = clock.getUTCNow();
-
-        final PurchaseResult response = transactionExecutor.execute(transactionAmount, paymentData, orderData, userData, termUrl, splitSettlementData);
-        try {
-            dao.addResponse(kbAccountId, kbPaymentId, kbTransactionId, transactionType, amount, currency, response, utcNow, context.getTenantId());
-            return new AdyenPaymentTransactionInfoPlugin(kbPaymentId, kbTransactionId, transactionType, amount, currency, utcNow, response);
-        } catch (final SQLException e) {
-            throw new PaymentPluginApiException("Payment went through, but we encountered a database error. Payment details: " + response.toString(), e);
+        killbillMetrics.markMeter(transactionType.toString());
+        final Long amountInCents;
+        if (amount != null) {
+            amountInCents = amount.multiply(BigDecimal.valueOf(100)).longValue();
+            killbillMetrics.recordHistogramValue(transactionType + ".amount", amountInCents);
+        } else {
+            amountInCents = null;
         }
+
+        final AdyenPaymentTransactionInfoPlugin paymentTransaction;
+        try {
+            final Account account = getAccount(kbAccountId, context);
+
+            final Long transactionAmount = (amount == null ? null : amount.longValue());
+            final PaymentData paymentData = buildPaymentData(account, kbPaymentId, kbTransactionId, kbPaymentMethodId, currency, properties, context);
+            final OrderData orderData = buildOrderData(account, properties);
+            final UserData userData = buildUserData(account, properties);
+            final String termUrl = PluginProperties.findPluginPropertyValue(PROPERTY_TERM_URL, properties);
+            final SplitSettlementData splitSettlementData = null;
+            final DateTime utcNow = clock.getUTCNow();
+
+            final PurchaseResult response = transactionExecutor.execute(transactionAmount, paymentData, orderData, userData, termUrl, splitSettlementData);
+            try {
+                dao.addResponse(kbAccountId, kbPaymentId, kbTransactionId, transactionType, amount, currency, response, utcNow, context.getTenantId());
+                paymentTransaction = new AdyenPaymentTransactionInfoPlugin(kbPaymentId, kbTransactionId, transactionType, amount, currency, utcNow, response);
+            } catch (final SQLException e) {
+                throw new PaymentPluginApiException("Payment went through, but we encountered a database error. Payment details: " + response.toString(), e);
+            }
+            killbillMetrics.markMeter(transactionType + "." + paymentTransaction.getStatus());
+            if (amountInCents != null) {
+                killbillMetrics.recordHistogramValue(transactionType + "." + paymentTransaction.getStatus() + ".amount", amountInCents);
+            }
+        } catch(Exception e) {
+            killbillMetrics.markMeter(transactionType + ".exception");
+            if (amountInCents != null) {
+                killbillMetrics.recordHistogramValue(transactionType + ".exception.amount", amountInCents);
+            }
+            if (e instanceof PaymentPluginApiException) {
+                throw (PaymentPluginApiException) e;
+            } else {
+                throw (RuntimeException) e;
+            }
+        }
+        return paymentTransaction;
     }
 
     private PaymentTransactionInfoPlugin executeFollowUpTransaction(final TransactionType transactionType,
@@ -391,38 +425,67 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
                                                                     @Nullable final Currency currency,
                                                                     final Iterable<PluginProperty> properties,
                                                                     final CallContext context) throws PaymentPluginApiException {
-        final Account account = getAccount(kbAccountId, context);
+        killbillMetrics.markMeter(transactionType.toString());
+        final Long amountInCents;
+        if (amount != null) {
+            amountInCents = amount.multiply(BigDecimal.valueOf(100)).longValue();
+            killbillMetrics.recordHistogramValue(transactionType + ".amount", amountInCents);
+        } else {
+            amountInCents = null;
+        }
 
-        final Long transactionAmount = (amount == null ? null : amount.longValue());
-        final PaymentProvider paymentProvider = buildPaymentProvider(account, kbPaymentMethodId, currency, properties, context);
-        final SplitSettlementData splitSettlementData = null;
-
-        final String pspReference;
+        final AdyenPaymentTransactionInfoPlugin paymentTransaction;
         try {
-            final AdyenResponsesRecord previousResponse = dao.getSuccessfulAuthorizationResponse(kbPaymentId, context.getTenantId());
-            if (previousResponse == null) {
-                throw new PaymentPluginApiException(null, "Unable to retrieve previous payment response for kbTransactionId " + kbTransactionId);
+            final Account account = getAccount(kbAccountId, context);
+
+            final Long transactionAmount = (amount == null ? null : amount.longValue());
+            final PaymentProvider paymentProvider = buildPaymentProvider(account, kbPaymentMethodId, currency, properties, context);
+            final SplitSettlementData splitSettlementData = null;
+
+            final String pspReference;
+            try {
+                final AdyenResponsesRecord previousResponse = dao.getSuccessfulAuthorizationResponse(kbPaymentId, context.getTenantId());
+                if (previousResponse == null) {
+                    throw new PaymentPluginApiException(null, "Unable to retrieve previous payment response for kbTransactionId " + kbTransactionId);
+                }
+                pspReference = previousResponse.getPspReference();
+            } catch (final SQLException e) {
+                throw new PaymentPluginApiException("Unable to retrieve previous payment response for kbTransactionId " + kbTransactionId, e);
             }
-            pspReference = previousResponse.getPspReference();
-        } catch (final SQLException e) {
-            throw new PaymentPluginApiException("Unable to retrieve previous payment response for kbTransactionId " + kbTransactionId, e);
+
+            final DateTime utcNow = clock.getUTCNow();
+
+            final PaymentModificationResponse response;
+            try {
+                response = transactionExecutor.execute(transactionAmount, paymentProvider, pspReference, splitSettlementData);
+            } catch (final ModificationFailedException e) {
+                return new AdyenPaymentTransactionInfoPlugin(kbPaymentId, kbTransactionId, transactionType, amount, currency, PaymentServiceProviderResult.ERROR, utcNow, e);
+            }
+
+            try {
+                dao.addResponse(kbAccountId, kbPaymentId, kbTransactionId, transactionType, amount, currency, response, utcNow, context.getTenantId());
+                paymentTransaction = new AdyenPaymentTransactionInfoPlugin(kbPaymentId, kbTransactionId, transactionType, amount, currency, PaymentServiceProviderResult.RECEIVED, utcNow, response);
+            } catch (final SQLException e) {
+                throw new PaymentPluginApiException("Payment went through, but we encountered a database error. Payment details: " + (response == null ? null : response.toString()), e);
+            }
+
+            killbillMetrics.markMeter(transactionType + "." + paymentTransaction.getStatus());
+            if (amountInCents != null) {
+                killbillMetrics.recordHistogramValue(transactionType + "." + paymentTransaction.getStatus() + ".amount", amountInCents);
+            }
+        } catch(Exception e) {
+            killbillMetrics.markMeter(transactionType + ".exception");
+            if (amountInCents != null) {
+                killbillMetrics.recordHistogramValue(transactionType + ".exception.amount", amountInCents);
+            }
+            if (e instanceof PaymentPluginApiException) {
+                throw (PaymentPluginApiException) e;
+            } else {
+                throw (RuntimeException) e;
+            }
         }
 
-        final DateTime utcNow = clock.getUTCNow();
-
-        final PaymentModificationResponse response;
-        try {
-            response = transactionExecutor.execute(transactionAmount, paymentProvider, pspReference, splitSettlementData);
-        } catch (final ModificationFailedException e) {
-            return new AdyenPaymentTransactionInfoPlugin(kbPaymentId, kbTransactionId, transactionType, amount, currency, PaymentServiceProviderResult.ERROR, utcNow, e);
-        }
-
-        try {
-            dao.addResponse(kbAccountId, kbPaymentId, kbTransactionId, transactionType, amount, currency, response, utcNow, context.getTenantId());
-            return new AdyenPaymentTransactionInfoPlugin(kbPaymentId, kbTransactionId, transactionType, amount, currency, PaymentServiceProviderResult.RECEIVED, utcNow, response);
-        } catch (final SQLException e) {
-            throw new PaymentPluginApiException("Payment went through, but we encountered a database error. Payment details: " + (response == null ? null : response.toString()), e);
-        }
+        return paymentTransaction;
     }
 
     // For API

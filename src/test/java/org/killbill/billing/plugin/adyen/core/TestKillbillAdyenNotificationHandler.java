@@ -27,6 +27,7 @@ import org.killbill.adyen.notification.NotificationRequestItem;
 import org.killbill.billing.account.api.Account;
 import org.killbill.billing.account.api.AccountApiException;
 import org.killbill.billing.catalog.api.Currency;
+import org.killbill.billing.osgi.api.OSGIMetrics;
 import org.killbill.billing.payment.api.Payment;
 import org.killbill.billing.payment.api.PaymentApiException;
 import org.killbill.billing.payment.api.PaymentTransaction;
@@ -102,8 +103,9 @@ public class TestKillbillAdyenNotificationHandler {
         final OSGIKillbillAPI killbillApi = getOSGIKillbillAPI(account, payment, item, isKillBillNotified);
         final AdyenDao adyenDao = getAdyenDao(payment, paymentTransaction, transactionType, item, isNotificationRecorded);
         final DefaultClock clock = new DefaultClock();
+        final OSGIMetrics killbillMetrics = Mockito.mock(OSGIMetrics.class);
 
-        return new KillbillAdyenNotificationHandler(killbillApi, adyenDao, clock);
+        return new KillbillAdyenNotificationHandler(killbillApi, adyenDao, clock, killbillMetrics);
     }
 
     private NotificationRequestItem getNotificationRequestItem(final boolean success) {
