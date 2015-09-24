@@ -32,7 +32,6 @@ import org.killbill.clock.Clock;
 import org.killbill.clock.DefaultClock;
 import org.killbill.killbill.osgi.libs.killbill.KillbillActivatorBase;
 import org.killbill.killbill.osgi.libs.killbill.OSGIKillbillEventDispatcher.OSGIKillbillEventHandler;
-import org.killbill.metrics.PaymentPluginApiMetricWrapper;
 import org.osgi.framework.BundleContext;
 
 public class AdyenActivator extends KillbillActivatorBase {
