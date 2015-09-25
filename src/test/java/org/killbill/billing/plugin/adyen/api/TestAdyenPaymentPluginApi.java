@@ -64,6 +64,8 @@ import static org.testng.Assert.assertNotNull;
 
 public class TestAdyenPaymentPluginApi extends TestWithEmbeddedDBBase {
 
+    private static final long SLEEP_IN_MILLIS_FOR_RECURRING_DETAIL = 3000L; // 3 Seconds
+
     private Payment payment;
     private CallContext context;
     private AdyenPaymentPluginApi adyenPaymentPluginApi;
@@ -303,6 +305,9 @@ public class TestAdyenPaymentPluginApi extends TestWithEmbeddedDBBase {
 
         verifyPaymentTransactionInfoPlugin(authorizationTransaction1, authorizationInfoPlugin1);
 
+        // Sleep a few seconds to give Adyen's Test System time to process and create the RecurringDetails
+        Thread.sleep(SLEEP_IN_MILLIS_FOR_RECURRING_DETAIL);
+
         final List<RecurringDetail> recurringDetailList = adyenRecurringClient.getRecurringDetailList(DEFAULT_COUNTRY,
                 propertiesForRecurring.get(AdyenPaymentPluginApi.PROPERTY_CUSTOMER_ID),
                 adyenConfigProperties.getMerchantAccount(DEFAULT_COUNTRY),
@@ -359,6 +364,9 @@ public class TestAdyenPaymentPluginApi extends TestWithEmbeddedDBBase {
                                                                                                              context);
 
         verifyPaymentTransactionInfoPlugin(authorizationTransaction1, authorizationInfoPlugin1);
+
+        // Sleep a few seconds to give Adyen's Test System time to process and create the RecurringDetails
+        Thread.sleep(SLEEP_IN_MILLIS_FOR_RECURRING_DETAIL);
 
         final List<RecurringDetail> recurringDetailList = adyenRecurringClient.getRecurringDetailList(DEFAULT_COUNTRY,
                                                                                                       propertiesForRecurring.get(AdyenPaymentPluginApi.PROPERTY_CUSTOMER_ID),
