@@ -337,6 +337,7 @@
       <xsd:complexType name="Card">
         <xsd:sequence>
           <xsd:element minOccurs="0" name="billingAddress" nillable="true" type="ns1:Address" />
+          <xsd:element minOccurs="0" name="brand" nillable="true" type="xsd:string" />
           <xsd:element minOccurs="0" name="cvc" nillable="true">
             <xsd:simpleType>
               <xsd:restriction base="xsd:string">
@@ -348,7 +349,7 @@
           <xsd:element minOccurs="1" name="expiryMonth">
             <xsd:simpleType>
               <xsd:restriction base="xsd:string">
-                <xsd:minLength value="1" />
+                <xsd:minLength value="2" />
                 <xsd:maxLength value="2" />
               </xsd:restriction>
             </xsd:simpleType>
@@ -388,7 +389,7 @@
           <xsd:element minOccurs="0" name="startMonth" nillable="true">
             <xsd:simpleType>
               <xsd:restriction base="xsd:string">
-                <xsd:minLength value="1" />
+                <xsd:minLength value="2" />
                 <xsd:maxLength value="2" />
               </xsd:restriction>
             </xsd:simpleType>
