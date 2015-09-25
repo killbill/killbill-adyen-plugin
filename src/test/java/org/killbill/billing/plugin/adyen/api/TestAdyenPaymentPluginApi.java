@@ -44,7 +44,6 @@ import org.killbill.killbill.osgi.libs.killbill.OSGIConfigPropertiesService;
 import org.killbill.killbill.osgi.libs.killbill.OSGIKillbillAPI;
 import org.killbill.killbill.osgi.libs.killbill.OSGIKillbillLogService;
 import org.mockito.Mockito;
-import org.testng.Assert;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
@@ -58,6 +57,10 @@ import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.PROPER
 import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.PROPERTY_DD_BANKLEITZAHL;
 import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.PROPERTY_DD_HOLDER_NAME;
 import static org.testng.Assert.fail;
+import static org.testng.Assert.assertEquals;
+import static org.testng.Assert.assertTrue;
+import static org.testng.Assert.assertNull;
+import static org.testng.Assert.assertNotNull;
 
 public class TestAdyenPaymentPluginApi extends TestWithEmbeddedDBBase {
 
@@ -209,7 +212,7 @@ public class TestAdyenPaymentPluginApi extends TestWithEmbeddedDBBase {
                                                                                                             authorizationTransaction.getCurrency(),
                                                                                                             propertiesWithSepaInfo,
                                                                                                             context);
-        verifyPaymentTransactionInfoPlugin(authorizationTransaction, authorizationInfoPlugin, "Received");
+        verifyPaymentTransactionInfoPlugin(authorizationTransaction, authorizationInfoPlugin, false);
 
         final PaymentTransactionInfoPlugin captureInfoPlugin1 = adyenPaymentPluginApi.capturePayment(payment.getAccountId(),
                                                                                                      payment.getId(),
@@ -248,7 +251,7 @@ public class TestAdyenPaymentPluginApi extends TestWithEmbeddedDBBase {
                                                                                                             authorizationTransaction.getCurrency(),
                                                                                                             propertiesWithElvInfo,
                                                                                                             context);
-        verifyPaymentTransactionInfoPlugin(authorizationTransaction, authorizationInfoPlugin, "Received");
+        verifyPaymentTransactionInfoPlugin(authorizationTransaction, authorizationInfoPlugin, false);
 
         final PaymentTransactionInfoPlugin captureInfoPlugin1 = adyenPaymentPluginApi.capturePayment(payment.getAccountId(),
                                                                                                      payment.getId(),
@@ -394,9 +397,9 @@ public class TestAdyenPaymentPluginApi extends TestWithEmbeddedDBBase {
                                                                                     AdyenPaymentPluginApi.PROPERTY_COUNTRY, DEFAULT_COUNTRY);
         final Iterable<PluginProperty> customFields = PluginProperties.buildPluginProperties(customFieldsMap);
         final HostedPaymentPageFormDescriptor descriptor = adyenPaymentPluginApi.buildFormDescriptor(payment.getAccountId(), customFields, ImmutableList.<PluginProperty>of(), context);
-        Assert.assertEquals(descriptor.getKbAccountId(), payment.getAccountId());
-        Assert.assertEquals(descriptor.getFormMethod(), "GET");
-        Assert.assertNotNull(descriptor.getFormUrl());
+        assertEquals(descriptor.getKbAccountId(), payment.getAccountId());
+        assertEquals(descriptor.getFormMethod(), "GET");
+        assertNotNull(descriptor.getFormUrl());
 
         // For manual testing
         System.out.println("Redirect to: " + descriptor.getFormUrl());
@@ -404,57 +407,72 @@ public class TestAdyenPaymentPluginApi extends TestWithEmbeddedDBBase {
     }
 
     private void verifyPaymentTransactionInfoPlugin(final PaymentTransaction paymentTransaction, final PaymentTransactionInfoPlugin paymentTransactionInfoPlugin) {
-        verifyPaymentTransactionInfoPlugin(paymentTransaction, paymentTransactionInfoPlugin, null);
+        verifyPaymentTransactionInfoPlugin(paymentTransaction, paymentTransactionInfoPlugin, true);
     }
 
-    private void verifyPaymentTransactionInfoPlugin(final PaymentTransaction paymentTransaction, final PaymentTransactionInfoPlugin paymentTransactionInfoPlugin, final String alternateResponseForAuthorize) {
-        Assert.assertEquals(paymentTransactionInfoPlugin.getKbPaymentId(), payment.getId());
-        Assert.assertEquals(paymentTransactionInfoPlugin.getKbTransactionPaymentId(), paymentTransaction.getId());
+    /**
+     * Verifies PaymentTransactionInfoPlugin.
+     *
+     * @param paymentTransaction The PaymentTransaction
+     * @param paymentTransactionInfoPlugin The PaymentTransactionInfoPlugin
+     * @param authorizedProcessed If {@code true} then the status for Authorize must be Processed, if {@code false} it could be Processed or Pending (e.g. for DirectDebit)
+     */
+    private void verifyPaymentTransactionInfoPlugin(final PaymentTransaction paymentTransaction, final PaymentTransactionInfoPlugin paymentTransactionInfoPlugin, final boolean authorizedProcessed) {
+        assertEquals(paymentTransactionInfoPlugin.getKbPaymentId(), payment.getId());
+        assertEquals(paymentTransactionInfoPlugin.getKbTransactionPaymentId(), paymentTransaction.getId());
         if (TransactionType.PURCHASE.equals(paymentTransaction.getTransactionType())) {
-            Assert.assertEquals(paymentTransactionInfoPlugin.getTransactionType(), TransactionType.CAPTURE);
+            assertEquals(paymentTransactionInfoPlugin.getTransactionType(), TransactionType.CAPTURE);
         } else {
-            Assert.assertEquals(paymentTransactionInfoPlugin.getTransactionType(), paymentTransaction.getTransactionType());
+            assertEquals(paymentTransactionInfoPlugin.getTransactionType(), paymentTransaction.getTransactionType());
         }
         if (TransactionType.VOID.equals(paymentTransaction.getTransactionType())) {
-            Assert.assertNull(paymentTransactionInfoPlugin.getAmount());
-            Assert.assertNull(paymentTransactionInfoPlugin.getAmount());
+            assertNull(paymentTransactionInfoPlugin.getAmount());
+            assertNull(paymentTransactionInfoPlugin.getAmount());
         } else {
-            Assert.assertEquals(paymentTransactionInfoPlugin.getAmount(), paymentTransaction.getAmount());
-            Assert.assertEquals(paymentTransactionInfoPlugin.getCurrency(), paymentTransaction.getCurrency());
+            assertEquals(paymentTransactionInfoPlugin.getAmount(), paymentTransaction.getAmount());
+            assertEquals(paymentTransactionInfoPlugin.getCurrency(), paymentTransaction.getCurrency());
         }
-        Assert.assertNotNull(paymentTransactionInfoPlugin.getCreatedDate());
-        Assert.assertNotNull(paymentTransactionInfoPlugin.getEffectiveDate());
-        Assert.assertEquals(paymentTransactionInfoPlugin.getStatus(), paymentTransaction.getTransactionType() == TransactionType.AUTHORIZE ? PaymentPluginStatus.PROCESSED : PaymentPluginStatus.PENDING);
+        assertNotNull(paymentTransactionInfoPlugin.getCreatedDate());
+        assertNotNull(paymentTransactionInfoPlugin.getEffectiveDate());
 
         final List<String> expectedGatewayErrors;
+        final List<PaymentPluginStatus> expectedPaymentPluginStatus;
         switch (paymentTransaction.getTransactionType()) {
             case AUTHORIZE:
-                expectedGatewayErrors = alternateResponseForAuthorize != null
-                        ? ImmutableList.of("Authorised", alternateResponseForAuthorize)
-                        : ImmutableList.of("Authorised");
+                expectedGatewayErrors = authorizedProcessed
+                        ? ImmutableList.of("Authorised")
+                        : ImmutableList.of("Authorised", "Received");
+                expectedPaymentPluginStatus = authorizedProcessed
+                        ? ImmutableList.of(PaymentPluginStatus.PROCESSED)
+                        : ImmutableList.of(PaymentPluginStatus.PROCESSED, PaymentPluginStatus.PENDING);
                 break;
             case CAPTURE:
             case PURCHASE:
                 expectedGatewayErrors = ImmutableList.of("[capture-received]");
+                expectedPaymentPluginStatus = ImmutableList.of(PaymentPluginStatus.PENDING);
                 break;
             case REFUND:
                 expectedGatewayErrors = ImmutableList.of("[refund-received]");
+                expectedPaymentPluginStatus = ImmutableList.of(PaymentPluginStatus.PENDING);
                 break;
             case VOID:
                 expectedGatewayErrors = ImmutableList.of("[cancel-received]");
+                expectedPaymentPluginStatus = ImmutableList.of(PaymentPluginStatus.PENDING);
                 break;
             default:
                 expectedGatewayErrors = ImmutableList.of();
+                expectedPaymentPluginStatus = ImmutableList.of(PaymentPluginStatus.PENDING);
                 break;
         }
-        Assert.assertTrue(expectedGatewayErrors.contains(paymentTransactionInfoPlugin.getGatewayError()), paymentTransactionInfoPlugin.getGatewayError());
+        assertTrue(expectedGatewayErrors.contains(paymentTransactionInfoPlugin.getGatewayError()), paymentTransactionInfoPlugin.getGatewayError());
+        assertTrue(expectedPaymentPluginStatus.contains(paymentTransactionInfoPlugin.getStatus()), paymentTransactionInfoPlugin.getStatus().toString());
 
-        Assert.assertNull(paymentTransactionInfoPlugin.getGatewayErrorCode());
-        Assert.assertNotNull(paymentTransactionInfoPlugin.getFirstPaymentReferenceId());
+        assertNull(paymentTransactionInfoPlugin.getGatewayErrorCode());
+        assertNotNull(paymentTransactionInfoPlugin.getFirstPaymentReferenceId());
         // NULL for subsequent transactions (modifications)
         //Assert.assertNotNull(paymentTransactionInfoPlugin.getSecondPaymentReferenceId());
         // No additional data for our simple scenarii
-        Assert.assertTrue(paymentTransactionInfoPlugin.getProperties().isEmpty());
+        assertTrue(paymentTransactionInfoPlugin.getProperties().isEmpty());
     }
 
     private Iterable<PluginProperty> toProperties(final Map<String, String> propertiesString) {
