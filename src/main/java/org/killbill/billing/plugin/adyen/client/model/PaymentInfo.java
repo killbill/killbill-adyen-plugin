@@ -22,7 +22,7 @@ public abstract class PaymentInfo {
 
     private String recurringDetailId = null;
 
-    private boolean continousAuthenticationEnabled = false;
+    private boolean continuousAuthenticationEnabled = false;
 
     private PaymentProvider paymentProvider;
 
@@ -44,8 +44,12 @@ public abstract class PaymentInfo {
      *
      * @return true if the continuous authentication interaction with Adyen should be used, otherwise false
      */
-    public boolean isContinousAuthenticationEnabled() {
-        return continousAuthenticationEnabled;
+    public boolean isContinuousAuthenticationEnabled() {
+        return continuousAuthenticationEnabled;
+    }
+
+    public void setContinuousAuthenticationEnabled(final boolean continuousAuthenticationEnabled) {
+        this.continuousAuthenticationEnabled = continuousAuthenticationEnabled;
     }
 
     public String getRecurringDetailId() {
@@ -55,4 +59,13 @@ public abstract class PaymentInfo {
     public void setRecurringDetailId(final String recurringDetailId) {
         this.recurringDetailId = recurringDetailId;
     }
+
+    public PaymentType getPaymentType() {
+        return paymentProvider.getPaymentType();
+    }
+
+    public RecurringType getRecurringType() {
+        return paymentProvider.getRecurringType();
+    }
+
 }

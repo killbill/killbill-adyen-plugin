@@ -21,6 +21,8 @@ import org.killbill.billing.plugin.adyen.client.model.PaymentProvider;
 
 public class SepaDirectDebit extends PaymentInfo {
 
+    public static final String SELECTED_BRAND = "sepadirectdebit";
+
     private String countryCode;
     private String iban;
     private String bic;

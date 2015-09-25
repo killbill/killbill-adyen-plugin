@@ -19,7 +19,6 @@ package org.killbill.billing.plugin.adyen.api;
 import java.math.BigDecimal;
 import java.net.URISyntaxException;
 import java.sql.SQLException;
-import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
@@ -52,10 +51,13 @@ import org.killbill.billing.plugin.adyen.client.model.PaymentProvider;
 import org.killbill.billing.plugin.adyen.client.model.PaymentServiceProviderResult;
 import org.killbill.billing.plugin.adyen.client.model.PaymentType;
 import org.killbill.billing.plugin.adyen.client.model.PurchaseResult;
+import org.killbill.billing.plugin.adyen.client.model.RecurringType;
 import org.killbill.billing.plugin.adyen.client.model.SplitSettlementData;
 import org.killbill.billing.plugin.adyen.client.model.UserData;
 import org.killbill.billing.plugin.adyen.client.model.paymentinfo.CreditCard;
 import org.killbill.billing.plugin.adyen.client.model.paymentinfo.Elv;
+import org.killbill.billing.plugin.adyen.client.model.paymentinfo.OneClick;
+import org.killbill.billing.plugin.adyen.client.model.paymentinfo.Recurring;
 import org.killbill.billing.plugin.adyen.client.model.paymentinfo.SepaDirectDebit;
 import org.killbill.billing.plugin.adyen.client.model.paymentinfo.WebPaymentFrontend;
 import org.killbill.billing.plugin.adyen.client.notification.AdyenNotificationHandler;
@@ -121,6 +123,9 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
 
     public static final String PROPERTY_FROM_HPP = "fromHPP";
     public static final String PROPERTY_FROM_HPP_TRANSACTION_STATUS = "fromHPPTransactionStatus";
+
+    public static final String PROPERTY_RECURRING_DETAIL_ID = "recurringDetailId";
+    public static final String PROPERTY_RECURRING_TYPE = "recurringType";
 
     // 3-D Secure
     public static final String PROPERTY_PA_REQ = "PaReq";
@@ -467,43 +472,48 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
     // For API
     private PaymentInfo buildPaymentInfo(final Account account, final UUID kbPaymentMethodId, final Currency currency, final Iterable<PluginProperty> properties, final CallContext context) {
         final AdyenPaymentMethodsRecord paymentMethodsRecord = getAdyenPaymentMethodsRecord(kbPaymentMethodId, context);
-        final PaymentProvider paymentProvider = buildPaymentProvider(account, paymentMethodsRecord, currency, properties, context);
+        final AdyenPaymentMethodsRecord nonNullPaymentMethodsRecord = paymentMethodsRecord == null ? new AdyenPaymentMethodsRecord() : paymentMethodsRecord;
+        final Iterable<PluginProperty> additionalPropertiesFromRecord = buildPaymentMethodPlugin(nonNullPaymentMethodsRecord).getProperties();
+        final Iterable<PluginProperty> mergedProperties = PluginProperties.merge(additionalPropertiesFromRecord, properties);
+        final PaymentProvider paymentProvider = buildPaymentProvider(account, nonNullPaymentMethodsRecord, currency, properties, context);
 
-        final String paymentMethodsRecordCcType = paymentMethodsRecord != null ? paymentMethodsRecord.getCcType() : null;
+        final String paymentMethodsRecordCcType = nonNullPaymentMethodsRecord.getCcType();
         final String ccType = PluginProperties.getValue(PROPERTY_CC_TYPE, paymentMethodsRecordCcType, properties);
+        final String recurringDetailId = PluginProperties.findPluginPropertyValue(PROPERTY_RECURRING_DETAIL_ID, mergedProperties);
 
-        if ("sepadirectdebit".equals(ccType)) {
-            return buildSepaDirectDebit(paymentMethodsRecord, paymentProvider, properties);
+        if (recurringDetailId != null) {
+            return buildRecurring(paymentMethodsRecord, paymentProvider, mergedProperties);
+        } else if ("sepadirectdebit".equals(ccType)) {
+            return buildSepaDirectDebit(nonNullPaymentMethodsRecord, paymentProvider, mergedProperties);
         } else if ("elv".equals(ccType)) {
-            return buildElv(paymentMethodsRecord, paymentProvider, properties);
+            return buildElv(nonNullPaymentMethodsRecord, paymentProvider, mergedProperties);
         } else {
-            return buildCreditCard(paymentMethodsRecord, paymentProvider, properties);
+            return buildCreditCard(nonNullPaymentMethodsRecord, paymentProvider, mergedProperties);
         }
     }
 
     private CreditCard buildCreditCard(final AdyenPaymentMethodsRecord paymentMethodsRecord, final PaymentProvider paymentProvider, final Iterable<PluginProperty> properties) {
-        final AdyenPaymentMethodsRecord nonNullPaymentMethodsRecord = paymentMethodsRecord == null ? new AdyenPaymentMethodsRecord() : paymentMethodsRecord;
         final CreditCard creditCard = new CreditCard(paymentProvider);
 
         // By convention, support the same keys as the Ruby plugins (https://github.com/killbill/killbill-plugin-framework-ruby/blob/master/lib/killbill/helpers/active_merchant/payment_plugin.rb)
-        final String ccNumber = PluginProperties.getValue(PROPERTY_CC_NUMBER, nonNullPaymentMethodsRecord.getCcNumber(), properties);
+        final String ccNumber = PluginProperties.getValue(PROPERTY_CC_NUMBER, paymentMethodsRecord.getCcNumber(), properties);
         creditCard.setCcNumber(ccNumber);
 
-        final String ccFirstName = PluginProperties.getValue(PROPERTY_CC_FIRST_NAME, nonNullPaymentMethodsRecord.getCcFirstName(), properties);
-        final String ccLastName = PluginProperties.getValue(PROPERTY_CC_LAST_NAME, nonNullPaymentMethodsRecord.getCcLastName(), properties);
+        final String ccFirstName = PluginProperties.getValue(PROPERTY_CC_FIRST_NAME, paymentMethodsRecord.getCcFirstName(), properties);
+        final String ccLastName = PluginProperties.getValue(PROPERTY_CC_LAST_NAME, paymentMethodsRecord.getCcLastName(), properties);
         creditCard.setCcHolderName(holderName(ccFirstName, ccLastName));
 
-        final String ccExpirationMonth = PluginProperties.getValue(PROPERTY_CC_EXPIRATION_MONTH, nonNullPaymentMethodsRecord.getCcExpMonth(), properties);
+        final String ccExpirationMonth = PluginProperties.getValue(PROPERTY_CC_EXPIRATION_MONTH, paymentMethodsRecord.getCcExpMonth(), properties);
         if (ccExpirationMonth != null) {
             creditCard.setValidUntilMonth(Integer.valueOf(ccExpirationMonth));
         }
 
-        final String ccExpirationYear = PluginProperties.getValue(PROPERTY_CC_EXPIRATION_YEAR, nonNullPaymentMethodsRecord.getCcExpYear(), properties);
+        final String ccExpirationYear = PluginProperties.getValue(PROPERTY_CC_EXPIRATION_YEAR, paymentMethodsRecord.getCcExpYear(), properties);
         if (ccExpirationYear != null) {
             creditCard.setValidUntilYear(Integer.valueOf(ccExpirationYear));
         }
 
-        final String ccVerificationValue = PluginProperties.getValue(PROPERTY_CC_VERIFICATION_VALUE, nonNullPaymentMethodsRecord.getCcVerificationValue(), properties);
+        final String ccVerificationValue = PluginProperties.getValue(PROPERTY_CC_VERIFICATION_VALUE, paymentMethodsRecord.getCcVerificationValue(), properties);
         if (ccVerificationValue != null) {
             creditCard.setCcSecCode(ccVerificationValue);
         }
@@ -512,46 +522,56 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
     }
 
     private SepaDirectDebit buildSepaDirectDebit(final AdyenPaymentMethodsRecord paymentMethodsRecord, final PaymentProvider paymentProvider, final Iterable<PluginProperty> properties) {
-        final AdyenPaymentMethodsRecord nonNullPaymentMethodsRecord = paymentMethodsRecord == null ? new AdyenPaymentMethodsRecord() : paymentMethodsRecord;
-        final List<PluginProperty> additionalPropertiesFromRecord = buildPaymentMethodPlugin(nonNullPaymentMethodsRecord).getProperties();
-        final Iterable<PluginProperty> additionalProperties = PluginProperties.merge(additionalPropertiesFromRecord, properties);
         final SepaDirectDebit sepaDirectDebit = new SepaDirectDebit(paymentProvider);
 
-        final String ddAccountNumber = PluginProperties.getValue(PROPERTY_DD_ACCOUNT_NUMBER, nonNullPaymentMethodsRecord.getCcNumber(), additionalProperties);
+        final String ddAccountNumber = PluginProperties.getValue(PROPERTY_DD_ACCOUNT_NUMBER, paymentMethodsRecord.getCcNumber(), properties);
         sepaDirectDebit.setIban(ddAccountNumber);
 
-        final String paymentMethodHolderName = holderName(nonNullPaymentMethodsRecord.getCcFirstName(), nonNullPaymentMethodsRecord.getCcLastName());
-        final String ddHolderName = PluginProperties.getValue(PROPERTY_DD_HOLDER_NAME, paymentMethodHolderName, additionalProperties);
+        final String paymentMethodHolderName = holderName(paymentMethodsRecord.getCcFirstName(), paymentMethodsRecord.getCcLastName());
+        final String ddHolderName = PluginProperties.getValue(PROPERTY_DD_HOLDER_NAME, paymentMethodHolderName, properties);
         sepaDirectDebit.setSepaAccountHolder(ddHolderName);
 
-        final String paymentMethodBic = PluginProperties.findPluginPropertyValue(PROPERTY_DD_BANK_IDENTIFIER_CODE, additionalProperties);
-        final String ddBic = PluginProperties.getValue(PROPERTY_DD_BANK_IDENTIFIER_CODE, paymentMethodBic, additionalProperties);
+        final String paymentMethodBic = PluginProperties.findPluginPropertyValue(PROPERTY_DD_BANK_IDENTIFIER_CODE, properties);
+        final String ddBic = PluginProperties.getValue(PROPERTY_DD_BANK_IDENTIFIER_CODE, paymentMethodBic, properties);
         sepaDirectDebit.setBic(ddBic);
 
-        final String countryCode = MoreObjects.firstNonNull(nonNullPaymentMethodsRecord.getCountry(), paymentProvider.getCountryIsoCode());
+        final String countryCode = MoreObjects.firstNonNull(paymentMethodsRecord.getCountry(), paymentProvider.getCountryIsoCode());
         sepaDirectDebit.setCountryCode(countryCode);
 
         return sepaDirectDebit;
     }
 
     private Elv buildElv(final AdyenPaymentMethodsRecord paymentMethodsRecord, final PaymentProvider paymentProvider, final Iterable<PluginProperty> properties) {
-        final AdyenPaymentMethodsRecord nonNullPaymentMethodsRecord = paymentMethodsRecord == null ? new AdyenPaymentMethodsRecord() : paymentMethodsRecord;
-        final List<PluginProperty> additionalPropertiesFromRecord = buildPaymentMethodPlugin(nonNullPaymentMethodsRecord).getProperties();
-        final Iterable<PluginProperty> additionalProperties = PluginProperties.merge(additionalPropertiesFromRecord, properties);
         final Elv elv = new Elv(paymentProvider);
 
-        final String ddAccountNumber = PluginProperties.getValue(PROPERTY_DD_ACCOUNT_NUMBER, nonNullPaymentMethodsRecord.getCcNumber(), additionalProperties);
+        final String ddAccountNumber = PluginProperties.getValue(PROPERTY_DD_ACCOUNT_NUMBER, paymentMethodsRecord.getCcNumber(), properties);
         elv.setElvKontoNummer(ddAccountNumber);
 
-        final String paymentMethodHolderName = holderName(nonNullPaymentMethodsRecord.getCcFirstName(), nonNullPaymentMethodsRecord.getCcLastName());
-        final String ddHolderName = PluginProperties.getValue(PROPERTY_DD_HOLDER_NAME, paymentMethodHolderName, additionalProperties);
+        final String paymentMethodHolderName = holderName(paymentMethodsRecord.getCcFirstName(), paymentMethodsRecord.getCcLastName());
+        final String ddHolderName = PluginProperties.getValue(PROPERTY_DD_HOLDER_NAME, paymentMethodHolderName, properties);
         elv.setElvAccountHolder(ddHolderName);
 
-        final String paymentMethodBlz = PluginProperties.findPluginPropertyValue(PROPERTY_DD_BANKLEITZAHL, additionalProperties);
-        final String ddBlz = PluginProperties.getValue(PROPERTY_DD_BANKLEITZAHL, paymentMethodBlz, additionalProperties);
+        final String paymentMethodBlz = PluginProperties.findPluginPropertyValue(PROPERTY_DD_BANKLEITZAHL, properties);
+        final String ddBlz = PluginProperties.getValue(PROPERTY_DD_BANKLEITZAHL, paymentMethodBlz, properties);
         elv.setElvBlz(ddBlz);
 
         return elv;
+    }
+
+    private Recurring buildRecurring(final AdyenPaymentMethodsRecord paymentMethodsRecord, final PaymentProvider paymentProvider, final Iterable<PluginProperty> properties) {
+        final String recurringDetailId = PluginProperties.findPluginPropertyValue(PROPERTY_RECURRING_DETAIL_ID, properties);
+        final String ccVerificationValue = PluginProperties.getValue(PROPERTY_CC_VERIFICATION_VALUE, paymentMethodsRecord.getCcVerificationValue(), properties);
+
+        if (RecurringType.ONECLICK.equals(paymentProvider.getRecurringType())) {
+            final OneClick oneClick = new OneClick(paymentProvider);
+            oneClick.setRecurringDetailId(recurringDetailId);
+            oneClick.setCcSecCode(ccVerificationValue);
+            return oneClick;
+        } else {
+            final Recurring recurring = new Recurring(paymentProvider);
+            recurring.setRecurringDetailId(recurringDetailId);
+            return recurring;
+        }
     }
 
     private static String holderName(final String firstName, final String lastName) {
@@ -585,14 +605,26 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
         final String pluginPropertyCountry = PluginProperties.findPluginPropertyValue(PROPERTY_COUNTRY, properties);
         final String paymentProviderCountryIsoCode = pluginPropertyCountry == null ? account.getCountry() : pluginPropertyCountry;
 
-        final PaymentType paymentProviderPaymentType;
         final String pluginPropertyPaymentProviderType = PluginProperties.findPluginPropertyValue(PROPERTY_PAYMENT_PROVIDER_TYPE, properties);
-        if (pluginPropertyPaymentProviderType != null) {
+        final String recurringDetailId = PluginProperties.findPluginPropertyValue(PROPERTY_RECURRING_DETAIL_ID, properties);
+        final String pluginPropertyPaymentRecurringType = PluginProperties.findPluginPropertyValue(PROPERTY_RECURRING_TYPE, properties);
+
+        final PaymentType paymentProviderPaymentType;
+        if (recurringDetailId != null) {
+            paymentProviderPaymentType = PaymentType.EMPTY;
+        } else if (pluginPropertyPaymentProviderType != null) {
             paymentProviderPaymentType = PaymentType.getByName(pluginPropertyPaymentProviderType);
         } else {
             final String pluginPropertyCCType = PluginProperties.findPluginPropertyValue(PROPERTY_CC_TYPE, properties);
             final String paymentMethodCCType = paymentMethodsRecord == null || paymentMethodsRecord.getCcType() == null ? null : paymentMethodsRecord.getCcType();
             paymentProviderPaymentType = pluginPropertyCCType == null ? (paymentMethodCCType == null ? PaymentType.CREDITCARD : PaymentType.getByName(paymentMethodCCType)) : PaymentType.getByName(pluginPropertyCCType);
+        }
+
+        final RecurringType paymentProviderRecurringType;
+        if (pluginPropertyPaymentRecurringType != null) {
+            paymentProviderRecurringType = RecurringType.valueOf(pluginPropertyPaymentRecurringType);
+        } else {
+            paymentProviderRecurringType = null;
         }
 
         // A bit of a hack - it would be nice to be able to isolate AdyenConfigProperties
@@ -604,6 +636,7 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
         }
         paymentProvider.setCountryIsoCode(paymentProviderCountryIsoCode);
         paymentProvider.setPaymentType(paymentProviderPaymentType);
+        paymentProvider.setRecurringType(paymentProviderRecurringType);
 
         return paymentProvider;
     }

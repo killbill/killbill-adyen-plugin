@@ -42,7 +42,8 @@ public class PaymentInfoConverterService implements PaymentInfoConverterManageme
                 new MaestroUKConverter(),
                 new MasterCardConverter(),
                 new VisaConverter(),
-                new SepaDirectDebitConverter()));
+                new SepaDirectDebitConverter(),
+                new RecurringConverter()));
     }
 
     public PaymentInfoConverterService(final List<PaymentInfoConverter<? extends PaymentInfo>> paymentInfoConverterList) {

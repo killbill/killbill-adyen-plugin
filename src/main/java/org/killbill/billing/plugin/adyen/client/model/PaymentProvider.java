@@ -25,7 +25,7 @@ import java.util.List;
 import org.killbill.billing.plugin.adyen.client.AdyenConfigProperties;
 
 import com.google.common.base.Joiner;
-import com.google.common.base.Objects;
+import com.google.common.base.MoreObjects;
 import com.google.common.base.Strings;
 
 public class PaymentProvider {
@@ -105,7 +105,7 @@ public class PaymentProvider {
      * @return true, if we need to send the termUrl
      */
     public boolean send3DSTermUrl() {
-        return Boolean.valueOf(Objects.firstNonNull(configuration.getThreeDSTermUrl(), "false"));
+        return Boolean.valueOf(MoreObjects.firstNonNull(configuration.getThreeDSTermUrl(), "false"));
     }
 
     public String getHppTargetOverride() {

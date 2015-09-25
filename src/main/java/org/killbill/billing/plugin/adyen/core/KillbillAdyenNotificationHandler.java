@@ -45,7 +45,7 @@ import org.killbill.billing.util.callcontext.TenantContext;
 import org.killbill.clock.Clock;
 import org.killbill.killbill.osgi.libs.killbill.OSGIKillbillAPI;
 
-import com.google.common.base.Objects;
+import com.google.common.base.MoreObjects;
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -276,7 +276,7 @@ public class KillbillAdyenNotificationHandler implements AdyenNotificationHandle
     }
 
     private Payment notifyKillBill(final Account account, final UUID kbPaymentTransactionId, final NotificationItem notification, final CallContext context) {
-        final Boolean isSuccess = Objects.firstNonNull(notification.getSuccess(), false);
+        final Boolean isSuccess = MoreObjects.firstNonNull(notification.getSuccess(), false);
         try {
             return osgiKillbillAPI.getPaymentApi().notifyPendingTransactionOfStateChanged(account, kbPaymentTransactionId, isSuccess, context);
         } catch (final PaymentApiException e) {

@@ -28,6 +28,10 @@ The following properties are required:
 * `org.killbill.billing.plugin.adyen.password`: your password(s)
 * `org.killbill.billing.plugin.adyen.paymentUrl`: SOAP Payment service url (i.e. `https://pal-test.adyen.com/pal/servlet/soap/Payment` or `https://pal-live.adyen.com/pal/servlet/soap/Payment`)
 
+Only needed for the Tests:
+
+* `org.killbill.billing.plugin.adyen.recurringUrl`: SOAP Recurring Service URL (i.e. `https://pal-test.adyen.com/pal/servlet/soap/Recurring`)
+
 The format for the merchant account(s), username(s) and password(s) is `XX#YY|XX#YY|...` where:
 
 * `XX` is the country code (DE, FR, etc.)
