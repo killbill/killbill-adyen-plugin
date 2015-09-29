@@ -135,6 +135,9 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
     public static final String PROPERTY_DCC_SIGNATURE = "dccSignature";
     public static final String PROPERTY_ISSUER_URL = "issuerUrl";
     public static final String PROPERTY_TERM_URL = "TermUrl";
+    public static final String PROPERTY_USER_AGENT = "userAgent";
+    public static final String PROPERTY_ACCEPT_HEADER = "acceptHeader";
+    public static final String PROPERTY_THREE_D_THRESHOLD = "threeDThreshold";
 
     public static final String PROPERTY_DD_HOLDER_NAME = "ddHolderName";
     public static final String PROPERTY_DD_ACCOUNT_NUMBER = "ddNumber";
@@ -518,6 +521,13 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
             creditCard.setCcSecCode(ccVerificationValue);
         }
 
+        final String ccUserAgent = PluginProperties.findPluginPropertyValue(PROPERTY_USER_AGENT, properties);
+        final String ccAcceptHeader = PluginProperties.findPluginPropertyValue(PROPERTY_ACCEPT_HEADER, properties);
+        if (ccUserAgent != null && ccAcceptHeader != null) {
+            creditCard.setUserAgent(ccUserAgent);
+            creditCard.setAcceptHeader(ccAcceptHeader);
+        }
+
         return creditCard;
     }
 
@@ -604,6 +614,7 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
         final String paymentProviderCurrency = pluginPropertyCurrency == null ? (currency == null ? null : currency.name()) : pluginPropertyCurrency;
         final String pluginPropertyCountry = PluginProperties.findPluginPropertyValue(PROPERTY_COUNTRY, properties);
         final String paymentProviderCountryIsoCode = pluginPropertyCountry == null ? account.getCountry() : pluginPropertyCountry;
+        final String threeDThreshold = PluginProperties.findPluginPropertyValue(PROPERTY_THREE_D_THRESHOLD, properties);
 
         final String pluginPropertyPaymentProviderType = PluginProperties.findPluginPropertyValue(PROPERTY_PAYMENT_PROVIDER_TYPE, properties);
         final String recurringDetailId = PluginProperties.findPluginPropertyValue(PROPERTY_RECURRING_DETAIL_ID, properties);
@@ -637,8 +648,21 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
         paymentProvider.setCountryIsoCode(paymentProviderCountryIsoCode);
         paymentProvider.setPaymentType(paymentProviderPaymentType);
         paymentProvider.setRecurringType(paymentProviderRecurringType);
+        paymentProvider.setThreeDThreshold(parseThreeDThreshold(threeDThreshold));
 
         return paymentProvider;
+    }
+
+    private Long parseThreeDThreshold(final String threeDThresholdStr) {
+        if (threeDThresholdStr == null) {
+            return null;
+        } else {
+            try {
+                return Long.valueOf(threeDThresholdStr);
+            } catch (NumberFormatException e) {
+                return null;
+            }
+        }
     }
 
     private UserData buildUserData(@Nullable final Account account, final Iterable<PluginProperty> properties) {
