@@ -79,23 +79,23 @@ public class AdyenPluginMockBuilder {
         return TestUtils.loadProperties(PROPERTIES_FILE_NAME);
     }
 
-    public AdyenPluginMockBuilder withAdyenProperty(String key, String value) {
+    public AdyenPluginMockBuilder withAdyenProperty(final String key, final String value) {
         adyenProperties.setProperty(key, value);
         return this;
     }
 
-    public AdyenPluginMockBuilder withAccount(Account account) {
+    public AdyenPluginMockBuilder withAccount(final Account account) {
         this.account = account;
         return this;
     }
 
-    public AdyenPluginMockBuilder withPayment(Payment payment) {
+    public AdyenPluginMockBuilder withPayment(final Payment payment) {
         this.payment = payment;
         return this;
     }
 
     public AdyenPaymentPluginApi build() throws Exception {
-        AdyenConfigProperties adyenConfigProperties = new AdyenConfigProperties(adyenProperties);
+        final AdyenConfigProperties adyenConfigProperties = new AdyenConfigProperties(adyenProperties);
 
         final PaymentInfoConverterManagement paymentInfoConverterManagement = new PaymentInfoConverterService();
 
@@ -108,16 +108,16 @@ public class AdyenPluginMockBuilder {
         final PaymentPortRegistry adyenPaymentPortRegistry = new AdyenPaymentPortRegistry(adyenConfigProperties, loggingInInterceptor, loggingOutInterceptor, httpHeaderInterceptor);
         final AdyenPaymentRequestSender adyenPaymentRequestSender = new AdyenPaymentRequestSender(adyenPaymentPortRegistry);
 
-        AdyenPaymentServiceProviderPort adyenPaymentServiceProviderPort = new AdyenPaymentServiceProviderPort(paymentInfoConverterManagement, adyenRequestFactory, adyenPaymentRequestSender);
-        AdyenPaymentServiceProviderHostedPaymentPagePort adyenPaymentServiceProviderHostedPaymentPagePort = new AdyenPaymentServiceProviderHostedPaymentPagePort(adyenConfigProperties, adyenRequestFactory);
+        final AdyenPaymentServiceProviderPort adyenPaymentServiceProviderPort = new AdyenPaymentServiceProviderPort(paymentInfoConverterManagement, adyenRequestFactory, adyenPaymentRequestSender);
+        final AdyenPaymentServiceProviderHostedPaymentPagePort adyenPaymentServiceProviderHostedPaymentPagePort = new AdyenPaymentServiceProviderHostedPaymentPagePort(adyenConfigProperties, adyenRequestFactory);
 
         final OSGIKillbillAPI killbillAPI = TestUtils.buildOSGIKillbillAPI(account, TestUtils.buildPayment(account.getId(), account.getPaymentMethodId(), account.getCurrency()), null);
         final OSGIKillbillLogService logService = TestUtils.buildLogService();
 
-        AdyenConfigurationHandler adyenConfigurationHandler = new AdyenConfigurationHandler(AdyenActivator.PLUGIN_NAME, killbillAPI, logService);
+        final AdyenConfigurationHandler adyenConfigurationHandler = new AdyenConfigurationHandler(AdyenActivator.PLUGIN_NAME, killbillAPI, logService);
         adyenConfigurationHandler.setDefaultConfigurable(adyenPaymentServiceProviderPort);
 
-        AdyenHostedPaymentPageConfigurationHandler adyenHostedPaymentPageConfigurationHandler = new AdyenHostedPaymentPageConfigurationHandler(AdyenActivator.PLUGIN_NAME, killbillAPI, logService);
+        final AdyenHostedPaymentPageConfigurationHandler adyenHostedPaymentPageConfigurationHandler = new AdyenHostedPaymentPageConfigurationHandler(AdyenActivator.PLUGIN_NAME, killbillAPI, logService);
         adyenHostedPaymentPageConfigurationHandler.setDefaultConfigurable(adyenPaymentServiceProviderHostedPaymentPagePort);
 
         final Clock clock = new DefaultClock();
@@ -129,7 +129,7 @@ public class AdyenPluginMockBuilder {
         return new AdyenPaymentPluginApi(adyenConfigurationHandler, adyenHostedPaymentPageConfigurationHandler, killbillApi, configPropertiesService, logService, clock, dao);
     }
 
-    public AdyenPluginMockBuilder withDatabaseAccess(AdyenDao dao) {
+    public AdyenPluginMockBuilder withDatabaseAccess(final AdyenDao dao) {
         this.dao = dao;
         return this;
     }

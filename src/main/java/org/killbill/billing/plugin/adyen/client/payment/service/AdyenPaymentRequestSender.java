@@ -49,7 +49,8 @@ import static org.killbill.billing.plugin.adyen.client.payment.service.AdyenCall
 
 public class AdyenPaymentRequestSender implements Closeable {
 
-    private final static Logger logger = LoggerFactory.getLogger("adyen.sender");
+    private static final Logger logger = LoggerFactory.getLogger("adyen.sender");
+    private static final int SERVICE_UNAVAILABLE = 503;
 
     private final PaymentPortRegistry adyenPaymentPortRegistry;
 
@@ -61,7 +62,7 @@ public class AdyenPaymentRequestSender implements Closeable {
     public AdyenCallResult<DirectDebitResponse> directdebit(final String countryIsoCode, final DirectDebitRequest request) {
         return callAdyen(countryIsoCode, new AdyenCall<PaymentPortType, DirectDebitResponse>() {
             @Override
-            public DirectDebitResponse apply(PaymentPortType paymentPort) throws ServiceException {
+            public DirectDebitResponse apply(final PaymentPortType paymentPort) throws ServiceException {
                 return paymentPort.directdebit(request);
             }
         });
@@ -70,7 +71,7 @@ public class AdyenPaymentRequestSender implements Closeable {
     public AdyenCallResult<PaymentResult> authorise(final String countryIsoCode, final PaymentRequest request) {
         return callAdyen(countryIsoCode, new AdyenCall<PaymentPortType, PaymentResult>() {
             @Override
-            public PaymentResult apply(PaymentPortType paymentPort) throws ServiceException {
+            public PaymentResult apply(final PaymentPortType paymentPort) throws ServiceException {
                 return paymentPort.authorise(request);
             }
         });
@@ -79,7 +80,7 @@ public class AdyenPaymentRequestSender implements Closeable {
     public AdyenCallResult<PaymentResult> authorise3D(final String countryIsoCode, final PaymentRequest3D request) {
         return callAdyen(countryIsoCode, new AdyenCall<PaymentPortType, PaymentResult>() {
             @Override
-            public PaymentResult apply(PaymentPortType paymentPort) throws ServiceException {
+            public PaymentResult apply(final PaymentPortType paymentPort) throws ServiceException {
                 return paymentPort.authorise3D(request);
             }
         });
@@ -88,7 +89,7 @@ public class AdyenPaymentRequestSender implements Closeable {
     public AdyenCallResult<ModificationResult> refund(final String countryIsoCode, final ModificationRequest modificationRequest) {
         return callAdyen(countryIsoCode, new AdyenCall<PaymentPortType, ModificationResult>() {
             @Override
-            public ModificationResult apply(PaymentPortType paymentPort) throws ServiceException {
+            public ModificationResult apply(final PaymentPortType paymentPort) throws ServiceException {
                 return paymentPort.refund(modificationRequest);
             }
         });
@@ -97,7 +98,7 @@ public class AdyenPaymentRequestSender implements Closeable {
     public AdyenCallResult<ModificationResult> cancel(final String countryIsoCode, final ModificationRequest modificationRequest) {
         return callAdyen(countryIsoCode, new AdyenCall<PaymentPortType, ModificationResult>() {
             @Override
-            public ModificationResult apply(PaymentPortType paymentPort) throws ServiceException {
+            public ModificationResult apply(final PaymentPortType paymentPort) throws ServiceException {
                 return paymentPort.cancel(modificationRequest);
             }
         });
@@ -106,7 +107,7 @@ public class AdyenPaymentRequestSender implements Closeable {
     public AdyenCallResult<ModificationResult> cancelOrRefund(final String countryIsoCode, final ModificationRequest modificationRequest) {
         return callAdyen(countryIsoCode, new AdyenCall<PaymentPortType, ModificationResult>() {
             @Override
-            public ModificationResult apply(PaymentPortType paymentPort) throws ServiceException {
+            public ModificationResult apply(final PaymentPortType paymentPort) throws ServiceException {
                 return paymentPort.cancelOrRefund(modificationRequest);
             }
         });
@@ -115,30 +116,30 @@ public class AdyenPaymentRequestSender implements Closeable {
     public AdyenCallResult<ModificationResult> capture(final String countryIsoCode, final ModificationRequest modificationRequest) {
         return callAdyen(countryIsoCode, new AdyenCall<PaymentPortType, ModificationResult>() {
             @Override
-            public ModificationResult apply(PaymentPortType paymentPort) throws ServiceException {
+            public ModificationResult apply(final PaymentPortType paymentPort) throws ServiceException {
                 return paymentPort.capture(modificationRequest);
             }
         });
     }
 
-    private <T> AdyenCallResult<T> callAdyen(String countryIsoCode, AdyenCall<PaymentPortType, T> adyenCall) {
+    private <T> AdyenCallResult<T> callAdyen(final String countryIsoCode, final AdyenCall<PaymentPortType, T> adyenCall) {
         try {
-            PaymentPortType paymentPort = adyenPaymentPortRegistry.getPaymentPort(countryIsoCode);
-            T result = adyenCall.apply(paymentPort);
+            final PaymentPortType paymentPort = adyenPaymentPortRegistry.getPaymentPort(countryIsoCode);
+            final T result = adyenCall.apply(paymentPort);
             return new SuccessfulAdyenCall<T>(result);
-        } catch (Exception e) {
-            logger.info("exception during adyen reqeust", e);
+        } catch (final Exception e) {
+            logger.info("exception during adyen request", e);
             return mapExceptionToCallResult(e);
         }
     }
 
     /**
      * Educated guess approach to transform CXF exceptions into error status codes.
-     * In the future if we encounter further different cases it makes sense to change this if/else structure to a map with lookups.
+     * In the future if we encounter further different cases it makes sense to change this if/else structure to a map with lookup.
      */
-    private <T> AdyenCallResult<T> mapExceptionToCallResult(Exception e) {
+    private <T> AdyenCallResult<T> mapExceptionToCallResult(final Exception e) {
         //noinspection ThrowableResultOfMethodCallIgnored
-        Throwable rootCause = Throwables.getRootCause(e);
+        final Throwable rootCause = Throwables.getRootCause(e);
         if (rootCause instanceof SocketTimeoutException) {
             // read timeout
             if (rootCause.getMessage().contains("Read timed out")) {
@@ -152,7 +153,7 @@ public class AdyenPaymentRequestSender implements Closeable {
             }
         } else if (rootCause instanceof HTTPException) {
             // connection timeout
-            if (((HTTPException) rootCause).getResponseCode() == 503) {
+            if (((HTTPException) rootCause).getResponseCode() == SERVICE_UNAVAILABLE) {
                 return new UnSuccessfulAdyenCall<T>(REQUEST_NOT_SEND, rootCause.getMessage());
             }
             // e.g. different response code or strange response

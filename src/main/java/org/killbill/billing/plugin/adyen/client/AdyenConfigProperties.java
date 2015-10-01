@@ -33,7 +33,6 @@ public class AdyenConfigProperties {
     private static final Locale LOCALE_EN_UK = new Locale("en", "UK");
 
     private final Map<String, String> merchantAccountMap = new ConcurrentHashMap<String, String>();
-    private final Map<String, String> countryCodeMap = new ConcurrentHashMap<String, String>();
     private final Map<String, String> userMap = new ConcurrentHashMap<String, String>();
     private final Map<String, String> passwordMap = new ConcurrentHashMap<String, String>();
     private final Map<String, String> skinMap = new ConcurrentHashMap<String, String>();
@@ -99,7 +98,6 @@ public class AdyenConfigProperties {
                 final String countryIsoCode = account.split(KEY_VALUE_DELIMITER)[0];
                 final String merchantAccount = account.split(KEY_VALUE_DELIMITER)[1];
                 merchantAccountMap.put(countryIsoCode, merchantAccount);
-                countryCodeMap.put(merchantAccount, countryIsoCode);
             }
         }
     }
@@ -114,7 +112,7 @@ public class AdyenConfigProperties {
         if (Strings.isNullOrEmpty(countryIsoCode)) {
             return null;
         }
-        return countryIsoCode.equalsIgnoreCase("GB") ? "UK" : countryIsoCode;
+        return "GB".equalsIgnoreCase(countryIsoCode) ? "UK" : countryIsoCode;
     }
 
     public static String adjustCountryCode(final String countryIsoCode) {
@@ -180,6 +178,7 @@ public class AdyenConfigProperties {
         return paymentUrl;
     }
 
+    @SuppressWarnings("unused")
     public String getPaymentWsdlUrl() {
         return paymentWsdlUrl;
     }
@@ -188,6 +187,7 @@ public class AdyenConfigProperties {
         return recurringUrl;
     }
 
+    @SuppressWarnings("unused")
     public String getRecurringWsdlUrl() {
         return recurringWsdlUrl;
     }

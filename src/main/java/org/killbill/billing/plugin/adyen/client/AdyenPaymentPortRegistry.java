@@ -43,7 +43,7 @@ import com.google.common.base.Preconditions;
 
 public class AdyenPaymentPortRegistry implements PaymentPortRegistry {
 
-    private final static String PAYMENT_SERVICE_SUFFIX = "-paymentService";
+    private static final String PAYMENT_SERVICE_SUFFIX = "-paymentService";
 
     private final AdyenConfigProperties config;
     private final LoggingOutInterceptor loggingOutInterceptor;

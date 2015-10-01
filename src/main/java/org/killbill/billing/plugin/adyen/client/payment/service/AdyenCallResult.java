@@ -34,7 +34,7 @@ class SuccessfulAdyenCall<T> implements AdyenCallResult<T> {
 
     private final T result;
 
-    public SuccessfulAdyenCall(T result) {
+    public SuccessfulAdyenCall(final T result) {
 
         checkNotNull(result, "result");
 
@@ -69,7 +69,7 @@ class UnSuccessfulAdyenCall<T> implements AdyenCallResult<T> {
     private final AdyenCallErrorStatus responseStatus;
     private final String errorMessage;
 
-    UnSuccessfulAdyenCall(AdyenCallErrorStatus responseStatus, String errorMessage) {
+    UnSuccessfulAdyenCall(final AdyenCallErrorStatus responseStatus, final String errorMessage) {
         this.responseStatus = responseStatus;
         this.errorMessage = errorMessage;
     }

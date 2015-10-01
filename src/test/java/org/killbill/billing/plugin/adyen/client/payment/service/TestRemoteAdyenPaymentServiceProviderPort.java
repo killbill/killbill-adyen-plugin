@@ -114,6 +114,7 @@ public class TestRemoteAdyenPaymentServiceProviderPort extends TestRemoteBase {
         Assert.assertNotNull(authorizeResult.getAuthCode());
         Assert.assertNull(authorizeResult.getReason());
 
+        //noinspection UnnecessaryLocalVariable
         final long captureAmount = authAmount;
         final PaymentProvider paymentProvider = paymentData.getPaymentInfo().getPaymentProvider();
         final String capturePspReference = authorizeResult.getPspReference();
@@ -122,6 +123,7 @@ public class TestRemoteAdyenPaymentServiceProviderPort extends TestRemoteBase {
         Assert.assertNotNull(captureResult.getPspReference());
         Assert.assertEquals(captureResult.getResponse(), "[capture-received]");
 
+        //noinspection UnnecessaryLocalVariable
         final long refundAmount = captureAmount;
         final String refundPspReference = captureResult.getPspReference();
 

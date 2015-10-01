@@ -65,9 +65,10 @@ public class TestAdyenPaymentServiceProviderPort {
                                                                                                adyenPaymentRequestSender));
         final PaymentResult paymentResult = new PaymentResult();
         paymentResult.setResultCode(PaymentServiceProviderResult.REDIRECT_SHOPPER.getId());
-        AdyenCallResult adyenCallResult = mock(AdyenCallResult.class);
+        final AdyenCallResult adyenCallResult = mock(AdyenCallResult.class);
         when(adyenCallResult.receivedWellFormedResponse()).thenReturn(true);
         when(adyenCallResult.getResult()).thenReturn(Optional.of(paymentResult));
+        //noinspection unchecked
         when(adyenPaymentRequestSender.authorise(anyString(), any(PaymentRequest.class))).thenReturn(adyenCallResult);
     }
 

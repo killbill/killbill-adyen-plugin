@@ -148,7 +148,7 @@ public class AdyenPaymentTransactionInfoPlugin extends PluginPaymentTransactionI
         return (pspResult.isPresent()) ? pspResultToPaymentPluginStatus(pspResult.get()) : adyenCallErrorStatusToPaymentPluginStatus(adyenCallErrorStatus.get());
     }
 
-    private static PaymentPluginStatus adyenCallErrorStatusToPaymentPluginStatus(AdyenCallErrorStatus adyenCallErrorStatus) {
+    private static PaymentPluginStatus adyenCallErrorStatusToPaymentPluginStatus(final AdyenCallErrorStatus adyenCallErrorStatus) {
         switch (adyenCallErrorStatus) {
             case REQUEST_NOT_SEND:
                 return PaymentPluginStatus.CANCELED;
@@ -165,7 +165,7 @@ public class AdyenPaymentTransactionInfoPlugin extends PluginPaymentTransactionI
         }
     }
 
-    private static PaymentPluginStatus pspResultToPaymentPluginStatus(PaymentServiceProviderResult pspResult) {
+    private static PaymentPluginStatus pspResultToPaymentPluginStatus(final PaymentServiceProviderResult pspResult) {
         switch (pspResult) {
             case INITIALISED:
             case REDIRECT_SHOPPER:

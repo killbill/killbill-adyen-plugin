@@ -399,10 +399,10 @@ public class TestAdyenPaymentPluginApi extends TestWithEmbeddedDBBase {
 
     @Test(groups = "slow")
     public void testHPP() throws Exception {
-        final Map<String, String> customFieldsMap = ImmutableMap.<String, String>of(AdyenPaymentPluginApi.PROPERTY_AMOUNT, "10",
-                                                                                    AdyenPaymentPluginApi.PROPERTY_SERVER_URL, "http://killbill.io",
-                                                                                    AdyenPaymentPluginApi.PROPERTY_CURRENCY, DEFAULT_CURRENCY.name(),
-                                                                                    AdyenPaymentPluginApi.PROPERTY_COUNTRY, DEFAULT_COUNTRY);
+        final Map<String, String> customFieldsMap = ImmutableMap.of(AdyenPaymentPluginApi.PROPERTY_AMOUNT, "10",
+                                                                    AdyenPaymentPluginApi.PROPERTY_SERVER_URL, "http://killbill.io",
+                                                                    AdyenPaymentPluginApi.PROPERTY_CURRENCY, DEFAULT_CURRENCY.name(),
+                                                                    AdyenPaymentPluginApi.PROPERTY_COUNTRY, DEFAULT_COUNTRY);
         final Iterable<PluginProperty> customFields = PluginProperties.buildPluginProperties(customFieldsMap);
         final HostedPaymentPageFormDescriptor descriptor = adyenPaymentPluginApi.buildFormDescriptor(payment.getAccountId(), customFields, ImmutableList.<PluginProperty>of(), context);
         assertEquals(descriptor.getKbAccountId(), payment.getAccountId());

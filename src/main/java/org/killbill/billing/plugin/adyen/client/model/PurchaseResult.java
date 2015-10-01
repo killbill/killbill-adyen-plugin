@@ -75,7 +75,7 @@ public class PurchaseResult extends FrontendForm {
                            final String paymentInternalRef,
                            final String formUrl,
                            final Map<String, String> formParameter,
-                           AdyenCallErrorStatus adyenCallErrorStatus) {
+                           final AdyenCallErrorStatus adyenCallErrorStatus) {
         super(MoreObjects.firstNonNull(formParameter, ImmutableMap.<String, String>of()), formUrl);
 
         this.adyenCallErrorStatus = adyenCallErrorStatus;
@@ -140,8 +140,9 @@ public class PurchaseResult extends FrontendForm {
                '}';
     }
 
+
     @Override
-    public boolean equals(Object o) {
+    public boolean equals(final Object o) {
         if (this == o) {
             return true;
         }
@@ -149,7 +150,7 @@ public class PurchaseResult extends FrontendForm {
             return false;
         }
 
-        PurchaseResult that = (PurchaseResult) o;
+        final PurchaseResult that = (PurchaseResult) o;
 
         if (result != null ? !result.equals(that.result) : that.result != null) {
             return false;
@@ -172,7 +173,8 @@ public class PurchaseResult extends FrontendForm {
         if (errorCodes != null ? !errorCodes.equals(that.errorCodes) : that.errorCodes != null) {
             return false;
         }
-        if (resultCode != null ? !resultCode.equals(that.resultCode) : that.resultCode != null) {
+        //noinspection SimplifiableIfStatement
+        if (resultCode != null && !resultCode.equals(that.resultCode)) {
             return false;
         }
         return adyenCallErrorStatus == that.adyenCallErrorStatus;

@@ -50,7 +50,7 @@ import com.google.common.base.Preconditions;
 
 public class AdyenPaymentServiceProviderPort implements Closeable {
 
-    private final static Logger logger = LoggerFactory.getLogger("adyen.port");
+    private static final Logger logger = LoggerFactory.getLogger("adyen.port");
 
     private final PaymentInfoConverterManagement paymentInfoConverterManagement;
     private final AdyenRequestFactory adyenRequestFactory;
@@ -91,14 +91,14 @@ public class AdyenPaymentServiceProviderPort implements Closeable {
 
     @VisibleForTesting
     PurchaseResult authorise(final PaymentRequest request, final String countryIsoCode, final PaymentData paymentData, final String termUrl) {
-        AdyenCallResult<PaymentResult> adyenCallResult = adyenPaymentRequestSender.authorise(countryIsoCode, request);
+        final AdyenCallResult<PaymentResult> adyenCallResult = adyenPaymentRequestSender.authorise(countryIsoCode, request);
 
         if (!adyenCallResult.receivedWellFormedResponse()) {
             return handleTechnicalFailureAtPurchase("authorize", paymentData, adyenCallResult);
         }
 
         logger.info("received adyen authorize response: {}", adyenCallResult);
-        PaymentResult result = adyenCallResult.getResult().get();
+        final PaymentResult result = adyenCallResult.getResult().get();
         final PurchaseResult purchaseResult;
         final PaymentServiceProviderResult paymentServiceProviderResult = PaymentServiceProviderResult.getPaymentResultForId(result.getResultCode());
         if (paymentServiceProviderResult != PaymentServiceProviderResult.REDIRECT_SHOPPER) {
@@ -136,7 +136,7 @@ public class AdyenPaymentServiceProviderPort implements Closeable {
         return purchaseResult;
     }
 
-    private PurchaseResult handleTechnicalFailureAtPurchase(String callKey, PaymentData paymentData, AdyenCallResult<PaymentResult> adyenCallResult) {
+    private PurchaseResult handleTechnicalFailureAtPurchase(final String callKey, final PaymentData paymentData, final AdyenCallResult<PaymentResult> adyenCallResult) {
         logger.info("payment {} call failed for internalReference: {} because of: {}", callKey, paymentData.getPaymentInternalRef(), adyenCallResult);
         return new PurchaseResult(paymentData.getPaymentInternalRef(), adyenCallResult.getResponseStatus().get());
     }
@@ -158,14 +158,14 @@ public class AdyenPaymentServiceProviderPort implements Closeable {
                                                                               userData.getIP(),
                                                                               userData.getEmail(),
                                                                               userData.getCustomerId());
-        AdyenCallResult<PaymentResult> adyenCallResult = adyenPaymentRequestSender.authorise3D(paymentInfo.getPaymentProvider().getCountryIsoCode(), request);
+        final AdyenCallResult<PaymentResult> adyenCallResult = adyenPaymentRequestSender.authorise3D(paymentInfo.getPaymentProvider().getCountryIsoCode(), request);
 
         if (!adyenCallResult.receivedWellFormedResponse()) {
             handleTechnicalFailureAtPurchase("3dSecureAuthorise", paymentData, adyenCallResult);
         }
 
         logger.info("received adyen 3dSecure authorize response: {}", adyenCallResult);
-        PaymentResult result = adyenCallResult.getResult().get();
+        final PaymentResult result = adyenCallResult.getResult().get();
         final PurchaseResult purchaseResult;
         final PaymentServiceProviderResult paymentServiceProviderResult = PaymentServiceProviderResult.getPaymentResultForId(result.getResultCode());
         if (paymentServiceProviderResult != PaymentServiceProviderResult.REDIRECT_SHOPPER) {
@@ -201,13 +201,13 @@ public class AdyenPaymentServiceProviderPort implements Closeable {
         logger.info("refund Start for pspReference {}", pspReference);
 
         final ModificationRequest modificationRequest = adyenRequestFactory.paymentExecutionToAdyenModificationRequest(paymentProvider, externalAmount, pspReference, splitSettlementData);
-        AdyenCallResult<ModificationResult> adyenCallResult = adyenPaymentRequestSender.refund(paymentProvider.getCountryIsoCode(), modificationRequest);
+        final AdyenCallResult<ModificationResult> adyenCallResult = adyenPaymentRequestSender.refund(paymentProvider.getCountryIsoCode(), modificationRequest);
 
         if (!adyenCallResult.receivedWellFormedResponse()) {
             return handleTechnicalErrorAtModificationRequest("refund", pspReference, adyenCallResult);
         }
 
-        ModificationResult result = adyenCallResult.getResult().get();
+        final ModificationResult result = adyenCallResult.getResult().get();
         logger.debug("refund for pspReference: {}, got new pspReference: {} and response {}", pspReference, result.getPspReference(), result.getResponse());
 
         final PaymentModificationResponse paymentModificationResponse = new PaymentModificationResponse(result.getResponse(),
@@ -217,7 +217,7 @@ public class AdyenPaymentServiceProviderPort implements Closeable {
         return paymentModificationResponse;
     }
 
-    private PaymentModificationResponse handleTechnicalErrorAtModificationRequest(String callKey, String pspReference, AdyenCallResult<ModificationResult> adyenCallResult) {
+    private PaymentModificationResponse handleTechnicalErrorAtModificationRequest(final String callKey, final String pspReference, final AdyenCallResult<ModificationResult> adyenCallResult) {
         logger.info("payment {} call failed for pspRef: {} because of: {}", callKey, pspReference, adyenCallResult);
         return new PaymentModificationResponse(pspReference, adyenCallResult.getResponseStatus().get());
     }
@@ -228,13 +228,13 @@ public class AdyenPaymentServiceProviderPort implements Closeable {
         logger.info("cancel Start for pspReference {}", pspReference);
 
         final ModificationRequest modificationRequest = adyenRequestFactory.paymentExecutionToAdyenModificationRequest(paymentProvider, pspReference, splitSettlementData);
-        AdyenCallResult<ModificationResult> adyenCallResult = adyenPaymentRequestSender.cancel(paymentProvider.getCountryIsoCode(), modificationRequest);
+        final AdyenCallResult<ModificationResult> adyenCallResult = adyenPaymentRequestSender.cancel(paymentProvider.getCountryIsoCode(), modificationRequest);
 
         if (!adyenCallResult.receivedWellFormedResponse()) {
             return handleTechnicalErrorAtModificationRequest("refund", pspReference, adyenCallResult);
         }
 
-        ModificationResult result = adyenCallResult.getResult().get();
+        final ModificationResult result = adyenCallResult.getResult().get();
         logger.debug("cancel for pspReference: {}, got new pspReference: {} and response {}", pspReference, result.getPspReference(), result.getResponse());
 
         final PaymentModificationResponse response = new PaymentModificationResponse(result.getResponse(),
@@ -251,13 +251,13 @@ public class AdyenPaymentServiceProviderPort implements Closeable {
         logger.info("capture Start for pspReference {}", pspReference);
 
         final ModificationRequest modificationRequest = adyenRequestFactory.paymentExecutionToAdyenModificationRequest(paymentProvider, amount, pspReference, splitSettlementData);
-        AdyenCallResult<ModificationResult> adyenCallResult = adyenPaymentRequestSender.capture(paymentProvider.getCountryIsoCode(), modificationRequest);
+        final AdyenCallResult<ModificationResult> adyenCallResult = adyenPaymentRequestSender.capture(paymentProvider.getCountryIsoCode(), modificationRequest);
 
         if (!adyenCallResult.receivedWellFormedResponse()) {
             return handleTechnicalErrorAtModificationRequest("capture", pspReference, adyenCallResult);
         }
 
-        ModificationResult result = adyenCallResult.getResult().get();
+        final ModificationResult result = adyenCallResult.getResult().get();
         logger.debug("capture for pspReference: {}, got new pspReference: {} and response {}", pspReference, result.getPspReference(), result.getResponse());
 
         final PaymentModificationResponse response = new PaymentModificationResponse(result.getResponse(),

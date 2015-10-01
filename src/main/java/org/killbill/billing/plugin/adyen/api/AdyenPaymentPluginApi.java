@@ -28,6 +28,7 @@ import javax.xml.bind.JAXBException;
 
 import org.joda.time.DateTime;
 import org.killbill.billing.account.api.Account;
+import org.killbill.billing.account.api.AccountData;
 import org.killbill.billing.catalog.api.Currency;
 import org.killbill.billing.payment.api.Payment;
 import org.killbill.billing.payment.api.PaymentApiException;
@@ -159,8 +160,8 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
         this.adyenHppConfigurationHandler = adyenHppConfigurationHandler;
         this.dao = dao;
 
-        final KillbillAdyenNotificationHandler adyenNotificationHandler = new KillbillAdyenNotificationHandler(killbillApi, dao, clock);
-        this.adyenNotificationService = new AdyenNotificationService(ImmutableList.<AdyenNotificationHandler>of(adyenNotificationHandler));
+        final AdyenNotificationHandler adyenNotificationHandler = new KillbillAdyenNotificationHandler(killbillApi, dao, clock);
+        this.adyenNotificationService = new AdyenNotificationService(ImmutableList.of(adyenNotificationHandler));
     }
 
     @Override
@@ -240,6 +241,7 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
             // We are either processing a notification (see KillbillAdyenNotificationHandler) or creating a PENDING payment for HPP (see buildFormDescriptor)
             final DateTime utcNow = clock.getUTCNow();
             try {
+                //noinspection unchecked
                 adyenResponsesRecord = dao.addAdyenResponse(kbAccountId, kbPaymentId, kbTransactionId, TransactionType.PURCHASE, amount, currency, PluginProperties.toMap(properties), utcNow, context.getTenantId());
             } catch (final SQLException e) {
                 throw new PaymentPluginApiException("HPP notification came through, but we encountered a database error", e);
@@ -298,6 +300,7 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
 
     @Override
     public HostedPaymentPageFormDescriptor buildFormDescriptor(final UUID kbAccountId, final Iterable<PluginProperty> customFields, final Iterable<PluginProperty> properties, final CallContext context) throws PaymentPluginApiException {
+        //noinspection unchecked
         final Iterable<PluginProperty> mergedProperties = PluginProperties.merge(customFields, properties);
 
         final String amountString = PluginProperties.findPluginPropertyValue(PROPERTY_AMOUNT, mergedProperties);
@@ -322,6 +325,7 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
 
         try {
             // Need to store on disk the mapping payment <-> user because Adyen's notification won't provide the latter
+            //noinspection unchecked
             dao.addHppRequest(kbAccountId, paymentData.getPaymentTxnInternalRef(), PluginProperties.toMap(mergedProperties), clock.getUTCNow(), context.getTenantId());
         } catch (final SQLException e) {
             throw new PaymentPluginApiException("Unable to store HPP request", e);
@@ -371,7 +375,7 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
                                                                    final BigDecimal amount,
                                                                    final Currency currency,
                                                                    final Iterable<PluginProperty> properties,
-                                                                   final CallContext context) throws PaymentPluginApiException {
+                                                                   final TenantContext context) throws PaymentPluginApiException {
         final Account account = getAccount(kbAccountId, context);
 
         final Long transactionAmount = (amount == null ? null : amount.longValue());
@@ -400,7 +404,7 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
                                                                     @Nullable final BigDecimal amount,
                                                                     @Nullable final Currency currency,
                                                                     final Iterable<PluginProperty> properties,
-                                                                    final CallContext context) throws PaymentPluginApiException {
+                                                                    final TenantContext context) throws PaymentPluginApiException {
         final Account account = getAccount(kbAccountId, context);
 
         final Long transactionAmount = (amount == null ? null : amount.longValue());
@@ -435,20 +439,20 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
     }
 
     // For API
-    private PaymentData buildPaymentData(final Account account, final UUID kbPaymentId, final UUID kbTransactionId, final UUID kbPaymentMethodId, final Currency currency, final Iterable<PluginProperty> properties, final CallContext context) {
+    private PaymentData buildPaymentData(final AccountData account, final UUID kbPaymentId, final UUID kbTransactionId, final UUID kbPaymentMethodId, final Currency currency, final Iterable<PluginProperty> properties, final TenantContext context) {
         final PaymentData<PaymentInfo> paymentData = new PaymentData<PaymentInfo>();
 
         Payment payment = null;
         PaymentTransaction paymentTransaction = null;
         try {
             payment = killbillAPI.getPaymentApi().getPayment(kbPaymentId, false, properties, context);
-            paymentTransaction = Iterables.<PaymentTransaction>find(payment.getTransactions(),
-                                                                    new Predicate<PaymentTransaction>() {
-                                                                        @Override
-                                                                        public boolean apply(final PaymentTransaction input) {
-                                                                            return kbTransactionId.equals(input.getId());
-                                                                        }
-                                                                    });
+            paymentTransaction = Iterables.find(payment.getTransactions(),
+                                                new Predicate<PaymentTransaction>() {
+                                                    @Override
+                                                    public boolean apply(final PaymentTransaction input) {
+                                                        return kbTransactionId.equals(input.getId());
+                                                    }
+                                                });
         } catch (final PaymentApiException e) {
             logService.log(LogService.LOG_WARNING, "Failed to retrieve payment " + kbPaymentId, e);
         }
@@ -464,7 +468,7 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
     }
 
     // For HPP
-    private PaymentData buildPaymentData(final Account account, final Iterable<PluginProperty> properties, final CallContext context) {
+    private PaymentData buildPaymentData(final AccountData account, final Iterable<PluginProperty> properties, final TenantContext context) {
         final PaymentData<WebPaymentFrontend> paymentData = new PaymentData<WebPaymentFrontend>();
         final String internalRef = PluginProperties.getValue(PROPERTY_PAYMENT_EXTERNAL_KEY, UUID.randomUUID().toString(), properties);
         paymentData.setPaymentInternalRef(internalRef);
@@ -474,10 +478,11 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
     }
 
     // For API
-    private PaymentInfo buildPaymentInfo(final Account account, final UUID kbPaymentMethodId, final Currency currency, final Iterable<PluginProperty> properties, final CallContext context) {
+    private PaymentInfo buildPaymentInfo(final AccountData account, final UUID kbPaymentMethodId, final Currency currency, final Iterable<PluginProperty> properties, final TenantContext context) {
         final AdyenPaymentMethodsRecord paymentMethodsRecord = getAdyenPaymentMethodsRecord(kbPaymentMethodId, context);
         final AdyenPaymentMethodsRecord nonNullPaymentMethodsRecord = paymentMethodsRecord == null ? emptyRecord(kbPaymentMethodId) : paymentMethodsRecord;
         final Iterable<PluginProperty> additionalPropertiesFromRecord = buildPaymentMethodPlugin(nonNullPaymentMethodsRecord).getProperties();
+        //noinspection unchecked
         final Iterable<PluginProperty> mergedProperties = PluginProperties.merge(additionalPropertiesFromRecord, properties);
         final PaymentProvider paymentProvider = buildPaymentProvider(account, nonNullPaymentMethodsRecord, currency, properties, context);
 
@@ -593,12 +598,12 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
     }
 
     // For HPP
-    private WebPaymentFrontend buildPaymentInfo(final Account account, final Iterable<PluginProperty> properties, final CallContext context) {
+    private WebPaymentFrontend buildPaymentInfo(final AccountData account, final Iterable<PluginProperty> properties, final TenantContext context) {
         final PaymentProvider paymentProvider = buildPaymentProvider(account, (UUID) null, null, properties, context);
         return new WebPaymentFrontend(paymentProvider);
     }
 
-    private AdyenPaymentMethodsRecord getAdyenPaymentMethodsRecord(final UUID kbPaymentMethodId, final CallContext context) {
+    private AdyenPaymentMethodsRecord getAdyenPaymentMethodsRecord(final UUID kbPaymentMethodId, final TenantContext context) {
         AdyenPaymentMethodsRecord paymentMethodsRecord = null;
         try {
             paymentMethodsRecord = dao.getPaymentMethod(kbPaymentMethodId, context.getTenantId());
@@ -608,12 +613,12 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
         return paymentMethodsRecord;
     }
 
-    private PaymentProvider buildPaymentProvider(final Account account, @Nullable final UUID kbPaymentMethodId, @Nullable final Currency currency, final Iterable<PluginProperty> properties, final CallContext context) {
+    private PaymentProvider buildPaymentProvider(final AccountData account, @Nullable final UUID kbPaymentMethodId, @Nullable final Currency currency, final Iterable<PluginProperty> properties, final TenantContext context) {
         final AdyenPaymentMethodsRecord paymentMethodsRecord = kbPaymentMethodId == null ? null : getAdyenPaymentMethodsRecord(kbPaymentMethodId, context);
         return buildPaymentProvider(account, paymentMethodsRecord, currency, properties, context);
     }
 
-    private PaymentProvider buildPaymentProvider(final Account account, @Nullable final AdyenPaymentMethodsRecord paymentMethodsRecord, @Nullable final Currency currency, final Iterable<PluginProperty> properties, final CallContext context) {
+    private PaymentProvider buildPaymentProvider(final AccountData account, @Nullable final AdyenPaymentMethodsRecord paymentMethodsRecord, @Nullable final Currency currency, final Iterable<PluginProperty> properties, final TenantContext context) {
         final String pluginPropertyCurrency = PluginProperties.findPluginPropertyValue(PROPERTY_CURRENCY, properties);
         final String paymentProviderCurrency = pluginPropertyCurrency == null ? (currency == null ? null : currency.name()) : pluginPropertyCurrency;
         final String pluginPropertyCountry = PluginProperties.findPluginPropertyValue(PROPERTY_COUNTRY, properties);
@@ -680,7 +685,7 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
         return userData;
     }
 
-    private OrderData buildOrderData(@Nullable final Account account, final Iterable<PluginProperty> properties) {
+    private OrderData buildOrderData(@Nullable final AccountData account, final Iterable<PluginProperty> properties) {
         final OrderData orderData = new OrderData();
 
         final String accountName = account == null ? null : account.getName();
@@ -697,7 +702,6 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
         final UUID kbPaymentId = null;
         final Currency currency = Currency.valueOf(paymentData.getPaymentInfo().getPaymentProvider().getCurrency().toString());
         final String paymentExternalKey = paymentData.getPaymentTxnInternalRef();
-        final String paymentTransactionExternalKey = paymentExternalKey;
         final ImmutableMap<String, Object> purchasePropertiesMap = ImmutableMap.<String, Object>of(AdyenPaymentPluginApi.PROPERTY_FROM_HPP, true,
                                                                                                    AdyenPaymentPluginApi.PROPERTY_FROM_HPP_TRANSACTION_STATUS, PaymentPluginStatus.PENDING.toString());
         final Iterable<PluginProperty> purchaseProperties = PluginProperties.buildPluginProperties(purchasePropertiesMap);
@@ -710,7 +714,7 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
                                                        amount,
                                                        currency,
                                                        paymentExternalKey,
-                                                       paymentTransactionExternalKey,
+                                                       paymentExternalKey,
                                                        purchaseProperties,
                                                        context);
         } catch (final PaymentApiException e) {
@@ -720,12 +724,12 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
 
     // Could be shared (see KillbillAdyenNotificationHandler)
     private UUID getAdyenKbPaymentMethodId(final UUID kbAccountId, final TenantContext context) throws PaymentApiException {
-        return Iterables.<PaymentMethod>find(killbillAPI.getPaymentApi().getAccountPaymentMethods(kbAccountId, false, ImmutableList.<PluginProperty>of(), context),
-                                             new Predicate<PaymentMethod>() {
-                                                 @Override
-                                                 public boolean apply(final PaymentMethod paymentMethod) {
-                                                     return AdyenActivator.PLUGIN_NAME.equals(paymentMethod.getPluginName());
-                                                 }
-                                             }).getId();
+        return Iterables.find(killbillAPI.getPaymentApi().getAccountPaymentMethods(kbAccountId, false, ImmutableList.<PluginProperty>of(), context),
+                              new Predicate<PaymentMethod>() {
+                                  @Override
+                                  public boolean apply(final PaymentMethod paymentMethod) {
+                                      return AdyenActivator.PLUGIN_NAME.equals(paymentMethod.getPluginName());
+                                  }
+                              }).getId();
     }
 }
