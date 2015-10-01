@@ -59,7 +59,7 @@ public class AdyenActivator extends KillbillActivatorBase {
         adyenHostedPaymentPageConfigurationHandler.setDefaultConfigurable(globalAdyenHppClient);
 
         // Register the payment plugin
-        final AdyenPaymentPluginApi pluginApi = new AdyenPaymentPluginApi(adyenConfigurationHandler, adyenHostedPaymentPageConfigurationHandler, killbillAPI, configProperties, logService, clock, dao);
+        final AdyenPaymentPluginApi pluginApi = new AdyenPaymentPluginApi(adyenConfigurationHandler, adyenHostedPaymentPageConfigurationHandler, killbillAPI, configProperties, logService, clock, dao, killbillMetrics);
         registerPaymentPluginApi(context, pluginApi);
     }
 

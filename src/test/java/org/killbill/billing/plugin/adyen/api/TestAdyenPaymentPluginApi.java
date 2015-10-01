@@ -22,6 +22,7 @@ import java.util.UUID;
 
 import org.killbill.adyen.recurring.RecurringDetail;
 import org.killbill.billing.account.api.Account;
+import org.killbill.billing.osgi.api.OSGIMetrics;
 import org.killbill.billing.payment.api.Payment;
 import org.killbill.billing.payment.api.PaymentMethodPlugin;
 import org.killbill.billing.payment.api.PaymentTransaction;
@@ -89,7 +90,9 @@ public class TestAdyenPaymentPluginApi extends TestWithEmbeddedDBBase {
         final OSGIKillbillLogService logService = TestUtils.buildLogService();
 
         final OSGIConfigPropertiesService configPropertiesService = Mockito.mock(OSGIConfigPropertiesService.class);
-        adyenPaymentPluginApi = new AdyenPaymentPluginApi(adyenConfigurationHandler, adyenHostedPaymentPageConfigurationHandler, killbillApi, configPropertiesService, logService, clock, dao);
+
+        final OSGIMetrics killbillMetrics = Mockito.mock(OSGIMetrics.class);
+        adyenPaymentPluginApi = new AdyenPaymentPluginApi(adyenConfigurationHandler, adyenHostedPaymentPageConfigurationHandler, killbillApi, configPropertiesService, logService, clock, dao, killbillMetrics);
 
         adyenRecurringClient = new AdyenRecurringClient(adyenConfigProperties);
 
