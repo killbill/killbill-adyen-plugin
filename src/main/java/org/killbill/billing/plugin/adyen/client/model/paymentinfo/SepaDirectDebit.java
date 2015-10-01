@@ -75,11 +75,11 @@ public class SepaDirectDebit extends PaymentInfo {
     @Override
     public String toString() {
         return "SepaDirectDebit{" +
-                "countryCode='" + countryCode + '\'' +
-                ", iban='" + iban + '\'' +
-                ", bic='" + bic + '\'' +
-                ", sepaAccountHolder='" + sepaAccountHolder + '\'' +
-                '}';
+               "countryCode='" + countryCode + '\'' +
+               ", iban='" + iban + '\'' +
+               ", bic='" + bic + '\'' +
+               ", sepaAccountHolder='" + sepaAccountHolder + '\'' +
+               '}';
     }
 
     @Override

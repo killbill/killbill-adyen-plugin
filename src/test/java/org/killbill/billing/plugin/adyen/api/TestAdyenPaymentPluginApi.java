@@ -20,7 +20,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-import com.google.common.base.Strings;
 import org.killbill.adyen.recurring.RecurringDetail;
 import org.killbill.billing.account.api.Account;
 import org.killbill.billing.payment.api.Payment;
@@ -48,19 +47,20 @@ import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 import com.google.common.base.Function;
+import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 
 import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.PROPERTY_DD_ACCOUNT_NUMBER;
-import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.PROPERTY_DD_BANK_IDENTIFIER_CODE;
 import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.PROPERTY_DD_BANKLEITZAHL;
+import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.PROPERTY_DD_BANK_IDENTIFIER_CODE;
 import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.PROPERTY_DD_HOLDER_NAME;
-import static org.testng.Assert.fail;
 import static org.testng.Assert.assertEquals;
-import static org.testng.Assert.assertTrue;
-import static org.testng.Assert.assertNull;
 import static org.testng.Assert.assertNotNull;
+import static org.testng.Assert.assertNull;
+import static org.testng.Assert.assertTrue;
+import static org.testng.Assert.fail;
 
 public class TestAdyenPaymentPluginApi extends TestWithEmbeddedDBBase {
 
@@ -309,9 +309,9 @@ public class TestAdyenPaymentPluginApi extends TestWithEmbeddedDBBase {
         Thread.sleep(SLEEP_IN_MILLIS_FOR_RECURRING_DETAIL);
 
         final List<RecurringDetail> recurringDetailList = adyenRecurringClient.getRecurringDetailList(DEFAULT_COUNTRY,
-                propertiesForRecurring.get(AdyenPaymentPluginApi.PROPERTY_CUSTOMER_ID),
-                adyenConfigProperties.getMerchantAccount(DEFAULT_COUNTRY),
-                "RECURRING");
+                                                                                                      propertiesForRecurring.get(AdyenPaymentPluginApi.PROPERTY_CUSTOMER_ID),
+                                                                                                      adyenConfigProperties.getMerchantAccount(DEFAULT_COUNTRY),
+                                                                                                      "RECURRING");
 
         if (recurringDetailList.isEmpty()) {
             fail("No recurring details for " + propertiesForRecurring.get(AdyenPaymentPluginApi.PROPERTY_CUSTOMER_ID));
@@ -421,9 +421,9 @@ public class TestAdyenPaymentPluginApi extends TestWithEmbeddedDBBase {
     /**
      * Verifies PaymentTransactionInfoPlugin.
      *
-     * @param paymentTransaction The PaymentTransaction
+     * @param paymentTransaction           The PaymentTransaction
      * @param paymentTransactionInfoPlugin The PaymentTransactionInfoPlugin
-     * @param authorizedProcessed If {@code true} then the status for Authorize must be Processed, if {@code false} it could be Processed or Pending (e.g. for DirectDebit)
+     * @param authorizedProcessed          If {@code true} then the status for Authorize must be Processed, if {@code false} it could be Processed or Pending (e.g. for DirectDebit)
      */
     private void verifyPaymentTransactionInfoPlugin(final PaymentTransaction paymentTransaction, final PaymentTransactionInfoPlugin paymentTransactionInfoPlugin, final boolean authorizedProcessed) {
         assertEquals(paymentTransactionInfoPlugin.getKbPaymentId(), payment.getId());
@@ -448,11 +448,11 @@ public class TestAdyenPaymentPluginApi extends TestWithEmbeddedDBBase {
         switch (paymentTransaction.getTransactionType()) {
             case AUTHORIZE:
                 expectedGatewayErrors = authorizedProcessed
-                        ? ImmutableList.of("Authorised")
-                        : ImmutableList.of("Authorised", "Received");
+                                        ? ImmutableList.of("Authorised")
+                                        : ImmutableList.of("Authorised", "Received");
                 expectedPaymentPluginStatus = authorizedProcessed
-                        ? ImmutableList.of(PaymentPluginStatus.PROCESSED)
-                        : ImmutableList.of(PaymentPluginStatus.PROCESSED, PaymentPluginStatus.PENDING);
+                                              ? ImmutableList.of(PaymentPluginStatus.PROCESSED)
+                                              : ImmutableList.of(PaymentPluginStatus.PROCESSED, PaymentPluginStatus.PENDING);
                 break;
             case CAPTURE:
             case PURCHASE:
@@ -499,18 +499,18 @@ public class TestAdyenPaymentPluginApi extends TestWithEmbeddedDBBase {
 
     private PaymentMethodPlugin adyenPaymentMethodPluginSepaDirectDebit() {
         return adyenPaymentMethodPlugin(payment.getPaymentMethodId().toString(), "{"
-                + '"' + PROPERTY_DD_HOLDER_NAME + "\":\"" + DD_HOLDER_NAME + "\","
-                + '"' + PROPERTY_DD_ACCOUNT_NUMBER + "\":\"" + DD_IBAN + "\","
-                + '"' + PROPERTY_DD_BANK_IDENTIFIER_CODE + "\":\"" + DD_BIC + '"'
-                + '}');
+                                                                                 + '"' + PROPERTY_DD_HOLDER_NAME + "\":\"" + DD_HOLDER_NAME + "\","
+                                                                                 + '"' + PROPERTY_DD_ACCOUNT_NUMBER + "\":\"" + DD_IBAN + "\","
+                                                                                 + '"' + PROPERTY_DD_BANK_IDENTIFIER_CODE + "\":\"" + DD_BIC + '"'
+                                                                                 + '}');
     }
 
     private PaymentMethodPlugin adyenPaymentMethodPluginElv() {
         return adyenPaymentMethodPlugin(payment.getPaymentMethodId().toString(), "{"
-                + '"' + PROPERTY_DD_HOLDER_NAME + "\":\"" + ELV_HOLDER_NAME + "\","
-                + '"' + PROPERTY_DD_ACCOUNT_NUMBER + "\":\"" + ELV_ACCOUNT_NUMBER + "\","
-                + '"' + PROPERTY_DD_BANKLEITZAHL + "\":\"" + ELV_BLZ + '"'
-                + '}');
+                                                                                 + '"' + PROPERTY_DD_HOLDER_NAME + "\":\"" + ELV_HOLDER_NAME + "\","
+                                                                                 + '"' + PROPERTY_DD_ACCOUNT_NUMBER + "\":\"" + ELV_ACCOUNT_NUMBER + "\","
+                                                                                 + '"' + PROPERTY_DD_BANKLEITZAHL + "\":\"" + ELV_BLZ + '"'
+                                                                                 + '}');
     }
 
     private static PaymentMethodPlugin adyenPaymentMethodPlugin(final String paymentMethodId, final String additionalData) {

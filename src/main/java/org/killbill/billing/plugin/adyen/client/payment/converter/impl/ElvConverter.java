@@ -41,7 +41,7 @@ public class ElvConverter implements PaymentInfoConverter<Elv> {
      * There is no 3DSecure for ELV.
      *
      * @param billedAmount Billed amount.
-     * @param card {@link PaymentInfo} of type {@link Card}.
+     * @param card         {@link PaymentInfo} of type {@link Card}.
      * @return Always {@literal null} for ELV.
      */
     @Override

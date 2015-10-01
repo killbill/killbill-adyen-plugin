@@ -16,6 +16,8 @@
 
 package org.killbill.billing.plugin.adyen.recurring;
 
+import java.util.List;
+
 import org.killbill.adyen.payment.Recurring;
 import org.killbill.adyen.recurring.DisableRequest;
 import org.killbill.adyen.recurring.RecurringDetail;
@@ -23,8 +25,6 @@ import org.killbill.adyen.recurring.RecurringDetailsRequest;
 import org.killbill.adyen.recurring.RecurringPortType;
 import org.killbill.adyen.recurring.ServiceException;
 import org.killbill.billing.plugin.adyen.client.AdyenConfigProperties;
-
-import java.util.List;
 
 public class AdyenRecurringClient {
 

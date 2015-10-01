@@ -48,8 +48,8 @@ public class Recurring extends PaymentInfo {
     @Override
     public String toString() {
         return String.format("Recurring{recurringDetailId='%s', installments=%d}",
-                getRecurringDetailId(),
-                getInstallments());
+                             getRecurringDetailId(),
+                             getInstallments());
     }
 
 }

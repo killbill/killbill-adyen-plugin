@@ -38,8 +38,8 @@ public class OneClick extends Recurring {
     @Override
     public String toString() {
         return String.format("OneClick{recurringDetailId='%s', ccSecCode='***', installments=%d}",
-                getRecurringDetailId(),
-                getInstallments());
+                             getRecurringDetailId(),
+                             getInstallments());
     }
 
 }
