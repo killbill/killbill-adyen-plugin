@@ -16,18 +16,18 @@
 
 package org.killbill.billing.plugin.adyen.api;
 
-import java.util.UUID;
-
 import org.killbill.billing.plugin.adyen.dao.AdyenDao;
 import org.killbill.billing.plugin.adyen.dao.gen.tables.records.AdyenPaymentMethodsRecord;
 import org.killbill.billing.plugin.api.payment.PluginPaymentMethodPlugin;
+
+import java.util.UUID;
 
 public class AdyenPaymentMethodPlugin extends PluginPaymentMethodPlugin {
 
     public AdyenPaymentMethodPlugin(final AdyenPaymentMethodsRecord record) {
         super(UUID.fromString(record.getKbPaymentMethodId()),
-              record.getToken(),
-              record.getIsDefault() == AdyenDao.TRUE,
-              AdyenModelPluginBase.buildPluginProperties(record.getAdditionalData()));
+                record.getToken(),
+                (record.getIsDefault() != null) && AdyenDao.TRUE == record.getIsDefault(),
+                AdyenModelPluginBase.buildPluginProperties(record.getAdditionalData()));
     }
 }

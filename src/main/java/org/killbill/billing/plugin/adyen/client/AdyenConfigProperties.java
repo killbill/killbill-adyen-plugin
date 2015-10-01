@@ -16,12 +16,12 @@
 
 package org.killbill.billing.plugin.adyen.client;
 
+import com.google.common.base.Strings;
+
 import java.util.Locale;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
-
-import com.google.common.base.Strings;
 
 public class AdyenConfigProperties {
 
@@ -58,6 +58,8 @@ public class AdyenConfigProperties {
     private final String acquirersList;
     private final String defaultAcquirer;
     private final String defaultCountryIsoCode;
+    private final String paymentConnectionTimeout;
+    private final String paymentReadTimeout;
 
     public AdyenConfigProperties(final Properties properties) {
         this.allowChunking = properties.getProperty(PROPERTY_PREFIX + "allowChunking");
@@ -74,6 +76,9 @@ public class AdyenConfigProperties {
         this.acquirersList = properties.getProperty(PROPERTY_PREFIX + "acquirersList");
         this.defaultAcquirer = properties.getProperty(PROPERTY_PREFIX + "defaultAcquirer");
         this.defaultCountryIsoCode = properties.getProperty(PROPERTY_PREFIX + "defaultCountryIsoCode");
+
+        this.paymentConnectionTimeout = properties.getProperty(PROPERTY_PREFIX + "paymentConnectionTimeout");
+        this.paymentReadTimeout = properties.getProperty(PROPERTY_PREFIX + "paymentReadTimeout");
 
         this.hmacSecrets = properties.getProperty(PROPERTY_PREFIX + "hmac.secret");
         refillMap(secretMap, hmacSecrets);
@@ -242,5 +247,13 @@ public class AdyenConfigProperties {
                 map.put(entry.split("#")[0], entry.split(KEY_VALUE_DELIMITER)[1]);
             }
         }
+    }
+
+    public String getPaymentConnectionTimeout() {
+        return paymentConnectionTimeout;
+    }
+
+    public String getPaymentReadTimeout() {
+        return paymentReadTimeout;
     }
 }
