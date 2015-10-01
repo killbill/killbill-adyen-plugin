@@ -21,13 +21,16 @@ import java.util.Map;
 
 import javax.annotation.Nullable;
 
+import org.killbill.billing.plugin.adyen.client.payment.service.AdyenCallErrorStatus;
+
 import com.google.common.base.MoreObjects;
+import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
 public class PurchaseResult extends FrontendForm {
 
-    private final PaymentServiceProviderResult result;
+    private final Optional<PaymentServiceProviderResult> result;
     private final String authCode;
     private final String pspReference;
     private final String reason;
@@ -35,13 +38,11 @@ public class PurchaseResult extends FrontendForm {
     private final String reference;
     private final List<PaymentServiceProviderErrorCodes> errorCodes;
     private final String paymentInternalRef;
+    private final AdyenCallErrorStatus adyenCallErrorStatus;
 
-    public PurchaseResult(final PaymentServiceProviderResult result,
-                          final String reason,
-                          final String reference,
-                          final List<PaymentServiceProviderErrorCodes> errorCodes,
-                          final String paymentInternalRef) {
-        this(result, null, null, reason, null, reference, errorCodes, paymentInternalRef, null, null);
+    public PurchaseResult(final String paymentInternalRef,
+                          final AdyenCallErrorStatus adyenCallErrorStatus) {
+        this(Optional.<PaymentServiceProviderResult>absent(), null, null, null, null, null, ImmutableList.<PaymentServiceProviderErrorCodes>of(), paymentInternalRef, null, null, adyenCallErrorStatus);
     }
 
     public PurchaseResult(final PaymentServiceProviderResult result,
@@ -52,7 +53,7 @@ public class PurchaseResult extends FrontendForm {
                           final String paymentInternalRef,
                           final String formUrl,
                           final Map<String, String> formParameter) {
-        this(result, authCode, pspReference, reason, resultCode, null, null, paymentInternalRef, formUrl, formParameter);
+        this(Optional.of(result), authCode, pspReference, reason, resultCode, null, null, paymentInternalRef, formUrl, formParameter, null);
     }
 
     public PurchaseResult(final PaymentServiceProviderResult result,
@@ -61,10 +62,10 @@ public class PurchaseResult extends FrontendForm {
                           final String reason,
                           final String resultCode,
                           final String paymentInternalRef) {
-        this(result, authCode, pspReference, reason, resultCode, null, null, paymentInternalRef, null, null);
+        this(Optional.of(result), authCode, pspReference, reason, resultCode, null, null, paymentInternalRef, null, null, null);
     }
 
-    private PurchaseResult(@Nullable final PaymentServiceProviderResult result,
+    private PurchaseResult(final Optional<PaymentServiceProviderResult> result,
                            final String authCode,
                            final String pspReference,
                            final String reason,
@@ -73,14 +74,16 @@ public class PurchaseResult extends FrontendForm {
                            @Nullable final List<PaymentServiceProviderErrorCodes> errorCodes,
                            final String paymentInternalRef,
                            final String formUrl,
-                           final Map<String, String> formParameter) {
+                           final Map<String, String> formParameter,
+                           AdyenCallErrorStatus adyenCallErrorStatus) {
         super(MoreObjects.firstNonNull(formParameter, ImmutableMap.<String, String>of()), formUrl);
 
-        this.result = MoreObjects.firstNonNull(result, PaymentServiceProviderResult.REDIRECT_SHOPPER);
+        this.adyenCallErrorStatus = adyenCallErrorStatus;
+        this.result = result;
         this.authCode = authCode;
         this.pspReference = pspReference;
         this.reason = reason;
-        this.resultCode = MoreObjects.firstNonNull(resultCode, this.result.getId());
+        this.resultCode = resultCode;
         this.reference = reference;
         this.errorCodes = MoreObjects.firstNonNull(errorCodes, ImmutableList.<PaymentServiceProviderErrorCodes>of());
         this.paymentInternalRef = paymentInternalRef;
@@ -102,7 +105,7 @@ public class PurchaseResult extends FrontendForm {
         return reason;
     }
 
-    public PaymentServiceProviderResult getResult() {
+    public Optional<PaymentServiceProviderResult> getResult() {
         return result;
     }
 
@@ -118,23 +121,27 @@ public class PurchaseResult extends FrontendForm {
         return errorCodes;
     }
 
-    @Override
-    public String toString() {
-        final StringBuilder sb = new StringBuilder("PurchaseResult{");
-        sb.append("result=").append(result);
-        sb.append(", authCode='").append(authCode).append('\'');
-        sb.append(", pspReference='").append(pspReference).append('\'');
-        sb.append(", reason='").append(reason).append('\'');
-        sb.append(", resultCode='").append(resultCode).append('\'');
-        sb.append(", reference='").append(reference).append('\'');
-        sb.append(", errorCodes=").append(errorCodes);
-        sb.append(", paymentInternalRef='").append(paymentInternalRef).append('\'');
-        sb.append('}');
-        return sb.toString();
+    public Optional<AdyenCallErrorStatus> getAdyenCallErrorStatus() {
+        return Optional.fromNullable(adyenCallErrorStatus);
     }
 
     @Override
-    public boolean equals(final Object o) {
+    public String toString() {
+        return "PurchaseResult{" +
+               "result=" + result +
+               ", authCode='" + authCode + '\'' +
+               ", pspReference='" + pspReference + '\'' +
+               ", reason='" + reason + '\'' +
+               ", resultCode='" + resultCode + '\'' +
+               ", reference='" + reference + '\'' +
+               ", errorCodes=" + errorCodes +
+               ", paymentInternalRef='" + paymentInternalRef + '\'' +
+               ", adyenResponseStatus=" + adyenCallErrorStatus +
+               '}';
+    }
+
+    @Override
+    public boolean equals(Object o) {
         if (this == o) {
             return true;
         }
@@ -142,15 +149,12 @@ public class PurchaseResult extends FrontendForm {
             return false;
         }
 
-        final PurchaseResult that = (PurchaseResult) o;
+        PurchaseResult that = (PurchaseResult) o;
 
+        if (result != null ? !result.equals(that.result) : that.result != null) {
+            return false;
+        }
         if (authCode != null ? !authCode.equals(that.authCode) : that.authCode != null) {
-            return false;
-        }
-        if (errorCodes != null ? !errorCodes.equals(that.errorCodes) : that.errorCodes != null) {
-            return false;
-        }
-        if (paymentInternalRef != null ? !paymentInternalRef.equals(that.paymentInternalRef) : that.paymentInternalRef != null) {
             return false;
         }
         if (pspReference != null ? !pspReference.equals(that.pspReference) : that.pspReference != null) {
@@ -159,17 +163,20 @@ public class PurchaseResult extends FrontendForm {
         if (reason != null ? !reason.equals(that.reason) : that.reason != null) {
             return false;
         }
+        if (resultCode != null ? !resultCode.equals(that.resultCode) : that.resultCode != null) {
+            return false;
+        }
         if (reference != null ? !reference.equals(that.reference) : that.reference != null) {
             return false;
         }
-        if (result != that.result) {
+        if (errorCodes != null ? !errorCodes.equals(that.errorCodes) : that.errorCodes != null) {
             return false;
         }
         if (resultCode != null ? !resultCode.equals(that.resultCode) : that.resultCode != null) {
             return false;
         }
+        return adyenCallErrorStatus == that.adyenCallErrorStatus;
 
-        return true;
     }
 
     @Override
@@ -182,6 +189,9 @@ public class PurchaseResult extends FrontendForm {
         result1 = 31 * result1 + (reference != null ? reference.hashCode() : 0);
         result1 = 31 * result1 + (errorCodes != null ? errorCodes.hashCode() : 0);
         result1 = 31 * result1 + (paymentInternalRef != null ? paymentInternalRef.hashCode() : 0);
+        result1 = 31 * result1 + (adyenCallErrorStatus != null ? adyenCallErrorStatus.hashCode() : 0);
         return result1;
     }
+
+
 }

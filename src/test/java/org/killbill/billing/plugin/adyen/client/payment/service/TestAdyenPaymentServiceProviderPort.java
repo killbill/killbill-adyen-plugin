@@ -32,8 +32,10 @@ import org.testng.Assert;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
-import static org.mockito.Mockito.any;
-import static org.mockito.Mockito.anyString;
+import com.google.common.base.Optional;
+
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -63,7 +65,10 @@ public class TestAdyenPaymentServiceProviderPort {
                                                                                                adyenPaymentRequestSender));
         final PaymentResult paymentResult = new PaymentResult();
         paymentResult.setResultCode(PaymentServiceProviderResult.REDIRECT_SHOPPER.getId());
-        when(adyenPaymentRequestSender.authorise(anyString(), any(PaymentRequest.class))).thenReturn(paymentResult);
+        AdyenCallResult adyenCallResult = mock(AdyenCallResult.class);
+        when(adyenCallResult.receivedWellFormedResponse()).thenReturn(true);
+        when(adyenCallResult.getResult()).thenReturn(Optional.of(paymentResult));
+        when(adyenPaymentRequestSender.authorise(anyString(), any(PaymentRequest.class))).thenReturn(adyenCallResult);
     }
 
     @Test(groups = "fast")

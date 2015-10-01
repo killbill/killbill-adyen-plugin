@@ -83,7 +83,8 @@ public class AdyenPaymentPortRegistry implements PaymentPortRegistry {
                                                           config.getPaymentUrl(),
                                                           config.getUserName(countryCode),
                                                           config.getPassword(countryCode),
-                                                          null);
+                                                          config.getPaymentConnectionTimeout(),
+                                                          config.getPaymentReadTimeout());
             this.services.put(countryCode + PAYMENT_SERVICE_SUFFIX, service);
         }
         return this.services.get(countryCode + PAYMENT_SERVICE_SUFFIX);
@@ -94,7 +95,8 @@ public class AdyenPaymentPortRegistry implements PaymentPortRegistry {
                                           final String address,
                                           final String userName,
                                           final String password,
-                                          final String timeout) {
+                                          final String connectionTimeout,
+                                          final String readTimeout) {
         Preconditions.checkNotNull(service, "service");
         Preconditions.checkNotNull(portName, "portName");
         Preconditions.checkNotNull(address, "address");
@@ -111,8 +113,11 @@ public class AdyenPaymentPortRegistry implements PaymentPortRegistry {
         client.getEndpoint().put("jaxb-validation-event-handler", new IgnoreUnexpectedElementsEventHandler());
         final HTTPConduit conduit = (HTTPConduit) client.getConduit();
         conduit.getClient().setAllowChunking(config.getAllowChunking());
-        if (timeout != null) {
-            conduit.getClient().setReceiveTimeout(Long.valueOf(timeout));
+        if (connectionTimeout != null) {
+            conduit.getClient().setConnectionTimeout(Long.valueOf(connectionTimeout));
+        }
+        if (readTimeout != null) {
+            conduit.getClient().setReceiveTimeout(Long.valueOf(readTimeout));
         }
         ((BindingProvider) port).getRequestContext().put(BindingProvider.USERNAME_PROPERTY, userName);
         ((BindingProvider) port).getRequestContext().put(BindingProvider.PASSWORD_PROPERTY, password);

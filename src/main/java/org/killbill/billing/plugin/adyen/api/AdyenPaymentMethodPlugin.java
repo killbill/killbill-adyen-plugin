@@ -27,7 +27,7 @@ public class AdyenPaymentMethodPlugin extends PluginPaymentMethodPlugin {
     public AdyenPaymentMethodPlugin(final AdyenPaymentMethodsRecord record) {
         super(UUID.fromString(record.getKbPaymentMethodId()),
               record.getToken(),
-              record.getIsDefault() == AdyenDao.TRUE,
+              (record.getIsDefault() != null) && AdyenDao.TRUE == record.getIsDefault(),
               AdyenModelPluginBase.buildPluginProperties(record.getAdditionalData()));
     }
 }

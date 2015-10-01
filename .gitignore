@@ -11,6 +11,9 @@
 .idea/dbnavigator.xml
 *.ipr
 *.iws
+
+*.DS_Store
+
 *.iml
 target
 

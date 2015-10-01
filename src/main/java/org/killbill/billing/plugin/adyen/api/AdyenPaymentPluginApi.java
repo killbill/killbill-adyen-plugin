@@ -62,9 +62,9 @@ import org.killbill.billing.plugin.adyen.client.model.paymentinfo.SepaDirectDebi
 import org.killbill.billing.plugin.adyen.client.model.paymentinfo.WebPaymentFrontend;
 import org.killbill.billing.plugin.adyen.client.notification.AdyenNotificationHandler;
 import org.killbill.billing.plugin.adyen.client.notification.AdyenNotificationService;
-import org.killbill.billing.plugin.adyen.client.payment.exception.ModificationFailedException;
 import org.killbill.billing.plugin.adyen.client.payment.exception.SignatureGenerationException;
 import org.killbill.billing.plugin.adyen.client.payment.service.AdyenPaymentServiceProviderHostedPaymentPagePort;
+import org.killbill.billing.plugin.adyen.client.payment.service.AdyenPaymentServiceProviderPort;
 import org.killbill.billing.plugin.adyen.core.AdyenActivator;
 import org.killbill.billing.plugin.adyen.core.AdyenConfigurationHandler;
 import org.killbill.billing.plugin.adyen.core.AdyenHostedPaymentPageConfigurationHandler;
@@ -85,6 +85,7 @@ import org.killbill.killbill.osgi.libs.killbill.OSGIKillbillLogService;
 import org.osgi.service.log.LogService;
 
 import com.google.common.base.MoreObjects;
+import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.base.Strings;
@@ -185,10 +186,11 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
     @Override
     public PaymentTransactionInfoPlugin authorizePayment(final UUID kbAccountId, final UUID kbPaymentId, final UUID kbTransactionId, final UUID kbPaymentMethodId, final BigDecimal amount, final Currency currency, final Iterable<PluginProperty> properties, final CallContext context) throws PaymentPluginApiException {
         return executeInitialTransaction(TransactionType.AUTHORIZE,
-                                         new TransactionExecutor<PurchaseResult, RuntimeException>() {
+                                         new TransactionExecutor<PurchaseResult>() {
                                              @Override
                                              public PurchaseResult execute(final Long amount, final PaymentData paymentData, final OrderData orderData, final UserData userData, final String termUrl, final SplitSettlementData splitSettlementData) {
-                                                 return adyenConfigurationHandler.getConfigurable(context.getTenantId()).authorise(amount, paymentData, orderData, userData, termUrl, splitSettlementData);
+                                                 final AdyenPaymentServiceProviderPort adyenPort = adyenConfigurationHandler.getConfigurable(context.getTenantId());
+                                                 return adyenPort.authorise(amount, paymentData, orderData, userData, termUrl, splitSettlementData);
                                              }
                                          },
                                          kbAccountId,
@@ -204,10 +206,11 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
     @Override
     public PaymentTransactionInfoPlugin capturePayment(final UUID kbAccountId, final UUID kbPaymentId, final UUID kbTransactionId, final UUID kbPaymentMethodId, final BigDecimal amount, final Currency currency, final Iterable<PluginProperty> properties, final CallContext context) throws PaymentPluginApiException {
         return executeFollowUpTransaction(TransactionType.CAPTURE,
-                                          new TransactionExecutor<PaymentModificationResponse, ModificationFailedException>() {
+                                          new TransactionExecutor<PaymentModificationResponse>() {
                                               @Override
-                                              public PaymentModificationResponse execute(@Nullable final Long transactionAmount, final PaymentProvider paymentProvider, final String pspReference, final SplitSettlementData splitSettlementData) throws ModificationFailedException {
-                                                  return adyenConfigurationHandler.getConfigurable(context.getTenantId()).capture(transactionAmount, paymentProvider, pspReference, splitSettlementData);
+                                              public PaymentModificationResponse execute(@Nullable final Long transactionAmount, final PaymentProvider paymentProvider, final String pspReference, final SplitSettlementData splitSettlementData) {
+                                                  final AdyenPaymentServiceProviderPort port = adyenConfigurationHandler.getConfigurable(context.getTenantId());
+                                                  return port.capture(transactionAmount, paymentProvider, pspReference, splitSettlementData);
                                               }
                                           },
                                           kbAccountId,
@@ -249,10 +252,11 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
     @Override
     public PaymentTransactionInfoPlugin voidPayment(final UUID kbAccountId, final UUID kbPaymentId, final UUID kbTransactionId, final UUID kbPaymentMethodId, final Iterable<PluginProperty> properties, final CallContext context) throws PaymentPluginApiException {
         return executeFollowUpTransaction(TransactionType.VOID,
-                                          new TransactionExecutor<PaymentModificationResponse, ModificationFailedException>() {
+                                          new TransactionExecutor<PaymentModificationResponse>() {
                                               @Override
-                                              public PaymentModificationResponse execute(@Nullable final Long transactionAmount, final PaymentProvider paymentProvider, final String pspReference, final SplitSettlementData splitSettlementData) throws ModificationFailedException {
-                                                  return adyenConfigurationHandler.getConfigurable(context.getTenantId()).cancel(paymentProvider, pspReference, splitSettlementData);
+                                              public PaymentModificationResponse execute(@Nullable final Long transactionAmount, final PaymentProvider paymentProvider, final String pspReference, final SplitSettlementData splitSettlementData) {
+                                                  final AdyenPaymentServiceProviderPort port = adyenConfigurationHandler.getConfigurable(context.getTenantId());
+                                                  return port.cancel(paymentProvider, pspReference, splitSettlementData);
                                               }
                                           },
                                           kbAccountId,
@@ -273,10 +277,11 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
     @Override
     public PaymentTransactionInfoPlugin refundPayment(final UUID kbAccountId, final UUID kbPaymentId, final UUID kbTransactionId, final UUID kbPaymentMethodId, final BigDecimal amount, final Currency currency, final Iterable<PluginProperty> properties, final CallContext context) throws PaymentPluginApiException {
         return executeFollowUpTransaction(TransactionType.REFUND,
-                                          new TransactionExecutor<PaymentModificationResponse, ModificationFailedException>() {
+                                          new TransactionExecutor<PaymentModificationResponse>() {
                                               @Override
-                                              public PaymentModificationResponse execute(@Nullable final Long transactionAmount, final PaymentProvider paymentProvider, final String pspReference, final SplitSettlementData splitSettlementData) throws ModificationFailedException {
-                                                  return adyenConfigurationHandler.getConfigurable(context.getTenantId()).refund(transactionAmount, paymentProvider, pspReference, splitSettlementData);
+                                              public PaymentModificationResponse execute(@Nullable final Long transactionAmount, final PaymentProvider paymentProvider, final String pspReference, final SplitSettlementData splitSettlementData) {
+                                                  final AdyenPaymentServiceProviderPort providerPort = adyenConfigurationHandler.getConfigurable(context.getTenantId());
+                                                  return providerPort.refund(transactionAmount, paymentProvider, pspReference, splitSettlementData);
                                               }
                                           },
                                           kbAccountId,
@@ -346,19 +351,19 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
         return new AdyenGatewayNotification(notificationResponse);
     }
 
-    private static abstract class TransactionExecutor<T, E extends Throwable> {
+    private abstract static class TransactionExecutor<T> {
 
-        public T execute(final Long amount, final PaymentData paymentData, final OrderData orderData, final UserData userData, final String termUrl, final SplitSettlementData splitSettlementData) throws E {
+        public T execute(final Long amount, final PaymentData paymentData, final OrderData orderData, final UserData userData, final String termUrl, final SplitSettlementData splitSettlementData) {
             throw new UnsupportedOperationException();
         }
 
-        public T execute(@Nullable final Long transactionAmount, final PaymentProvider paymentProvider, final String pspReference, final SplitSettlementData splitSettlementData) throws E {
+        public T execute(@Nullable final Long transactionAmount, final PaymentProvider paymentProvider, final String pspReference, final SplitSettlementData splitSettlementData) {
             throw new UnsupportedOperationException();
         }
     }
 
     private PaymentTransactionInfoPlugin executeInitialTransaction(final TransactionType transactionType,
-                                                                   final TransactionExecutor<PurchaseResult, RuntimeException> transactionExecutor,
+                                                                   final TransactionExecutor<PurchaseResult> transactionExecutor,
                                                                    final UUID kbAccountId,
                                                                    final UUID kbPaymentId,
                                                                    final UUID kbTransactionId,
@@ -387,7 +392,7 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
     }
 
     private PaymentTransactionInfoPlugin executeFollowUpTransaction(final TransactionType transactionType,
-                                                                    final TransactionExecutor<PaymentModificationResponse, ModificationFailedException> transactionExecutor,
+                                                                    final TransactionExecutor<PaymentModificationResponse> transactionExecutor,
                                                                     final UUID kbAccountId,
                                                                     final UUID kbPaymentId,
                                                                     final UUID kbTransactionId,
@@ -416,17 +421,16 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
         final DateTime utcNow = clock.getUTCNow();
 
         final PaymentModificationResponse response;
-        try {
-            response = transactionExecutor.execute(transactionAmount, paymentProvider, pspReference, splitSettlementData);
-        } catch (final ModificationFailedException e) {
-            return new AdyenPaymentTransactionInfoPlugin(kbPaymentId, kbTransactionId, transactionType, amount, currency, PaymentServiceProviderResult.ERROR, utcNow, e);
+        response = transactionExecutor.execute(transactionAmount, paymentProvider, pspReference, splitSettlementData);
+        if (!response.isSuccess()) {
+            return new AdyenPaymentTransactionInfoPlugin(kbPaymentId, kbTransactionId, transactionType, amount, currency, Optional.<PaymentServiceProviderResult>absent(), utcNow, response);
         }
 
         try {
             dao.addResponse(kbAccountId, kbPaymentId, kbTransactionId, transactionType, amount, currency, response, utcNow, context.getTenantId());
-            return new AdyenPaymentTransactionInfoPlugin(kbPaymentId, kbTransactionId, transactionType, amount, currency, PaymentServiceProviderResult.RECEIVED, utcNow, response);
+            return new AdyenPaymentTransactionInfoPlugin(kbPaymentId, kbTransactionId, transactionType, amount, currency, Optional.of(PaymentServiceProviderResult.RECEIVED), utcNow, response);
         } catch (final SQLException e) {
-            throw new PaymentPluginApiException("Payment went through, but we encountered a database error. Payment details: " + (response == null ? null : response.toString()), e);
+            throw new PaymentPluginApiException("Payment went through, but we encountered a database error. Payment details: " + (response.toString()), e);
         }
     }
 
@@ -472,7 +476,7 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
     // For API
     private PaymentInfo buildPaymentInfo(final Account account, final UUID kbPaymentMethodId, final Currency currency, final Iterable<PluginProperty> properties, final CallContext context) {
         final AdyenPaymentMethodsRecord paymentMethodsRecord = getAdyenPaymentMethodsRecord(kbPaymentMethodId, context);
-        final AdyenPaymentMethodsRecord nonNullPaymentMethodsRecord = paymentMethodsRecord == null ? new AdyenPaymentMethodsRecord() : paymentMethodsRecord;
+        final AdyenPaymentMethodsRecord nonNullPaymentMethodsRecord = paymentMethodsRecord == null ? emptyRecord(kbPaymentMethodId) : paymentMethodsRecord;
         final Iterable<PluginProperty> additionalPropertiesFromRecord = buildPaymentMethodPlugin(nonNullPaymentMethodsRecord).getProperties();
         final Iterable<PluginProperty> mergedProperties = PluginProperties.merge(additionalPropertiesFromRecord, properties);
         final PaymentProvider paymentProvider = buildPaymentProvider(account, nonNullPaymentMethodsRecord, currency, properties, context);
@@ -490,6 +494,16 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
         } else {
             return buildCreditCard(nonNullPaymentMethodsRecord, paymentProvider, mergedProperties);
         }
+    }
+
+    /**
+     * There is the option not to use the adyen payment method table to retrieve payment data but to always provide
+     * it as plugin properties. In this case an empty record (null object) could help.
+     */
+    private AdyenPaymentMethodsRecord emptyRecord(final UUID kbPaymentMethodId) {
+        final AdyenPaymentMethodsRecord record = new AdyenPaymentMethodsRecord();
+        record.setKbPaymentMethodId(kbPaymentMethodId.toString());
+        return record;
     }
 
     private CreditCard buildCreditCard(final AdyenPaymentMethodsRecord paymentMethodsRecord, final PaymentProvider paymentProvider, final Iterable<PluginProperty> properties) {

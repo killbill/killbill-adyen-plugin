@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Groupon, Inc
+ * Copyright 2015 Groupon, Inc
  *
  * Groupon licenses this file to you under the Apache License, version 2.0
  * (the "License"); you may not use this file except in compliance with the
@@ -14,11 +14,12 @@
  * under the License.
  */
 
-package org.killbill.billing.plugin.adyen.client.payment.exception;
+package org.killbill.billing.plugin.adyen.client.payment.service;
 
-public class ModificationFailedException extends Exception {
-
-    public ModificationFailedException(final Throwable t) {
-        super(t);
-    }
+public enum AdyenCallErrorStatus {
+    REQUEST_NOT_SEND,
+    RESPONSE_ABOUT_INVALID_REQUEST,
+    RESPONSE_NOT_RECEIVED,
+    RESPONSE_INVALID,
+    UNKNOWN_FAILURE
 }
