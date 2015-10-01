@@ -16,6 +16,7 @@
 
 package org.killbill.billing.plugin.adyen.client.payment.service;
 
+import com.google.common.base.Optional;
 import org.killbill.adyen.payment.Card;
 import org.killbill.adyen.payment.PaymentRequest;
 import org.killbill.adyen.payment.PaymentResult;
@@ -32,10 +33,11 @@ import org.testng.Assert;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
-import static org.mockito.Mockito.any;
-import static org.mockito.Mockito.anyString;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+
 
 public class TestAdyenPaymentServiceProviderPort {
 
@@ -45,9 +47,9 @@ public class TestAdyenPaymentServiceProviderPort {
 
     @BeforeMethod(groups = "fast")
     public void setup() throws ServiceException {
-        final PaymentInfoConverterManagement paymentInfoConverterManagement = Mockito.mock(PaymentInfoConverterManagement.class);
-        final PaymentProvider paymentProvider = Mockito.mock(PaymentProvider.class);
-        final AdyenPaymentRequestSender adyenPaymentRequestSender = Mockito.mock(AdyenPaymentRequestSender.class);
+        final PaymentInfoConverterManagement paymentInfoConverterManagement = mock(PaymentInfoConverterManagement.class);
+        final PaymentProvider paymentProvider = mock(PaymentProvider.class);
+        final AdyenPaymentRequestSender adyenPaymentRequestSender = mock(AdyenPaymentRequestSender.class);
 
         paymentRequest = new PaymentRequest();
         paymentRequest.setReference("12345");
@@ -59,11 +61,14 @@ public class TestAdyenPaymentServiceProviderPort {
         this.paymentData.setPaymentInfo(paymentInfo);
 
         this.adyenPaymentServiceProviderPort = Mockito.spy(new AdyenPaymentServiceProviderPort(paymentInfoConverterManagement,
-                                                                                               mock(AdyenRequestFactory.class),
-                                                                                               adyenPaymentRequestSender));
+                mock(AdyenRequestFactory.class),
+                adyenPaymentRequestSender));
         final PaymentResult paymentResult = new PaymentResult();
         paymentResult.setResultCode(PaymentServiceProviderResult.REDIRECT_SHOPPER.getId());
-        when(adyenPaymentRequestSender.authorise(anyString(), any(PaymentRequest.class))).thenReturn(paymentResult);
+        AdyenCallResult adyenCallResult = mock(AdyenCallResult.class);
+        when(adyenCallResult.receivedWellFormedResponse()).thenReturn(true);
+        when(adyenCallResult.getResult()).thenReturn(Optional.of(paymentResult));
+        when(adyenPaymentRequestSender.authorise(anyString(), any(PaymentRequest.class))).thenReturn(adyenCallResult);
     }
 
     @Test(groups = "fast")

@@ -16,9 +16,7 @@
 
 package org.killbill.billing.plugin.adyen;
 
-import org.killbill.billing.plugin.TestUtils;
 import org.killbill.billing.plugin.adyen.dao.AdyenDao;
-import org.killbill.commons.embeddeddb.mysql.MySQLEmbeddedDB;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
@@ -27,33 +25,22 @@ import org.testng.annotations.BeforeMethod;
 // (see TestAdyenDao), but it's a quick workaround for unsupported multiple inheritance
 public abstract class TestWithEmbeddedDBBase extends TestRemoteBase {
 
-    private static final String DDL_FILE_NAME = "ddl.sql";
-
-    protected MySQLEmbeddedDB embeddedDB;
     protected AdyenDao dao;
 
     @BeforeClass(groups = "slow")
     public void setUpBeforeClass() throws Exception {
         super.setUpBeforeClass();
 
-        embeddedDB = new MySQLEmbeddedDB();
-        embeddedDB.initialize();
-        embeddedDB.start();
-
-        final String ddl = TestUtils.toString(DDL_FILE_NAME);
-        embeddedDB.executeScript(ddl);
-        embeddedDB.refreshTableNames();
-
-        dao = new AdyenDao(embeddedDB.getDataSource());
+        dao = EmbeddedDbHelper.instance().startDb();
     }
 
     @BeforeMethod(groups = "slow")
     public void setUpBeforeMethod() throws Exception {
-        embeddedDB.cleanupAllTables();
+        EmbeddedDbHelper.instance().resetDB();
     }
 
     @AfterClass(groups = "slow")
     public void tearDownAfterClass() throws Exception {
-        embeddedDB.stop();
+        EmbeddedDbHelper.instance().stopDB();
     }
 }

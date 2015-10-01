@@ -16,6 +16,9 @@
 
 package org.killbill.billing.plugin.adyen.client.model;
 
+import com.google.common.base.Optional;
+import org.killbill.billing.plugin.adyen.client.payment.service.AdyenCallErrorStatus;
+
 import java.util.HashMap;
 import java.util.Map;
 
@@ -24,6 +27,7 @@ public class PaymentModificationResponse {
     private Map<Object, Object> additionalData;
     private String pspReference;
     private String response;
+    private Optional<AdyenCallErrorStatus> adyenCallErrorStatus = Optional.absent();
 
     public PaymentModificationResponse(final String response, final String pspReference, final Map<Object, Object> additionalData) {
         this.additionalData = additionalData;
@@ -31,12 +35,19 @@ public class PaymentModificationResponse {
         this.response = response;
     }
 
+    public PaymentModificationResponse(final String pspReference, final AdyenCallErrorStatus adyenCallErrorStatus) {
+        this.pspReference = pspReference;
+        this.adyenCallErrorStatus = Optional.of(adyenCallErrorStatus);
+    }
+
     public PaymentModificationResponse(final String response, final String pspReference) {
         this(response, pspReference, new HashMap<Object, Object>());
     }
 
-    public PaymentModificationResponse() {
+    public boolean isSuccess() {
+        return !adyenCallErrorStatus.isPresent();
     }
+
 
     public Map<Object, Object> getAdditionalData() {
         return additionalData;
@@ -62,38 +73,24 @@ public class PaymentModificationResponse {
         this.response = response;
     }
 
-    @Override
-    public String toString() {
-        final StringBuilder sb = new StringBuilder("PaymentModificationResponse{");
-        sb.append("additionalData=").append(additionalData);
-        sb.append(", pspReference='").append(pspReference).append('\'');
-        sb.append(", response='").append(response).append('\'');
-        sb.append('}');
-        return sb.toString();
+    public Optional<AdyenCallErrorStatus> getAdyenCallErrorStatus() {
+        return adyenCallErrorStatus;
     }
 
     @Override
-    public boolean equals(final Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
 
-        final PaymentModificationResponse that = (PaymentModificationResponse) o;
+        PaymentModificationResponse that = (PaymentModificationResponse) o;
 
-        if (additionalData != null ? !additionalData.equals(that.additionalData) : that.additionalData != null) {
+        if (additionalData != null ? !additionalData.equals(that.additionalData) : that.additionalData != null)
             return false;
-        }
-        if (pspReference != null ? !pspReference.equals(that.pspReference) : that.pspReference != null) {
-            return false;
-        }
-        if (response != null ? !response.equals(that.response) : that.response != null) {
-            return false;
-        }
+        if (pspReference != null ? !pspReference.equals(that.pspReference) : that.pspReference != null) return false;
+        //noinspection SimplifiableIfStatement
+        if (response != null ? !response.equals(that.response) : that.response != null) return false;
+        return !(adyenCallErrorStatus != null ? !adyenCallErrorStatus.equals(that.adyenCallErrorStatus) : that.adyenCallErrorStatus != null);
 
-        return true;
     }
 
     @Override
@@ -101,6 +98,17 @@ public class PaymentModificationResponse {
         int result = additionalData != null ? additionalData.hashCode() : 0;
         result = 31 * result + (pspReference != null ? pspReference.hashCode() : 0);
         result = 31 * result + (response != null ? response.hashCode() : 0);
+        result = 31 * result + (adyenCallErrorStatus != null ? adyenCallErrorStatus.hashCode() : 0);
         return result;
+    }
+
+    @Override
+    public String toString() {
+        return "PaymentModificationResponse{" +
+                "additionalData=" + additionalData +
+                ", pspReference='" + pspReference + '\'' +
+                ", response='" + response + '\'' +
+                ", adyenCallErrorStatus=" + adyenCallErrorStatus +
+                '}';
     }
 }
