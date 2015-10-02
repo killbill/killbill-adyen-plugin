@@ -48,7 +48,7 @@ public class SepaDirectDebitConverter implements PaymentInfoConverter<SepaDirect
      * There is no 3DSecure for Sepa Direct Debit.
      *
      * @param billedAmount Billed amount.
-     * @param card {@link PaymentInfo} of type {@link Card}.
+     * @param card         {@link PaymentInfo} of type {@link Card}.
      * @return Always {@literal null} for Sepa Direct Debit.
      */
     @Override

@@ -5,7 +5,12 @@
 *.war
 *.ear
 
-.idea
+.idea/workspace.xml
+.idea/libraries
+.idea/dictionaries/
+.idea/dbnavigator.xml
+*.ipr
+*.iws
 *.iml
 target
 

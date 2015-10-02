@@ -16,7 +16,6 @@
 
 package org.killbill.billing.plugin.adyen.client.payment.converter.impl;
 
-import com.google.common.base.Strings;
 import org.killbill.adyen.common.BrowserInfo;
 import org.killbill.adyen.payment.AnyType2AnyTypeMap;
 import org.killbill.adyen.payment.PaymentRequest;
@@ -26,6 +25,8 @@ import org.killbill.billing.plugin.adyen.client.model.paymentinfo.OneClick;
 import org.killbill.billing.plugin.adyen.client.model.paymentinfo.Recurring;
 import org.killbill.billing.plugin.adyen.client.model.paymentinfo.SepaDirectDebit;
 import org.killbill.billing.plugin.adyen.client.payment.converter.PaymentInfoConverter;
+
+import com.google.common.base.Strings;
 
 import static org.killbill.billing.plugin.adyen.client.model.PaymentType.EMPTY;
 import static org.killbill.billing.plugin.adyen.client.model.RecurringType.ONECLICK;

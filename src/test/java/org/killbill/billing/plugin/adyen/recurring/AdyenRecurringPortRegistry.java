@@ -16,6 +16,14 @@
 
 package org.killbill.billing.plugin.adyen.recurring;
 
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
+import javax.xml.namespace.QName;
+import javax.xml.ws.BindingProvider;
+import javax.xml.ws.Service;
+import javax.xml.ws.soap.SOAPBinding;
+
 import org.apache.cxf.endpoint.Client;
 import org.apache.cxf.frontend.ClientProxy;
 import org.apache.cxf.transport.http.HTTPConduit;
@@ -23,13 +31,6 @@ import org.killbill.adyen.recurring.Recurring;
 import org.killbill.adyen.recurring.RecurringPortType;
 import org.killbill.billing.plugin.adyen.client.AdyenConfigProperties;
 import org.killbill.billing.plugin.adyen.client.jaxws.IgnoreUnexpectedElementsEventHandler;
-
-import javax.xml.namespace.QName;
-import javax.xml.ws.BindingProvider;
-import javax.xml.ws.Service;
-import javax.xml.ws.soap.SOAPBinding;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
@@ -50,7 +51,7 @@ public class AdyenRecurringPortRegistry implements RecurringPortRegistry {
 
         if (!this.services.containsKey(countryIsoCode + RECURRING_SERVICE_SUFFIX)) {
             RecurringPortType service = createService(Recurring.SERVICE, Recurring.RecurringHttpPort, config.getRecurringUrl(),
-                    config.getUserName(countryIsoCode), config.getPassword(countryIsoCode), config.getRecurringConnectionTimeout(), config.getRecurringReceiveTimeout());
+                                                      config.getUserName(countryIsoCode), config.getPassword(countryIsoCode), config.getRecurringConnectionTimeout(), config.getRecurringReceiveTimeout());
             this.services.put(countryIsoCode + RECURRING_SERVICE_SUFFIX, service);
         }
         return this.services.get(countryIsoCode + RECURRING_SERVICE_SUFFIX);

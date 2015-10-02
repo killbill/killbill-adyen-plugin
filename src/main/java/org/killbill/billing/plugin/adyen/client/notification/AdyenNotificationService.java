@@ -42,11 +42,11 @@ import org.killbill.billing.plugin.adyen.client.AdyenEventCode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.w3c.dom.Document;
+import org.w3c.dom.Node;
+import org.xml.sax.SAXException;
 
 import com.google.common.base.Charsets;
 import com.google.common.base.MoreObjects;
-import org.w3c.dom.Node;
-import org.xml.sax.SAXException;
 
 public class AdyenNotificationService {
 
@@ -194,13 +194,13 @@ public class AdyenNotificationService {
 
     private void logNotification(final NotificationRequestItem item) {
         final String itemAsString = MoreObjects.toStringHelper(item)
-                                           .add("eventCode", item.getEventCode())
-                                           .add("pspReference", item.getPspReference())
-                                           .add("originalReference", item.getOriginalReference())
-                                           .add("success", item.isSuccess())
-                                           .add("reason", item.getReason())
-                                           .add("merchantReference", item.getMerchantReference())
-                                           .toString();
+                                               .add("eventCode", item.getEventCode())
+                                               .add("pspReference", item.getPspReference())
+                                               .add("originalReference", item.getOriginalReference())
+                                               .add("success", item.isSuccess())
+                                               .add("reason", item.getReason())
+                                               .add("merchantReference", item.getMerchantReference())
+                                               .toString();
         logger.info("Handling notification: " + itemAsString);
     }
 
@@ -213,7 +213,7 @@ public class AdyenNotificationService {
         return null;
     }
 
-    private SendNotification parse(final InputStream inputStream) throws ParserConfigurationException, IOException, SAXException , JAXBException {
+    private SendNotification parse(final InputStream inputStream) throws ParserConfigurationException, IOException, SAXException, JAXBException {
         final DocumentBuilderFactory builderFactory = DocumentBuilderFactory.newInstance();
         builderFactory.setNamespaceAware(true);
         final DocumentBuilder builder = builderFactory.newDocumentBuilder();
