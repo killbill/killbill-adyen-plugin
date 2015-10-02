@@ -129,7 +129,7 @@ public class AdyenPaymentRequestSender implements Closeable {
             final T result = adyenCall.apply(paymentPort);
             return new SuccessfulAdyenCall<T>(result);
         } catch (final Exception e) {
-            logger.info("exception during adyen request", e);
+            logger.warn("exception during adyen request", e);
             return mapExceptionToCallResult(e);
         }
     }
@@ -176,7 +176,7 @@ public class AdyenPaymentRequestSender implements Closeable {
             return new UnSuccessfulAdyenCall<T>(RESPONSE_ABOUT_INVALID_REQUEST, errorMessage);
         }
 
-        logger.info("unknown exception will be mapped to UNKNOWN_FAILURE", e);
+        logger.warn("unknown exception will be mapped to UNKNOWN_FAILURE", e);
         return new UnSuccessfulAdyenCall<T>(UNKNOWN_FAILURE, errorMessage);
     }
 
