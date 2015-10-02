@@ -18,8 +18,10 @@ package org.killbill.billing.plugin.adyen.client.payment.service;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.net.ConnectException;
 import java.net.SocketException;
 import java.net.SocketTimeoutException;
+import java.net.UnknownHostException;
 
 import javax.xml.ws.soap.SOAPFaultException;
 
@@ -50,7 +52,6 @@ import static org.killbill.billing.plugin.adyen.client.payment.service.AdyenCall
 public class AdyenPaymentRequestSender implements Closeable {
 
     private static final Logger logger = LoggerFactory.getLogger("adyen.sender");
-    private static final int SERVICE_UNAVAILABLE = 503;
 
     private final PaymentPortRegistry adyenPaymentPortRegistry;
 
@@ -140,7 +141,9 @@ public class AdyenPaymentRequestSender implements Closeable {
     private <T> AdyenCallResult<T> mapExceptionToCallResult(final Exception e) {
         //noinspection ThrowableResultOfMethodCallIgnored
         final Throwable rootCause = Throwables.getRootCause(e);
-        if (rootCause instanceof SocketTimeoutException) {
+        if (rootCause instanceof ConnectException) {
+            return new UnSuccessfulAdyenCall<T>(REQUEST_NOT_SEND, e.getMessage());
+        } else if (rootCause instanceof SocketTimeoutException) {
             // read timeout
             if (rootCause.getMessage().contains("Read timed out")) {
                 return new UnSuccessfulAdyenCall<T>(RESPONSE_NOT_RECEIVED, e.getMessage());
@@ -151,11 +154,9 @@ public class AdyenPaymentRequestSender implements Closeable {
             if (rootCause.getMessage().contains("Unexpected end of file from server")) {
                 return new UnSuccessfulAdyenCall<T>(RESPONSE_INVALID, e.getMessage());
             }
+        } else if (rootCause instanceof UnknownHostException) {
+            return new UnSuccessfulAdyenCall<T>(REQUEST_NOT_SEND, e.getMessage());
         } else if (rootCause instanceof HTTPException) {
-            // connection timeout
-            if (((HTTPException) rootCause).getResponseCode() == SERVICE_UNAVAILABLE) {
-                return new UnSuccessfulAdyenCall<T>(REQUEST_NOT_SEND, rootCause.getMessage());
-            }
             // e.g. different response code or strange response
             return new UnSuccessfulAdyenCall<T>(RESPONSE_INVALID, rootCause.getMessage());
         } else if (rootCause instanceof SOAPFaultException) {
