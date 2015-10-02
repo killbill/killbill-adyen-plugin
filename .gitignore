@@ -1,5 +1,3 @@
-*.class
-
 # Package Files #
 *.jar
 *.war
@@ -11,6 +9,9 @@
 .idea/dbnavigator.xml
 *.ipr
 *.iws
+
+*.DS_Store
+
 *.iml
 target
 

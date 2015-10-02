@@ -29,9 +29,10 @@ import org.killbill.billing.plugin.adyen.client.model.PurchaseResult;
 import org.killbill.billing.plugin.adyen.client.model.SplitSettlementData;
 import org.killbill.billing.plugin.adyen.client.model.UserData;
 import org.killbill.billing.plugin.adyen.client.model.paymentinfo.CreditCard;
-import org.killbill.billing.plugin.adyen.client.payment.exception.ModificationFailedException;
 import org.testng.Assert;
 import org.testng.annotations.Test;
+
+import static org.testng.Assert.assertFalse;
 
 public class TestRemoteAdyenPaymentServiceProviderPort extends TestRemoteBase {
 
@@ -113,6 +114,7 @@ public class TestRemoteAdyenPaymentServiceProviderPort extends TestRemoteBase {
         Assert.assertNotNull(authorizeResult.getAuthCode());
         Assert.assertNull(authorizeResult.getReason());
 
+        //noinspection UnnecessaryLocalVariable
         final long captureAmount = authAmount;
         final PaymentProvider paymentProvider = paymentData.getPaymentInfo().getPaymentProvider();
         final String capturePspReference = authorizeResult.getPspReference();
@@ -121,6 +123,7 @@ public class TestRemoteAdyenPaymentServiceProviderPort extends TestRemoteBase {
         Assert.assertNotNull(captureResult.getPspReference());
         Assert.assertEquals(captureResult.getResponse(), "[capture-received]");
 
+        //noinspection UnnecessaryLocalVariable
         final long refundAmount = captureAmount;
         final String refundPspReference = captureResult.getPspReference();
 
@@ -149,12 +152,8 @@ public class TestRemoteAdyenPaymentServiceProviderPort extends TestRemoteBase {
         final PaymentProvider paymentProvider = paymentData.getPaymentInfo().getPaymentProvider();
         final String pspReference = UUID.randomUUID().toString();
 
-        try {
-            final PaymentModificationResponse voidResult = adyenPaymentServiceProviderPort.cancel(paymentProvider, pspReference, splitSettlementData);
-            Assert.fail();
-        } catch (final ModificationFailedException e) {
-            Assert.assertEquals(e.getMessage(), "javax.xml.ws.soap.SOAPFaultException: validation 167 Original pspReference required for this operation");
-        }
+        final PaymentModificationResponse voidResult = adyenPaymentServiceProviderPort.cancel(paymentProvider, pspReference, splitSettlementData);
+        assertFalse(voidResult.isTechnicallySuccessful());
     }
 
     private CreditCard getCreditCard() {
