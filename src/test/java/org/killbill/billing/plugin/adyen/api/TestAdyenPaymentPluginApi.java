@@ -442,34 +442,34 @@ public class TestAdyenPaymentPluginApi extends TestWithEmbeddedDBBase {
     @Test(groups = "slow")
     public void testAuthorizeAndComplete3DSecure() throws Exception {
         adyenPaymentPluginApi.addPaymentMethod(payment.getAccountId(), payment.getPaymentMethodId(), adyenPaymentMethodPluginCC(), true, propertiesWith3DSInfo, context);
-        final PaymentTransaction authorizationTransaction = TestUtils.buildPaymentTransaction(payment, TransactionType.AUTHORIZE, DEFAULT_CURRENCY);
-        final PaymentTransaction purchaseTransaction = TestUtils.buildPaymentTransaction(payment, TransactionType.PURCHASE, DEFAULT_CURRENCY);
+        final PaymentTransaction authorizationTransaction1 = TestUtils.buildPaymentTransaction(payment, TransactionType.AUTHORIZE, DEFAULT_CURRENCY);
+        final PaymentTransaction authorizationTransaction2 = TestUtils.buildPaymentTransaction(payment, TransactionType.AUTHORIZE, DEFAULT_CURRENCY);
         final PaymentTransaction captureTransaction = TestUtils.buildPaymentTransaction(payment, TransactionType.CAPTURE, DEFAULT_CURRENCY);
 
-        final PaymentTransactionInfoPlugin authorizationInfoPlugin = adyenPaymentPluginApi.authorizePayment(payment.getAccountId(),
-                payment.getId(),
-                authorizationTransaction.getId(),
-                payment.getPaymentMethodId(),
-                authorizationTransaction.getAmount(),
-                authorizationTransaction.getCurrency(),
-                propertiesWith3DSInfo,
-                context);
+        final PaymentTransactionInfoPlugin authorizationInfoPlugin1 = adyenPaymentPluginApi.authorizePayment(payment.getAccountId(),
+                                                                                                             payment.getId(),
+                                                                                                             authorizationTransaction1.getId(),
+                                                                                                             payment.getPaymentMethodId(),
+                                                                                                             authorizationTransaction1.getAmount(),
+                                                                                                             authorizationTransaction1.getCurrency(),
+                                                                                                             propertiesWith3DSInfo,
+                                                                                                             context);
 
-        assertEquals(authorizationInfoPlugin.getGatewayError(), "RedirectShopper");
-        final URL issuerUrl = new URL(PluginProperties.findPluginPropertyValue("issuerUrl", authorizationInfoPlugin.getProperties()));
-        final String md = PluginProperties.findPluginPropertyValue("MD", authorizationInfoPlugin.getProperties());
-        final String paReq = PluginProperties.findPluginPropertyValue("PaReq", authorizationInfoPlugin.getProperties());
+        assertEquals(authorizationInfoPlugin1.getGatewayError(), "RedirectShopper");
+        final URL issuerUrl = new URL(PluginProperties.findPluginPropertyValue("issuerUrl", authorizationInfoPlugin1.getProperties()));
+        final String md = PluginProperties.findPluginPropertyValue("MD", authorizationInfoPlugin1.getProperties());
+        final String paReq = PluginProperties.findPluginPropertyValue("PaReq", authorizationInfoPlugin1.getProperties());
 
         final String responseHTML = given().log().all()
-                .contentType(ContentType.URLENC)
-                .accept(ContentType.HTML)
-                .formParam("MD", md)
-                .formParam("PaReq", paReq)
-                .formParam("TermUrl", DUMMY_URL)
-                .post(issuerUrl)
-                .then().log().all()
-                .statusCode(200)
-                .extract().asString();
+                                           .contentType(ContentType.URLENC)
+                                           .accept(ContentType.HTML)
+                                           .formParam("MD", md)
+                                           .formParam("PaReq", paReq)
+                                           .formParam("TermUrl", DUMMY_URL)
+                                           .post(issuerUrl)
+                                           .then().log().all()
+                                           .statusCode(200)
+                                           .extract().asString();
 
         final Map<String, String> formParams = extractForm(responseHTML);
         assertFalse(formParams.isEmpty(), "No FORM found in HTML response");
@@ -479,13 +479,13 @@ public class TestAdyenPaymentPluginApi extends TestWithEmbeddedDBBase {
         formParams.put("password", "password");
 
         final String redirectHTML = given().log().all()
-                .contentType(ContentType.URLENC)
-                .accept(ContentType.HTML)
-                .formParams(formParams)
-                .post(formAction)
-                .then().log().all()
-                .statusCode(200)
-                .extract().asString();
+                                           .contentType(ContentType.URLENC)
+                                           .accept(ContentType.HTML)
+                                           .formParams(formParams)
+                                           .post(formAction)
+                                           .then().log().all()
+                                           .statusCode(200)
+                                           .extract().asString();
 
         final Map<String, String> redirectFormParams = extractForm(redirectHTML);
         assertFalse(redirectFormParams.isEmpty(), "No FORM found in redirect HTML response");
@@ -494,25 +494,25 @@ public class TestAdyenPaymentPluginApi extends TestWithEmbeddedDBBase {
 
         final List<PluginProperty> propertiesWithCompleteParams = PluginProperties.buildPluginProperties(redirectFormParams);
 
-        final Iterable<PluginProperty> mergedProperties = PluginProperties.merge(propertiesWith3DSInfo, propertiesWithCompleteParams);
+        final PaymentTransactionInfoPlugin authorizationInfoPlugin2 = adyenPaymentPluginApi.authorizePayment(payment.getAccountId(),
+                                                                                                             payment.getId(),
+                                                                                                             authorizationTransaction2.getId(),
+                                                                                                             payment.getPaymentMethodId(),
+                                                                                                             authorizationTransaction2.getAmount(),
+                                                                                                             authorizationTransaction2.getCurrency(),
+                                                                                                             propertiesWithCompleteParams,
+                                                                                                             context);
 
-        final PaymentTransactionInfoPlugin purchaseInfoPlugin = adyenPaymentPluginApi.purchasePayment(payment.getAccountId(),
-                payment.getId(),
-                purchaseTransaction.getId(),
-                payment.getPaymentMethodId(),
-                purchaseTransaction.getAmount(),
-                purchaseTransaction.getCurrency(),
-                mergedProperties,
-                context);
+        verifyPaymentTransactionInfoPlugin(authorizationTransaction2, authorizationInfoPlugin2);
 
         final PaymentTransactionInfoPlugin captureInfoPlugin = adyenPaymentPluginApi.capturePayment(payment.getAccountId(),
-                payment.getId(),
-                captureTransaction.getId(),
-                payment.getPaymentMethodId(),
-                captureTransaction.getAmount(),
-                captureTransaction.getCurrency(),
-                purchaseInfoPlugin.getProperties(),
-                context);
+                                                                                                    payment.getId(),
+                                                                                                    captureTransaction.getId(),
+                                                                                                    payment.getPaymentMethodId(),
+                                                                                                    captureTransaction.getAmount(),
+                                                                                                    captureTransaction.getCurrency(),
+                                                                                                    authorizationInfoPlugin2.getProperties(),
+                                                                                                    context);
 
         verifyPaymentTransactionInfoPlugin(captureTransaction, captureInfoPlugin);
 
@@ -604,8 +604,8 @@ public class TestAdyenPaymentPluginApi extends TestWithEmbeddedDBBase {
                 expectedPaymentPluginStatus = ImmutableList.of(PaymentPluginStatus.PENDING);
                 break;
         }
-        assertTrue(expectedGatewayErrors.contains(paymentTransactionInfoPlugin.getGatewayError()), paymentTransactionInfoPlugin.getGatewayError());
-        assertTrue(expectedPaymentPluginStatus.contains(paymentTransactionInfoPlugin.getStatus()), paymentTransactionInfoPlugin.getStatus().toString());
+        assertTrue(expectedGatewayErrors.contains(paymentTransactionInfoPlugin.getGatewayError()), "was: " + paymentTransactionInfoPlugin.getGatewayError());
+        assertTrue(expectedPaymentPluginStatus.contains(paymentTransactionInfoPlugin.getStatus()), "was: " + paymentTransactionInfoPlugin.getStatus().toString());
 
         assertNull(paymentTransactionInfoPlugin.getGatewayErrorCode());
         assertNotNull(paymentTransactionInfoPlugin.getFirstPaymentReferenceId());
