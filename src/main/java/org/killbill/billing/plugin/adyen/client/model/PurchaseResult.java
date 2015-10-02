@@ -121,6 +121,14 @@ public class PurchaseResult extends FrontendForm {
         return errorCodes;
     }
 
+    /**
+     * True if we received a well formed soap response from adyen.
+     */
+    @SuppressWarnings("unused")
+    public boolean isTechnicallySuccessful() {
+        return !getAdyenCallErrorStatus().isPresent();
+    }
+
     public Optional<AdyenCallErrorStatus> getAdyenCallErrorStatus() {
         return Optional.fromNullable(adyenCallErrorStatus);
     }

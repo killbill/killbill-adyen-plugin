@@ -24,7 +24,6 @@ import javax.annotation.Nullable;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 import org.killbill.billing.catalog.api.Currency;
-import org.killbill.billing.payment.api.PluginProperty;
 import org.killbill.billing.payment.api.TransactionType;
 import org.killbill.billing.payment.plugin.api.PaymentPluginStatus;
 import org.killbill.billing.plugin.adyen.client.model.PaymentModificationResponse;
@@ -37,33 +36,10 @@ import org.killbill.billing.plugin.api.payment.PluginPaymentTransactionInfoPlugi
 
 import com.google.common.base.Optional;
 import com.google.common.base.Strings;
-import com.google.common.collect.ImmutableList;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
 public class AdyenPaymentTransactionInfoPlugin extends PluginPaymentTransactionInfoPlugin {
-
-    public AdyenPaymentTransactionInfoPlugin(final UUID kbPaymentId,
-                                             final UUID kbTransactionPaymentPaymentId,
-                                             final TransactionType transactionType,
-                                             final BigDecimal amount,
-                                             final Currency currency,
-                                             final DateTime utcNow,
-                                             final PaymentPluginStatus paymentPluginStatus) {
-        super(kbPaymentId,
-              kbTransactionPaymentPaymentId,
-              transactionType,
-              amount,
-              currency,
-              paymentPluginStatus,
-              null,
-              null,
-              null,
-              null,
-              utcNow,
-              utcNow,
-              ImmutableList.<PluginProperty>of());
-    }
 
     public AdyenPaymentTransactionInfoPlugin(final UUID kbPaymentId,
                                              final UUID kbTransactionPaymentPaymentId,
@@ -141,7 +117,7 @@ public class AdyenPaymentTransactionInfoPlugin extends PluginPaymentTransactionI
 
     /**
      * Transforms adyenCallErrorStatus (where there any technical errors?) and pspResult (was the call successful from a business perspective) into the PaymentPluginStatus.
-     * Therefor
+     * Therefor only one of the given params should be present (if there was a technical error we don't have a psp result and the other way around).
      */
     private static PaymentPluginStatus getPaymentPluginStatus(final Optional<AdyenCallErrorStatus> adyenCallErrorStatus, final Optional<PaymentServiceProviderResult> pspResult) {
         checkArgument(adyenCallErrorStatus.isPresent() ^ pspResult.isPresent());
