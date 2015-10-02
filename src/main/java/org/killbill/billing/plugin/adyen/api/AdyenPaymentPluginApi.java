@@ -427,7 +427,7 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
 
         final PaymentModificationResponse response;
         response = transactionExecutor.execute(transactionAmount, paymentProvider, pspReference, splitSettlementData);
-        if (!response.isSuccess()) {
+        if (!response.isTechnicallySuccessful()) {
             return new AdyenPaymentTransactionInfoPlugin(kbPaymentId, kbTransactionId, transactionType, amount, currency, Optional.<PaymentServiceProviderResult>absent(), utcNow, response);
         }
 

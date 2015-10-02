@@ -16,7 +16,6 @@
 
 package org.killbill.billing.plugin.adyen.client.model;
 
-import java.util.HashMap;
 import java.util.Map;
 
 import org.killbill.billing.plugin.adyen.client.payment.service.AdyenCallErrorStatus;
@@ -41,11 +40,10 @@ public class PaymentModificationResponse {
         this.adyenCallErrorStatus = Optional.of(adyenCallErrorStatus);
     }
 
-    public PaymentModificationResponse(final String response, final String pspReference) {
-        this(response, pspReference, new HashMap<Object, Object>());
-    }
-
-    public boolean isSuccess() {
+    /**
+     * True if we received a well formed soap response from adyen.
+     */
+    public boolean isTechnicallySuccessful() {
         return !adyenCallErrorStatus.isPresent();
     }
 
@@ -104,6 +102,7 @@ public class PaymentModificationResponse {
         if (pspReference != null ? !pspReference.equals(that.pspReference) : that.pspReference != null) {
             return false;
         }
+        //noinspection SimplifiableIfStatement
         if (response != null ? !response.equals(that.response) : that.response != null) {
             return false;
         }

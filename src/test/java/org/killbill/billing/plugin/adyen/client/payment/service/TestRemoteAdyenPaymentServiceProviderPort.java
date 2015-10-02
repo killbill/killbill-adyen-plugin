@@ -153,7 +153,7 @@ public class TestRemoteAdyenPaymentServiceProviderPort extends TestRemoteBase {
         final String pspReference = UUID.randomUUID().toString();
 
         final PaymentModificationResponse voidResult = adyenPaymentServiceProviderPort.cancel(paymentProvider, pspReference, splitSettlementData);
-        assertFalse(voidResult.isSuccess());
+        assertFalse(voidResult.isTechnicallySuccessful());
     }
 
     private CreditCard getCreditCard() {
