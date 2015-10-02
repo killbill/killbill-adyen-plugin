@@ -16,6 +16,8 @@
 
 package org.killbill.billing.plugin.adyen.api;
 
+import java.io.IOException;
+import java.net.ServerSocket;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -60,6 +62,7 @@ import static org.killbill.billing.plugin.adyen.TestRemoteBase.CC_VERIFICATION_V
 import static org.killbill.billing.plugin.adyen.TestRemoteBase.DEFAULT_COUNTRY;
 import static org.killbill.billing.plugin.adyen.TestRemoteBase.DEFAULT_CURRENCY;
 import static org.killbill.billing.plugin.adyen.api.TestAdyenPaymentPluginHttpErrors.WireMockHelper.doWithWireMock;
+import static org.killbill.billing.plugin.adyen.api.TestAdyenPaymentPluginHttpErrors.WireMockHelper.wireMockUri;
 import static org.testng.Assert.assertEquals;
 
 /**
@@ -75,6 +78,8 @@ public class TestAdyenPaymentPluginHttpErrors {
     private static final int NOT_FOUND = 404;
     private static final int MOVED = 301;
     private static final int SERVICE_UNAVAILABLE = 503;
+
+    private static final String ADYEN_PATH = "/adyen";
 
     private AdyenDao dao;
 
@@ -167,7 +172,7 @@ public class TestAdyenPaymentPluginHttpErrors {
         final AdyenCallContext callContext = newCallContext();
 
         final AdyenPaymentPluginApi pluginApi = AdyenPluginMockBuilder.newPlugin()
-                                                                      .withAdyenProperty("org.killbill.billing.plugin.adyen.paymentUrl", "http://localhost:8089/adyen")
+                                                                      .withAdyenProperty("org.killbill.billing.plugin.adyen.paymentUrl", wireMockUri(ADYEN_PATH))
                                                                       .withAdyenProperty("org.killbill.billing.plugin.adyen.paymentReadTimeout", String.valueOf(adyenClientReadTimeout))
                                                                       .withAccount(account)
                                                                       .withPayment(payment)
@@ -177,7 +182,7 @@ public class TestAdyenPaymentPluginHttpErrors {
             @Override
             public PaymentTransactionInfoPlugin execute(final WireMockServer server) throws PaymentPluginApiException {
 
-                stubFor(post(urlEqualTo("/adyen")).willReturn(
+                stubFor(post(urlEqualTo(ADYEN_PATH)).willReturn(
                         aResponse()
                                 .withStatus(OK)
                                 .withFixedDelay(adyenResponseDelay)));
@@ -197,7 +202,7 @@ public class TestAdyenPaymentPluginHttpErrors {
         final AdyenCallContext callContext = newCallContext();
 
         final AdyenPaymentPluginApi pluginApi = AdyenPluginMockBuilder.newPlugin()
-                                                                      .withAdyenProperty("org.killbill.billing.plugin.adyen.paymentUrl", "http://localhost:8089/adyen")
+                                                                      .withAdyenProperty("org.killbill.billing.plugin.adyen.paymentUrl", wireMockUri(ADYEN_PATH))
                                                                       .withAccount(account)
                                                                       .withPayment(payment)
                                                                       .build();
@@ -205,7 +210,7 @@ public class TestAdyenPaymentPluginHttpErrors {
         final PaymentTransactionInfoPlugin result = doWithWireMock(new WithWireMock<PaymentTransactionInfoPlugin>() {
             @Override
             public PaymentTransactionInfoPlugin execute(final WireMockServer server) throws Exception {
-                stubFor(post(urlEqualTo("/adyen")).willReturn(
+                stubFor(post(urlEqualTo(ADYEN_PATH)).willReturn(
                         aResponse()
                                 .withFault(Fault.RANDOM_DATA_THEN_CLOSE)
                                 .withStatus(OK)));
@@ -233,7 +238,7 @@ public class TestAdyenPaymentPluginHttpErrors {
         authorizeCall(account, payment, callContext, authorizeApi, creditCardPaymentProperties());
 
         final AdyenPaymentPluginApi refundApi = AdyenPluginMockBuilder.newPlugin()
-                                                                      .withAdyenProperty("org.killbill.billing.plugin.adyen.paymentUrl", "http://localhost:8089/adyen")
+                                                                      .withAdyenProperty("org.killbill.billing.plugin.adyen.paymentUrl", wireMockUri(ADYEN_PATH))
                                                                       .withAccount(account)
                                                                       .withPayment(payment)
                                                                       .withDatabaseAccess(dao)
@@ -242,7 +247,7 @@ public class TestAdyenPaymentPluginHttpErrors {
         final PaymentTransactionInfoPlugin result = doWithWireMock(new WithWireMock<PaymentTransactionInfoPlugin>() {
             @Override
             public PaymentTransactionInfoPlugin execute(final WireMockServer server) throws Exception {
-                stubFor(post(urlEqualTo("/adyen")).willReturn(
+                stubFor(post(urlEqualTo(ADYEN_PATH)).willReturn(
                         aResponse()
                                 .withFault(Fault.RANDOM_DATA_THEN_CLOSE)
                                 .withStatus(OK)));
@@ -271,7 +276,7 @@ public class TestAdyenPaymentPluginHttpErrors {
         final AdyenCallContext callContext = newCallContext();
 
         final AdyenPaymentPluginApi pluginApi = AdyenPluginMockBuilder.newPlugin()
-                                                                      .withAdyenProperty("org.killbill.billing.plugin.adyen.paymentUrl", "http://localhost:8089/adyen")
+                                                                      .withAdyenProperty("org.killbill.billing.plugin.adyen.paymentUrl", wireMockUri(ADYEN_PATH))
                                                                       .withAccount(account)
                                                                       .withPayment(payment)
                                                                       .build();
@@ -279,7 +284,7 @@ public class TestAdyenPaymentPluginHttpErrors {
         final PaymentTransactionInfoPlugin result = doWithWireMock(new WithWireMock<PaymentTransactionInfoPlugin>() {
             @Override
             public PaymentTransactionInfoPlugin execute(final WireMockServer server) throws Exception {
-                stubFor(post(urlEqualTo("/adyen")).willReturn(
+                stubFor(post(urlEqualTo(ADYEN_PATH)).willReturn(
                         aResponse()
                                 .withFault(Fault.EMPTY_RESPONSE)
                                 .withStatus(OK)));
@@ -299,7 +304,7 @@ public class TestAdyenPaymentPluginHttpErrors {
         final AdyenCallContext callContext = newCallContext();
 
         final AdyenPaymentPluginApi pluginApi = AdyenPluginMockBuilder.newPlugin()
-                                                                      .withAdyenProperty("org.killbill.billing.plugin.adyen.paymentUrl", "http://localhost:8089/adyen")
+                                                                      .withAdyenProperty("org.killbill.billing.plugin.adyen.paymentUrl", wireMockUri(ADYEN_PATH))
                                                                       .withAccount(account)
                                                                       .withPayment(payment)
                                                                       .build();
@@ -307,7 +312,7 @@ public class TestAdyenPaymentPluginHttpErrors {
         final PaymentTransactionInfoPlugin result = doWithWireMock(new WithWireMock<PaymentTransactionInfoPlugin>() {
             @Override
             public PaymentTransactionInfoPlugin execute(final WireMockServer server) throws Exception {
-                stubFor(post(urlEqualTo("/adyen")).willReturn(
+                stubFor(post(urlEqualTo(ADYEN_PATH)).willReturn(
                         aResponse()
                                 .withFault(Fault.MALFORMED_RESPONSE_CHUNK)
                                 .withStatus(OK)));
@@ -327,7 +332,7 @@ public class TestAdyenPaymentPluginHttpErrors {
         final AdyenCallContext callContext = newCallContext();
 
         final AdyenPaymentPluginApi pluginApi = AdyenPluginMockBuilder.newPlugin()
-                                                                      .withAdyenProperty("org.killbill.billing.plugin.adyen.paymentUrl", "http://localhost:8089/adyen")
+                                                                      .withAdyenProperty("org.killbill.billing.plugin.adyen.paymentUrl", wireMockUri(ADYEN_PATH))
                                                                       .withAccount(account)
                                                                       .withPayment(payment)
                                                                       .build();
@@ -335,7 +340,7 @@ public class TestAdyenPaymentPluginHttpErrors {
         final PaymentTransactionInfoPlugin result = doWithWireMock(new WithWireMock<PaymentTransactionInfoPlugin>() {
             @Override
             public PaymentTransactionInfoPlugin execute(final WireMockServer server) throws Exception {
-                stubFor(post(urlEqualTo("/adyen")).willReturn(
+                stubFor(post(urlEqualTo(ADYEN_PATH)).willReturn(
                         aResponse()
                                 .withStatus(NOT_FOUND)));
 
@@ -354,7 +359,7 @@ public class TestAdyenPaymentPluginHttpErrors {
         final AdyenCallContext callContext = newCallContext();
 
         final AdyenPaymentPluginApi pluginApi = AdyenPluginMockBuilder.newPlugin()
-                                                                      .withAdyenProperty("org.killbill.billing.plugin.adyen.paymentUrl", "http://localhost:8089/adyen")
+                                                                      .withAdyenProperty("org.killbill.billing.plugin.adyen.paymentUrl", wireMockUri(ADYEN_PATH))
                                                                       .withAccount(account)
                                                                       .withPayment(payment)
                                                                       .build();
@@ -362,7 +367,7 @@ public class TestAdyenPaymentPluginHttpErrors {
         final PaymentTransactionInfoPlugin result = doWithWireMock(new WithWireMock<PaymentTransactionInfoPlugin>() {
             @Override
             public PaymentTransactionInfoPlugin execute(final WireMockServer server) throws Exception {
-                stubFor(post(urlEqualTo("/adyen")).willReturn(
+                stubFor(post(urlEqualTo(ADYEN_PATH)).willReturn(
                         aResponse()
                                 .withStatus(MOVED)));
 
@@ -382,7 +387,7 @@ public class TestAdyenPaymentPluginHttpErrors {
         final AdyenCallContext callContext = newCallContext();
 
         final AdyenPaymentPluginApi pluginApi = AdyenPluginMockBuilder.newPlugin()
-                                                                      .withAdyenProperty("org.killbill.billing.plugin.adyen.paymentUrl", "http://localhost:8089/adyen")
+                                                                      .withAdyenProperty("org.killbill.billing.plugin.adyen.paymentUrl", wireMockUri(ADYEN_PATH))
                                                                       .withAccount(account)
                                                                       .withPayment(payment)
                                                                       .build();
@@ -390,7 +395,7 @@ public class TestAdyenPaymentPluginHttpErrors {
         final PaymentTransactionInfoPlugin result = doWithWireMock(new WithWireMock<PaymentTransactionInfoPlugin>() {
             @Override
             public PaymentTransactionInfoPlugin execute(final WireMockServer server) throws Exception {
-                stubFor(post(urlEqualTo("/adyen")).willReturn(
+                stubFor(post(urlEqualTo(ADYEN_PATH)).willReturn(
                         aResponse()
                                 .withStatus(SERVICE_UNAVAILABLE)));
 
@@ -454,12 +459,32 @@ public class TestAdyenPaymentPluginHttpErrors {
 
     static class WireMockHelper {
 
-        private static final int WIRE_MOCK_PORT = 8089;
+        private static final WireMockHelper INSTANCE = new WireMockHelper();
+
+        public static WireMockHelper instance() {
+            return INSTANCE;
+        }
+
+        private int freePort = -1;
+
+        private synchronized int getFreePort() throws IOException {
+            if (freePort == -1) {
+                final ServerSocket serverSocket = new ServerSocket(0);
+                freePort = serverSocket.getLocalPort();
+                serverSocket.close();
+            }
+            return freePort;
+        }
+
+        public static String wireMockUri(final String path) throws IOException {
+            return "http://localhost:" + WireMockHelper.instance().getFreePort() + path;
+        }
 
         public static <T> T doWithWireMock(final WithWireMock<T> command) throws Exception {
-            final WireMockServer wireMockServer = new WireMockServer(WireMockConfiguration.wireMockConfig().port(WIRE_MOCK_PORT));
+            final int wireMockPort = WireMockHelper.instance().getFreePort();
+            final WireMockServer wireMockServer = new WireMockServer(WireMockConfiguration.wireMockConfig().port(wireMockPort));
             wireMockServer.start();
-            WireMock.configureFor("localhost", WIRE_MOCK_PORT);
+            WireMock.configureFor("localhost", wireMockPort);
             try {
                 return command.execute(wireMockServer);
             } finally {
