@@ -129,7 +129,7 @@ public class AdyenPaymentTransactionInfoPlugin extends PluginPaymentTransactionI
             case REQUEST_NOT_SEND:
                 return PaymentPluginStatus.CANCELED;
             case RESPONSE_ABOUT_INVALID_REQUEST:
-                return PaymentPluginStatus.ERROR;
+                return PaymentPluginStatus.CANCELED;
             case RESPONSE_NOT_RECEIVED:
                 return PaymentPluginStatus.UNDEFINED;
             case RESPONSE_INVALID:
