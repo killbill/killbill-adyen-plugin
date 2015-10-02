@@ -17,9 +17,24 @@
 package org.killbill.billing.plugin.adyen.client.payment.service;
 
 public enum AdyenCallErrorStatus {
+    /**
+     * Request never reached Adyen (e.g. connection failure or unknown host).
+     */
     REQUEST_NOT_SEND,
+    /**
+     * Adyens response indicates an invalid request sent by us (e.g. a non user field like pspRef was empty).
+     */
     RESPONSE_ABOUT_INVALID_REQUEST,
+    /**
+     * We never received a response from Adyen.
+     */
     RESPONSE_NOT_RECEIVED,
+    /**
+     * Received response is not parsable.
+     */
     RESPONSE_INVALID,
+    /**
+     * We don't know ;).
+     */
     UNKNOWN_FAILURE
 }
