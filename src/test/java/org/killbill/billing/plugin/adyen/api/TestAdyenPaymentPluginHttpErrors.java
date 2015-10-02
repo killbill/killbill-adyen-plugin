@@ -122,14 +122,14 @@ public class TestAdyenPaymentPluginHttpErrors {
     @Test(groups = "slow")
     public void testAuthorizeAdyenConnectTimeout() throws Exception {
 
-        final String unReachableUri = "http://localhost:1234";
+        final String freeLocalPort = "http://localhost:" + findFreePort();
 
         final Account account = defaultAccount();
         final Payment payment = killBillPayment(account);
         final AdyenCallContext callContext = newCallContext();
 
         final AdyenPaymentPluginApi pluginApi = AdyenPluginMockBuilder.newPlugin()
-                                                                      .withAdyenProperty("org.killbill.billing.plugin.adyen.paymentUrl", unReachableUri)
+                                                                      .withAdyenProperty("org.killbill.billing.plugin.adyen.paymentUrl", freeLocalPort)
                                                                       .withAccount(account)
                                                                       .withPayment(payment)
                                                                       .build();
@@ -469,9 +469,7 @@ public class TestAdyenPaymentPluginHttpErrors {
 
         private synchronized int getFreePort() throws IOException {
             if (freePort == -1) {
-                final ServerSocket serverSocket = new ServerSocket(0);
-                freePort = serverSocket.getLocalPort();
-                serverSocket.close();
+                freePort = findFreePort();
             }
             return freePort;
         }
@@ -494,5 +492,12 @@ public class TestAdyenPaymentPluginHttpErrors {
                 }
             }
         }
+    }
+
+    static int findFreePort() throws IOException {
+        final ServerSocket serverSocket = new ServerSocket(0);
+        final int freePort = serverSocket.getLocalPort();
+        serverSocket.close();
+        return freePort;
     }
 }
