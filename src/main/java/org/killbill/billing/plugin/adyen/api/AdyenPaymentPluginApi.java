@@ -161,7 +161,8 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
         this.dao = dao;
 
         final AdyenNotificationHandler adyenNotificationHandler = new KillbillAdyenNotificationHandler(killbillApi, dao, clock);
-        this.adyenNotificationService = new AdyenNotificationService(ImmutableList.of(adyenNotificationHandler));
+        //noinspection RedundantTypeArguments
+        this.adyenNotificationService = new AdyenNotificationService(ImmutableList.<AdyenNotificationHandler>of(adyenNotificationHandler));
     }
 
     @Override
@@ -446,7 +447,8 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
         PaymentTransaction paymentTransaction = null;
         try {
             payment = killbillAPI.getPaymentApi().getPayment(kbPaymentId, false, properties, context);
-            paymentTransaction = Iterables.find(payment.getTransactions(),
+            //noinspection RedundantTypeArguments
+            paymentTransaction = Iterables.<PaymentTransaction>find(payment.getTransactions(),
                                                 new Predicate<PaymentTransaction>() {
                                                     @Override
                                                     public boolean apply(final PaymentTransaction input) {
@@ -702,6 +704,8 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
         final UUID kbPaymentId = null;
         final Currency currency = Currency.valueOf(paymentData.getPaymentInfo().getPaymentProvider().getCurrency().toString());
         final String paymentExternalKey = paymentData.getPaymentTxnInternalRef();
+        //noinspection UnnecessaryLocalVariable
+        final String paymentTransactionExternalKey = paymentExternalKey;
         final ImmutableMap<String, Object> purchasePropertiesMap = ImmutableMap.<String, Object>of(AdyenPaymentPluginApi.PROPERTY_FROM_HPP, true,
                                                                                                    AdyenPaymentPluginApi.PROPERTY_FROM_HPP_TRANSACTION_STATUS, PaymentPluginStatus.PENDING.toString());
         final Iterable<PluginProperty> purchaseProperties = PluginProperties.buildPluginProperties(purchasePropertiesMap);
@@ -714,7 +718,7 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
                                                        amount,
                                                        currency,
                                                        paymentExternalKey,
-                                                       paymentExternalKey,
+                                                       paymentTransactionExternalKey,
                                                        purchaseProperties,
                                                        context);
         } catch (final PaymentApiException e) {
@@ -724,7 +728,8 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
 
     // Could be shared (see KillbillAdyenNotificationHandler)
     private UUID getAdyenKbPaymentMethodId(final UUID kbAccountId, final TenantContext context) throws PaymentApiException {
-        return Iterables.find(killbillAPI.getPaymentApi().getAccountPaymentMethods(kbAccountId, false, ImmutableList.<PluginProperty>of(), context),
+        //noinspection RedundantTypeArguments
+        return Iterables.<PaymentMethod>find(killbillAPI.getPaymentApi().getAccountPaymentMethods(kbAccountId, false, ImmutableList.<PluginProperty>of(), context),
                               new Predicate<PaymentMethod>() {
                                   @Override
                                   public boolean apply(final PaymentMethod paymentMethod) {
