@@ -16,10 +16,18 @@
 
 package org.killbill.billing.plugin.adyen.api;
 
+import java.net.URL;
 import java.util.List;
 import java.util.Map;
+import java.util.HashMap;
 import java.util.UUID;
+import java.util.Collections;
 
+import com.jayway.restassured.http.ContentType;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
+import org.jsoup.select.Elements;
 import org.killbill.adyen.recurring.RecurringDetail;
 import org.killbill.billing.account.api.Account;
 import org.killbill.billing.payment.api.Payment;
@@ -52,25 +60,33 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 
+import static com.jayway.restassured.RestAssured.given;
 import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.PROPERTY_DD_ACCOUNT_NUMBER;
-import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.PROPERTY_DD_BANKLEITZAHL;
 import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.PROPERTY_DD_BANK_IDENTIFIER_CODE;
+import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.PROPERTY_DD_BANKLEITZAHL;
 import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.PROPERTY_DD_HOLDER_NAME;
+import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.PROPERTY_FROM_HPP;
+import static org.testng.Assert.fail;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertNotNull;
 import static org.testng.Assert.assertNull;
 import static org.testng.Assert.assertTrue;
-import static org.testng.Assert.fail;
+import static org.testng.Assert.assertFalse;
 
 public class TestAdyenPaymentPluginApi extends TestWithEmbeddedDBBase {
 
     private static final long SLEEP_IN_MILLIS_FOR_RECURRING_DETAIL = 3000L; // 3 Seconds
+    private static final String DUMMY_URL = "dummy://url";
+    private static final int HTTP_200_OK = 200;
+    private static final int HTTP_PORT = 80;
+    private static final int HTTPS_PORT = 443;
 
     private Payment payment;
     private CallContext context;
     private AdyenPaymentPluginApi adyenPaymentPluginApi;
     private AdyenRecurringClient adyenRecurringClient;
     private Iterable<PluginProperty> propertiesWithCCInfo;
+    private Iterable<PluginProperty> propertiesWith3DSInfo;
     private Iterable<PluginProperty> propertiesWithSepaInfo;
     private Iterable<PluginProperty> propertiesWithElvInfo;
     private Map<String, String> propertiesForRecurring;
@@ -100,6 +116,18 @@ public class TestAdyenPaymentPluginApi extends TestWithEmbeddedDBBase {
                                                         .put(AdyenPaymentPluginApi.PROPERTY_CC_EXPIRATION_MONTH, String.valueOf(CC_EXPIRATION_MONTH))
                                                         .put(AdyenPaymentPluginApi.PROPERTY_CC_EXPIRATION_YEAR, String.valueOf(CC_EXPIRATION_YEAR))
                                                         .put(AdyenPaymentPluginApi.PROPERTY_CC_VERIFICATION_VALUE, CC_VERIFICATION_VALUE).build());
+
+        propertiesWith3DSInfo = toProperties(ImmutableMap.<String, String>builder()
+                                                         .put(AdyenPaymentPluginApi.PROPERTY_CC_TYPE, CC_TYPE)
+                                                         .put(AdyenPaymentPluginApi.PROPERTY_CC_LAST_NAME, "Montblanc")
+                                                         .put(AdyenPaymentPluginApi.PROPERTY_CC_NUMBER, CC_3DS_NUMBER)
+                                                         .put(AdyenPaymentPluginApi.PROPERTY_CC_EXPIRATION_MONTH, String.valueOf(CC_EXPIRATION_MONTH))
+                                                         .put(AdyenPaymentPluginApi.PROPERTY_CC_EXPIRATION_YEAR, String.valueOf(CC_EXPIRATION_YEAR))
+                                                         .put(AdyenPaymentPluginApi.PROPERTY_CC_VERIFICATION_VALUE, CC_VERIFICATION_VALUE)
+                                                         .put(AdyenPaymentPluginApi.PROPERTY_USER_AGENT, "Java/1.8")
+                                                         .put(AdyenPaymentPluginApi.PROPERTY_ACCEPT_HEADER, "application/json")
+                                                         .put(AdyenPaymentPluginApi.PROPERTY_THREE_D_THRESHOLD, "25000")
+                                                         .build());
 
         propertiesWithSepaInfo = toProperties(ImmutableMap.of(AdyenPaymentPluginApi.PROPERTY_CC_TYPE, DD_TYPE));
         propertiesWithElvInfo = toProperties(ImmutableMap.of(AdyenPaymentPluginApi.PROPERTY_CC_TYPE, ELV_TYPE));
@@ -401,9 +429,9 @@ public class TestAdyenPaymentPluginApi extends TestWithEmbeddedDBBase {
     public void testHPP() throws Exception {
         //noinspection RedundantTypeArguments
         final Map<String, String> customFieldsMap = ImmutableMap.<String, String>of(AdyenPaymentPluginApi.PROPERTY_AMOUNT, "10",
-                                                                    AdyenPaymentPluginApi.PROPERTY_SERVER_URL, "http://killbill.io",
-                                                                    AdyenPaymentPluginApi.PROPERTY_CURRENCY, DEFAULT_CURRENCY.name(),
-                                                                    AdyenPaymentPluginApi.PROPERTY_COUNTRY, DEFAULT_COUNTRY);
+                                                                                    AdyenPaymentPluginApi.PROPERTY_SERVER_URL, "http://killbill.io",
+                                                                                    AdyenPaymentPluginApi.PROPERTY_CURRENCY, DEFAULT_CURRENCY.name(),
+                                                                                    AdyenPaymentPluginApi.PROPERTY_COUNTRY, DEFAULT_COUNTRY);
         final Iterable<PluginProperty> customFields = PluginProperties.buildPluginProperties(customFieldsMap);
         final HostedPaymentPageFormDescriptor descriptor = adyenPaymentPluginApi.buildFormDescriptor(payment.getAccountId(), customFields, ImmutableList.<PluginProperty>of(), context);
         assertEquals(descriptor.getKbAccountId(), payment.getAccountId());
@@ -440,6 +468,112 @@ public class TestAdyenPaymentPluginApi extends TestWithEmbeddedDBBase {
         verifyPaymentTransactionInfoPlugin(authorizationTransaction, authorizationInfoPlugin);
     }
 
+    @Test(groups = "slow")
+    public void testAuthorizeAndComplete3DSecure() throws Exception {
+        adyenPaymentPluginApi.addPaymentMethod(payment.getAccountId(), payment.getPaymentMethodId(), adyenPaymentMethodPluginCC(), true, propertiesWith3DSInfo, context);
+        final PaymentTransaction authorizationTransaction1 = TestUtils.buildPaymentTransaction(payment, TransactionType.AUTHORIZE, DEFAULT_CURRENCY);
+        final PaymentTransaction authorizationTransaction2 = TestUtils.buildPaymentTransaction(payment, TransactionType.AUTHORIZE, DEFAULT_CURRENCY);
+        final PaymentTransaction captureTransaction = TestUtils.buildPaymentTransaction(payment, TransactionType.CAPTURE, DEFAULT_CURRENCY);
+
+        final PaymentTransactionInfoPlugin authorizationInfoPlugin1 = adyenPaymentPluginApi.authorizePayment(payment.getAccountId(),
+                                                                                                             payment.getId(),
+                                                                                                             authorizationTransaction1.getId(),
+                                                                                                             payment.getPaymentMethodId(),
+                                                                                                             authorizationTransaction1.getAmount(),
+                                                                                                             authorizationTransaction1.getCurrency(),
+                                                                                                             propertiesWith3DSInfo,
+                                                                                                             context);
+
+        assertEquals(authorizationInfoPlugin1.getGatewayError(), "RedirectShopper");
+        final URL issuerUrl = new URL(PluginProperties.findPluginPropertyValue("issuerUrl", authorizationInfoPlugin1.getProperties()));
+        final String md = PluginProperties.findPluginPropertyValue("MD", authorizationInfoPlugin1.getProperties());
+        final String paReq = PluginProperties.findPluginPropertyValue("PaReq", authorizationInfoPlugin1.getProperties());
+
+        final String responseHTML = given().log().all()
+                                           .contentType(ContentType.URLENC)
+                                           .accept(ContentType.HTML)
+                                           .formParam("MD", md)
+                                           .formParam("PaReq", paReq)
+                                           .formParam("TermUrl", DUMMY_URL)
+                                           .post(issuerUrl)
+                                           .then().log().all()
+                                           .statusCode(HTTP_200_OK)
+                                           .extract().asString();
+
+        final Map<String, String> formParams = extractForm(responseHTML);
+        assertFalse(formParams.isEmpty(), "No FORM found in HTML response");
+
+        final String formAction = rewriteFormURL(issuerUrl, formParams.remove("formAction"));
+        formParams.put("username", "user");
+        formParams.put("password", "password");
+
+        final String redirectHTML = given().log().all()
+                                           .contentType(ContentType.URLENC)
+                                           .accept(ContentType.HTML)
+                                           .formParams(formParams)
+                                           .post(formAction)
+                                           .then().log().all()
+                                           .statusCode(HTTP_200_OK)
+                                           .extract().asString();
+
+        final Map<String, String> redirectFormParams = extractForm(redirectHTML);
+        assertFalse(redirectFormParams.isEmpty(), "No FORM found in redirect HTML response");
+        assertEquals(DUMMY_URL, redirectFormParams.remove("formAction"));
+        redirectFormParams.put(PROPERTY_FROM_HPP, "true");
+
+        final List<PluginProperty> propertiesWithCompleteParams = PluginProperties.buildPluginProperties(redirectFormParams);
+
+        final PaymentTransactionInfoPlugin authorizationInfoPlugin2 = adyenPaymentPluginApi.authorizePayment(payment.getAccountId(),
+                                                                                                             payment.getId(),
+                                                                                                             authorizationTransaction2.getId(),
+                                                                                                             payment.getPaymentMethodId(),
+                                                                                                             authorizationTransaction2.getAmount(),
+                                                                                                             authorizationTransaction2.getCurrency(),
+                                                                                                             propertiesWithCompleteParams,
+                                                                                                             context);
+
+        verifyPaymentTransactionInfoPlugin(authorizationTransaction2, authorizationInfoPlugin2);
+
+        final PaymentTransactionInfoPlugin captureInfoPlugin = adyenPaymentPluginApi.capturePayment(payment.getAccountId(),
+                                                                                                    payment.getId(),
+                                                                                                    captureTransaction.getId(),
+                                                                                                    payment.getPaymentMethodId(),
+                                                                                                    captureTransaction.getAmount(),
+                                                                                                    captureTransaction.getCurrency(),
+                                                                                                    authorizationInfoPlugin2.getProperties(),
+                                                                                                    context);
+
+        verifyPaymentTransactionInfoPlugin(captureTransaction, captureInfoPlugin);
+
+    }
+
+    private Map<String, String> extractForm(final String html) {
+        final Map<String, String> fields = new HashMap<String, String>();
+        final Document doc = Jsoup.parse(html);
+        final Elements forms = doc.getElementsByTag("form");
+        for (final Element form : forms) {
+            if ("post".equalsIgnoreCase(form.attr("method"))) {
+                fields.put("formAction", form.attr("action"));
+                final Elements inputs = form.getElementsByTag("input");
+                for (final Element input : inputs) {
+                    final String value = input.val();
+                    if (value != null && !value.isEmpty() && !"Submit".equalsIgnoreCase(value)) {
+                        fields.put(input.attr("name"), value);
+                    }
+                }
+                return fields;
+            }
+        }
+        return Collections.emptyMap();
+    }
+
+    private String rewriteFormURL(final URL issuerUrl, final String formAction) {
+        if (formAction.startsWith("http")) {
+            return formAction;
+        } else {
+            return issuerUrl.getProtocol() + "://" + issuerUrl.getHost() + (issuerUrl.getPort() != HTTP_PORT && issuerUrl.getPort() != HTTPS_PORT ? ":" + issuerUrl.getPort() : "") + formAction;
+        }
+    }
 
     private void verifyPaymentTransactionInfoPlugin(final PaymentTransaction paymentTransaction, final PaymentTransactionInfoPlugin paymentTransactionInfoPlugin) {
         verifyPaymentTransactionInfoPlugin(paymentTransaction, paymentTransactionInfoPlugin, true);
@@ -499,8 +633,8 @@ public class TestAdyenPaymentPluginApi extends TestWithEmbeddedDBBase {
                 expectedPaymentPluginStatus = ImmutableList.of(PaymentPluginStatus.PENDING);
                 break;
         }
-        assertTrue(expectedGatewayErrors.contains(paymentTransactionInfoPlugin.getGatewayError()), paymentTransactionInfoPlugin.getGatewayError());
-        assertTrue(expectedPaymentPluginStatus.contains(paymentTransactionInfoPlugin.getStatus()), paymentTransactionInfoPlugin.getStatus().toString());
+        assertTrue(expectedGatewayErrors.contains(paymentTransactionInfoPlugin.getGatewayError()), "was: " + paymentTransactionInfoPlugin.getGatewayError());
+        assertTrue(expectedPaymentPluginStatus.contains(paymentTransactionInfoPlugin.getStatus()), "was: " + paymentTransactionInfoPlugin.getStatus().toString());
 
         assertNull(paymentTransactionInfoPlugin.getGatewayErrorCode());
         assertNotNull(paymentTransactionInfoPlugin.getFirstPaymentReferenceId());

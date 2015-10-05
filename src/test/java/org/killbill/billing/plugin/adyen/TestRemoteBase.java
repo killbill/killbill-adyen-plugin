@@ -59,6 +59,8 @@ public abstract class TestRemoteBase {
     public static final String CC_VERIFICATION_VALUE = "7373";
     public static final String CC_TYPE = "amex";
 
+    public static final String CC_3DS_NUMBER = "345177925488348";
+
     public static final String DD_IBAN = "DE87123456781234567890";
     public static final String DD_BIC = "TESTDE01XXX";
     public static final String DD_HOLDER_NAME = "A. Schneider";
