@@ -7,9 +7,14 @@
 .idea/libraries/
 .idea/shelf/
 .idea/dictionaries/
+!.idea/copyright/
+!.idea/inspectionProfiles/
+!.idea/runConfigurations/
 .idea/*.xml
 !.idea/codeStyleSettings.xml
+!.idea/compiler.xml
 !.idea/encodings.xml
+!.idea/projectCodeStyle.xml
 .idea/*.ids
 *.ipr
 *.iws
