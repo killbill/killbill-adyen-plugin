@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Groupon, Inc
+ * Copyright 2015 Groupon, Inc
  *
  * Groupon licenses this file to you under the Apache License, version 2.0
  * (the "License"); you may not use this file except in compliance with the
@@ -17,11 +17,13 @@
 package org.killbill.billing.plugin.adyen;
 
 import java.io.IOException;
+import java.sql.SQLException;
 import java.util.Properties;
 
 import org.killbill.billing.account.api.Account;
-import org.killbill.billing.catalog.api.Currency;
+import org.killbill.billing.payment.api.Payment;
 import org.killbill.billing.plugin.TestUtils;
+import org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi;
 import org.killbill.billing.plugin.adyen.client.AdyenConfigProperties;
 import org.killbill.billing.plugin.adyen.client.AdyenPaymentPortRegistry;
 import org.killbill.billing.plugin.adyen.client.PaymentPortRegistry;
@@ -38,48 +40,62 @@ import org.killbill.billing.plugin.adyen.client.payment.service.Signer;
 import org.killbill.billing.plugin.adyen.core.AdyenActivator;
 import org.killbill.billing.plugin.adyen.core.AdyenConfigurationHandler;
 import org.killbill.billing.plugin.adyen.core.AdyenHostedPaymentPageConfigurationHandler;
+import org.killbill.billing.plugin.adyen.dao.AdyenDao;
+import org.killbill.clock.Clock;
+import org.killbill.clock.DefaultClock;
+import org.killbill.killbill.osgi.libs.killbill.OSGIConfigPropertiesService;
 import org.killbill.killbill.osgi.libs.killbill.OSGIKillbillAPI;
 import org.killbill.killbill.osgi.libs.killbill.OSGIKillbillLogService;
-import org.testng.annotations.BeforeClass;
 
-public abstract class TestRemoteBase {
+import static org.mockito.Mockito.mock;
+
+/**
+ * First version of a test builder with a fluent api.
+ * Goal is to have a more configurable test setup.
+ * <p/>
+ * TODO remove parts which are redundant with TestRemoteBase
+ */
+public class AdyenPluginMockBuilder {
 
     // To run these tests, you need a properties file in the classpath (e.g. src/test/resources/adyen.properties)
     // See README.md for details on the required properties
     private static final String PROPERTIES_FILE_NAME = "adyen.properties";
+    private final Properties adyenProperties;
+    private Account account;
+    private Payment payment;
+    private AdyenDao dao;
 
-    // Simulate payments using a credit card in Germany (requires credentials for a German merchant account)
-    public static final Currency DEFAULT_CURRENCY = Currency.EUR;
-    public static final String DEFAULT_COUNTRY = "DE";
-    // Magic details at https://www.adyen.com/home/support/knowledgebase/implementation-articles.html
-    // Note: make sure to use the Amex one, as Visa/MC is not always configured by default
-    public static final String CC_NUMBER = "370000000000002";
-    public static final int CC_EXPIRATION_MONTH = 8;
-    public static final int CC_EXPIRATION_YEAR = 2018;
-    public static final String CC_VERIFICATION_VALUE = "7373";
-    public static final String CC_TYPE = "amex";
+    private AdyenPluginMockBuilder() throws IOException, SQLException {
+        adyenProperties = getDefaultAdyenConfigProperties();
+        dao = mock(AdyenDao.class);
 
-    public static final String CC_3DS_NUMBER = "345177925488348";
+    }
 
-    public static final String DD_IBAN = "DE87123456781234567890";
-    public static final String DD_BIC = "TESTDE01XXX";
-    public static final String DD_HOLDER_NAME = "A. Schneider";
-    public static final String DD_TYPE = "sepadirectdebit";
+    public static AdyenPluginMockBuilder newPlugin() throws Exception {
+        return new AdyenPluginMockBuilder();
+    }
 
-    public static final String ELV_ACCOUNT_NUMBER = "1234567890";
-    public static final String ELV_BLZ = "12345678";
-    public static final String ELV_HOLDER_NAME = "Bill Killson";
-    public static final String ELV_TYPE = "elv";
+    private static Properties getDefaultAdyenConfigProperties() throws IOException {
+        return TestUtils.loadProperties(PROPERTIES_FILE_NAME);
+    }
 
-    protected AdyenConfigProperties adyenConfigProperties;
-    protected AdyenConfigurationHandler adyenConfigurationHandler;
-    protected AdyenHostedPaymentPageConfigurationHandler adyenHostedPaymentPageConfigurationHandler;
-    protected AdyenPaymentServiceProviderPort adyenPaymentServiceProviderPort;
-    protected AdyenPaymentServiceProviderHostedPaymentPagePort adyenPaymentServiceProviderHostedPaymentPagePort;
+    public AdyenPluginMockBuilder withAdyenProperty(final String key, final String value) {
+        adyenProperties.setProperty(key, value);
+        return this;
+    }
 
-    @BeforeClass(groups = "slow")
-    public void setUpBeforeClass() throws Exception {
-        adyenConfigProperties = getAdyenConfigProperties();
+    public AdyenPluginMockBuilder withAccount(final Account account) {
+        this.account = account;
+        return this;
+    }
+
+    public AdyenPluginMockBuilder withPayment(final Payment payment) {
+        this.payment = payment;
+        return this;
+    }
+
+    public AdyenPaymentPluginApi build() throws Exception {
+        final AdyenConfigProperties adyenConfigProperties = new AdyenConfigProperties(adyenProperties);
 
         final PaymentInfoConverterManagement paymentInfoConverterManagement = new PaymentInfoConverterService();
 
@@ -92,22 +108,29 @@ public abstract class TestRemoteBase {
         final PaymentPortRegistry adyenPaymentPortRegistry = new AdyenPaymentPortRegistry(adyenConfigProperties, loggingInInterceptor, loggingOutInterceptor, httpHeaderInterceptor);
         final AdyenPaymentRequestSender adyenPaymentRequestSender = new AdyenPaymentRequestSender(adyenPaymentPortRegistry);
 
-        adyenPaymentServiceProviderPort = new AdyenPaymentServiceProviderPort(paymentInfoConverterManagement, adyenRequestFactory, adyenPaymentRequestSender);
-        adyenPaymentServiceProviderHostedPaymentPagePort = new AdyenPaymentServiceProviderHostedPaymentPagePort(adyenConfigProperties, adyenRequestFactory);
+        final AdyenPaymentServiceProviderPort adyenPaymentServiceProviderPort = new AdyenPaymentServiceProviderPort(paymentInfoConverterManagement, adyenRequestFactory, adyenPaymentRequestSender);
+        final AdyenPaymentServiceProviderHostedPaymentPagePort adyenPaymentServiceProviderHostedPaymentPagePort = new AdyenPaymentServiceProviderHostedPaymentPagePort(adyenConfigProperties, adyenRequestFactory);
 
-        final Account account = TestUtils.buildAccount(Currency.BTC, "US");
         final OSGIKillbillAPI killbillAPI = TestUtils.buildOSGIKillbillAPI(account, TestUtils.buildPayment(account.getId(), account.getPaymentMethodId(), account.getCurrency()), null);
         final OSGIKillbillLogService logService = TestUtils.buildLogService();
 
-        adyenConfigurationHandler = new AdyenConfigurationHandler(AdyenActivator.PLUGIN_NAME, killbillAPI, logService);
+        final AdyenConfigurationHandler adyenConfigurationHandler = new AdyenConfigurationHandler(AdyenActivator.PLUGIN_NAME, killbillAPI, logService);
         adyenConfigurationHandler.setDefaultConfigurable(adyenPaymentServiceProviderPort);
 
-        adyenHostedPaymentPageConfigurationHandler = new AdyenHostedPaymentPageConfigurationHandler(AdyenActivator.PLUGIN_NAME, killbillAPI, logService);
+        final AdyenHostedPaymentPageConfigurationHandler adyenHostedPaymentPageConfigurationHandler = new AdyenHostedPaymentPageConfigurationHandler(AdyenActivator.PLUGIN_NAME, killbillAPI, logService);
         adyenHostedPaymentPageConfigurationHandler.setDefaultConfigurable(adyenPaymentServiceProviderHostedPaymentPagePort);
+
+        final Clock clock = new DefaultClock();
+
+        final OSGIKillbillAPI killbillApi = TestUtils.buildOSGIKillbillAPI(account, payment, null);
+
+        final OSGIConfigPropertiesService configPropertiesService = mock(OSGIConfigPropertiesService.class);
+
+        return new AdyenPaymentPluginApi(adyenConfigurationHandler, adyenHostedPaymentPageConfigurationHandler, killbillApi, configPropertiesService, logService, clock, dao);
     }
 
-    private AdyenConfigProperties getAdyenConfigProperties() throws IOException {
-        final Properties properties = TestUtils.loadProperties(PROPERTIES_FILE_NAME);
-        return new AdyenConfigProperties(properties);
+    public AdyenPluginMockBuilder withDatabaseAccess(final AdyenDao dao) {
+        this.dao = dao;
+        return this;
     }
 }

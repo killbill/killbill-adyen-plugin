@@ -33,7 +33,6 @@ public class AdyenConfigProperties {
     private static final Locale LOCALE_EN_UK = new Locale("en", "UK");
 
     private final Map<String, String> merchantAccountMap = new ConcurrentHashMap<String, String>();
-    private final Map<String, String> countryCodeMap = new ConcurrentHashMap<String, String>();
     private final Map<String, String> userMap = new ConcurrentHashMap<String, String>();
     private final Map<String, String> passwordMap = new ConcurrentHashMap<String, String>();
     private final Map<String, String> skinMap = new ConcurrentHashMap<String, String>();
@@ -58,6 +57,8 @@ public class AdyenConfigProperties {
     private final String acquirersList;
     private final String defaultAcquirer;
     private final String defaultCountryIsoCode;
+    private final String paymentConnectionTimeout;
+    private final String paymentReadTimeout;
 
     public AdyenConfigProperties(final Properties properties) {
         this.allowChunking = properties.getProperty(PROPERTY_PREFIX + "allowChunking");
@@ -74,6 +75,9 @@ public class AdyenConfigProperties {
         this.acquirersList = properties.getProperty(PROPERTY_PREFIX + "acquirersList");
         this.defaultAcquirer = properties.getProperty(PROPERTY_PREFIX + "defaultAcquirer");
         this.defaultCountryIsoCode = properties.getProperty(PROPERTY_PREFIX + "defaultCountryIsoCode");
+
+        this.paymentConnectionTimeout = properties.getProperty(PROPERTY_PREFIX + "paymentConnectionTimeout");
+        this.paymentReadTimeout = properties.getProperty(PROPERTY_PREFIX + "paymentReadTimeout");
 
         this.hmacSecrets = properties.getProperty(PROPERTY_PREFIX + "hmac.secret");
         refillMap(secretMap, hmacSecrets);
@@ -94,7 +98,6 @@ public class AdyenConfigProperties {
                 final String countryIsoCode = account.split(KEY_VALUE_DELIMITER)[0];
                 final String merchantAccount = account.split(KEY_VALUE_DELIMITER)[1];
                 merchantAccountMap.put(countryIsoCode, merchantAccount);
-                countryCodeMap.put(merchantAccount, countryIsoCode);
             }
         }
     }
@@ -109,7 +112,7 @@ public class AdyenConfigProperties {
         if (Strings.isNullOrEmpty(countryIsoCode)) {
             return null;
         }
-        return countryIsoCode.equalsIgnoreCase("GB") ? "UK" : countryIsoCode;
+        return "GB".equalsIgnoreCase(countryIsoCode) ? "UK" : countryIsoCode;
     }
 
     public static String adjustCountryCode(final String countryIsoCode) {
@@ -175,6 +178,7 @@ public class AdyenConfigProperties {
         return paymentUrl;
     }
 
+    @SuppressWarnings("unused")
     public String getPaymentWsdlUrl() {
         return paymentWsdlUrl;
     }
@@ -183,6 +187,7 @@ public class AdyenConfigProperties {
         return recurringUrl;
     }
 
+    @SuppressWarnings("unused")
     public String getRecurringWsdlUrl() {
         return recurringWsdlUrl;
     }
@@ -242,5 +247,13 @@ public class AdyenConfigProperties {
                 map.put(entry.split("#")[0], entry.split(KEY_VALUE_DELIMITER)[1]);
             }
         }
+    }
+
+    public String getPaymentConnectionTimeout() {
+        return paymentConnectionTimeout;
+    }
+
+    public String getPaymentReadTimeout() {
+        return paymentReadTimeout;
     }
 }
