@@ -143,6 +143,12 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
     public static final String PROPERTY_DD_BANK_IDENTIFIER_CODE = "ddBic";
     public static final String PROPERTY_DD_BANKLEITZAHL = "ddBlz";
 
+    /**
+     * Cont auth disabled validation on adyens side (no cvc required). We practically tell them that the payment data is valid.
+     * Should be given as "true" or "false".
+     */
+    public static final String PROPERTY_CONTINUOUS_AUTHENTICATION = "contAuth";
+
     private final AdyenConfigurationHandler adyenConfigurationHandler;
     private final AdyenHostedPaymentPageConfigurationHandler adyenHppConfigurationHandler;
     private final AdyenDao dao;
@@ -492,15 +498,25 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
         final String ccType = PluginProperties.getValue(PROPERTY_CC_TYPE, paymentMethodsRecordCcType, properties);
         final String recurringDetailId = PluginProperties.findPluginPropertyValue(PROPERTY_RECURRING_DETAIL_ID, mergedProperties);
 
+        final PaymentInfo paymentInfo;
         if (recurringDetailId != null) {
-            return buildRecurring(paymentMethodsRecord, paymentProvider, mergedProperties);
+            paymentInfo = buildRecurring(paymentMethodsRecord, paymentProvider, mergedProperties);
         } else if ("sepadirectdebit".equals(ccType)) {
-            return buildSepaDirectDebit(nonNullPaymentMethodsRecord, paymentProvider, mergedProperties);
+            paymentInfo = buildSepaDirectDebit(nonNullPaymentMethodsRecord, paymentProvider, mergedProperties);
         } else if ("elv".equals(ccType)) {
-            return buildElv(nonNullPaymentMethodsRecord, paymentProvider, mergedProperties);
+            paymentInfo = buildElv(nonNullPaymentMethodsRecord, paymentProvider, mergedProperties);
         } else {
-            return buildCreditCard(nonNullPaymentMethodsRecord, paymentProvider, mergedProperties);
+            paymentInfo = buildCreditCard(nonNullPaymentMethodsRecord, paymentProvider, mergedProperties);
         }
+
+        paymentInfo.setContinuousAuthenticationEnabled(isContinuousAuthenticationEnabled(mergedProperties));
+
+        return paymentInfo;
+    }
+
+    private boolean isContinuousAuthenticationEnabled(final Iterable<PluginProperty> mergedProperties) {
+        final String contAuth = PluginProperties.findPluginPropertyValue(PROPERTY_CONTINUOUS_AUTHENTICATION, mergedProperties);
+        return Boolean.parseBoolean(contAuth);
     }
 
     /**

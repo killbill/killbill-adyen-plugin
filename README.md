@@ -355,3 +355,4 @@ Plugin properties
 | PaReq                    | 3D-Secure Pa Request                          |
 | MD                       | 3D-Secure Message Digest                      |
 | TermUrl                  | 3D-Secure Term URL                            |
+| contAuth                 | Continuous authentication enabled (boolean)   |

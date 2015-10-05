@@ -415,6 +415,32 @@ public class TestAdyenPaymentPluginApi extends TestWithEmbeddedDBBase {
         System.out.flush();
     }
 
+    @Test(groups = "slow")
+    public void testAuthorizeWithContinuousAuthentication() throws Exception {
+
+        final Iterable<PluginProperty> contAuthCcProperties = toProperties(ImmutableMap.<String, String>builder()
+                                                                                       .put(AdyenPaymentPluginApi.PROPERTY_CC_TYPE, CC_TYPE)
+                                                                                       .put(AdyenPaymentPluginApi.PROPERTY_CC_LAST_NAME, "Dupont")
+                                                                                       .put(AdyenPaymentPluginApi.PROPERTY_CC_NUMBER, CC_NUMBER)
+                                                                                       .put(AdyenPaymentPluginApi.PROPERTY_CC_EXPIRATION_MONTH, String.valueOf(CC_EXPIRATION_MONTH))
+                                                                                       .put(AdyenPaymentPluginApi.PROPERTY_CC_EXPIRATION_YEAR, String.valueOf(CC_EXPIRATION_YEAR))
+                                                                                       .put(AdyenPaymentPluginApi.PROPERTY_CONTINUOUS_AUTHENTICATION, "true").build());
+        final PaymentTransaction authorizationTransaction = TestUtils.buildPaymentTransaction(payment, TransactionType.AUTHORIZE, DEFAULT_CURRENCY);
+
+        adyenPaymentPluginApi.addPaymentMethod(payment.getAccountId(), payment.getPaymentMethodId(), adyenPaymentMethodPluginCC(), true, contAuthCcProperties, context);
+
+        final PaymentTransactionInfoPlugin authorizationInfoPlugin = adyenPaymentPluginApi.authorizePayment(payment.getAccountId(),
+                                                                                                            payment.getId(),
+                                                                                                            authorizationTransaction.getId(),
+                                                                                                            payment.getPaymentMethodId(),
+                                                                                                            authorizationTransaction.getAmount(),
+                                                                                                            authorizationTransaction.getCurrency(),
+                                                                                                            contAuthCcProperties,
+                                                                                                            context);
+        verifyPaymentTransactionInfoPlugin(authorizationTransaction, authorizationInfoPlugin);
+    }
+
+
     private void verifyPaymentTransactionInfoPlugin(final PaymentTransaction paymentTransaction, final PaymentTransactionInfoPlugin paymentTransactionInfoPlugin) {
         verifyPaymentTransactionInfoPlugin(paymentTransaction, paymentTransactionInfoPlugin, true);
     }
