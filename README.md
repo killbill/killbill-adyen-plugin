@@ -358,3 +358,4 @@ Plugin properties
 | threeDThreshold          | Minimum amount for triggering 3D-Secure       |
 | userAgent                | User-Agent for 3D-Secure Browser Info         |
 | acceptHeader             | Accept-Header for 3D-Secure Browser Info      |
+| contAuth                 | Continuous authentication enabled (boolean)   |
