@@ -675,12 +675,13 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
     }
 
     private Long parseThreeDThreshold(final String threeDThresholdStr) {
-        if (threeDThresholdStr == null) {
+        if (Strings.isNullOrEmpty(threeDThresholdStr)) {
             return null;
         } else {
             try {
                 return Long.valueOf(threeDThresholdStr);
-            } catch (NumberFormatException e) {
+            } catch (final NumberFormatException e) {
+                logService.log(LogService.LOG_ERROR, "Malformed ThreeD Threshold: " + threeDThresholdStr, e);
                 return null;
             }
         }

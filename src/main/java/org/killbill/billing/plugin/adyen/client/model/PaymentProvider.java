@@ -43,7 +43,7 @@ public class PaymentProvider {
     private PaymentType paymentType;
     private String countryIsoCode;
     private Currency currency;
-    private Integer threeDThresholdOriginal;
+    private Long threeDThresholdOriginal;
     private List<Acquirer> acquirers;
     private Acquirer defaultAcquirer;
 
@@ -139,16 +139,16 @@ public class PaymentProvider {
         }
     }
 
-    public Integer getThreeDThresholdOriginal() {
+    public Long getThreeDThresholdOriginal() {
         return threeDThresholdOriginal;
     }
 
-    public void setThreeDThresholdOriginal(final Integer threeDThresholdOriginal) {
+    public void setThreeDThresholdOriginal(final Long threeDThresholdOriginal) {
         this.threeDThresholdOriginal = threeDThresholdOriginal;
     }
 
     public void setThreeDThreshold(final Long threeDThreshold) {
-        this.threeDThresholdOriginal = threeDThreshold != null ? (int) Math.min(threeDThreshold, Integer.MAX_VALUE) : null;
+        this.threeDThresholdOriginal = threeDThreshold != null ? threeDThreshold : null;
     }
 
     /**
@@ -157,15 +157,7 @@ public class PaymentProvider {
      * @return a {@link Long} representing the threshold for 3D Secure
      */
     public Long getThreeDThreshold() {
-        return toLong(threeDThresholdOriginal, DEFAULT_THREE_D_THRESHOLD);
-    }
-
-    private static Long toLong(final Number number, final Long defaultValue) {
-        if (number != null) {
-            return number.longValue();
-        } else {
-            return defaultValue;
-        }
+        return MoreObjects.firstNonNull(threeDThresholdOriginal, DEFAULT_THREE_D_THRESHOLD);
     }
 
     /**
