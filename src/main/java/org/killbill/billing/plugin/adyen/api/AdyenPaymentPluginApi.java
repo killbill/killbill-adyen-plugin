@@ -145,7 +145,7 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
      * Cont auth disabled validation on adyens side (no cvc required). We practically tell them that the payment data is valid.
      * Should be given as "true" or "false".
      */
-    public static final String PROPERTY_CONTINUOUS_AUTHENTICATION = "ContAuth";
+    public static final String PROPERTY_CONTINUOUS_AUTHENTICATION = "contAuth";
 
     private final AdyenConfigurationHandler adyenConfigurationHandler;
     private final AdyenHostedPaymentPageConfigurationHandler adyenHppConfigurationHandler;
