@@ -77,6 +77,9 @@ public class TestAdyenPaymentPluginApi extends TestWithEmbeddedDBBase {
 
     private static final long SLEEP_IN_MILLIS_FOR_RECURRING_DETAIL = 3000L; // 3 Seconds
     private static final String DUMMY_URL = "dummy://url";
+    private static final int HTTP_200_OK = 200;
+    private static final int HTTP_PORT = 80;
+    private static final int HTTPS_PORT = 443;
 
     private Payment payment;
     private CallContext context;
@@ -426,9 +429,9 @@ public class TestAdyenPaymentPluginApi extends TestWithEmbeddedDBBase {
     public void testHPP() throws Exception {
         //noinspection RedundantTypeArguments
         final Map<String, String> customFieldsMap = ImmutableMap.<String, String>of(AdyenPaymentPluginApi.PROPERTY_AMOUNT, "10",
-                                                                    AdyenPaymentPluginApi.PROPERTY_SERVER_URL, "http://killbill.io",
-                                                                    AdyenPaymentPluginApi.PROPERTY_CURRENCY, DEFAULT_CURRENCY.name(),
-                                                                    AdyenPaymentPluginApi.PROPERTY_COUNTRY, DEFAULT_COUNTRY);
+                                                                                    AdyenPaymentPluginApi.PROPERTY_SERVER_URL, "http://killbill.io",
+                                                                                    AdyenPaymentPluginApi.PROPERTY_CURRENCY, DEFAULT_CURRENCY.name(),
+                                                                                    AdyenPaymentPluginApi.PROPERTY_COUNTRY, DEFAULT_COUNTRY);
         final Iterable<PluginProperty> customFields = PluginProperties.buildPluginProperties(customFieldsMap);
         final HostedPaymentPageFormDescriptor descriptor = adyenPaymentPluginApi.buildFormDescriptor(payment.getAccountId(), customFields, ImmutableList.<PluginProperty>of(), context);
         assertEquals(descriptor.getKbAccountId(), payment.getAccountId());
@@ -469,7 +472,7 @@ public class TestAdyenPaymentPluginApi extends TestWithEmbeddedDBBase {
                                            .formParam("TermUrl", DUMMY_URL)
                                            .post(issuerUrl)
                                            .then().log().all()
-                                           .statusCode(200)
+                                           .statusCode(HTTP_200_OK)
                                            .extract().asString();
 
         final Map<String, String> formParams = extractForm(responseHTML);
@@ -485,7 +488,7 @@ public class TestAdyenPaymentPluginApi extends TestWithEmbeddedDBBase {
                                            .formParams(formParams)
                                            .post(formAction)
                                            .then().log().all()
-                                           .statusCode(200)
+                                           .statusCode(HTTP_200_OK)
                                            .extract().asString();
 
         final Map<String, String> redirectFormParams = extractForm(redirectHTML);
@@ -527,7 +530,7 @@ public class TestAdyenPaymentPluginApi extends TestWithEmbeddedDBBase {
             if ("post".equalsIgnoreCase(form.attr("method"))) {
                 fields.put("formAction", form.attr("action"));
                 final Elements inputs = form.getElementsByTag("input");
-                for (Element input : inputs) {
+                for (final Element input : inputs) {
                     final String value = input.val();
                     if (value != null && !value.isEmpty() && !"Submit".equalsIgnoreCase(value)) {
                         fields.put(input.attr("name"), value);
@@ -543,7 +546,7 @@ public class TestAdyenPaymentPluginApi extends TestWithEmbeddedDBBase {
         if (formAction.startsWith("http")) {
             return formAction;
         } else {
-            return issuerUrl.getProtocol() + "://" + issuerUrl.getHost() + (issuerUrl.getPort() != 80 && issuerUrl.getPort() != 443 ? ":" + issuerUrl.getPort() : "") + formAction;
+            return issuerUrl.getProtocol() + "://" + issuerUrl.getHost() + (issuerUrl.getPort() != HTTP_PORT && issuerUrl.getPort() != HTTPS_PORT ? ":" + issuerUrl.getPort() : "") + formAction;
         }
     }
 
