@@ -89,6 +89,7 @@ public class TestAdyenDao extends TestWithEmbeddedDBBase {
         Assert.assertEquals(record.getDccAmount().compareTo(BigDecimal.TEN), 0);
         Assert.assertEquals(record.getDccCurrency(), "EUR");
         Assert.assertEquals(objectMapper.readValue(record.getAdditionalData(), Map.class), purchaseResult.getFormParameter());
+        Assert.assertEquals(record.getPspResult(), PaymentServiceProviderResult.AUTHORISED.toString());
     }
 
     @Test(groups = "slow")

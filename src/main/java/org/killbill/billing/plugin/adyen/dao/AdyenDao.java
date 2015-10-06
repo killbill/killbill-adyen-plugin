@@ -208,7 +208,7 @@ public class AdyenDao extends PluginPaymentDao<AdyenResponsesRecord, AdyenRespon
                                    transactionType.toString(),
                                    amount,
                                    currency,
-                                   result.getResult() == null ? null : result.getResult().toString(),
+                                   result.getResult().isPresent() ? result.getResult().get().toString() : null,
                                    result.getPspReference(),
                                    result.getAuthCode(),
                                    result.getResultCode(),
