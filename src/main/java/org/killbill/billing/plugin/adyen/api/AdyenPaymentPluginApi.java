@@ -19,6 +19,7 @@ package org.killbill.billing.plugin.adyen.api;
 import java.math.BigDecimal;
 import java.net.URISyntaxException;
 import java.sql.SQLException;
+import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
@@ -196,14 +197,27 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
 
     @Override
     public PaymentTransactionInfoPlugin authorizePayment(final UUID kbAccountId, final UUID kbPaymentId, final UUID kbTransactionId, final UUID kbPaymentMethodId, final BigDecimal amount, final Currency currency, final Iterable<PluginProperty> properties, final CallContext context) throws PaymentPluginApiException {
+        final TransactionExecutor<PurchaseResult> authorizeTransactionExecutor;
+        if (hasPreviousAdyenRespondseRecord(kbPaymentId, kbTransactionId.toString(), context)) {
+            final Map<String, String[]> requestParameterMap = toRequestParameterMap(properties);
+            authorizeTransactionExecutor = new TransactionExecutor<PurchaseResult>() {
+                @Override
+                public PurchaseResult execute(final Long amount, final PaymentData paymentData, final OrderData orderData, final UserData userData, final String termUrl, final SplitSettlementData splitSettlementData) {
+                    final AdyenPaymentServiceProviderPort adyenPort = adyenConfigurationHandler.getConfigurable(context.getTenantId());
+                    return adyenPort.authorize3DSecure(amount, paymentData, userData, requestParameterMap, splitSettlementData);
+                }
+            };
+        } else {
+            authorizeTransactionExecutor = new TransactionExecutor<PurchaseResult>() {
+                @Override
+                public PurchaseResult execute(final Long amount, final PaymentData paymentData, final OrderData orderData, final UserData userData, final String termUrl, final SplitSettlementData splitSettlementData) {
+                    final AdyenPaymentServiceProviderPort adyenPort = adyenConfigurationHandler.getConfigurable(context.getTenantId());
+                    return adyenPort.authorise(amount, paymentData, orderData, userData, termUrl, splitSettlementData);
+                }
+            };
+        }
         return executeInitialTransaction(TransactionType.AUTHORIZE,
-                                         new TransactionExecutor<PurchaseResult>() {
-                                             @Override
-                                             public PurchaseResult execute(final Long amount, final PaymentData paymentData, final OrderData orderData, final UserData userData, final String termUrl, final SplitSettlementData splitSettlementData) {
-                                                 final AdyenPaymentServiceProviderPort adyenPort = adyenConfigurationHandler.getConfigurable(context.getTenantId());
-                                                 return adyenPort.authorise(amount, paymentData, orderData, userData, termUrl, splitSettlementData);
-                                             }
-                                         },
+                                         authorizeTransactionExecutor,
                                          kbAccountId,
                                          kbPaymentId,
                                          kbTransactionId,
@@ -778,4 +792,26 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
                                   }
                               }).getId();
     }
+
+    private boolean hasPreviousAdyenRespondseRecord(final UUID kbPaymentId, final String kbPaymentTransactionId, final CallContext context) {
+        try {
+            final AdyenResponsesRecord previousAuthorizationResponse = dao.getSuccessfulAuthorizationResponse(kbPaymentId, context.getTenantId());
+            return previousAuthorizationResponse != null && previousAuthorizationResponse.getKbPaymentTransactionId().equals(kbPaymentTransactionId);
+        } catch (final SQLException e) {
+            logService.log(LogService.LOG_ERROR, "Failed to get previous AdyenResponsesRecord", e);
+            return false;
+        }
+    }
+
+    private Map<String, String[]> toRequestParameterMap(final Iterable<PluginProperty> pluginProperties) {
+        final Map<String, String[]> requestParameterMap = new HashMap<String, String[]>();
+        for (final PluginProperty pluginProperty : pluginProperties) {
+            final Object value = pluginProperty.getValue();
+            if (value instanceof String) {
+                requestParameterMap.put(pluginProperty.getKey(), new String[]{(String)value});
+            }
+        }
+        return requestParameterMap;
+    }
+
 }

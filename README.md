@@ -353,6 +353,7 @@ Plugin properties
 | state                    | Billing address state                         |
 | country                  | Billing address country                       |
 | PaReq                    | 3D-Secure Pa Request                          |
+| PaRes                    | 3D-Secure Pa Response                         |
 | MD                       | 3D-Secure Message Digest                      |
 | TermUrl                  | 3D-Secure Term URL                            |
 | threeDThreshold          | Minimum amount for triggering 3D-Secure       |
