@@ -165,20 +165,21 @@ public class AdyenPaymentServiceProviderPort implements Closeable {
         }
 
         logger.info("received adyen 3dSecure authorize response: {}", adyenCallResult);
-        final PaymentResult result = adyenCallResult.getResult().get();
-        final PurchaseResult purchaseResult;
-        final PaymentServiceProviderResult paymentServiceProviderResult = PaymentServiceProviderResult.getPaymentResultForId(result.getResultCode());
-        if (paymentServiceProviderResult != PaymentServiceProviderResult.REDIRECT_SHOPPER) {
-            purchaseResult = new PurchaseResult(PaymentServiceProviderResult.getPaymentResultForId(result.getResultCode()),
-                                                result.getAuthCode(),
-                                                result.getPspReference(),
-                                                result.getRefusalReason(),
-                                                result.getResultCode(),
-                                                paymentData.getPaymentInternalRef());
-        } else {
-            final Map<String, String> formParams = new HashMap<String, String>();
-            formParams.put("PaReq", result.getPaRequest());
-            formParams.put("MD", result.getMd());
+        if (adyenCallResult.getResult().isPresent()) {
+            final PaymentResult result = adyenCallResult.getResult().get();
+            final PurchaseResult purchaseResult;
+            final PaymentServiceProviderResult paymentServiceProviderResult = PaymentServiceProviderResult.getPaymentResultForId(result.getResultCode());
+            if (paymentServiceProviderResult != PaymentServiceProviderResult.REDIRECT_SHOPPER) {
+                purchaseResult = new PurchaseResult(PaymentServiceProviderResult.getPaymentResultForId(result.getResultCode()),
+                                                    result.getAuthCode(),
+                                                    result.getPspReference(),
+                                                    result.getRefusalReason(),
+                                                    result.getResultCode(),
+                                                    paymentData.getPaymentInternalRef());
+            } else {
+                final Map<String, String> formParams = new HashMap<String, String>();
+                formParams.put("PaReq", result.getPaRequest());
+                formParams.put("MD", result.getMd());
 
                 purchaseResult = new PurchaseResult(paymentServiceProviderResult,
                                                     result.getAuthCode(),
@@ -190,8 +191,12 @@ public class AdyenPaymentServiceProviderPort implements Closeable {
                                                     formParams);
             }
 
-        logger.info("authorize3DSecure Done {}", purchaseResult);
-        return purchaseResult;
+            logger.info("authorize3DSecure Done {}", purchaseResult);
+            return purchaseResult;
+        } else {
+            logger.error("authorize3DSecure Error {}", adyenCallResult);
+            return new PurchaseResult(paymentData.getPaymentInternalRef(), adyenCallResult.getResponseStatus().get());
+        }
     }
 
     public PaymentModificationResponse refund(final Long externalAmount,
