@@ -16,8 +16,10 @@
 
 package org.killbill.billing.plugin.adyen.api;
 
+import java.io.UnsupportedEncodingException;
 import java.math.BigDecimal;
 import java.net.URISyntaxException;
+import java.net.URLDecoder;
 import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Locale;
@@ -56,6 +58,7 @@ import org.killbill.billing.plugin.adyen.client.model.PurchaseResult;
 import org.killbill.billing.plugin.adyen.client.model.RecurringType;
 import org.killbill.billing.plugin.adyen.client.model.SplitSettlementData;
 import org.killbill.billing.plugin.adyen.client.model.UserData;
+import org.killbill.billing.plugin.adyen.client.model.paymentinfo.Card;
 import org.killbill.billing.plugin.adyen.client.model.paymentinfo.CreditCard;
 import org.killbill.billing.plugin.adyen.client.model.paymentinfo.Elv;
 import org.killbill.billing.plugin.adyen.client.model.paymentinfo.OneClick;
@@ -105,6 +108,7 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
     public static final String PROPERTY_IP = "ip";
     public static final String PROPERTY_HOLDER_NAME = "holderName";
     public static final String PROPERTY_SHIP_BEFORE_DATE = "shipBeforeDate";
+    public static final String PROPERTY_INSTALLMENTS = "installments";
     public static final String PROPERTY_PAYMENT_PROVIDER_TYPE = "paymentProviderType";
     public static final String PROPERTY_PAYMENT_EXTERNAL_KEY = "paymentExternalKey";
     public static final String PROPERTY_SERVER_URL = "serverUrl";
@@ -132,6 +136,7 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
 
     // 3-D Secure
     public static final String PROPERTY_PA_REQ = "PaReq";
+    public static final String PROPERTY_PA_RES = "PaRes";
     public static final String PROPERTY_MD = "MD";
     public static final String PROPERTY_DCC_AMOUNT_VALUE = "dccAmount";
     public static final String PROPERTY_DCC_AMOUNT_CURRENCY = "dccCurrency";
@@ -546,37 +551,69 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
         return record;
     }
 
-    private CreditCard buildCreditCard(final AdyenPaymentMethodsRecord paymentMethodsRecord, final PaymentProvider paymentProvider, final Iterable<PluginProperty> properties) {
-        final CreditCard creditCard = new CreditCard(paymentProvider);
-
+    private <C extends Card> C buildCard(final C card, final AdyenPaymentMethodsRecord paymentMethodsRecord, final Iterable<PluginProperty> properties) {
         // By convention, support the same keys as the Ruby plugins (https://github.com/killbill/killbill-plugin-framework-ruby/blob/master/lib/killbill/helpers/active_merchant/payment_plugin.rb)
         final String ccNumber = PluginProperties.getValue(PROPERTY_CC_NUMBER, paymentMethodsRecord.getCcNumber(), properties);
-        creditCard.setCcNumber(ccNumber);
+        card.setCcNumber(ccNumber);
 
         final String ccFirstName = PluginProperties.getValue(PROPERTY_CC_FIRST_NAME, paymentMethodsRecord.getCcFirstName(), properties);
         final String ccLastName = PluginProperties.getValue(PROPERTY_CC_LAST_NAME, paymentMethodsRecord.getCcLastName(), properties);
-        creditCard.setCcHolderName(holderName(ccFirstName, ccLastName));
+        card.setCcHolderName(holderName(ccFirstName, ccLastName));
 
         final String ccExpirationMonth = PluginProperties.getValue(PROPERTY_CC_EXPIRATION_MONTH, paymentMethodsRecord.getCcExpMonth(), properties);
         if (ccExpirationMonth != null) {
-            creditCard.setValidUntilMonth(Integer.valueOf(ccExpirationMonth));
+            card.setValidUntilMonth(Integer.valueOf(ccExpirationMonth));
         }
 
         final String ccExpirationYear = PluginProperties.getValue(PROPERTY_CC_EXPIRATION_YEAR, paymentMethodsRecord.getCcExpYear(), properties);
         if (ccExpirationYear != null) {
-            creditCard.setValidUntilYear(Integer.valueOf(ccExpirationYear));
+            card.setValidUntilYear(Integer.valueOf(ccExpirationYear));
         }
 
         final String ccVerificationValue = PluginProperties.getValue(PROPERTY_CC_VERIFICATION_VALUE, paymentMethodsRecord.getCcVerificationValue(), properties);
         if (ccVerificationValue != null) {
-            creditCard.setCcSecCode(ccVerificationValue);
+            card.setCcSecCode(ccVerificationValue);
         }
 
         final String ccUserAgent = PluginProperties.findPluginPropertyValue(PROPERTY_USER_AGENT, properties);
         final String ccAcceptHeader = PluginProperties.findPluginPropertyValue(PROPERTY_ACCEPT_HEADER, properties);
         if (ccUserAgent != null && ccAcceptHeader != null) {
-            creditCard.setUserAgent(ccUserAgent);
-            creditCard.setAcceptHeader(ccAcceptHeader);
+            card.setUserAgent(ccUserAgent);
+            card.setAcceptHeader(ccAcceptHeader);
+        }
+
+        final String md = PluginProperties.findPluginPropertyValue(PROPERTY_MD, properties);
+        if (md != null ) {
+            // TODO: decode might need to be done more general
+            card.setMd(decode(md));
+        }
+        final String paRes = PluginProperties.findPluginPropertyValue(PROPERTY_PA_RES, properties);
+        if (paRes != null) {
+            // TODO: decode might need to be done more general
+            card.setPaRes(decode(paRes));
+        }
+        return card;
+    }
+
+    /**
+     * TODO: decode might need to be done more general.
+     * @param value to be decoded
+     * @return decoded value
+     */
+    private String decode(final String value) {
+        try {
+            return URLDecoder.decode(value, "UTF-8");
+        } catch (UnsupportedEncodingException e) {
+            return value;
+        }
+    }
+
+    private CreditCard buildCreditCard(final AdyenPaymentMethodsRecord paymentMethodsRecord, final PaymentProvider paymentProvider, final Iterable<PluginProperty> properties) {
+        final CreditCard creditCard = buildCard(new CreditCard(paymentProvider), paymentMethodsRecord, properties);
+
+        final String installments = PluginProperties.findPluginPropertyValue(PROPERTY_INSTALLMENTS, properties);
+        if (installments != null ) {
+            creditCard.setInstallments(Integer.valueOf(installments));
         }
 
         return creditCard;
