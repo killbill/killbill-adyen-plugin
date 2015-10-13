@@ -42,7 +42,6 @@ create table adyen_responses (
 , kb_tenant_id char(36) not null
 , primary key(record_id)
 ) /*! CHARACTER SET utf8 COLLATE utf8_bin */;
-create unique index adyen_responses_psp_reference on adyen_responses(psp_reference);
 create index adyen_responses_kb_payment_id on adyen_responses(kb_payment_id);
 create index adyen_responses_kb_payment_transaction_id on adyen_responses(kb_payment_transaction_id);
 
