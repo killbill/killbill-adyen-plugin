@@ -94,7 +94,7 @@ public class AdyenRequestFactory {
     public PaymentRequest3D paymentRequest3d(final String reference,
                                              final Card card,
                                              final BrowserInfo info,
-                                             final Map<String, String[]> requestParameterMap,
+                                             final Map<String, String> requestParameterMap,
                                              @Nullable final SplitSettlementData splitSettlementData,
                                              final String customerIp,
                                              final String customerEmail,
@@ -253,14 +253,13 @@ public class AdyenRequestFactory {
      * @param requestParameterMap parameters send in the request from Adyen
      * @return additional data to be incorporated in the request
      */
-    List<AnyType2AnyTypeMap.Entry> createMpiAdditionalData(final Map<String, String[]> requestParameterMap) {
+    List<AnyType2AnyTypeMap.Entry> createMpiAdditionalData(final Map<String, String> requestParameterMap) {
         final List<AnyType2AnyTypeMap.Entry> entries = new ArrayList<AnyType2AnyTypeMap.Entry>();
-        final String[] mpiImplementationTypes = requestParameterMap.get(MPI_IMPLEMENTATION_TYPE);
-        if (mpiImplementationTypes != null && mpiImplementationTypes.length > 0) {
-            final String mpiImplementationType = mpiImplementationTypes[0];
+        final String mpiImplementationType = requestParameterMap.get(MPI_IMPLEMENTATION_TYPE);
+        if (mpiImplementationType != null) {
             addAdditionalDataEntry(entries, MPI_IMPLEMENTATION_TYPE, mpiImplementationType);
-            for (final Map.Entry<String, String[]> e : requestParameterMap.entrySet()) {
-                addRequestParameterEntry(e.getKey(), e.getValue(), mpiImplementationType + ".", entries);
+            for (final Map.Entry<String, String> e : requestParameterMap.entrySet()) {
+                addRequestParameterEntry(e.getKey(), new String[]{e.getValue()}, mpiImplementationType + ".", entries);
             }
         }
         return entries;

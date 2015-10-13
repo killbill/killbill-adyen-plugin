@@ -63,13 +63,13 @@ public class TestAdyenRequestFactory {
 
     @Test(groups = "fast")
     public void testCreateMpiAdditionalData() {
-        final Map<String, String[]> parameters = new HashMap<String, String[]>();
-        parameters.put("md", new String[]{"md_value"});
+        final Map<String, String> parameters = new HashMap<String, String>();
+        parameters.put("md", "md_value");
         final String my_type = "My_Type";
         final String some_value = "Some_Value";
         final String some_key = "Some_Key";
-        parameters.put(AdyenRequestFactory.MPI_IMPLEMENTATION_TYPE, new String[]{my_type});
-        parameters.put(some_key, new String[]{some_value});
+        parameters.put(AdyenRequestFactory.MPI_IMPLEMENTATION_TYPE, my_type);
+        parameters.put(some_key, some_value);
 
         final List<Entry> entries = new AdyenRequestFactory(null, null, null).createMpiAdditionalData(parameters);
         Assert.assertEquals(2, entries.size());

@@ -149,7 +149,7 @@ public class AdyenPaymentServiceProviderPort implements Closeable {
     public PurchaseResult authorize3DSecure(final Long billedAmount,
                                             final PaymentData<Card> paymentData,
                                             final UserData userData,
-                                            final Map<String, String[]> requestParameterMap,
+                                            final Map<String, String> requestParameterMap,
                                             final SplitSettlementData splitSettlementData) {
         logger.info("authorize3DSecure Start {} [}", billedAmount, userData);
 
