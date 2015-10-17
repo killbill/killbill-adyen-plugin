@@ -472,6 +472,7 @@
                             javax.naming.ldap;
                             javax.naming.spi;
                             javax.naming;
+                            org.osgi.service.log;
                             version="[0,3)",
                             *;resolution:=optional
                         </Import-Package>
