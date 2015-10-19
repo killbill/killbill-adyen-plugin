@@ -137,7 +137,7 @@ public class PaymentRequest3DBuilder extends RequestBuilder<PaymentRequest3D> {
     public PaymentRequest3DBuilder withRecurring(final PaymentProvider paymentProvider) {
         if (paymentProvider.isRecurringEnabled()) {
             final Recurring recurring = new Recurring();
-            recurring.setContract(PaymentRequestBuilder.RECURRING_CONTRACT);
+            recurring.setContract(paymentProvider.getRecurringType().name());
             request.setRecurring(recurring);
         }
         return this;

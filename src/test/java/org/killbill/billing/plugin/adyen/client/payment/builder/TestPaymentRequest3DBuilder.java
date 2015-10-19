@@ -22,13 +22,14 @@ import org.killbill.adyen.common.Name;
 import org.killbill.adyen.payment.PaymentRequest3D;
 import org.killbill.billing.catalog.api.Currency;
 import org.killbill.billing.plugin.adyen.client.model.PaymentProvider;
+import org.killbill.billing.plugin.adyen.client.model.RecurringType;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class TestPaymentRequest3DBuilder {
+public class TestPaymentRequest3DBuilder extends BaseTestPaymentRequestBuilder {
 
     private static final String CURRENCY = Currency.EUR.name();
 
@@ -142,16 +143,17 @@ public class TestPaymentRequest3DBuilder {
         Assert.assertEquals(Gender.MALE, paymentRequest3D.getShopperName().getGender(), "Wrong Gender in ShopperName in Request");
     }
 
-    @Test(groups = "fast")
-    public void testWithRecurring() throws Exception {
+    @Test(groups = "fast", dataProvider = DP_RECURRING_TYPES)
+    public void testWithRecurring(final RecurringType recurringType) throws Exception {
         final PaymentProvider recurringEnabledPaymentProvider = mock(PaymentProvider.class);
         when(recurringEnabledPaymentProvider.isRecurringEnabled()).thenReturn(true);
+        when(recurringEnabledPaymentProvider.getRecurringType()).thenReturn(recurringType);
 
         final PaymentRequest3D paymentRequest3D = new PaymentRequest3DBuilder().withRecurring(recurringEnabledPaymentProvider)
                                                                                .build();
 
         Assert.assertNotNull(paymentRequest3D.getRecurring(), "No Recurring in Request");
-        Assert.assertEquals(paymentRequest3D.getRecurring().getContract(), "RECURRING,ONECLICK", "Wrong Contract in Recurring in Request");
+        Assert.assertEquals(paymentRequest3D.getRecurring().getContract(), recurringType.name(), "Wrong Contract in Recurring in Request");
     }
 
     @Test(groups = "fast")

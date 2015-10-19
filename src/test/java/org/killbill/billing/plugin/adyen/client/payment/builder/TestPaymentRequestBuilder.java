@@ -16,9 +16,7 @@
 
 package org.killbill.billing.plugin.adyen.client.payment.builder;
 
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Properties;
 
@@ -44,15 +42,13 @@ import org.killbill.billing.plugin.adyen.client.payment.converter.PaymentInfoCon
 import org.mockito.Mockito;
 import org.testng.Assert;
 import org.testng.annotations.BeforeMethod;
-import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
 import com.google.common.collect.ImmutableList;
 
-public class TestPaymentRequestBuilder {
+public class TestPaymentRequestBuilder extends BaseTestPaymentRequestBuilder {
 
     private static final String ANY_HOLDER_NAME = "anyHolderName";
-    private static final String DP_RECURRING_TYPES = "RecurringTypes";
 
     private final AdyenConfigProperties adyenConfigProperties = new AdyenConfigProperties(new Properties());
     private final PaymentInfo anyPaymentInfo = new Elv(new PaymentProvider(adyenConfigProperties));
@@ -173,15 +169,6 @@ public class TestPaymentRequestBuilder {
         Assert.assertNotNull(paymentRequest.getRecurring());
         Assert.assertSame(paymentRequest.getRecurring().getContract(), recurringType.name());
     }
-    @DataProvider(name = DP_RECURRING_TYPES)
-    public Iterator<Object[]> recurringTypesdataProvider() {
-        final List<Object[]> recurringTypes = new ArrayList<Object[]>(RecurringType.values().length);
-        for (final RecurringType recurringType : RecurringType.values()) {
-            recurringTypes.add(new Object[] {recurringType});
-        }
-        return recurringTypes.iterator();
-    }
-
 
     @Test(groups = "fast")
     public void shouldContainNoRecurringInformationIfPaymentProviderIsDisabledForRecurring() {

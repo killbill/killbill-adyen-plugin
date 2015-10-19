@@ -37,8 +37,6 @@ import com.google.common.base.Strings;
 
 public class PaymentRequestBuilder extends RequestBuilder<PaymentRequest> {
 
-    protected static final String RECURRING_CONTRACT = "RECURRING,ONECLICK";
-
     private static final String CONTINOUS_AUTHENTICATION_ADYEN = "ContAuth";
 
     private static final PaymentInfoConverter NULL_CONVERTER = new NullObjectConverter();
