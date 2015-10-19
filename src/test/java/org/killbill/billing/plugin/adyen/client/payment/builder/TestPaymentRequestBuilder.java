@@ -16,7 +16,9 @@
 
 package org.killbill.billing.plugin.adyen.client.payment.builder;
 
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Properties;
 
@@ -34,7 +36,6 @@ import org.killbill.billing.plugin.adyen.client.model.PaymentProvider;
 import org.killbill.billing.plugin.adyen.client.model.RecurringType;
 import org.killbill.billing.plugin.adyen.client.model.SplitSettlementData;
 import org.killbill.billing.plugin.adyen.client.model.SplitSettlementData.Item;
-import org.killbill.billing.plugin.adyen.client.model.UserData;
 import org.killbill.billing.plugin.adyen.client.model.paymentinfo.Amex;
 import org.killbill.billing.plugin.adyen.client.model.paymentinfo.Card;
 import org.killbill.billing.plugin.adyen.client.model.paymentinfo.Elv;
@@ -43,6 +44,7 @@ import org.killbill.billing.plugin.adyen.client.payment.converter.PaymentInfoCon
 import org.mockito.Mockito;
 import org.testng.Assert;
 import org.testng.annotations.BeforeMethod;
+import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
 import com.google.common.collect.ImmutableList;
@@ -50,6 +52,7 @@ import com.google.common.collect.ImmutableList;
 public class TestPaymentRequestBuilder {
 
     private static final String ANY_HOLDER_NAME = "anyHolderName";
+    private static final String DP_RECURRING_TYPES = "RecurringTypes";
 
     private final AdyenConfigProperties adyenConfigProperties = new AdyenConfigProperties(new Properties());
     private final PaymentInfo anyPaymentInfo = new Elv(new PaymentProvider(adyenConfigProperties));
@@ -159,26 +162,33 @@ public class TestPaymentRequestBuilder {
         Assert.assertSame(paymentRequest.getShopperName(), shopperName);
     }
 
-    @Test(groups = "fast")
-    public void shouldContainTheRecurringContractIfUserAndPaymentProviderIsEnabledForRecurring() {
-        final PaymentProvider paymentProvider = createPaymentProviderWithRecurringType(RecurringType.RECURRING);
+    @Test(groups = "fast", dataProvider = DP_RECURRING_TYPES)
+    public void shouldContainTheRecurringContractIfUserAndPaymentProviderIsEnabledForRecurring(final RecurringType recurringType) {
+        final PaymentProvider paymentProvider = createPaymentProviderWithRecurringType(recurringType);
         final Elv paymentInfoForPaymentProviderWithRecurring = new Elv(paymentProvider);
 
-        final UserData userData = new UserData();
-        final PaymentRequest paymentRequest = new PaymentRequestBuilder(paymentInfoForPaymentProviderWithRecurring, paymentInfoConverterManagement, ANY_HOLDER_NAME).withRecurringContractForUser(userData)
+        final PaymentRequest paymentRequest = new PaymentRequestBuilder(paymentInfoForPaymentProviderWithRecurring, paymentInfoConverterManagement, ANY_HOLDER_NAME).withRecurringContractForUser()
                                                                                                                                                                     .build();
 
         Assert.assertNotNull(paymentRequest.getRecurring());
-        Assert.assertSame(paymentRequest.getRecurring().getContract(), "RECURRING,ONECLICK");
+        Assert.assertSame(paymentRequest.getRecurring().getContract(), recurringType.name());
     }
+    @DataProvider(name = DP_RECURRING_TYPES)
+    public Iterator<Object[]> recurringTypesdataProvider() {
+        final List<Object[]> recurringTypes = new ArrayList<Object[]>(RecurringType.values().length);
+        for (final RecurringType recurringType : RecurringType.values()) {
+            recurringTypes.add(new Object[] {recurringType});
+        }
+        return recurringTypes.iterator();
+    }
+
 
     @Test(groups = "fast")
     public void shouldContainNoRecurringInformationIfPaymentProviderIsDisabledForRecurring() {
         final PaymentProvider paymentProviderWithoutRecurring = createPaymentProviderWithRecurringType(null);
         final Elv paymentInfoForPaymentProviderWithRecurring = new Elv(paymentProviderWithoutRecurring);
 
-        final UserData userData = new UserData();
-        final PaymentRequest paymentRequest = new PaymentRequestBuilder(paymentInfoForPaymentProviderWithRecurring, paymentInfoConverterManagement, ANY_HOLDER_NAME).withRecurringContractForUser(userData)
+        final PaymentRequest paymentRequest = new PaymentRequestBuilder(paymentInfoForPaymentProviderWithRecurring, paymentInfoConverterManagement, ANY_HOLDER_NAME).withRecurringContractForUser()
                                                                                                                                                                     .build();
 
         Assert.assertNull(paymentRequest.getRecurring());
@@ -306,8 +316,7 @@ public class TestPaymentRequestBuilder {
         final Amex amex = new Amex(paymentProvider);
         amex.setRecurringDetailId("anyRecurringDetailId");
 
-        final UserData userData = new UserData();
-        final PaymentRequest paymentRequest = new PaymentRequestBuilder(amex, paymentInfoConverterManagement, ANY_HOLDER_NAME).withRecurringContractForUser(userData)
+        final PaymentRequest paymentRequest = new PaymentRequestBuilder(amex, paymentInfoConverterManagement, ANY_HOLDER_NAME).withRecurringContractForUser()
                                                                                                                               .withSelectedRecurringDetailReference()
                                                                                                                               .build();
 

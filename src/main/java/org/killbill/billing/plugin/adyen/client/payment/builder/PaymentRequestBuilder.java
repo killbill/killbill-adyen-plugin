@@ -26,7 +26,7 @@ import org.killbill.adyen.payment.PaymentRequest;
 import org.killbill.adyen.payment.Recurring;
 import org.killbill.billing.plugin.adyen.client.model.PaymentInfo;
 import org.killbill.billing.plugin.adyen.client.model.SplitSettlementData;
-import org.killbill.billing.plugin.adyen.client.model.UserData;
+import org.killbill.billing.plugin.adyen.client.model.RecurringType;
 import org.killbill.billing.plugin.adyen.client.model.paymentinfo.Card;
 import org.killbill.billing.plugin.adyen.client.payment.converter.PaymentInfoConverter;
 import org.killbill.billing.plugin.adyen.client.payment.converter.PaymentInfoConverterManagement;
@@ -145,17 +145,17 @@ public class PaymentRequestBuilder extends RequestBuilder<PaymentRequest> {
         return this;
     }
 
-    public PaymentRequestBuilder withRecurringContractForUser(final UserData userData) {
+    public PaymentRequestBuilder withRecurringContractForUser() {
         if (paymentInfo.getPaymentProvider().isRecurringEnabled()) {
-            final Recurring recurring = createRecurring(RECURRING_CONTRACT);
+            final Recurring recurring = createRecurring(paymentInfo.getRecurringType());
             request.setRecurring(recurring);
         }
         return this;
     }
 
-    private Recurring createRecurring(final String recurringContract) {
+    private Recurring createRecurring(final RecurringType recurringContract) {
         final Recurring recurring = new Recurring();
-        recurring.setContract(recurringContract);
+        recurring.setContract(recurringContract.name());
         return recurring;
     }
 
