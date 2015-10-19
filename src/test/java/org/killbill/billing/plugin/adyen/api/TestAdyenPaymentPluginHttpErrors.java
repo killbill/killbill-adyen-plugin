@@ -18,7 +18,10 @@ package org.killbill.billing.plugin.adyen.api;
 
 import java.io.IOException;
 import java.net.ServerSocket;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -41,6 +44,7 @@ import org.killbill.billing.util.callcontext.CallContext;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
+import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
 import com.github.tomakehurst.wiremock.WireMockServer;
@@ -140,12 +144,10 @@ public class TestAdyenPaymentPluginHttpErrors {
     }
 
     /**
-     * Sanity check that a refused purchase (wrong expiry month) still results in an error.
+     * Sanity check that a refused purchase (wrong cc data) still results in an error.
      */
-    @Test(groups = "slow")
-    public void testAuthorizeWithIncorrectValuesExpMonth() throws Exception {
-
-        final Iterable<PluginProperty> inValidPurchaseData = invalidCreditCardDataExpMonth();
+    @Test(groups = "slow", dataProvider = "invalidCreditCardData")
+    public void testAuthorizeWithIncorrectValues(final Iterable<PluginProperty> inValidPurchaseData, final String gatewayErrorCode) throws Exception {
 
         final Account account = defaultAccount();
         final Payment payment = killBillPayment(account);
@@ -159,30 +161,7 @@ public class TestAdyenPaymentPluginHttpErrors {
         final PaymentTransactionInfoPlugin result = authorizeCall(account, payment, callContext, pluginApi, inValidPurchaseData);
 
         assertEquals(result.getStatus(), PaymentPluginStatus.ERROR);
-        assertEquals(result.getGatewayErrorCode(), "Expiry month should be between 1 and 12 inclusive");
-    }
-
-    /**
-     * Sanity check that a refused purchase (wrong cvv) still results in an error.
-     */
-    @Test(groups = "slow")
-    public void testAuthorizeWithIncorrectValuesCVV() throws Exception {
-
-        final Iterable<PluginProperty> inValidPurchaseData = invalidCreditCardDataCVV();
-
-        final Account account = defaultAccount();
-        final Payment payment = killBillPayment(account);
-        final AdyenCallContext callContext = newCallContext();
-
-        final AdyenPaymentPluginApi pluginApi = AdyenPluginMockBuilder.newPlugin()
-                                                                      .withAccount(account)
-                                                                      .withPayment(payment)
-                                                                      .build();
-
-        final PaymentTransactionInfoPlugin result = authorizeCall(account, payment, callContext, pluginApi, inValidPurchaseData);
-
-        assertEquals(result.getStatus(), PaymentPluginStatus.ERROR);
-        assertEquals(result.getGatewayErrorCode(), "CVC Declined");
+        assertEquals(result.getGatewayErrorCode(), gatewayErrorCode);
     }
 
     @Test(groups = "slow")
@@ -431,15 +410,17 @@ public class TestAdyenPaymentPluginHttpErrors {
         assertEquals(result.getStatus(), PaymentPluginStatus.UNDEFINED);
     }
 
-    private Iterable<PluginProperty> invalidCreditCardDataExpMonth() {
-        final Map<String, String> invalidCreditCardData = new HashMap<String, String>(validCreditCardData());
-        invalidCreditCardData.put(AdyenPaymentPluginApi.PROPERTY_CC_EXPIRATION_MONTH, String.valueOf("123"));
-        return toProperties(invalidCreditCardData);
+    @DataProvider(name = "invalidCreditCardData")
+    private Iterator<Object[]> invalidCreditCardDataDataProvider() {
+        final List<Object[]> data = new ArrayList<Object[]>();
+        data.add(new Object[] {invalidCreditCardData(AdyenPaymentPluginApi.PROPERTY_CC_EXPIRATION_MONTH, String.valueOf("123")), "Expiry month should be between 1 and 12 inclusive"});
+        data.add(new Object[] {invalidCreditCardData(AdyenPaymentPluginApi.PROPERTY_CC_VERIFICATION_VALUE, String.valueOf("1234")), "CVC Declined"});
+        return data.iterator();
     }
 
-    private Iterable<PluginProperty> invalidCreditCardDataCVV() {
+    private Iterable<PluginProperty> invalidCreditCardData(final String key, final String value) {
         final Map<String, String> invalidCreditCardData = new HashMap<String, String>(validCreditCardData());
-        invalidCreditCardData.put(AdyenPaymentPluginApi.PROPERTY_CC_VERIFICATION_VALUE, String.valueOf("1234"));
+        invalidCreditCardData.put(key, value);
         return toProperties(invalidCreditCardData);
     }
 
