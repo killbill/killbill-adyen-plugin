@@ -63,7 +63,8 @@ public class TestAdyenDao extends TestWithEmbeddedDBBase {
                                                                  UUID.randomUUID().toString(),
                                                                  ImmutableMap.<String, String>of(UUID.randomUUID().toString(), UUID.randomUUID().toString(),
                                                                                                  AdyenPaymentPluginApi.PROPERTY_DCC_AMOUNT_VALUE, "10",
-                                                                                                 AdyenPaymentPluginApi.PROPERTY_DCC_AMOUNT_CURRENCY, "EUR"));
+                                                                                                 AdyenPaymentPluginApi.PROPERTY_DCC_AMOUNT_CURRENCY, "EUR"),
+                                                                 ImmutableMap.<String, String>of());
         final UUID kbAccountId = UUID.randomUUID();
         final UUID kbPaymentId = UUID.randomUUID();
         final UUID kbPaymentTransactionId = UUID.randomUUID();

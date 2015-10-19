@@ -39,10 +39,11 @@ public class PurchaseResult extends FrontendForm {
     private final List<PaymentServiceProviderErrorCodes> errorCodes;
     private final String paymentInternalRef;
     private final AdyenCallErrorStatus adyenCallErrorStatus;
+    private final Map<String, String> additionalData;
 
     public PurchaseResult(final String paymentInternalRef,
                           final AdyenCallErrorStatus adyenCallErrorStatus) {
-        this(Optional.<PaymentServiceProviderResult>absent(), null, null, null, null, null, ImmutableList.<PaymentServiceProviderErrorCodes>of(), paymentInternalRef, null, null, adyenCallErrorStatus);
+        this(Optional.<PaymentServiceProviderResult>absent(), null, null, null, null, null, ImmutableList.<PaymentServiceProviderErrorCodes>of(), paymentInternalRef, null, null, adyenCallErrorStatus, null);
     }
 
     public PurchaseResult(final PaymentServiceProviderResult result,
@@ -52,8 +53,9 @@ public class PurchaseResult extends FrontendForm {
                           final String resultCode,
                           final String paymentInternalRef,
                           final String formUrl,
-                          final Map<String, String> formParameter) {
-        this(Optional.of(result), authCode, pspReference, reason, resultCode, null, null, paymentInternalRef, formUrl, formParameter, null);
+                          final Map<String, String> formParameter,
+                          final Map<String, String> additionalData) {
+        this(Optional.of(result), authCode, pspReference, reason, resultCode, null, null, paymentInternalRef, formUrl, formParameter, null, additionalData);
     }
 
     public PurchaseResult(final PaymentServiceProviderResult result,
@@ -61,8 +63,9 @@ public class PurchaseResult extends FrontendForm {
                           final String pspReference,
                           final String reason,
                           final String resultCode,
-                          final String paymentInternalRef) {
-        this(Optional.of(result), authCode, pspReference, reason, resultCode, null, null, paymentInternalRef, null, null, null);
+                          final String paymentInternalRef,
+                          final Map<String, String> additionalData) {
+        this(Optional.of(result), authCode, pspReference, reason, resultCode, null, null, paymentInternalRef, null, null, null, additionalData);
     }
 
     private PurchaseResult(final Optional<PaymentServiceProviderResult> result,
@@ -75,7 +78,8 @@ public class PurchaseResult extends FrontendForm {
                            final String paymentInternalRef,
                            final String formUrl,
                            final Map<String, String> formParameter,
-                           final AdyenCallErrorStatus adyenCallErrorStatus) {
+                           final AdyenCallErrorStatus adyenCallErrorStatus,
+                           final Map<String, String> additionalData) {
         super(MoreObjects.firstNonNull(formParameter, ImmutableMap.<String, String>of()), formUrl);
 
         this.adyenCallErrorStatus = adyenCallErrorStatus;
@@ -87,6 +91,7 @@ public class PurchaseResult extends FrontendForm {
         this.reference = reference;
         this.errorCodes = MoreObjects.firstNonNull(errorCodes, ImmutableList.<PaymentServiceProviderErrorCodes>of());
         this.paymentInternalRef = paymentInternalRef;
+        this.additionalData = additionalData;
     }
 
     public String getReference() {
@@ -119,6 +124,10 @@ public class PurchaseResult extends FrontendForm {
 
     public List<PaymentServiceProviderErrorCodes> getErrorCodes() {
         return errorCodes;
+    }
+
+    public Map<String, String> getAdditionalData() {
+        return additionalData;
     }
 
     /**
