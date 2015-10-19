@@ -23,10 +23,11 @@ import javax.annotation.Nullable;
 
 import org.killbill.billing.plugin.adyen.client.payment.service.AdyenCallErrorStatus;
 
-import com.google.common.base.MoreObjects;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+
+import static com.google.common.base.MoreObjects.firstNonNull;
 
 public class PurchaseResult extends FrontendForm {
 
@@ -80,7 +81,7 @@ public class PurchaseResult extends FrontendForm {
                            final Map<String, String> formParameter,
                            final AdyenCallErrorStatus adyenCallErrorStatus,
                            final Map<String, String> additionalData) {
-        super(MoreObjects.firstNonNull(formParameter, ImmutableMap.<String, String>of()), formUrl);
+        super(firstNonNull(formParameter, ImmutableMap.<String, String>of()), formUrl);
 
         this.adyenCallErrorStatus = adyenCallErrorStatus;
         this.result = result;
@@ -89,9 +90,9 @@ public class PurchaseResult extends FrontendForm {
         this.reason = reason;
         this.resultCode = resultCode;
         this.reference = reference;
-        this.errorCodes = MoreObjects.firstNonNull(errorCodes, ImmutableList.<PaymentServiceProviderErrorCodes>of());
+        this.errorCodes = firstNonNull(errorCodes, ImmutableList.<PaymentServiceProviderErrorCodes>of());
         this.paymentInternalRef = paymentInternalRef;
-        this.additionalData = additionalData;
+        this.additionalData = firstNonNull(additionalData, ImmutableMap.<String, String>of());
     }
 
     public String getReference() {
