@@ -140,12 +140,12 @@ public class TestAdyenPaymentPluginHttpErrors {
     }
 
     /**
-     * Sanity check that a refused purchase (wrong cc data) still results in an error.
+     * Sanity check that a refused purchase (wrong expiry month) still results in an error.
      */
     @Test(groups = "slow")
-    public void testAuthorizeWithIncorrectValues() throws Exception {
+    public void testAuthorizeWithIncorrectValuesExpMonth() throws Exception {
 
-        final Iterable<PluginProperty> inValidPurchaseData = invalidCreditCardData();
+        final Iterable<PluginProperty> inValidPurchaseData = invalidCreditCardDataExpMonth();
 
         final Account account = defaultAccount();
         final Payment payment = killBillPayment(account);
@@ -159,6 +159,30 @@ public class TestAdyenPaymentPluginHttpErrors {
         final PaymentTransactionInfoPlugin result = authorizeCall(account, payment, callContext, pluginApi, inValidPurchaseData);
 
         assertEquals(result.getStatus(), PaymentPluginStatus.ERROR);
+        assertEquals(result.getGatewayErrorCode(), "Expiry month should be between 1 and 12 inclusive");
+    }
+
+    /**
+     * Sanity check that a refused purchase (wrong cvv) still results in an error.
+     */
+    @Test(groups = "slow")
+    public void testAuthorizeWithIncorrectValuesCVV() throws Exception {
+
+        final Iterable<PluginProperty> inValidPurchaseData = invalidCreditCardDataCVV();
+
+        final Account account = defaultAccount();
+        final Payment payment = killBillPayment(account);
+        final AdyenCallContext callContext = newCallContext();
+
+        final AdyenPaymentPluginApi pluginApi = AdyenPluginMockBuilder.newPlugin()
+                                                                      .withAccount(account)
+                                                                      .withPayment(payment)
+                                                                      .build();
+
+        final PaymentTransactionInfoPlugin result = authorizeCall(account, payment, callContext, pluginApi, inValidPurchaseData);
+
+        assertEquals(result.getStatus(), PaymentPluginStatus.ERROR);
+        assertEquals(result.getGatewayErrorCode(), "CVC Declined");
     }
 
     @Test(groups = "slow")
@@ -407,9 +431,15 @@ public class TestAdyenPaymentPluginHttpErrors {
         assertEquals(result.getStatus(), PaymentPluginStatus.UNDEFINED);
     }
 
-    private Iterable<PluginProperty> invalidCreditCardData() {
+    private Iterable<PluginProperty> invalidCreditCardDataExpMonth() {
         final Map<String, String> invalidCreditCardData = new HashMap<String, String>(validCreditCardData());
         invalidCreditCardData.put(AdyenPaymentPluginApi.PROPERTY_CC_EXPIRATION_MONTH, String.valueOf("123"));
+        return toProperties(invalidCreditCardData);
+    }
+
+    private Iterable<PluginProperty> invalidCreditCardDataCVV() {
+        final Map<String, String> invalidCreditCardData = new HashMap<String, String>(validCreditCardData());
+        invalidCreditCardData.put(AdyenPaymentPluginApi.PROPERTY_CC_VERIFICATION_VALUE, String.valueOf("1234"));
         return toProperties(invalidCreditCardData);
     }
 
