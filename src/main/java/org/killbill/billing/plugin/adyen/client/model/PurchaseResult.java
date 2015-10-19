@@ -43,7 +43,7 @@ public class PurchaseResult extends FrontendForm {
 
     public PurchaseResult(final String paymentInternalRef,
                           final AdyenCallErrorStatus adyenCallErrorStatus) {
-        this(Optional.<PaymentServiceProviderResult>absent(), null, null, null, null, null, ImmutableList.<PaymentServiceProviderErrorCodes>of(), paymentInternalRef, null, null, adyenCallErrorStatus, null);
+        this(Optional.<PaymentServiceProviderResult>absent(), null, null, null, null, null, ImmutableList.<PaymentServiceProviderErrorCodes>of(), paymentInternalRef, null, null, adyenCallErrorStatus, ImmutableMap.<String, String>of());
     }
 
     public PurchaseResult(final PaymentServiceProviderResult result,
