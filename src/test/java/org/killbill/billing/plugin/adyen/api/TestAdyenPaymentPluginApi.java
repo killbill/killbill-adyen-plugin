@@ -41,6 +41,7 @@ import org.killbill.billing.payment.plugin.api.PaymentPluginStatus;
 import org.killbill.billing.payment.plugin.api.PaymentTransactionInfoPlugin;
 import org.killbill.billing.plugin.TestUtils;
 import org.killbill.billing.plugin.adyen.TestWithEmbeddedDBBase;
+import org.killbill.billing.plugin.adyen.api.mapping.UserDataMappingService;
 import org.killbill.billing.plugin.adyen.dao.AdyenDao;
 import org.killbill.billing.plugin.adyen.dao.gen.tables.records.AdyenPaymentMethodsRecord;
 import org.killbill.billing.plugin.adyen.recurring.AdyenRecurringClient;
@@ -132,8 +133,8 @@ public class TestAdyenPaymentPluginApi extends TestWithEmbeddedDBBase {
         propertiesWithSepaInfo = toProperties(ImmutableMap.of(AdyenPaymentPluginApi.PROPERTY_CC_TYPE, DD_TYPE));
         propertiesWithElvInfo = toProperties(ImmutableMap.of(AdyenPaymentPluginApi.PROPERTY_CC_TYPE, ELV_TYPE));
         final String customerId = UUID.randomUUID().toString();
-        propertiesForRecurring = ImmutableMap.of(AdyenPaymentPluginApi.PROPERTY_CUSTOMER_ID, customerId,
-                                                 AdyenPaymentPluginApi.PROPERTY_EMAIL, customerId + "0@example.com");
+        propertiesForRecurring = ImmutableMap.of(UserDataMappingService.PROPERTY_CUSTOMER_ID, customerId,
+                                                 UserDataMappingService.PROPERTY_EMAIL, customerId + "0@example.com");
     }
 
     @Test(groups = "slow")
@@ -337,12 +338,12 @@ public class TestAdyenPaymentPluginApi extends TestWithEmbeddedDBBase {
         Thread.sleep(SLEEP_IN_MILLIS_FOR_RECURRING_DETAIL);
 
         final List<RecurringDetail> recurringDetailList = adyenRecurringClient.getRecurringDetailList(DEFAULT_COUNTRY,
-                                                                                                      propertiesForRecurring.get(AdyenPaymentPluginApi.PROPERTY_CUSTOMER_ID),
+                                                                                                      propertiesForRecurring.get(UserDataMappingService.PROPERTY_CUSTOMER_ID),
                                                                                                       adyenConfigProperties.getMerchantAccount(DEFAULT_COUNTRY),
                                                                                                       "RECURRING");
 
         if (recurringDetailList.isEmpty()) {
-            fail("No recurring details for " + propertiesForRecurring.get(AdyenPaymentPluginApi.PROPERTY_CUSTOMER_ID));
+            fail("No recurring details for " + propertiesForRecurring.get(UserDataMappingService.PROPERTY_CUSTOMER_ID));
         }
 
         final Iterable<PluginProperty> propertiesWithRecurringDetailInfo = toProperties(ImmutableMap.<String, String>builder()
@@ -397,12 +398,12 @@ public class TestAdyenPaymentPluginApi extends TestWithEmbeddedDBBase {
         Thread.sleep(SLEEP_IN_MILLIS_FOR_RECURRING_DETAIL);
 
         final List<RecurringDetail> recurringDetailList = adyenRecurringClient.getRecurringDetailList(DEFAULT_COUNTRY,
-                                                                                                      propertiesForRecurring.get(AdyenPaymentPluginApi.PROPERTY_CUSTOMER_ID),
+                                                                                                      propertiesForRecurring.get(UserDataMappingService.PROPERTY_CUSTOMER_ID),
                                                                                                       adyenConfigProperties.getMerchantAccount(DEFAULT_COUNTRY),
                                                                                                       "ONECLICK");
 
         if (recurringDetailList.isEmpty()) {
-            fail("No recurring details for " + propertiesForRecurring.get(AdyenPaymentPluginApi.PROPERTY_CUSTOMER_ID));
+            fail("No recurring details for " + propertiesForRecurring.get(UserDataMappingService.PROPERTY_CUSTOMER_ID));
         }
 
         final Iterable<PluginProperty> propertiesWithRecurringDetailInfo = toProperties(ImmutableMap.<String, String>builder()
