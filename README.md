@@ -325,6 +325,18 @@ Notes:
 * Change *paymentProviderType* to the type of payment method in the HPP (see [PaymentType.java](https://github.com/killbill/killbill-adyen-plugin/blob/master/src/main/java/org/killbill/billing/plugin/adyen/client/model/PaymentType.java))
 * At this point, no payment has been created in Kill Bill. The payment will be recorded when processing the notification
 
+### Recurring
+
+For [Adyen's Recurring Functionality](https://docs.adyen.com/display/TD/Recurring+Manual) the following recurring types are provided (see [RecurringType.java](https://github.com/killbill/killbill-adyen-plugin/blob/master/src/main/java/org/killbill/billing/plugin/adyen/client/model/RecurringType.java))
+* `ONECLICK`
+* `RECURRING`
+
+There are 3 different use cases:
+
+1. Use Adyen's recurring payments feature with contract `RECURRING`: CVV is not required (it's an implicit `contAuth`)
+2. Use Adyen's recurring payment feature with contract `ONECLICK`: CVV is always required
+3. Use you own card-on-file system + `contAuth` to simulate option 1. Instead of providing Adyen's `recurringDetailId` the merchant retrieves stored payment data from it's store and populates the fields like a normal payment request. `contAuth` is needed to turn Adyen's (not needed) validations off.
+
 Plugin properties
 -----------------
 
@@ -360,3 +372,5 @@ Plugin properties
 | userAgent                | User-Agent for 3D-Secure Browser Info         |
 | acceptHeader             | Accept-Header for 3D-Secure Browser Info      |
 | contAuth                 | Continuous authentication enabled (boolean)   |
+| recurringDetailId        | ID of payment details stored at Adyen         |
+| recurringType            | Contract to be used for Recurring             |
