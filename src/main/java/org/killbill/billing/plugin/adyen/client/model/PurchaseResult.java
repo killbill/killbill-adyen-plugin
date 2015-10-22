@@ -155,6 +155,7 @@ public class PurchaseResult extends FrontendForm {
                ", errorCodes=" + errorCodes +
                ", paymentInternalRef='" + paymentInternalRef + '\'' +
                ", adyenResponseStatus=" + adyenCallErrorStatus +
+               ", additionalData=" + additionalData +
                '}';
     }
 
@@ -191,12 +192,14 @@ public class PurchaseResult extends FrontendForm {
         if (errorCodes != null ? !errorCodes.equals(that.errorCodes) : that.errorCodes != null) {
             return false;
         }
-        //noinspection SimplifiableIfStatement
-        if (resultCode != null && !resultCode.equals(that.resultCode)) {
+        if (adyenCallErrorStatus != null ? !adyenCallErrorStatus.equals(that.adyenCallErrorStatus) : that.adyenCallErrorStatus != null) {
             return false;
         }
-        return adyenCallErrorStatus == that.adyenCallErrorStatus;
-
+        //noinspection SimplifiableIfStatement
+        if (additionalData != null ? !additionalData.equals(that.additionalData) : that.additionalData != null) {
+            return false;
+        }
+        return true;
     }
 
     @Override
@@ -210,6 +213,7 @@ public class PurchaseResult extends FrontendForm {
         result1 = 31 * result1 + (errorCodes != null ? errorCodes.hashCode() : 0);
         result1 = 31 * result1 + (paymentInternalRef != null ? paymentInternalRef.hashCode() : 0);
         result1 = 31 * result1 + (adyenCallErrorStatus != null ? adyenCallErrorStatus.hashCode() : 0);
+        result1 = 31 * result1 + (additionalData != null ? additionalData.hashCode() : 0);
         return result1;
     }
 
