@@ -78,7 +78,7 @@ public class AdyenRequestFactory {
         final PaymentInfo paymentInfo = paymentData.getPaymentInfo();
         return new PaymentRequestBuilder(paymentInfo, paymentInfoConverterManagement, orderData.getHolderName()).withAmount(paymentInfo.getPaymentProvider().getCurrency().getCurrencyCode(), amount)
                                                                                                                 .withMerchantAccount(getMerchantAccount(paymentInfo))
-                                                                                                                .withRecurringContractForUser(userData)
+                                                                                                                .withRecurringContractForUser()
                                                                                                                 .withSelectedRecurringDetailReference()
                                                                                                                 .withReference(paymentData.getPaymentTxnInternalRef())
                                                                                                                 .withShopperEmail(userData.getEmail())
