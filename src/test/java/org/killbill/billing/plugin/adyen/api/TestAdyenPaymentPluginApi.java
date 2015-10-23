@@ -305,6 +305,36 @@ public class TestAdyenPaymentPluginApi extends TestWithEmbeddedDBBase {
     }
 
     @Test(groups = "slow")
+    public void testAuthorizeFailingInvalidCVV() throws Exception {
+        final Iterable<PluginProperty> propertiesWithCCInfoWrongCVV = toProperties(ImmutableMap.<String, String>builder()
+                                                                                               .put(AdyenPaymentPluginApi.PROPERTY_CC_TYPE, CC_TYPE)
+                                                                                               .put(AdyenPaymentPluginApi.PROPERTY_CC_LAST_NAME, "Dupont")
+                                                                                               .put(AdyenPaymentPluginApi.PROPERTY_CC_NUMBER, CC_NUMBER)
+                                                                                               .put(AdyenPaymentPluginApi.PROPERTY_CC_EXPIRATION_MONTH, String.valueOf(CC_EXPIRATION_MONTH))
+                                                                                               .put(AdyenPaymentPluginApi.PROPERTY_CC_EXPIRATION_YEAR, String.valueOf(CC_EXPIRATION_YEAR))
+                                                                                               .put(AdyenPaymentPluginApi.PROPERTY_CC_VERIFICATION_VALUE, "1234")
+                                                                                               .build());
+
+        adyenPaymentPluginApi.addPaymentMethod(payment.getAccountId(), payment.getPaymentMethodId(), adyenPaymentMethodPluginCC(), true, propertiesWithCCInfoWrongCVV, context);
+
+        final PaymentTransaction authorizationTransaction = TestUtils.buildPaymentTransaction(payment, TransactionType.AUTHORIZE, DEFAULT_CURRENCY);
+
+        final PaymentTransactionInfoPlugin authorizationInfoPlugin = adyenPaymentPluginApi.authorizePayment(payment.getAccountId(),
+                                                                                                            payment.getId(),
+                                                                                                            authorizationTransaction.getId(),
+                                                                                                            payment.getPaymentMethodId(),
+                                                                                                            authorizationTransaction.getAmount(),
+                                                                                                            authorizationTransaction.getCurrency(),
+                                                                                                            propertiesWithCCInfoWrongCVV,
+                                                                                                            context);
+
+        assertEquals(authorizationInfoPlugin.getGatewayErrorCode(), "CVC Declined");
+        final List<PaymentTransactionInfoPlugin> fromDBList = adyenPaymentPluginApi.getPaymentInfo(payment.getAccountId(), payment.getId(), ImmutableList.<PluginProperty>of(), context);
+        assertFalse(fromDBList.isEmpty());
+        assertEquals(fromDBList.get(0).getGatewayErrorCode(), "CVC Declined");
+    }
+
+    @Test(groups = "slow")
     public void testAuthorizeRecurringDetailRecurring() throws Exception {
         final Iterable<PluginProperty> propertiesWithCCForRecurring = toProperties(ImmutableMap.<String, String>builder()
                                                                                                .putAll(propertiesForRecurring)
