@@ -108,7 +108,8 @@ public class AdyenPaymentServiceProviderPort implements Closeable {
                                                     result.getPspReference(),
                                                     result.getRefusalReason(),
                                                     result.getResultCode(),
-                                                    paymentData.getPaymentInternalRef());
+                                                    paymentData.getPaymentInternalRef(),
+                                                    anyType2AnyTypeMapToStringMap(result.getAdditionalData()));
             } else {
                 logger.info("proceed with 3dSecure flow");
                 final Map<String, String> formParams = new HashMap<String, String>();
@@ -123,14 +124,15 @@ public class AdyenPaymentServiceProviderPort implements Closeable {
                     formParams.put(AdyenPaymentPluginApi.PROPERTY_TERM_URL, termUrl);
                 }
 
-                    purchaseResult = new PurchaseResult(paymentServiceProviderResult,
-                                                        result.getAuthCode(),
-                                                        result.getPspReference(),
-                                                        result.getRefusalReason(),
-                                                        result.getResultCode(),
-                                                        paymentData.getPaymentInternalRef(),
-                                                        result.getIssuerUrl(),
-                                                        formParams);
+                purchaseResult = new PurchaseResult(paymentServiceProviderResult,
+                                                    result.getAuthCode(),
+                                                    result.getPspReference(),
+                                                    result.getRefusalReason(),
+                                                    result.getResultCode(),
+                                                    paymentData.getPaymentInternalRef(),
+                                                    result.getIssuerUrl(),
+                                                    formParams,
+                                                    anyType2AnyTypeMapToStringMap(result.getAdditionalData()));
             }
         } else {
             purchaseResult =  new PurchaseResult(paymentData.getPaymentInternalRef(),
@@ -180,7 +182,8 @@ public class AdyenPaymentServiceProviderPort implements Closeable {
                                                     result.getPspReference(),
                                                     result.getRefusalReason(),
                                                     result.getResultCode(),
-                                                    paymentData.getPaymentInternalRef());
+                                                    paymentData.getPaymentInternalRef(),
+                                                    anyType2AnyTypeMapToStringMap(result.getAdditionalData()));
             } else {
                 final Map<String, String> formParams = new HashMap<String, String>();
                 formParams.put("PaReq", result.getPaRequest());
@@ -193,7 +196,8 @@ public class AdyenPaymentServiceProviderPort implements Closeable {
                                                     result.getResultCode(),
                                                     paymentData.getPaymentInternalRef(),
                                                     result.getIssuerUrl(),
-                                                    formParams);
+                                                    formParams,
+                                                    anyType2AnyTypeMapToStringMap(result.getAdditionalData()));
             }
         } else {
             purchaseResult =  new PurchaseResult(paymentData.getPaymentInternalRef(),

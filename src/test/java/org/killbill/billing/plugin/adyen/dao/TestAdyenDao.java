@@ -63,7 +63,9 @@ public class TestAdyenDao extends TestWithEmbeddedDBBase {
                                                                  UUID.randomUUID().toString(),
                                                                  ImmutableMap.<String, String>of(UUID.randomUUID().toString(), UUID.randomUUID().toString(),
                                                                                                  AdyenPaymentPluginApi.PROPERTY_DCC_AMOUNT_VALUE, "10",
-                                                                                                 AdyenPaymentPluginApi.PROPERTY_DCC_AMOUNT_CURRENCY, "EUR"));
+                                                                                                 AdyenPaymentPluginApi.PROPERTY_DCC_AMOUNT_CURRENCY, "EUR"),
+                                                                 ImmutableMap.<String, String>of("cvcResult", "3 Not checked",
+                                                                                                 "refusalReasonRaw", "AUTHORISED"));
         final UUID kbAccountId = UUID.randomUUID();
         final UUID kbPaymentId = UUID.randomUUID();
         final UUID kbPaymentTransactionId = UUID.randomUUID();
@@ -88,7 +90,7 @@ public class TestAdyenDao extends TestWithEmbeddedDBBase {
         Assert.assertEquals(record.getKbTenantId(), kbTenantId.toString());
         Assert.assertEquals(record.getDccAmount().compareTo(BigDecimal.TEN), 0);
         Assert.assertEquals(record.getDccCurrency(), "EUR");
-        Assert.assertEquals(objectMapper.readValue(record.getAdditionalData(), Map.class), purchaseResult.getFormParameter());
+        Assert.assertEquals(objectMapper.readValue(record.getAdditionalData(), Map.class), purchaseResult.getAdditionalData());
         Assert.assertEquals(record.getPspResult(), PaymentServiceProviderResult.AUTHORISED.toString());
     }
 
