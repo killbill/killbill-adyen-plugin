@@ -27,8 +27,8 @@ The following properties are required:
 * `org.killbill.billing.plugin.adyen.username`: your username(s)
 * `org.killbill.billing.plugin.adyen.password`: your password(s)
 * `org.killbill.billing.plugin.adyen.paymentUrl`: SOAP Payment service url (i.e. `https://pal-test.adyen.com/pal/servlet/soap/Payment` or `https://pal-live.adyen.com/pal/servlet/soap/Payment`)
-* `org.killbill.billing.plugin.adyen.paymentConnectionTimeout` : Connection time-out for calls to Adyen SOAP Payment Service
-* `org.killbill.billing.plugin.adyen.paymentReadTimeout` : Read time-out for calls to Adyen SOAP Payment Service
+* `org.killbill.billing.plugin.adyen.paymentConnectionTimeout` : Connection time-out in milliseconds for calls to Adyen SOAP Payment Service
+* `org.killbill.billing.plugin.adyen.paymentReadTimeout` : Read time-out in milliseconds for calls to Adyen SOAP Payment Service
 
 Only needed for the Tests:
 

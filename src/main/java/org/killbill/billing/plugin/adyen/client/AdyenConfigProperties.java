@@ -32,6 +32,9 @@ public class AdyenConfigProperties {
 
     private static final Locale LOCALE_EN_UK = new Locale("en", "UK");
 
+    private static final String DEFAULT_CONNECTION_TIMEOUT = "30000";
+    private static final String DEFAULT_READ_TIMEOUT = "&0000";
+
     private final Map<String, String> merchantAccountMap = new ConcurrentHashMap<String, String>();
     private final Map<String, String> userMap = new ConcurrentHashMap<String, String>();
     private final Map<String, String> passwordMap = new ConcurrentHashMap<String, String>();
@@ -76,8 +79,8 @@ public class AdyenConfigProperties {
         this.defaultAcquirer = properties.getProperty(PROPERTY_PREFIX + "defaultAcquirer");
         this.defaultCountryIsoCode = properties.getProperty(PROPERTY_PREFIX + "defaultCountryIsoCode");
 
-        this.paymentConnectionTimeout = properties.getProperty(PROPERTY_PREFIX + "paymentConnectionTimeout");
-        this.paymentReadTimeout = properties.getProperty(PROPERTY_PREFIX + "paymentReadTimeout");
+        this.paymentConnectionTimeout = properties.getProperty(PROPERTY_PREFIX + "paymentConnectionTimeout", DEFAULT_CONNECTION_TIMEOUT);
+        this.paymentReadTimeout = properties.getProperty(PROPERTY_PREFIX + "paymentReadTimeout", DEFAULT_READ_TIMEOUT);
 
         this.hmacSecrets = properties.getProperty(PROPERTY_PREFIX + "hmac.secret");
         refillMap(secretMap, hmacSecrets);
