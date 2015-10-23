@@ -33,7 +33,7 @@ public class AdyenConfigProperties {
     private static final Locale LOCALE_EN_UK = new Locale("en", "UK");
 
     private static final String DEFAULT_CONNECTION_TIMEOUT = "30000";
-    private static final String DEFAULT_READ_TIMEOUT = "&0000";
+    private static final String DEFAULT_READ_TIMEOUT = "60000";
 
     private final Map<String, String> merchantAccountMap = new ConcurrentHashMap<String, String>();
     private final Map<String, String> userMap = new ConcurrentHashMap<String, String>();
