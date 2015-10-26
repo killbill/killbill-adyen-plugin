@@ -23,6 +23,7 @@ import java.util.UUID;
 
 import org.killbill.billing.account.api.Account;
 import org.killbill.billing.payment.api.PluginProperty;
+import org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi;
 import org.killbill.billing.plugin.adyen.client.model.UserData;
 import org.testng.annotations.Test;
 
@@ -47,7 +48,7 @@ public class UserDataMappingServiceTest {
         when(account.getExternalKey()).thenReturn(externalKey);
         when(account.getId()).thenReturn(accountId);
 
-        Optional<String> customerIdOptional = UserDataMappingService.toCustomerId(null, customerId, account);
+        final Optional<String> customerIdOptional = UserDataMappingService.toCustomerId(customerId, account);
         assertTrue(customerIdOptional.isPresent());
         assertEquals(customerIdOptional.get(), customerId);
     }
@@ -62,7 +63,7 @@ public class UserDataMappingServiceTest {
         when(account.getExternalKey()).thenReturn(externalKey);
         when(account.getId()).thenReturn(accountId);
 
-        Optional<String> customerIdOptional = UserDataMappingService.toCustomerId(null, customerId, account);
+        final Optional<String> customerIdOptional = UserDataMappingService.toCustomerId(customerId, account);
         assertTrue(customerIdOptional.isPresent());
         assertEquals(customerIdOptional.get(), externalKey);
     }
@@ -77,7 +78,7 @@ public class UserDataMappingServiceTest {
         when(account.getExternalKey()).thenReturn(externalKey);
         when(account.getId()).thenReturn(accountId);
 
-        Optional<String> customerIdOptional = UserDataMappingService.toCustomerId(null, customerId, account);
+        final Optional<String> customerIdOptional = UserDataMappingService.toCustomerId(customerId, account);
         assertTrue(customerIdOptional.isPresent());
         assertEquals(customerIdOptional.get(), accountId.toString());
     }
@@ -87,34 +88,34 @@ public class UserDataMappingServiceTest {
         final String customerId = null;
         final Account account = null;
 
-        Optional<String> customerIdOptional = UserDataMappingService.toCustomerId(null, customerId, account);
+        final Optional<String> customerIdOptional = UserDataMappingService.toCustomerId(customerId, account);
         assertFalse(customerIdOptional.isPresent());
     }
 
     @Test(groups = "fast")
     public void testToCustomerLocalForCustomerLocale() {
-        final String customerLocaleProperty = "de";
-        final String accountLocaleProperty = "en";
+        final String customerLocaleProperty = "de_DE";
+        final String accountLocaleProperty = "en_GB";
 
         final Account account = mock(Account.class);
         when(account.getLocale()).thenReturn(accountLocaleProperty);
 
-        Optional<Locale> customerLocale = UserDataMappingService.toCustomerLocale(customerLocaleProperty, account);
+        final Optional<Locale> customerLocale = UserDataMappingService.toCustomerLocale(customerLocaleProperty, account);
         assertTrue(customerLocale.isPresent());
-        assertEquals(customerLocale.get(), Locale.GERMAN);
+        assertEquals(customerLocale.get().getCountry(), "DE");
     }
 
     @Test(groups = "fast")
     public void testToCustomerLocalForAccountLocale() {
         final String customerLocaleProperty = null;
-        final String accountLocaleProperty = "en";
+        final String accountLocaleProperty = "en_GB";
 
         final Account account = mock(Account.class);
         when(account.getLocale()).thenReturn(accountLocaleProperty);
 
-        Optional<Locale> customerLocale = UserDataMappingService.toCustomerLocale(customerLocaleProperty, account);
+        final Optional<Locale> customerLocale = UserDataMappingService.toCustomerLocale(customerLocaleProperty, account);
         assertTrue(customerLocale.isPresent());
-        assertEquals(customerLocale.get(), Locale.ENGLISH);
+        assertEquals(customerLocale.get().getCountry(), "GB");
     }
 
     @Test(groups = "fast")
@@ -122,7 +123,7 @@ public class UserDataMappingServiceTest {
         final String customerLocaleProperty = null;
         final Account account = null;
 
-        Optional<Locale> customerLocale = UserDataMappingService.toCustomerLocale(customerLocaleProperty, account);
+        final Optional<Locale> customerLocale = UserDataMappingService.toCustomerLocale(customerLocaleProperty, account);
         assertFalse(customerLocale.isPresent());
     }
 
@@ -133,7 +134,7 @@ public class UserDataMappingServiceTest {
         final Account account = mock(Account.class);
         when(account.getLocale()).thenReturn(null);
 
-        Optional<Locale> customerLocale = UserDataMappingService.toCustomerLocale(customerLocaleProperty, account);
+        final Optional<Locale> customerLocale = UserDataMappingService.toCustomerLocale(customerLocaleProperty, account);
         assertFalse(customerLocale.isPresent());
     }
 
@@ -145,7 +146,7 @@ public class UserDataMappingServiceTest {
         final Account account = mock(Account.class);
         when(account.getEmail()).thenReturn(accountEmailProperty);
 
-        Optional<String> customerEmail = UserDataMappingService.toCustomerEmail(customerEmailProperty, account);
+        final Optional<String> customerEmail = UserDataMappingService.toCustomerEmail(customerEmailProperty, account);
         assertTrue(customerEmail.isPresent());
         assertEquals(customerEmailProperty, customerEmail.get());
     }
@@ -158,7 +159,7 @@ public class UserDataMappingServiceTest {
         final Account account = mock(Account.class);
         when(account.getEmail()).thenReturn(accountEmailProperty);
 
-        Optional<String> customerEmail = UserDataMappingService.toCustomerEmail(customerEmailProperty, account);
+        final Optional<String> customerEmail = UserDataMappingService.toCustomerEmail(customerEmailProperty, account);
         assertTrue(customerEmail.isPresent());
         assertEquals(accountEmailProperty, customerEmail.get());
     }
@@ -168,7 +169,7 @@ public class UserDataMappingServiceTest {
         final String customerEmailProperty = null;
         final Account account = null;
 
-        Optional<String> customerEmail = UserDataMappingService.toCustomerEmail(customerEmailProperty, account);
+        final Optional<String> customerEmail = UserDataMappingService.toCustomerEmail(customerEmailProperty, account);
         assertFalse(customerEmail.isPresent());
     }
 
@@ -179,7 +180,7 @@ public class UserDataMappingServiceTest {
         final Account account = mock(Account.class);
         when(account.getEmail()).thenReturn(null);
 
-        Optional<String> customerEmail = UserDataMappingService.toCustomerEmail(customerEmailProperty, account);
+        final Optional<String> customerEmail = UserDataMappingService.toCustomerEmail(customerEmailProperty, account);
         assertFalse(customerEmail.isPresent());
     }
 
@@ -193,7 +194,7 @@ public class UserDataMappingServiceTest {
         when(account.getName()).thenReturn(accountName);
         when(account.getFirstNameLength()).thenReturn(3);
 
-        Optional<String> firstName = UserDataMappingService.toFirstName(propertyFirstName, account);
+        final Optional<String> firstName = UserDataMappingService.toFirstName(propertyFirstName, account);
         assertTrue(firstName.isPresent());
         assertEquals(firstName.get(), propertyFirstName);
     }
@@ -207,7 +208,7 @@ public class UserDataMappingServiceTest {
         when(account.getName()).thenReturn(accountName);
         when(account.getFirstNameLength()).thenReturn(3);
 
-        Optional<String> firstName = UserDataMappingService.toFirstName(firstNameProperty, account);
+        final Optional<String> firstName = UserDataMappingService.toFirstName(firstNameProperty, account);
         assertTrue(firstName.isPresent());
         assertEquals(firstName.get(), "Erl");
     }
@@ -221,7 +222,7 @@ public class UserDataMappingServiceTest {
         when(account.getName()).thenReturn(accountName);
         when(account.getFirstNameLength()).thenReturn(null);
 
-        Optional<String> firstName = UserDataMappingService.toFirstName(firstNameProperty, account);
+        final Optional<String> firstName = UserDataMappingService.toFirstName(firstNameProperty, account);
         assertTrue(firstName.isPresent());
         assertEquals(firstName.get(), "Erl Koenig");
     }
@@ -235,7 +236,7 @@ public class UserDataMappingServiceTest {
         when(account.getName()).thenReturn(accountName);
         when(account.getFirstNameLength()).thenReturn(3);
 
-        Optional<String> firstName = UserDataMappingService.toFirstName(firstNameProperty, account);
+        final Optional<String> firstName = UserDataMappingService.toFirstName(firstNameProperty, account);
         assertFalse(firstName.isPresent());
     }
 
@@ -244,7 +245,7 @@ public class UserDataMappingServiceTest {
         final String firstNameProperty = null;
         final Account account = null;
 
-        Optional<String> firstName = UserDataMappingService.toFirstName(firstNameProperty, account);
+        final Optional<String> firstName = UserDataMappingService.toFirstName(firstNameProperty, account);
         assertFalse(firstName.isPresent());
     }
 
@@ -257,7 +258,7 @@ public class UserDataMappingServiceTest {
         when(account.getName()).thenReturn(accountName);
         when(account.getFirstNameLength()).thenReturn(3);
 
-        Optional<String> lastName = UserDataMappingService.toLastName(lastNameProperty, account);
+        final Optional<String> lastName = UserDataMappingService.toLastName(lastNameProperty, account);
         assertTrue(lastName.isPresent());
         assertEquals(lastName.get(), lastNameProperty);
     }
@@ -271,7 +272,7 @@ public class UserDataMappingServiceTest {
         when(account.getName()).thenReturn(accountName);
         when(account.getFirstNameLength()).thenReturn(3);
 
-        Optional<String> lastName = UserDataMappingService.toLastName(lastNameProperty, account);
+        final Optional<String> lastName = UserDataMappingService.toLastName(lastNameProperty, account);
         assertTrue(lastName.isPresent());
         assertEquals(lastName.get(), "Koenig");
     }
@@ -285,7 +286,7 @@ public class UserDataMappingServiceTest {
         when(account.getName()).thenReturn(accountName);
         when(account.getFirstNameLength()).thenReturn(null);
 
-        Optional<String> lastName = UserDataMappingService.toLastName(lastNameProperty, account);
+        final Optional<String> lastName = UserDataMappingService.toLastName(lastNameProperty, account);
         assertTrue(lastName.isPresent());
         assertEquals(lastName.get(), "");
     }
@@ -299,7 +300,7 @@ public class UserDataMappingServiceTest {
         when(account.getName()).thenReturn(accountName);
         when(account.getFirstNameLength()).thenReturn(3);
 
-        Optional<String> lastName = UserDataMappingService.toLastName(lastNameProperty, account);
+        final Optional<String> lastName = UserDataMappingService.toLastName(lastNameProperty, account);
         assertFalse(lastName.isPresent());
     }
 
@@ -308,7 +309,7 @@ public class UserDataMappingServiceTest {
         final String lastNameProperty = null;
         final Account account = null;
 
-        Optional<String> lastName = UserDataMappingService.toLastName(lastNameProperty, account);
+        final Optional<String> lastName = UserDataMappingService.toLastName(lastNameProperty, account);
         assertFalse(lastName.isPresent());
     }
 
@@ -321,15 +322,15 @@ public class UserDataMappingServiceTest {
         final String customerLastNameProperty = "Meier";
         final String customerIpProperty = "1.2.3.4";
 
-        List<PluginProperty> pluginProperties = ImmutableList.of(
-                new PluginProperty(UserDataMappingService.PROPERTY_CUSTOMER_ID, customerIdProperty, false),
-                new PluginProperty(UserDataMappingService.PROPERTY_CUSTOMER_LOCALE,  customerLocaleProperty, false),
-                new PluginProperty(UserDataMappingService.PROPERTY_EMAIL, customerEmailProperty, false),
-                new PluginProperty(UserDataMappingService.PROPERTY_FIRST_NAME,  customerFirstNameProperty, false),
-                new PluginProperty(UserDataMappingService.PROPERTY_LAST_NAME,  customerLastNameProperty, false),
-                new PluginProperty(UserDataMappingService.PROPERTY_IP, customerIpProperty, false));
+        final List<PluginProperty> pluginProperties = ImmutableList.of(
+                new PluginProperty(AdyenPaymentPluginApi.PROPERTY_CUSTOMER_ID, customerIdProperty, false),
+                new PluginProperty(AdyenPaymentPluginApi.PROPERTY_CUSTOMER_LOCALE,  customerLocaleProperty, false),
+                new PluginProperty(AdyenPaymentPluginApi.PROPERTY_EMAIL, customerEmailProperty, false),
+                new PluginProperty(AdyenPaymentPluginApi.PROPERTY_FIRST_NAME,  customerFirstNameProperty, false),
+                new PluginProperty(AdyenPaymentPluginApi.PROPERTY_LAST_NAME,  customerLastNameProperty, false),
+                new PluginProperty(AdyenPaymentPluginApi.PROPERTY_IP, customerIpProperty, false));
 
-        UserData userData = UserDataMappingService.toUserData(null, pluginProperties);
+        final UserData userData = UserDataMappingService.toUserData(null, pluginProperties);
         assertEquals(userData.getCustomerId(), customerIdProperty);
         assertEquals(userData.getCustomerLocale().toString(), customerLocaleProperty);
         assertEquals(userData.getEmail(), customerEmailProperty);
@@ -354,10 +355,10 @@ public class UserDataMappingServiceTest {
 
         final String customerIpProperty = "1.2.3.4";
 
-        List<PluginProperty> pluginProperties =
-                ImmutableList.of(new PluginProperty(UserDataMappingService.PROPERTY_IP, customerIpProperty, false));
+        final List<PluginProperty> pluginProperties =
+                ImmutableList.of(new PluginProperty(AdyenPaymentPluginApi.PROPERTY_IP, customerIpProperty, false));
 
-        UserData userData = UserDataMappingService.toUserData(account, pluginProperties);
+        final UserData userData = UserDataMappingService.toUserData(account, pluginProperties);
         assertEquals(userData.getCustomerId(), externalKey);
         assertEquals(userData.getCustomerLocale().toString(), accountLocale);
         assertEquals(userData.getEmail(), email);
@@ -369,9 +370,9 @@ public class UserDataMappingServiceTest {
 
     @Test(groups = "fast")
     public void testToUserDataForZeroInput() throws Exception {
-        List<PluginProperty> pluginProperties = ImmutableList.of();
+        final List<PluginProperty> pluginProperties = ImmutableList.of();
 
-        UserData userData = UserDataMappingService.toUserData(null, pluginProperties);
+        final UserData userData = UserDataMappingService.toUserData(null, pluginProperties);
         assertEquals(userData.getCustomerId(), null);
         assertEquals(userData.getCustomerLocale(), null);
         assertEquals(userData.getEmail(), null);

@@ -146,6 +146,14 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
     public static final String PROPERTY_DD_BANK_IDENTIFIER_CODE = "ddBic";
     public static final String PROPERTY_DD_BANKLEITZAHL = "ddBlz";
 
+    // user data properties
+    public static final String PROPERTY_FIRST_NAME = "firstName";
+    public static final String PROPERTY_LAST_NAME = "lastName";
+    public static final String PROPERTY_IP = "ip";
+    public static final String PROPERTY_CUSTOMER_LOCALE = "customerLocale";
+    public static final String PROPERTY_CUSTOMER_ID = "customerId";
+    public static final String PROPERTY_EMAIL = "email";
+
     /**
      * Cont auth disabled validation on adyens side (no cvc required). We practically tell them that the payment data is valid.
      * Should be given as "true" or "false".

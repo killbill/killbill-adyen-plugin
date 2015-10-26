@@ -20,8 +20,10 @@ import java.util.Locale;
 
 import javax.annotation.Nullable;
 
+import org.apache.commons.lang3.LocaleUtils;
 import org.killbill.billing.account.api.Account;
 import org.killbill.billing.payment.api.PluginProperty;
+import org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi;
 import org.killbill.billing.plugin.adyen.client.model.UserData;
 import org.killbill.billing.plugin.api.PluginProperties;
 
@@ -30,48 +32,41 @@ import com.google.common.base.Optional;
 
 public class UserDataMappingService {
 
-    public static final String PROPERTY_FIRST_NAME = "firstName";
-    public static final String PROPERTY_LAST_NAME = "lastName";
-    public static final String PROPERTY_IP = "ip";
-    public static final String PROPERTY_CUSTOMER_LOCALE = "customerLocale";
-    public static final String PROPERTY_CUSTOMER_ID = "customerId";
-    public static final String PROPERTY_EMAIL = "email";
-
     public static UserData toUserData(@Nullable final Account account, final Iterable<PluginProperty> properties) {
         final UserData userData = new UserData();
 
         // determine the customer id
-        final String customerIdProperty = PluginProperties.findPluginPropertyValue(PROPERTY_CUSTOMER_ID, properties);
+        final String customerIdProperty = PluginProperties.findPluginPropertyValue(AdyenPaymentPluginApi.PROPERTY_CUSTOMER_ID, properties);
         final Optional<String> optionalCustomerId = toCustomerId( customerIdProperty, account);
         final String customerId = optionalCustomerId.isPresent() ? optionalCustomerId.get() : null;
         userData.setCustomerId(customerId);
 
         // determine the customer locale
-        final String propertyLocaleString = PluginProperties.findPluginPropertyValue(PROPERTY_CUSTOMER_LOCALE, properties);
+        final String propertyLocaleString = PluginProperties.findPluginPropertyValue(AdyenPaymentPluginApi.PROPERTY_CUSTOMER_LOCALE, properties);
         final Optional<Locale> customerLocaleOptional = toCustomerLocale(propertyLocaleString, account);
         final Locale customerLocale = customerLocaleOptional.isPresent() ? customerLocaleOptional.get() : null;
         userData.setCustomerLocale(customerLocale);
 
         // determine the email
-        final String propertyEmail = PluginProperties.findPluginPropertyValue(PROPERTY_EMAIL, properties);
+        final String propertyEmail = PluginProperties.findPluginPropertyValue(AdyenPaymentPluginApi.PROPERTY_EMAIL, properties);
         final Optional<String> optionalEmail = toCustomerEmail(propertyEmail, account);
         final String email = optionalEmail.isPresent() ? optionalEmail.get() : null;
         userData.setEmail(email);
 
         // determine first Name
-        final String propertyFirstName = PluginProperties.findPluginPropertyValue(PROPERTY_FIRST_NAME, properties);
+        final String propertyFirstName = PluginProperties.findPluginPropertyValue(AdyenPaymentPluginApi.PROPERTY_FIRST_NAME, properties);
         final Optional<String> optionalFirstName = toFirstName(propertyFirstName, account);
         final String firstName = optionalFirstName.isPresent() ? optionalFirstName.get() : null;
         userData.setFirstName(firstName);
 
         // determine last Name
-        final String propertyLastName = PluginProperties.findPluginPropertyValue(PROPERTY_LAST_NAME, properties);
+        final String propertyLastName = PluginProperties.findPluginPropertyValue(AdyenPaymentPluginApi.PROPERTY_LAST_NAME, properties);
         final Optional<String> optionalLastName = toLastName(propertyLastName, account);
         final String lastName = optionalLastName.isPresent() ? optionalLastName.get() : null;
         userData.setLastName(lastName);
 
         // set ip
-        userData.setIP(PluginProperties.findPluginPropertyValue(PROPERTY_IP, properties));
+        userData.setIP(PluginProperties.findPluginPropertyValue(AdyenPaymentPluginApi.PROPERTY_IP, properties));
 
         return userData;
     }
@@ -117,9 +112,9 @@ public class UserDataMappingService {
      */
     public static Optional<Locale> toCustomerLocale(String propertyLocaleString, Account account) {
         if (propertyLocaleString != null) {
-            return Optional.of(Locale.forLanguageTag(propertyLocaleString));
+            return Optional.of(LocaleUtils.toLocale(propertyLocaleString));
         } else if (account != null && account.getLocale() != null) {
-            return Optional.of(new Locale(account.getLocale()));
+            return Optional.of(LocaleUtils.toLocale(account.getLocale()));
         } else {
             return Optional.absent();
         }
@@ -153,7 +148,7 @@ public class UserDataMappingService {
      * The following heuristic is used to determine it:
      * 1. if there is an first name provided in the plugin properties, this will be used.
      * 2. if the account has a name, the substring is used that is indicated by firstNameLength
-     * 3. if no firstNameLenght was provided the complete name is used as first name.
+     * 3. if no firstNameLength was provided the complete name is used as first name.
      * 4. if no account or account name was provided an empty Optional is returned.
      *
      *
@@ -177,7 +172,7 @@ public class UserDataMappingService {
      * The following heuristic is used to determine it:
      * 1. if there is an last name provided in the plugin properties, this will be used.
      * 2. if the account has a name, the substring is used that is derived from the firstNameLength
-     * 3. if no firstNameLenght was provided the complete name is used as last name.
+     * 3. if no firstNameLength was provided the complete name is used as last name.
      * 4. if no account or account name was provided an empty Optional is returned.
      *
      * @param propertyLastName the lastName that has been sent in the plugin properties
