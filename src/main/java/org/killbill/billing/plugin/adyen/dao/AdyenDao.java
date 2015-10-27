@@ -453,7 +453,15 @@ public class AdyenDao extends PluginPaymentDao<AdyenResponsesRecord, AdyenRespon
     }
 
     private String getAdditionalData(final PurchaseResult result) throws SQLException {
-        return getAdditionalData(result.getAdditionalData());
+        final Map<String, String> additionalDataMap;
+        if (result.getAdditionalData() != null && !result.getAdditionalData().isEmpty()) {
+            additionalDataMap = result.getAdditionalData();
+        } else if (result.getFormParameter() != null && !result.getFormParameter().isEmpty()) {
+            additionalDataMap = result.getFormParameter();
+        } else {
+            additionalDataMap = null;
+        }
+        return getAdditionalData(additionalDataMap);
     }
 
     private String getAdditionalData(final PaymentModificationResponse response) throws SQLException {
