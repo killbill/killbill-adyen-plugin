@@ -94,8 +94,7 @@ public class AdyenPaymentTransactionInfoPlugin extends PluginPaymentTransactionI
               Strings.isNullOrEmpty(record.getCurrency()) ? null : Currency.valueOf(record.getCurrency()),
               Strings.isNullOrEmpty(record.getPspResult())
               ? PaymentPluginStatus.UNDEFINED
-              : getPaymentPluginStatus(Optional.of(AdyenCallErrorStatus.UNKNOWN_FAILURE),
-                                       Optional.of(PaymentServiceProviderResult.getPaymentResultForId(record.getPspResult()))),
+              : getPaymentPluginStatus(Optional.of(PaymentServiceProviderResult.getPaymentResultForId(record.getPspResult()))),
               record.getResultCode(),
               record.getRefusalReason(),
               record.getPspReference(),
@@ -122,6 +121,10 @@ public class AdyenPaymentTransactionInfoPlugin extends PluginPaymentTransactionI
     private static PaymentPluginStatus getPaymentPluginStatus(final Optional<AdyenCallErrorStatus> adyenCallErrorStatus, final Optional<PaymentServiceProviderResult> pspResult) {
         checkArgument(adyenCallErrorStatus.isPresent() ^ pspResult.isPresent());
         return (pspResult.isPresent()) ? pspResultToPaymentPluginStatus(pspResult.get()) : adyenCallErrorStatusToPaymentPluginStatus(adyenCallErrorStatus.get());
+    }
+
+    private static PaymentPluginStatus getPaymentPluginStatus(final Optional<PaymentServiceProviderResult> pspResult) {
+        return (pspResult.isPresent()) ? pspResultToPaymentPluginStatus(pspResult.get()) : adyenCallErrorStatusToPaymentPluginStatus(AdyenCallErrorStatus.UNKNOWN_FAILURE);
     }
 
     private static PaymentPluginStatus adyenCallErrorStatusToPaymentPluginStatus(final AdyenCallErrorStatus adyenCallErrorStatus) {
