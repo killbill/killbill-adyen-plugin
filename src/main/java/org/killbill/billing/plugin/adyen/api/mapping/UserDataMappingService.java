@@ -20,7 +20,6 @@ import java.util.Locale;
 
 import javax.annotation.Nullable;
 
-import org.apache.commons.lang3.LocaleUtils;
 import org.killbill.billing.account.api.Account;
 import org.killbill.billing.payment.api.PluginProperty;
 import org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi;
@@ -112,9 +111,9 @@ public class UserDataMappingService {
      */
     public static Optional<Locale> toCustomerLocale(String propertyLocaleString, Account account) {
         if (propertyLocaleString != null) {
-            return Optional.of(LocaleUtils.toLocale(propertyLocaleString));
+            return Optional.of(Locale.forLanguageTag(propertyLocaleString));
         } else if (account != null && account.getLocale() != null) {
-            return Optional.of(LocaleUtils.toLocale(account.getLocale()));
+            return Optional.of(new Locale(account.getLocale()));
         } else {
             return Optional.absent();
         }
