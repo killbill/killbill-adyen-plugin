@@ -135,8 +135,8 @@ public class AdyenPaymentServiceProviderPort implements Closeable {
                                                     anyType2AnyTypeMapToStringMap(result.getAdditionalData()));
             }
         } else {
-            purchaseResult =  new PurchaseResult(paymentData.getPaymentInternalRef(),
-                                                 adyenCallResult.getResponseStatus().get());
+            purchaseResult = new PurchaseResult(paymentData.getPaymentInternalRef(),
+                                                adyenCallResult.getResponseStatus().get());
         }
 
         logger.info("authorise Done {}", purchaseResult);
@@ -153,7 +153,7 @@ public class AdyenPaymentServiceProviderPort implements Closeable {
                                             final UserData userData,
                                             final Map<String, String> requestParameterMap,
                                             final SplitSettlementData splitSettlementData) {
-        logger.info("authorize3DSecure Start {} [}", billedAmount, userData);
+        logger.info("authorize3DSecure Start {} {}", billedAmount, userData);
 
         final Card paymentInfo = paymentData.getPaymentInfo();
         final BrowserInfo info = (BrowserInfo) paymentInfoConverterManagement.getBrowserInfoFor3DSecureAuth(billedAmount, paymentData.getPaymentInfo());
@@ -200,8 +200,8 @@ public class AdyenPaymentServiceProviderPort implements Closeable {
                                                     anyType2AnyTypeMapToStringMap(result.getAdditionalData()));
             }
         } else {
-            purchaseResult =  new PurchaseResult(paymentData.getPaymentInternalRef(),
-                                                 adyenCallResult.getResponseStatus().get());
+            purchaseResult = new PurchaseResult(paymentData.getPaymentInternalRef(),
+                                                adyenCallResult.getResponseStatus().get());
         }
 
         logger.info("authorize3DSecure Done {}", purchaseResult);
