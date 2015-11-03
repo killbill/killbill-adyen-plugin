@@ -21,8 +21,6 @@ import java.math.BigDecimal;
 import java.net.URISyntaxException;
 import java.net.URLDecoder;
 import java.sql.SQLException;
-import java.util.HashMap;
-import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 
@@ -98,14 +96,10 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 
+import static org.killbill.billing.plugin.adyen.api.mapping.UserDataMappingService.toUserData;
+
 public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponsesRecord, AdyenResponses, AdyenPaymentMethodsRecord, AdyenPaymentMethods> {
 
-    public static final String PROPERTY_CUSTOMER_ID = "customerId";
-    public static final String PROPERTY_CUSTOMER_LOCALE = "customerLocale";
-    public static final String PROPERTY_EMAIL = "email";
-    public static final String PROPERTY_FIRST_NAME = "firstName";
-    public static final String PROPERTY_LAST_NAME = "lastName";
-    public static final String PROPERTY_IP = "ip";
     public static final String PROPERTY_HOLDER_NAME = "holderName";
     public static final String PROPERTY_SHIP_BEFORE_DATE = "shipBeforeDate";
     public static final String PROPERTY_INSTALLMENTS = "installments";
@@ -151,6 +145,14 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
     public static final String PROPERTY_DD_ACCOUNT_NUMBER = "ddNumber";
     public static final String PROPERTY_DD_BANK_IDENTIFIER_CODE = "ddBic";
     public static final String PROPERTY_DD_BANKLEITZAHL = "ddBlz";
+
+    // user data properties
+    public static final String PROPERTY_FIRST_NAME = "firstName";
+    public static final String PROPERTY_LAST_NAME = "lastName";
+    public static final String PROPERTY_IP = "ip";
+    public static final String PROPERTY_CUSTOMER_LOCALE = "customerLocale";
+    public static final String PROPERTY_CUSTOMER_ID = "customerId";
+    public static final String PROPERTY_EMAIL = "email";
 
     /**
      * Cont auth disabled validation on adyens side (no cvc required). We practically tell them that the payment data is valid.
@@ -333,7 +335,7 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
 
         final PaymentData paymentData = buildPaymentData(account, mergedProperties, context);
         final OrderData orderData = buildOrderData(account, mergedProperties);
-        final UserData userData = buildUserData(account, mergedProperties);
+        final UserData userData = toUserData(account, mergedProperties);
 
         final boolean shouldCreatePendingPayment = Boolean.valueOf(PluginProperties.findPluginPropertyValue(PROPERTY_CREATE_PENDING_PAYMENT, mergedProperties));
         if (shouldCreatePendingPayment) {
@@ -402,7 +404,7 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
         final Long transactionAmount = (amount == null ? null : amount.longValue());
         final PaymentData paymentData = buildPaymentData(account, kbPaymentId, kbTransactionId, kbPaymentMethodId, currency, properties, context);
         final OrderData orderData = buildOrderData(account, properties);
-        final UserData userData = buildUserData(account, properties);
+        final UserData userData = toUserData(account, properties);
         final String termUrl = PluginProperties.findPluginPropertyValue(PROPERTY_TERM_URL, properties);
         final SplitSettlementData splitSettlementData = null;
         final DateTime utcNow = clock.getUTCNow();
@@ -746,31 +748,6 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
         }
     }
 
-    private UserData buildUserData(@Nullable final Account account, final Iterable<PluginProperty> properties) {
-        final UserData userData = new UserData();
-
-        final String accountCustomerId = account == null ? null : (account.getExternalKey() == null ? account.getId().toString() : account.getExternalKey());
-        userData.setCustomerId(PluginProperties.getValue(PROPERTY_CUSTOMER_ID, accountCustomerId, properties));
-
-        final String propertyLocaleString = PluginProperties.findPluginPropertyValue(PROPERTY_CUSTOMER_LOCALE, properties);
-        final Locale propertyCustomerLocale = propertyLocaleString == null ? null : Locale.forLanguageTag(propertyLocaleString);
-        final Locale accountLocale = account == null || account.getLocale() == null ? null : new Locale(account.getLocale());
-        userData.setCustomerLocale(propertyCustomerLocale == null ? accountLocale : propertyCustomerLocale);
-
-        final String accountEmail = account == null ? null : account.getEmail();
-        userData.setEmail(PluginProperties.getValue(PROPERTY_EMAIL, accountEmail, properties));
-
-        final String accountFirstName = account == null || account.getName() == null ? null : account.getName().substring(0, MoreObjects.firstNonNull(account.getFirstNameLength(), account.getName().length()));
-        userData.setFirstName(PluginProperties.getValue(PROPERTY_FIRST_NAME, accountFirstName, properties));
-
-        final String accountLastName = account == null || account.getName() == null ? null : account.getName().substring(MoreObjects.firstNonNull(account.getFirstNameLength(), account.getName().length()), account.getName().length());
-        userData.setLastName(PluginProperties.getValue(PROPERTY_LAST_NAME, accountLastName, properties));
-
-        userData.setIP(PluginProperties.findPluginPropertyValue(PROPERTY_IP, properties));
-
-        return userData;
-    }
-
     private OrderData buildOrderData(@Nullable final AccountData account, final Iterable<PluginProperty> properties) {
         final OrderData orderData = new OrderData();
 
@@ -831,5 +808,4 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
             return false;
         }
     }
-
 }
