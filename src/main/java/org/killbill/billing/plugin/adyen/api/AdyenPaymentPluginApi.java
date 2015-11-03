@@ -525,14 +525,17 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
             paymentInfo = buildCreditCard(nonNullPaymentMethodsRecord, paymentProvider, mergedProperties);
         }
 
-        paymentInfo.setContinuousAuthenticationEnabled(isContinuousAuthenticationEnabled(mergedProperties));
+        final Boolean continuousAuthenticationEnabled = isContinuousAuthenticationEnabled(mergedProperties);
+        if (continuousAuthenticationEnabled != null) {
+            paymentInfo.setContinuousAuthenticationEnabled(continuousAuthenticationEnabled);
+        }
 
         return paymentInfo;
     }
 
-    private boolean isContinuousAuthenticationEnabled(final Iterable<PluginProperty> mergedProperties) {
+    private Boolean isContinuousAuthenticationEnabled(final Iterable<PluginProperty> mergedProperties) {
         final String contAuth = PluginProperties.findPluginPropertyValue(PROPERTY_CONTINUOUS_AUTHENTICATION, mergedProperties);
-        return Boolean.parseBoolean(contAuth);
+        return contAuth == null ? null : Boolean.parseBoolean(contAuth);
     }
 
     /**

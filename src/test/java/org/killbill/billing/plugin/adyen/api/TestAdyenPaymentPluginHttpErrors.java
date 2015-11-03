@@ -413,7 +413,7 @@ public class TestAdyenPaymentPluginHttpErrors {
     @DataProvider(name = "invalidCreditCardData")
     private Iterator<Object[]> invalidCreditCardDataDataProvider() {
         final List<Object[]> data = new ArrayList<Object[]>();
-        data.add(new Object[] {invalidCreditCardData(AdyenPaymentPluginApi.PROPERTY_CC_EXPIRATION_MONTH, String.valueOf("123")), "Expiry month should be between 1 and 12 inclusive"});
+        data.add(new Object[] {invalidCreditCardData(AdyenPaymentPluginApi.PROPERTY_CC_EXPIRATION_MONTH, String.valueOf("123")), "Expiry month should be between 1 and 12 inclusive Card"});
         data.add(new Object[] {invalidCreditCardData(AdyenPaymentPluginApi.PROPERTY_CC_VERIFICATION_VALUE, String.valueOf("1234")), "CVC Declined"});
         return data.iterator();
     }
