@@ -58,6 +58,7 @@ import static org.killbill.billing.plugin.adyen.dao.gen.tables.AdyenResponses.AD
 
 public class AdyenDao extends PluginPaymentDao<AdyenResponsesRecord, AdyenResponses, AdyenPaymentMethodsRecord, AdyenPaymentMethods> {
 
+    private static final String PSP_ERROR_CODES = "psp_error_codes";
     private static final ObjectMapper objectMapper = new ObjectMapper();
     private static final Joiner JOINER = Joiner.on(",");
 
@@ -243,6 +244,7 @@ public class AdyenDao extends PluginPaymentDao<AdyenResponsesRecord, AdyenRespon
                             final UUID kbTenantId) throws SQLException {
         final String dccAmountValue = getProperty(AdyenPaymentPluginApi.PROPERTY_DCC_AMOUNT_VALUE, result);
         final String additionalData = getAdditionalData(result);
+        final String adyenCallErrorStatus = getAdyenCallErrorStatus(result);
 
         execute(dataSource.getConnection(),
                 new WithConnectionCallback<Void>() {
@@ -286,7 +288,7 @@ public class AdyenDao extends PluginPaymentDao<AdyenResponsesRecord, AdyenRespon
                                    null,
                                    null,
                                    null,
-                                   null,
+                                   adyenCallErrorStatus,
                                    null,
                                    null,
                                    dccAmountValue == null ? null : new BigDecimal(dccAmountValue),
@@ -355,6 +357,26 @@ public class AdyenDao extends PluginPaymentDao<AdyenResponsesRecord, AdyenRespon
                                          .fetchOne();
                            }
                        });
+    }
+
+    @Override
+    public AdyenResponsesRecord getSuccessfulAuthorizationResponse(final UUID kbPaymentId, final UUID kbTenantId) throws SQLException {
+        return execute(dataSource.getConnection(),
+                new WithConnectionCallback<AdyenResponsesRecord>() {
+                    @Override
+                    public AdyenResponsesRecord withConnection(final Connection conn) throws SQLException {
+                        final String RESPONSES = responsesTable.getName() + ".";
+                        return DSL.using(conn, dialect, settings)
+                                .selectFrom(responsesTable)
+                                .where(DSL.field(RESPONSES + KB_PAYMENT_ID).equal(kbPaymentId.toString()))
+                                .and(DSL.field(RESPONSES + TRANSACTION_TYPE).equal(TransactionType.AUTHORIZE.toString()))
+                                .and(DSL.field(RESPONSES + KB_TENANT_ID).equal(kbTenantId.toString()))
+                                .and(DSL.field(RESPONSES + PSP_ERROR_CODES).isNull())
+                                .orderBy(DSL.field(RESPONSES + RECORD_ID).desc())
+                                .limit(1)
+                                .fetchOne();
+                    }
+                });
     }
 
     // Notifications
@@ -434,6 +456,14 @@ public class AdyenDao extends PluginPaymentDao<AdyenResponsesRecord, AdyenRespon
 
     private String getErrorCodes(final PurchaseResult result) {
         return getString(result.getErrorCodes());
+    }
+
+    private String getAdyenCallErrorStatus(final PaymentModificationResponse result) {
+        if (result.getAdyenCallErrorStatus().isPresent()) {
+            return result.getAdyenCallErrorStatus().get().toString();
+        } else {
+            return null;
+        }
     }
 
     private String getString(@Nullable final Iterable iterable) {

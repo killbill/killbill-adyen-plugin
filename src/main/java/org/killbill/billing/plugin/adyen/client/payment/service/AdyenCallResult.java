@@ -28,6 +28,8 @@ public interface AdyenCallResult<T> {
 
     boolean receivedWellFormedResponse();
 
+    Optional<String> getErrorMessage();
+
 }
 
 class SuccessfulAdyenCall<T> implements AdyenCallResult<T> {
@@ -35,10 +37,7 @@ class SuccessfulAdyenCall<T> implements AdyenCallResult<T> {
     private final T result;
 
     public SuccessfulAdyenCall(final T result) {
-
-        checkNotNull(result, "result");
-
-        this.result = result;
+        this.result = checkNotNull(result, "result");
     }
 
     @Override
@@ -54,6 +53,11 @@ class SuccessfulAdyenCall<T> implements AdyenCallResult<T> {
     @Override
     public boolean receivedWellFormedResponse() {
         return true;
+    }
+
+    @Override
+    public Optional<String> getErrorMessage() {
+        return Optional.absent();
     }
 
     @Override
@@ -87,6 +91,11 @@ class UnSuccessfulAdyenCall<T> implements AdyenCallResult<T> {
     @Override
     public boolean receivedWellFormedResponse() {
         return false;
+    }
+
+    @Override
+    public Optional<String> getErrorMessage() {
+        return Optional.of(errorMessage);
     }
 
     @Override
