@@ -154,7 +154,7 @@ public class AdyenPaymentTransactionInfoPlugin extends PluginPaymentTransactionI
         if (Strings.isNullOrEmpty(record.getPspResult())) {
             final String adyenCallErrorStatusString = toString(AdyenDao.fromAdditionalData(record.getAdditionalData()).get(PurchaseResult.ADYEN_CALL_ERROR_STATUS));
             final AdyenCallErrorStatus adyenCallErrorStatus;
-            if (Strings.emptyToNull(adyenCallErrorStatusString) == null) {
+            if (Strings.isNullOrEmpty(adyenCallErrorStatusString)) {
                 adyenCallErrorStatus = AdyenCallErrorStatus.UNKNOWN_FAILURE;
             } else {
                 adyenCallErrorStatus = AdyenCallErrorStatus.valueOf(adyenCallErrorStatusString);
