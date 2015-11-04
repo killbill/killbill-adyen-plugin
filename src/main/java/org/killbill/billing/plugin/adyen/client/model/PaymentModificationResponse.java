@@ -18,61 +18,71 @@ package org.killbill.billing.plugin.adyen.client.model;
 
 import java.util.Map;
 
+import javax.annotation.Nullable;
+
+import org.killbill.adyen.payment.ModificationResult;
 import org.killbill.billing.plugin.adyen.client.payment.service.AdyenCallErrorStatus;
+import org.killbill.billing.plugin.adyen.client.payment.service.AdyenCallResult;
 
 import com.google.common.base.Optional;
+import com.google.common.collect.ImmutableMap;
+
+import static org.killbill.billing.plugin.adyen.client.model.PurchaseResult.ADYEN_CALL_ERROR_STATUS;
+import static org.killbill.billing.plugin.adyen.client.model.PurchaseResult.EXCEPTION_CLASS;
+import static org.killbill.billing.plugin.adyen.client.model.PurchaseResult.EXCEPTION_MESSAGE;
+import static org.killbill.billing.plugin.adyen.client.model.PurchaseResult.UNKNOWN;
 
 public class PaymentModificationResponse {
 
-    private Map<Object, Object> additionalData;
-    private String pspReference;
-    private String response;
-    private Optional<AdyenCallErrorStatus> adyenCallErrorStatus = Optional.absent();
+    private final AdyenCallErrorStatus adyenCallErrorStatus;
+    private final Map<Object, Object> additionalData;
+    private final String pspReference;
+    private final String response;
 
     public PaymentModificationResponse(final String response, final String pspReference, final Map<Object, Object> additionalData) {
-        this.additionalData = additionalData;
-        this.pspReference = pspReference;
-        this.response = response;
+        this(pspReference, response, null, additionalData);
     }
 
-    public PaymentModificationResponse(final String pspReference, final AdyenCallErrorStatus adyenCallErrorStatus) {
+    public PaymentModificationResponse(final String pspReference, final AdyenCallResult<ModificationResult> adyenCallResult) {
+        this(pspReference,
+             null,
+             adyenCallResult.getResponseStatus().isPresent() ? adyenCallResult.getResponseStatus().get() : null,
+             ImmutableMap.<Object, Object>of(ADYEN_CALL_ERROR_STATUS, adyenCallResult.getResponseStatus().isPresent() ? adyenCallResult.getResponseStatus().get().name() : "",
+                                             EXCEPTION_CLASS, adyenCallResult.getExceptionClass().isPresent() ? adyenCallResult.getExceptionClass().get() : UNKNOWN,
+                                             EXCEPTION_MESSAGE, adyenCallResult.getExceptionMessage().isPresent() ? adyenCallResult.getExceptionMessage().get() : UNKNOWN));
+    }
+
+    private PaymentModificationResponse(final String pspReference,
+                                        final String response,
+                                        @Nullable final AdyenCallErrorStatus adyenCallErrorStatus,
+                                        final Map<Object, Object> additionalData) {
         this.pspReference = pspReference;
-        this.adyenCallErrorStatus = Optional.of(adyenCallErrorStatus);
+        this.response = response;
+        this.adyenCallErrorStatus = adyenCallErrorStatus;
+        this.additionalData = additionalData;
     }
 
     /**
      * True if we received a well formed soap response from adyen.
      */
     public boolean isTechnicallySuccessful() {
-        return !adyenCallErrorStatus.isPresent();
+        return !getAdyenCallErrorStatus().isPresent();
     }
 
     public Map<Object, Object> getAdditionalData() {
         return additionalData;
     }
 
-    public void setAdditionalData(final Map<Object, Object> additionalData) {
-        this.additionalData = additionalData;
-    }
-
     public String getPspReference() {
         return pspReference;
-    }
-
-    public void setPspReference(final String pspReference) {
-        this.pspReference = pspReference;
     }
 
     public String getResponse() {
         return response;
     }
 
-    public void setResponse(final String response) {
-        this.response = response;
-    }
-
     public Optional<AdyenCallErrorStatus> getAdyenCallErrorStatus() {
-        return adyenCallErrorStatus;
+        return Optional.fromNullable(adyenCallErrorStatus);
     }
 
     @Override
@@ -118,6 +128,4 @@ public class PaymentModificationResponse {
         result = 31 * result + (adyenCallErrorStatus != null ? adyenCallErrorStatus.hashCode() : 0);
         return result;
     }
-
-
 }

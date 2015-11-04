@@ -21,7 +21,9 @@ import java.util.Map;
 
 import javax.annotation.Nullable;
 
+import org.killbill.adyen.payment.PaymentResult;
 import org.killbill.billing.plugin.adyen.client.payment.service.AdyenCallErrorStatus;
+import org.killbill.billing.plugin.adyen.client.payment.service.AdyenCallResult;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
@@ -30,6 +32,11 @@ import com.google.common.collect.ImmutableMap;
 import static com.google.common.base.MoreObjects.firstNonNull;
 
 public class PurchaseResult extends FrontendForm {
+
+    public static final String ADYEN_CALL_ERROR_STATUS = "adyenCallErrorStatus";
+    public static final String EXCEPTION_CLASS = "exceptionClass";
+    public static final String EXCEPTION_MESSAGE = "exceptionMessage";
+    public static final String UNKNOWN = "";
 
     private final Optional<PaymentServiceProviderResult> result;
     private final String authCode;
@@ -43,8 +50,21 @@ public class PurchaseResult extends FrontendForm {
     private final Map<String, String> additionalData;
 
     public PurchaseResult(final String paymentInternalRef,
-                          final AdyenCallErrorStatus adyenCallErrorStatus) {
-        this(Optional.<PaymentServiceProviderResult>absent(), null, null, null, null, null, ImmutableList.<PaymentServiceProviderErrorCodes>of(), paymentInternalRef, null, null, adyenCallErrorStatus, ImmutableMap.<String, String>of());
+                          final AdyenCallResult<PaymentResult> adyenCallResult) {
+        this(Optional.<PaymentServiceProviderResult>absent(),
+             null,
+             null,
+             null,
+             null,
+             null,
+             ImmutableList.<PaymentServiceProviderErrorCodes>of(),
+             paymentInternalRef,
+             null,
+             null,
+             adyenCallResult.getResponseStatus().isPresent() ? adyenCallResult.getResponseStatus().get() : null,
+             ImmutableMap.<String, String>of(ADYEN_CALL_ERROR_STATUS, adyenCallResult.getResponseStatus().isPresent() ? adyenCallResult.getResponseStatus().get().name() : UNKNOWN,
+                                             EXCEPTION_CLASS, adyenCallResult.getExceptionClass().isPresent() ? adyenCallResult.getExceptionClass().get() : UNKNOWN,
+                                             EXCEPTION_MESSAGE, adyenCallResult.getExceptionMessage().isPresent() ? adyenCallResult.getExceptionMessage().get() : UNKNOWN));
     }
 
     public PurchaseResult(final PaymentServiceProviderResult result,
@@ -79,7 +99,7 @@ public class PurchaseResult extends FrontendForm {
                            final String paymentInternalRef,
                            final String formUrl,
                            final Map<String, String> formParameter,
-                           final AdyenCallErrorStatus adyenCallErrorStatus,
+                           @Nullable final AdyenCallErrorStatus adyenCallErrorStatus,
                            final Map<String, String> additionalData) {
         super(firstNonNull(formParameter, ImmutableMap.<String, String>of()), formUrl);
 
@@ -159,7 +179,6 @@ public class PurchaseResult extends FrontendForm {
                '}';
     }
 
-
     @Override
     public boolean equals(final Object o) {
         if (this == o) {
@@ -216,6 +235,4 @@ public class PurchaseResult extends FrontendForm {
         result1 = 31 * result1 + (additionalData != null ? additionalData.hashCode() : 0);
         return result1;
     }
-
-
 }

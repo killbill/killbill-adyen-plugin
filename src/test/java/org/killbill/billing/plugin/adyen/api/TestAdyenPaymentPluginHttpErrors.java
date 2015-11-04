@@ -51,6 +51,7 @@ import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import com.github.tomakehurst.wiremock.http.Fault;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
@@ -68,6 +69,7 @@ import static org.killbill.billing.plugin.adyen.TestRemoteBase.DEFAULT_CURRENCY;
 import static org.killbill.billing.plugin.adyen.api.TestAdyenPaymentPluginHttpErrors.WireMockHelper.doWithWireMock;
 import static org.killbill.billing.plugin.adyen.api.TestAdyenPaymentPluginHttpErrors.WireMockHelper.wireMockUri;
 import static org.testng.Assert.assertEquals;
+import static org.testng.Assert.assertNull;
 
 /**
  * Checks if the plugin could handle technical communication errors (strange responses, read/connect timeouts etc...) and map them to the correct PaymentPluginStatus.
@@ -116,11 +118,19 @@ public class TestAdyenPaymentPluginHttpErrors {
                                                                       .withAdyenProperty("org.killbill.billing.plugin.adyen.paymentUrl", unReachableUri)
                                                                       .withAccount(account)
                                                                       .withPayment(payment)
+                                                                      .withDatabaseAccess(dao)
                                                                       .build();
 
         final PaymentTransactionInfoPlugin result = authorizeCall(account, payment, callContext, pluginApi, creditCardPaymentProperties());
-
         assertEquals(result.getStatus(), PaymentPluginStatus.CANCELED);
+        assertEquals(result.getGatewayError(), "nothing-here.to");
+        assertEquals(result.getGatewayErrorCode(), "java.net.UnknownHostException");
+
+        final List<PaymentTransactionInfoPlugin> results = pluginApi.getPaymentInfo(account.getId(), payment.getId(), ImmutableList.<PluginProperty>of(), callContext);
+        assertEquals(results.size(), 1);
+        assertEquals(results.get(0).getStatus(), PaymentPluginStatus.CANCELED);
+        assertEquals(results.get(0).getGatewayError(), "nothing-here.to");
+        assertEquals(results.get(0).getGatewayErrorCode(), "java.net.UnknownHostException");
     }
 
     @Test(groups = "slow")
@@ -136,11 +146,19 @@ public class TestAdyenPaymentPluginHttpErrors {
                                                                       .withAdyenProperty("org.killbill.billing.plugin.adyen.paymentUrl", freeLocalPort)
                                                                       .withAccount(account)
                                                                       .withPayment(payment)
+                                                                      .withDatabaseAccess(dao)
                                                                       .build();
 
         final PaymentTransactionInfoPlugin result = authorizeCall(account, payment, callContext, pluginApi, creditCardPaymentProperties());
-
         assertEquals(result.getStatus(), PaymentPluginStatus.CANCELED);
+        assertEquals(result.getGatewayError(), "Connection refused");
+        assertEquals(result.getGatewayErrorCode(), "java.net.ConnectException");
+
+        final List<PaymentTransactionInfoPlugin> results = pluginApi.getPaymentInfo(account.getId(), payment.getId(), ImmutableList.<PluginProperty>of(), callContext);
+        assertEquals(results.size(), 1);
+        assertEquals(results.get(0).getStatus(), PaymentPluginStatus.CANCELED);
+        assertEquals(results.get(0).getGatewayError(), "Connection refused");
+        assertEquals(results.get(0).getGatewayErrorCode(), "java.net.ConnectException");
     }
 
     /**
@@ -156,12 +174,19 @@ public class TestAdyenPaymentPluginHttpErrors {
         final AdyenPaymentPluginApi pluginApi = AdyenPluginMockBuilder.newPlugin()
                                                                       .withAccount(account)
                                                                       .withPayment(payment)
+                                                                      .withDatabaseAccess(dao)
                                                                       .build();
 
         final PaymentTransactionInfoPlugin result = authorizeCall(account, payment, callContext, pluginApi, inValidPurchaseData);
-
         assertEquals(result.getStatus(), PaymentPluginStatus.ERROR);
+        assertEquals(result.getGatewayError(), "Refused");
         assertEquals(result.getGatewayErrorCode(), gatewayErrorCode);
+
+        final List<PaymentTransactionInfoPlugin> results = pluginApi.getPaymentInfo(account.getId(), payment.getId(), ImmutableList.<PluginProperty>of(), callContext);
+        assertEquals(results.size(), 1);
+        assertEquals(results.get(0).getStatus(), PaymentPluginStatus.ERROR);
+        assertEquals(results.get(0).getGatewayError(), "Refused");
+        assertEquals(results.get(0).getGatewayErrorCode(), gatewayErrorCode);
     }
 
     @Test(groups = "slow")
@@ -179,6 +204,7 @@ public class TestAdyenPaymentPluginHttpErrors {
                                                                       .withAdyenProperty("org.killbill.billing.plugin.adyen.paymentReadTimeout", String.valueOf(adyenClientReadTimeout))
                                                                       .withAccount(account)
                                                                       .withPayment(payment)
+                                                                      .withDatabaseAccess(dao)
                                                                       .build();
 
         final PaymentTransactionInfoPlugin result = doWithWireMock(new WithWireMock<PaymentTransactionInfoPlugin>() {
@@ -193,8 +219,15 @@ public class TestAdyenPaymentPluginHttpErrors {
                 return authorizeCall(account, payment, callContext, pluginApi, creditCardPaymentProperties());
             }
         });
-
         assertEquals(result.getStatus(), PaymentPluginStatus.UNDEFINED);
+        assertEquals(result.getGatewayError(), "Read timed out");
+        assertEquals(result.getGatewayErrorCode(), "java.net.SocketTimeoutException");
+
+        final List<PaymentTransactionInfoPlugin> results = pluginApi.getPaymentInfo(account.getId(), payment.getId(), ImmutableList.<PluginProperty>of(), callContext);
+        assertEquals(results.size(), 1);
+        assertEquals(results.get(0).getStatus(), PaymentPluginStatus.UNDEFINED);
+        assertEquals(results.get(0).getGatewayError(), "Read timed out");
+        assertEquals(results.get(0).getGatewayErrorCode(), "java.net.SocketTimeoutException");
     }
 
     @Test(groups = "slow")
@@ -208,6 +241,7 @@ public class TestAdyenPaymentPluginHttpErrors {
                                                                       .withAdyenProperty("org.killbill.billing.plugin.adyen.paymentUrl", wireMockUri(ADYEN_PATH))
                                                                       .withAccount(account)
                                                                       .withPayment(payment)
+                                                                      .withDatabaseAccess(dao)
                                                                       .build();
 
         final PaymentTransactionInfoPlugin result = doWithWireMock(new WithWireMock<PaymentTransactionInfoPlugin>() {
@@ -221,8 +255,15 @@ public class TestAdyenPaymentPluginHttpErrors {
                 return authorizeCall(account, payment, callContext, pluginApi, creditCardPaymentProperties());
             }
         });
-
         assertEquals(result.getStatus(), PaymentPluginStatus.UNDEFINED);
+        assertEquals(result.getGatewayError(), "Invalid Http response");
+        assertEquals(result.getGatewayErrorCode(), "java.io.IOException");
+
+        final List<PaymentTransactionInfoPlugin> results = pluginApi.getPaymentInfo(account.getId(), payment.getId(), ImmutableList.<PluginProperty>of(), callContext);
+        assertEquals(results.size(), 1);
+        assertEquals(results.get(0).getStatus(), PaymentPluginStatus.UNDEFINED);
+        assertEquals(results.get(0).getGatewayError(), "Invalid Http response");
+        assertEquals(results.get(0).getGatewayErrorCode(), "java.io.IOException");
     }
 
     @Test(groups = "slow")
@@ -267,8 +308,18 @@ public class TestAdyenPaymentPluginHttpErrors {
                                                callContext);
             }
         });
-
         assertEquals(result.getStatus(), PaymentPluginStatus.UNDEFINED);
+        assertEquals(result.getGatewayError(), "Invalid Http response");
+        assertEquals(result.getGatewayErrorCode(), "java.io.IOException");
+
+        final List<PaymentTransactionInfoPlugin> results = refundApi.getPaymentInfo(account.getId(), payment.getId(), ImmutableList.<PluginProperty>of(), callContext);
+        assertEquals(results.size(), 2);
+        assertEquals(results.get(0).getStatus(), PaymentPluginStatus.PROCESSED);
+        assertEquals(results.get(0).getGatewayError(), "Authorised");
+        assertNull(results.get(0).getGatewayErrorCode());
+        assertEquals(results.get(1).getStatus(), PaymentPluginStatus.UNDEFINED);
+        assertEquals(results.get(1).getGatewayError(), "Invalid Http response");
+        assertEquals(results.get(1).getGatewayErrorCode(), "java.io.IOException");
     }
 
     @Test(groups = "slow")
@@ -282,6 +333,7 @@ public class TestAdyenPaymentPluginHttpErrors {
                                                                       .withAdyenProperty("org.killbill.billing.plugin.adyen.paymentUrl", wireMockUri(ADYEN_PATH))
                                                                       .withAccount(account)
                                                                       .withPayment(payment)
+                                                                      .withDatabaseAccess(dao)
                                                                       .build();
 
         final PaymentTransactionInfoPlugin result = doWithWireMock(new WithWireMock<PaymentTransactionInfoPlugin>() {
@@ -295,8 +347,15 @@ public class TestAdyenPaymentPluginHttpErrors {
                 return authorizeCall(account, payment, callContext, pluginApi, creditCardPaymentProperties());
             }
         });
-
         assertEquals(result.getStatus(), PaymentPluginStatus.UNDEFINED);
+        assertEquals(result.getGatewayError(), "Unexpected end of file from server");
+        assertEquals(result.getGatewayErrorCode(), "java.net.SocketException");
+
+        final List<PaymentTransactionInfoPlugin> results = pluginApi.getPaymentInfo(account.getId(), payment.getId(), ImmutableList.<PluginProperty>of(), callContext);
+        assertEquals(results.size(), 1);
+        assertEquals(results.get(0).getStatus(), PaymentPluginStatus.UNDEFINED);
+        assertEquals(results.get(0).getGatewayError(), "Unexpected end of file from server");
+        assertEquals(results.get(0).getGatewayErrorCode(), "java.net.SocketException");
     }
 
     @Test(groups = "slow")
@@ -310,6 +369,7 @@ public class TestAdyenPaymentPluginHttpErrors {
                                                                       .withAdyenProperty("org.killbill.billing.plugin.adyen.paymentUrl", wireMockUri(ADYEN_PATH))
                                                                       .withAccount(account)
                                                                       .withPayment(payment)
+                                                                      .withDatabaseAccess(dao)
                                                                       .build();
 
         final PaymentTransactionInfoPlugin result = doWithWireMock(new WithWireMock<PaymentTransactionInfoPlugin>() {
@@ -323,8 +383,15 @@ public class TestAdyenPaymentPluginHttpErrors {
                 return authorizeCall(account, payment, callContext, pluginApi, creditCardPaymentProperties());
             }
         });
-
         assertEquals(result.getStatus(), PaymentPluginStatus.UNDEFINED);
+        assertEquals(result.getGatewayError(), "Premature EOF");
+        assertEquals(result.getGatewayErrorCode(), "java.io.IOException");
+
+        final List<PaymentTransactionInfoPlugin> results = pluginApi.getPaymentInfo(account.getId(), payment.getId(), ImmutableList.<PluginProperty>of(), callContext);
+        assertEquals(results.size(), 1);
+        assertEquals(results.get(0).getStatus(), PaymentPluginStatus.UNDEFINED);
+        assertEquals(results.get(0).getGatewayError(), "Premature EOF");
+        assertEquals(results.get(0).getGatewayErrorCode(), "java.io.IOException");
     }
 
     @Test(groups = "slow")
@@ -338,6 +405,7 @@ public class TestAdyenPaymentPluginHttpErrors {
                                                                       .withAdyenProperty("org.killbill.billing.plugin.adyen.paymentUrl", wireMockUri(ADYEN_PATH))
                                                                       .withAccount(account)
                                                                       .withPayment(payment)
+                                                                      .withDatabaseAccess(dao)
                                                                       .build();
 
         final PaymentTransactionInfoPlugin result = doWithWireMock(new WithWireMock<PaymentTransactionInfoPlugin>() {
@@ -350,8 +418,15 @@ public class TestAdyenPaymentPluginHttpErrors {
                 return authorizeCall(account, payment, callContext, pluginApi, creditCardPaymentProperties());
             }
         });
-
         assertEquals(result.getStatus(), PaymentPluginStatus.UNDEFINED);
+        assertEquals(result.getGatewayError(), "HTTP response '404: Not Found' when communicating with " + wireMockUri(ADYEN_PATH));
+        assertEquals(result.getGatewayErrorCode(), "org.apache.cxf.transport.http.HTTPException");
+
+        final List<PaymentTransactionInfoPlugin> results = pluginApi.getPaymentInfo(account.getId(), payment.getId(), ImmutableList.<PluginProperty>of(), callContext);
+        assertEquals(results.size(), 1);
+        assertEquals(results.get(0).getStatus(), PaymentPluginStatus.UNDEFINED);
+        assertEquals(results.get(0).getGatewayError(), "HTTP response '404: Not Found' when communicating with " + wireMockUri(ADYEN_PATH));
+        assertEquals(results.get(0).getGatewayErrorCode(), "org.apache.cxf.transport.http.HTTPException");
     }
 
     @Test(groups = "slow")
@@ -365,6 +440,7 @@ public class TestAdyenPaymentPluginHttpErrors {
                                                                       .withAdyenProperty("org.killbill.billing.plugin.adyen.paymentUrl", wireMockUri(ADYEN_PATH))
                                                                       .withAccount(account)
                                                                       .withPayment(payment)
+                                                                      .withDatabaseAccess(dao)
                                                                       .build();
 
         final PaymentTransactionInfoPlugin result = doWithWireMock(new WithWireMock<PaymentTransactionInfoPlugin>() {
@@ -378,8 +454,17 @@ public class TestAdyenPaymentPluginHttpErrors {
 
             }
         });
-
         assertEquals(result.getStatus(), PaymentPluginStatus.UNDEFINED);
+        assertEquals(result.getGatewayError(), "Unexpected EOF in prolog\n" +
+                                               " at [row,col {unknown-source}]: [1,0]");
+        assertEquals(result.getGatewayErrorCode(), "com.ctc.wstx.exc.WstxEOFException");
+
+        final List<PaymentTransactionInfoPlugin> results = pluginApi.getPaymentInfo(account.getId(), payment.getId(), ImmutableList.<PluginProperty>of(), callContext);
+        assertEquals(results.size(), 1);
+        assertEquals(results.get(0).getStatus(), PaymentPluginStatus.UNDEFINED);
+        assertEquals(results.get(0).getGatewayError(), "Unexpected EOF in prolog\n" +
+                                                       " at [row,col {unknown-source}]: [1,0]");
+        assertEquals(results.get(0).getGatewayErrorCode(), "com.ctc.wstx.exc.WstxEOFException");
     }
 
     @Test(groups = "slow")
@@ -393,6 +478,7 @@ public class TestAdyenPaymentPluginHttpErrors {
                                                                       .withAdyenProperty("org.killbill.billing.plugin.adyen.paymentUrl", wireMockUri(ADYEN_PATH))
                                                                       .withAccount(account)
                                                                       .withPayment(payment)
+                                                                      .withDatabaseAccess(dao)
                                                                       .build();
 
         final PaymentTransactionInfoPlugin result = doWithWireMock(new WithWireMock<PaymentTransactionInfoPlugin>() {
@@ -406,8 +492,15 @@ public class TestAdyenPaymentPluginHttpErrors {
 
             }
         });
-
         assertEquals(result.getStatus(), PaymentPluginStatus.UNDEFINED);
+        assertEquals(result.getGatewayError(), "HTTP response '503: Service Unavailable' when communicating with " + wireMockUri(ADYEN_PATH));
+        assertEquals(result.getGatewayErrorCode(), "org.apache.cxf.transport.http.HTTPException");
+
+        final List<PaymentTransactionInfoPlugin> results = pluginApi.getPaymentInfo(account.getId(), payment.getId(), ImmutableList.<PluginProperty>of(), callContext);
+        assertEquals(results.size(), 1);
+        assertEquals(results.get(0).getStatus(), PaymentPluginStatus.UNDEFINED);
+        assertEquals(results.get(0).getGatewayError(), "HTTP response '503: Service Unavailable' when communicating with " + wireMockUri(ADYEN_PATH));
+        assertEquals(results.get(0).getGatewayErrorCode(), "org.apache.cxf.transport.http.HTTPException");
     }
 
     @DataProvider(name = "invalidCreditCardData")

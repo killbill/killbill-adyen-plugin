@@ -30,6 +30,7 @@ import org.killbill.billing.plugin.adyen.client.model.PaymentModificationRespons
 import org.killbill.billing.plugin.adyen.client.model.PaymentServiceProviderResult;
 import org.killbill.billing.plugin.adyen.client.model.PurchaseResult;
 import org.killbill.billing.plugin.adyen.client.payment.service.AdyenCallErrorStatus;
+import org.killbill.billing.plugin.adyen.dao.AdyenDao;
 import org.killbill.billing.plugin.adyen.dao.gen.tables.records.AdyenResponsesRecord;
 import org.killbill.billing.plugin.api.PluginProperties;
 import org.killbill.billing.plugin.api.payment.PluginPaymentTransactionInfoPlugin;
@@ -54,8 +55,8 @@ public class AdyenPaymentTransactionInfoPlugin extends PluginPaymentTransactionI
               amount,
               currency,
               getPaymentPluginStatus(purchaseResult.getAdyenCallErrorStatus(), purchaseResult.getResult()),
-              purchaseResult.getResultCode(),
-              purchaseResult.getReason(),
+              getGatewayError(purchaseResult),
+              getGatewayErrorCode(purchaseResult),
               purchaseResult.getPspReference(),
               purchaseResult.getAuthCode(),
               utcNow,
@@ -77,8 +78,8 @@ public class AdyenPaymentTransactionInfoPlugin extends PluginPaymentTransactionI
               amount,
               currency,
               getPaymentPluginStatus(paymentModificationResponse.getAdyenCallErrorStatus(), pspResult),
-              paymentModificationResponse.getResponse(),
-              null,
+              getGatewayError(paymentModificationResponse),
+              getGatewayErrorCode(paymentModificationResponse),
               paymentModificationResponse.getPspReference(),
               null,
               utcNow,
@@ -92,11 +93,9 @@ public class AdyenPaymentTransactionInfoPlugin extends PluginPaymentTransactionI
               TransactionType.valueOf(record.getTransactionType()),
               record.getAmount(),
               Strings.isNullOrEmpty(record.getCurrency()) ? null : Currency.valueOf(record.getCurrency()),
-              Strings.isNullOrEmpty(record.getPspResult())
-              ? PaymentPluginStatus.UNDEFINED
-              : getPaymentPluginStatus(Optional.of(PaymentServiceProviderResult.getPaymentResultForId(record.getPspResult()))),
-              record.getResultCode(),
-              record.getRefusalReason(),
+              getPaymentPluginStatus(record),
+              getGatewayError(record),
+              getGatewayErrorCode(record),
               record.getPspReference(),
               record.getAuthCode(),
               new DateTime(record.getCreatedDate(), DateTimeZone.UTC),
@@ -114,6 +113,30 @@ public class AdyenPaymentTransactionInfoPlugin extends PluginPaymentTransactionI
         }
     }
 
+    private static String getGatewayError(final PurchaseResult purchaseResult) {
+        return purchaseResult.getResultCode() != null ? purchaseResult.getResultCode() : purchaseResult.getAdditionalData().get(PurchaseResult.EXCEPTION_MESSAGE);
+    }
+
+    private static String getGatewayError(final PaymentModificationResponse paymentModificationResponse) {
+        return paymentModificationResponse.getResponse() != null ? paymentModificationResponse.getResponse() : toString(paymentModificationResponse.getAdditionalData().get(PurchaseResult.EXCEPTION_MESSAGE));
+    }
+
+    private static String getGatewayError(final AdyenResponsesRecord record) {
+        return record.getResultCode() != null ? record.getResultCode() : toString(AdyenDao.fromAdditionalData(record.getAdditionalData()).get(PurchaseResult.EXCEPTION_MESSAGE));
+    }
+
+    private static String getGatewayErrorCode(final PurchaseResult purchaseResult) {
+        return purchaseResult.getReason() != null ? purchaseResult.getReason() : purchaseResult.getAdditionalData().get(PurchaseResult.EXCEPTION_CLASS);
+    }
+
+    private static String getGatewayErrorCode(final PaymentModificationResponse paymentModificationResponse) {
+        return toString(paymentModificationResponse.getAdditionalData().get(PurchaseResult.EXCEPTION_CLASS));
+    }
+
+    private static String getGatewayErrorCode(final AdyenResponsesRecord record) {
+        return record.getRefusalReason() != null ? record.getRefusalReason() : toString(AdyenDao.fromAdditionalData(record.getAdditionalData()).get(PurchaseResult.EXCEPTION_CLASS));
+    }
+
     /**
      * Transforms adyenCallErrorStatus (where there any technical errors?) and pspResult (was the call successful from a business perspective) into the PaymentPluginStatus.
      * Therefor only one of the given params should be present (if there was a technical error we don't have a psp result and the other way around).
@@ -125,6 +148,22 @@ public class AdyenPaymentTransactionInfoPlugin extends PluginPaymentTransactionI
 
     private static PaymentPluginStatus getPaymentPluginStatus(final Optional<PaymentServiceProviderResult> pspResult) {
         return (pspResult.isPresent()) ? pspResultToPaymentPluginStatus(pspResult.get()) : adyenCallErrorStatusToPaymentPluginStatus(AdyenCallErrorStatus.UNKNOWN_FAILURE);
+    }
+
+    private static PaymentPluginStatus getPaymentPluginStatus(final AdyenResponsesRecord record) {
+        if (Strings.isNullOrEmpty(record.getPspResult())) {
+            final String adyenCallErrorStatusString = toString(AdyenDao.fromAdditionalData(record.getAdditionalData()).get(PurchaseResult.ADYEN_CALL_ERROR_STATUS));
+            final AdyenCallErrorStatus adyenCallErrorStatus;
+            if (Strings.emptyToNull(adyenCallErrorStatusString) == null) {
+                adyenCallErrorStatus = AdyenCallErrorStatus.UNKNOWN_FAILURE;
+            } else {
+                adyenCallErrorStatus = AdyenCallErrorStatus.valueOf(adyenCallErrorStatusString);
+            }
+            return adyenCallErrorStatusToPaymentPluginStatus(adyenCallErrorStatus);
+        } else {
+            final Optional<PaymentServiceProviderResult> pspResult = Optional.of(PaymentServiceProviderResult.getPaymentResultForId(record.getPspResult()));
+            return getPaymentPluginStatus(pspResult);
+        }
     }
 
     private static PaymentPluginStatus adyenCallErrorStatusToPaymentPluginStatus(final AdyenCallErrorStatus adyenCallErrorStatus) {
@@ -160,5 +199,9 @@ public class AdyenPaymentTransactionInfoPlugin extends PluginPaymentTransactionI
             default:
                 return PaymentPluginStatus.UNDEFINED;
         }
+    }
+
+    private static String toString(final Object obj) {
+        return obj == null ? null : obj.toString();
     }
 }

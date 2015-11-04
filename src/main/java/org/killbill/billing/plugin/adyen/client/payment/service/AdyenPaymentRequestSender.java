@@ -143,41 +143,41 @@ public class AdyenPaymentRequestSender implements Closeable {
         final Throwable rootCause = Throwables.getRootCause(e);
         final String errorMessage = rootCause.getMessage();
         if (rootCause instanceof ConnectException) {
-            return new UnSuccessfulAdyenCall<T>(REQUEST_NOT_SEND, errorMessage);
+            return new UnSuccessfulAdyenCall<T>(REQUEST_NOT_SEND, rootCause);
         } else if (rootCause instanceof SocketTimeoutException) {
             // read timeout
-            if (rootCause.getMessage().contains("Read timed out")) {
-                return new UnSuccessfulAdyenCall<T>(RESPONSE_NOT_RECEIVED, errorMessage);
-            } else if (rootCause.getMessage().contains("Unexpected end of file from server")) {
-                return new UnSuccessfulAdyenCall<T>(RESPONSE_INVALID, rootCause.getMessage());
+            if (errorMessage.contains("Read timed out")) {
+                return new UnSuccessfulAdyenCall<T>(RESPONSE_NOT_RECEIVED, rootCause);
+            } else if (errorMessage.contains("Unexpected end of file from server")) {
+                return new UnSuccessfulAdyenCall<T>(RESPONSE_INVALID, rootCause);
             }
         } else if (rootCause instanceof SocketException) {
-            if (rootCause.getMessage().contains("Unexpected end of file from server")) {
-                return new UnSuccessfulAdyenCall<T>(RESPONSE_INVALID, errorMessage);
+            if (errorMessage.contains("Unexpected end of file from server")) {
+                return new UnSuccessfulAdyenCall<T>(RESPONSE_INVALID, rootCause);
             }
         } else if (rootCause instanceof UnknownHostException) {
-            return new UnSuccessfulAdyenCall<T>(REQUEST_NOT_SEND, errorMessage);
+            return new UnSuccessfulAdyenCall<T>(REQUEST_NOT_SEND, rootCause);
         } else if (rootCause instanceof HTTPException) {
             // e.g. different response code or strange response
-            return new UnSuccessfulAdyenCall<T>(RESPONSE_INVALID, rootCause.getMessage());
+            return new UnSuccessfulAdyenCall<T>(RESPONSE_INVALID, rootCause);
         } else if (rootCause instanceof SOAPFaultException) {
-            return new UnSuccessfulAdyenCall<T>(RESPONSE_INVALID, errorMessage);
+            return new UnSuccessfulAdyenCall<T>(RESPONSE_INVALID, rootCause);
         } else if (rootCause instanceof IOException) {
-            if (rootCause.getMessage().contains("Invalid Http response")) {
+            if (errorMessage.contains("Invalid Http response")) {
                 // unparsable data as response
-                return new UnSuccessfulAdyenCall<T>(RESPONSE_INVALID, errorMessage);
-            } else if (rootCause.getMessage().contains("Bogus chunk size")) {
-                return new UnSuccessfulAdyenCall<T>(RESPONSE_INVALID, errorMessage);
+                return new UnSuccessfulAdyenCall<T>(RESPONSE_INVALID, rootCause);
+            } else if (errorMessage.contains("Bogus chunk size")) {
+                return new UnSuccessfulAdyenCall<T>(RESPONSE_INVALID, rootCause);
             }
         } else if (rootCause instanceof WstxEOFException) {
             // happens for example when 301 with empty body is returned...
-            return new UnSuccessfulAdyenCall<T>(RESPONSE_INVALID, errorMessage);
+            return new UnSuccessfulAdyenCall<T>(RESPONSE_INVALID, rootCause);
         } else if (rootCause instanceof SoapFault) {
-            return new UnSuccessfulAdyenCall<T>(RESPONSE_ABOUT_INVALID_REQUEST, errorMessage);
+            return new UnSuccessfulAdyenCall<T>(RESPONSE_ABOUT_INVALID_REQUEST, rootCause);
         }
 
         logger.warn("unknown exception will be mapped to UNKNOWN_FAILURE", e);
-        return new UnSuccessfulAdyenCall<T>(UNKNOWN_FAILURE, errorMessage);
+        return new UnSuccessfulAdyenCall<T>(UNKNOWN_FAILURE, rootCause);
     }
 
     @Override

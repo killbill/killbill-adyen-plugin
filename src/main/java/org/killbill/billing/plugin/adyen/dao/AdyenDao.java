@@ -480,7 +480,7 @@ public class AdyenDao extends PluginPaymentDao<AdyenResponsesRecord, AdyenRespon
         }
     }
 
-    private Map fromAdditionalData(final String additionalData) throws SQLException {
+    public static Map fromAdditionalData(final String additionalData) {
         if (additionalData == null) {
             return ImmutableMap.of();
         }
@@ -488,7 +488,7 @@ public class AdyenDao extends PluginPaymentDao<AdyenResponsesRecord, AdyenRespon
         try {
             return objectMapper.readValue(additionalData, Map.class);
         } catch (final IOException e) {
-            throw new SQLException(e);
+            throw new RuntimeException(e);
         }
     }
 }

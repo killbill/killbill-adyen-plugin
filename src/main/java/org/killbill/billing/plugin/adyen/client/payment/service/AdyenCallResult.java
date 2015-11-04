@@ -26,6 +26,10 @@ public interface AdyenCallResult<T> {
 
     Optional<AdyenCallErrorStatus> getResponseStatus();
 
+    Optional<String> getExceptionClass();
+
+    Optional<String> getExceptionMessage();
+
     boolean receivedWellFormedResponse();
 
 }
@@ -35,10 +39,7 @@ class SuccessfulAdyenCall<T> implements AdyenCallResult<T> {
     private final T result;
 
     public SuccessfulAdyenCall(final T result) {
-
-        checkNotNull(result, "result");
-
-        this.result = result;
+        this.result = checkNotNull(result, "result");
     }
 
     @Override
@@ -48,6 +49,16 @@ class SuccessfulAdyenCall<T> implements AdyenCallResult<T> {
 
     @Override
     public Optional<AdyenCallErrorStatus> getResponseStatus() {
+        return Optional.absent();
+    }
+
+    @Override
+    public Optional<String> getExceptionClass() {
+        return Optional.absent();
+    }
+
+    @Override
+    public Optional<String> getExceptionMessage() {
         return Optional.absent();
     }
 
@@ -67,11 +78,13 @@ class SuccessfulAdyenCall<T> implements AdyenCallResult<T> {
 class UnSuccessfulAdyenCall<T> implements AdyenCallResult<T> {
 
     private final AdyenCallErrorStatus responseStatus;
-    private final String errorMessage;
+    private final String exceptionClass;
+    private final String exceptionMessage;
 
-    UnSuccessfulAdyenCall(final AdyenCallErrorStatus responseStatus, final String errorMessage) {
+    UnSuccessfulAdyenCall(final AdyenCallErrorStatus responseStatus, final Throwable rootCause) {
         this.responseStatus = responseStatus;
-        this.errorMessage = errorMessage;
+        this.exceptionClass = rootCause.getClass().getCanonicalName();
+        this.exceptionMessage = rootCause.getMessage();
     }
 
     @Override
@@ -85,15 +98,27 @@ class UnSuccessfulAdyenCall<T> implements AdyenCallResult<T> {
     }
 
     @Override
+    public Optional<String> getExceptionClass() {
+        return Optional.of(exceptionClass);
+    }
+
+    @Override
+    public Optional<String> getExceptionMessage() {
+        return Optional.of(exceptionMessage);
+    }
+
+    @Override
     public boolean receivedWellFormedResponse() {
         return false;
     }
 
     @Override
     public String toString() {
-        return "UnSuccessfulAdyenCall{" +
-               "responseStatus=" + responseStatus +
-               ", errorMessage='" + errorMessage + '\'' +
-               '}';
+        final StringBuilder sb = new StringBuilder("UnSuccessfulAdyenCall{");
+        sb.append("responseStatus=").append(responseStatus);
+        sb.append(", exceptionMessage='").append(exceptionMessage).append('\'');
+        sb.append(", exceptionClass='").append(exceptionClass).append('\'');
+        sb.append('}');
+        return sb.toString();
     }
 }
