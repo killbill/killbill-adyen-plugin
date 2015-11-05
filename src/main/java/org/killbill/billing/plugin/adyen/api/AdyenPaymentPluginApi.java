@@ -264,7 +264,7 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
 
         // We cannot retrieve recurring details from Adyen without a shopper reference
         if (existingPaymentMethods.isEmpty()) {
-            super.getPaymentMethods(kbAccountId, refreshFromGateway, properties, context);
+            return super.getPaymentMethods(kbAccountId, refreshFromGateway, properties, context);
         }
 
         // Retrieve the associated country for that shopper (and the corresponding merchant account)
