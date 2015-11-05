@@ -35,9 +35,11 @@ import org.killbill.billing.plugin.adyen.client.payment.service.AdyenPaymentRequ
 import org.killbill.billing.plugin.adyen.client.payment.service.AdyenPaymentServiceProviderHostedPaymentPagePort;
 import org.killbill.billing.plugin.adyen.client.payment.service.AdyenPaymentServiceProviderPort;
 import org.killbill.billing.plugin.adyen.client.payment.service.Signer;
+import org.killbill.billing.plugin.adyen.client.recurring.AdyenRecurringClient;
 import org.killbill.billing.plugin.adyen.core.AdyenActivator;
 import org.killbill.billing.plugin.adyen.core.AdyenConfigurationHandler;
 import org.killbill.billing.plugin.adyen.core.AdyenHostedPaymentPageConfigurationHandler;
+import org.killbill.billing.plugin.adyen.core.AdyenRecurringConfigurationHandler;
 import org.killbill.killbill.osgi.libs.killbill.OSGIKillbillAPI;
 import org.killbill.killbill.osgi.libs.killbill.OSGIKillbillLogService;
 import org.testng.annotations.BeforeClass;
@@ -74,8 +76,10 @@ public abstract class TestRemoteBase {
     protected AdyenConfigProperties adyenConfigProperties;
     protected AdyenConfigurationHandler adyenConfigurationHandler;
     protected AdyenHostedPaymentPageConfigurationHandler adyenHostedPaymentPageConfigurationHandler;
+    protected AdyenRecurringConfigurationHandler adyenRecurringConfigurationHandler;
     protected AdyenPaymentServiceProviderPort adyenPaymentServiceProviderPort;
     protected AdyenPaymentServiceProviderHostedPaymentPagePort adyenPaymentServiceProviderHostedPaymentPagePort;
+    protected AdyenRecurringClient adyenRecurringClient;
 
     @BeforeClass(groups = "slow")
     public void setUpBeforeClass() throws Exception {
@@ -95,6 +99,8 @@ public abstract class TestRemoteBase {
         adyenPaymentServiceProviderPort = new AdyenPaymentServiceProviderPort(paymentInfoConverterManagement, adyenRequestFactory, adyenPaymentRequestSender);
         adyenPaymentServiceProviderHostedPaymentPagePort = new AdyenPaymentServiceProviderHostedPaymentPagePort(adyenConfigProperties, adyenRequestFactory);
 
+        adyenRecurringClient = new AdyenRecurringClient(adyenConfigProperties);
+
         final Account account = TestUtils.buildAccount(Currency.BTC, "US");
         final OSGIKillbillAPI killbillAPI = TestUtils.buildOSGIKillbillAPI(account, TestUtils.buildPayment(account.getId(), account.getPaymentMethodId(), account.getCurrency()), null);
         final OSGIKillbillLogService logService = TestUtils.buildLogService();
@@ -104,6 +110,9 @@ public abstract class TestRemoteBase {
 
         adyenHostedPaymentPageConfigurationHandler = new AdyenHostedPaymentPageConfigurationHandler(AdyenActivator.PLUGIN_NAME, killbillAPI, logService);
         adyenHostedPaymentPageConfigurationHandler.setDefaultConfigurable(adyenPaymentServiceProviderHostedPaymentPagePort);
+
+        adyenRecurringConfigurationHandler = new AdyenRecurringConfigurationHandler(AdyenActivator.PLUGIN_NAME, killbillAPI, logService);
+        adyenRecurringConfigurationHandler.setDefaultConfigurable(adyenRecurringClient);
     }
 
     private AdyenConfigProperties getAdyenConfigProperties() throws IOException {

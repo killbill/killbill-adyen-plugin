@@ -14,7 +14,7 @@
  * under the License.
  */
 
-package org.killbill.billing.plugin.adyen.recurring;
+package org.killbill.billing.plugin.adyen.client.recurring;
 
 import org.killbill.adyen.recurring.RecurringPortType;
 

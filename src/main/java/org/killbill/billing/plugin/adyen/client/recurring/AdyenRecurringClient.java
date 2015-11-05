@@ -14,17 +14,20 @@
  * under the License.
  */
 
-package org.killbill.billing.plugin.adyen.recurring;
+package org.killbill.billing.plugin.adyen.client.recurring;
 
 import java.util.List;
 
 import org.killbill.adyen.payment.Recurring;
+import org.killbill.adyen.recurring.ArrayOfRecurringDetail;
 import org.killbill.adyen.recurring.DisableRequest;
 import org.killbill.adyen.recurring.RecurringDetail;
 import org.killbill.adyen.recurring.RecurringDetailsRequest;
 import org.killbill.adyen.recurring.RecurringPortType;
 import org.killbill.adyen.recurring.ServiceException;
 import org.killbill.billing.plugin.adyen.client.AdyenConfigProperties;
+
+import com.google.common.collect.ImmutableList;
 
 public class AdyenRecurringClient {
 
@@ -45,7 +48,8 @@ public class AdyenRecurringClient {
         request.setMerchantAccount(merchantAccount);
         recurring.setContract(contract);
         request.setRecurring(recurring);
-        return recurringPortType.listRecurringDetails(request).getDetails().getRecurringDetail();
+        final ArrayOfRecurringDetail details = recurringPortType.listRecurringDetails(request).getDetails();
+        return details == null ? ImmutableList.<RecurringDetail>of() : details.getRecurringDetail();
     }
 
     public void revokeRecurringDetails(final String countryCode,

@@ -54,6 +54,7 @@ import com.google.common.collect.Iterables;
 
 import static org.killbill.billing.plugin.adyen.dao.gen.tables.AdyenHppRequests.ADYEN_HPP_REQUESTS;
 import static org.killbill.billing.plugin.adyen.dao.gen.tables.AdyenNotifications.ADYEN_NOTIFICATIONS;
+import static org.killbill.billing.plugin.adyen.dao.gen.tables.AdyenPaymentMethods.ADYEN_PAYMENT_METHODS;
 import static org.killbill.billing.plugin.adyen.dao.gen.tables.AdyenResponses.ADYEN_RESPONSES;
 
 public class AdyenDao extends PluginPaymentDao<AdyenResponsesRecord, AdyenResponses, AdyenPaymentMethodsRecord, AdyenPaymentMethods> {
@@ -63,6 +64,25 @@ public class AdyenDao extends PluginPaymentDao<AdyenResponsesRecord, AdyenRespon
 
     public AdyenDao(final DataSource dataSource) throws SQLException {
         super(AdyenResponses.ADYEN_RESPONSES, AdyenPaymentMethods.ADYEN_PAYMENT_METHODS, dataSource);
+    }
+
+    // Payment methods
+
+    public void setPaymentMethodToken(final String kbPaymentMethodId, final String token, final String kbTenantId) throws SQLException {
+        execute(dataSource.getConnection(),
+                new WithConnectionCallback<AdyenResponsesRecord>() {
+                    @Override
+                    public AdyenResponsesRecord withConnection(final Connection conn) throws SQLException {
+                        DSL.using(conn, dialect, settings)
+                           .update(ADYEN_PAYMENT_METHODS)
+                           .set(ADYEN_PAYMENT_METHODS.TOKEN, token)
+                           .where(ADYEN_PAYMENT_METHODS.KB_PAYMENT_METHOD_ID.equal(kbPaymentMethodId))
+                           .and(ADYEN_PAYMENT_METHODS.KB_TENANT_ID.equal(kbTenantId))
+                           .and(ADYEN_PAYMENT_METHODS.IS_DELETED.equal(FALSE))
+                           .execute();
+                        return null;
+                    }
+                });
     }
 
     // HPP requests

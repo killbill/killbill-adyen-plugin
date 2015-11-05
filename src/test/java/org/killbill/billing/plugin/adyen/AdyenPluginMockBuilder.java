@@ -37,9 +37,11 @@ import org.killbill.billing.plugin.adyen.client.payment.service.AdyenPaymentRequ
 import org.killbill.billing.plugin.adyen.client.payment.service.AdyenPaymentServiceProviderHostedPaymentPagePort;
 import org.killbill.billing.plugin.adyen.client.payment.service.AdyenPaymentServiceProviderPort;
 import org.killbill.billing.plugin.adyen.client.payment.service.Signer;
+import org.killbill.billing.plugin.adyen.client.recurring.AdyenRecurringClient;
 import org.killbill.billing.plugin.adyen.core.AdyenActivator;
 import org.killbill.billing.plugin.adyen.core.AdyenConfigurationHandler;
 import org.killbill.billing.plugin.adyen.core.AdyenHostedPaymentPageConfigurationHandler;
+import org.killbill.billing.plugin.adyen.core.AdyenRecurringConfigurationHandler;
 import org.killbill.billing.plugin.adyen.dao.AdyenDao;
 import org.killbill.clock.Clock;
 import org.killbill.clock.DefaultClock;
@@ -110,6 +112,7 @@ public class AdyenPluginMockBuilder {
 
         final AdyenPaymentServiceProviderPort adyenPaymentServiceProviderPort = new AdyenPaymentServiceProviderPort(paymentInfoConverterManagement, adyenRequestFactory, adyenPaymentRequestSender);
         final AdyenPaymentServiceProviderHostedPaymentPagePort adyenPaymentServiceProviderHostedPaymentPagePort = new AdyenPaymentServiceProviderHostedPaymentPagePort(adyenConfigProperties, adyenRequestFactory);
+        final AdyenRecurringClient adyenRecurringClient = new AdyenRecurringClient(adyenConfigProperties);
 
         final OSGIKillbillAPI killbillAPI = TestUtils.buildOSGIKillbillAPI(account, TestUtils.buildPayment(account.getId(), account.getPaymentMethodId(), account.getCurrency()), null);
         final OSGIKillbillLogService logService = TestUtils.buildLogService();
@@ -120,13 +123,16 @@ public class AdyenPluginMockBuilder {
         final AdyenHostedPaymentPageConfigurationHandler adyenHostedPaymentPageConfigurationHandler = new AdyenHostedPaymentPageConfigurationHandler(AdyenActivator.PLUGIN_NAME, killbillAPI, logService);
         adyenHostedPaymentPageConfigurationHandler.setDefaultConfigurable(adyenPaymentServiceProviderHostedPaymentPagePort);
 
+        final AdyenRecurringConfigurationHandler adyenRecurringConfigurationHandler = new AdyenRecurringConfigurationHandler(AdyenActivator.PLUGIN_NAME, killbillAPI, logService);
+        adyenRecurringConfigurationHandler.setDefaultConfigurable(adyenRecurringClient);
+
         final Clock clock = new DefaultClock();
 
         final OSGIKillbillAPI killbillApi = TestUtils.buildOSGIKillbillAPI(account, payment, null);
 
         final OSGIConfigPropertiesService configPropertiesService = mock(OSGIConfigPropertiesService.class);
 
-        return new AdyenPaymentPluginApi(adyenConfigurationHandler, adyenHostedPaymentPageConfigurationHandler, killbillApi, configPropertiesService, logService, clock, dao);
+        return new AdyenPaymentPluginApi(adyenConfigurationHandler, adyenHostedPaymentPageConfigurationHandler, adyenRecurringConfigurationHandler, killbillApi, configPropertiesService, logService, clock, dao);
     }
 
     public AdyenPluginMockBuilder withDatabaseAccess(final AdyenDao dao) {

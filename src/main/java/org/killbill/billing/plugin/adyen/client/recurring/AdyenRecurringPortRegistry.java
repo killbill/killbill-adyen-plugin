@@ -14,7 +14,7 @@
  * under the License.
  */
 
-package org.killbill.billing.plugin.adyen.recurring;
+package org.killbill.billing.plugin.adyen.client.recurring;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
