@@ -165,6 +165,9 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
      * Should be given as "true" or "false".
      */
     public static final String PROPERTY_CONTINUOUS_AUTHENTICATION = "contAuth";
+    private static final String SEPA_DIRECT_DEBIT = "sepadirectdebit";
+    private static final String ELV = "elv";
+    private static final String CREDITCARD = "creditcard";
 
     private final AdyenConfigurationHandler adyenConfigurationHandler;
     private final AdyenHostedPaymentPageConfigurationHandler adyenHppConfigurationHandler;
@@ -642,16 +645,15 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
     private PaymentInfo buildPaymentInfo(final AccountData account, final AdyenPaymentMethodsRecord paymentMethodsRecord, final Currency currency, final Iterable<PluginProperty> properties, final TenantContext context) {
         final PaymentProvider paymentProvider = buildPaymentProvider(account, paymentMethodsRecord, currency, properties, context);
 
-        final String paymentMethodsRecordCcType = paymentMethodsRecord.getCcType();
-        final String ccType = PluginProperties.getValue(PROPERTY_CC_TYPE, paymentMethodsRecordCcType, properties);
+        final String cardType = determineCardType(paymentMethodsRecord, properties);
         final String recurringDetailId = PluginProperties.findPluginPropertyValue(PROPERTY_RECURRING_DETAIL_ID, properties);
 
         final PaymentInfo paymentInfo;
         if (recurringDetailId != null) {
             paymentInfo = buildRecurring(paymentMethodsRecord, paymentProvider, properties);
-        } else if ("sepadirectdebit".equals(ccType)) {
+        } else if (SEPA_DIRECT_DEBIT.equals(cardType)) {
             paymentInfo = buildSepaDirectDebit(paymentMethodsRecord, paymentProvider, properties);
-        } else if ("elv".equals(ccType)) {
+        } else if (ELV.equals(cardType)) {
             paymentInfo = buildElv(paymentMethodsRecord, paymentProvider, properties);
         } else {
             paymentInfo = buildCreditCard(paymentMethodsRecord, paymentProvider, properties);
@@ -668,6 +670,34 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
     private Boolean isContinuousAuthenticationEnabled(final Iterable<PluginProperty> mergedProperties) {
         final String contAuth = PluginProperties.findPluginPropertyValue(PROPERTY_CONTINUOUS_AUTHENTICATION, mergedProperties);
         return contAuth == null ? null : Boolean.parseBoolean(contAuth);
+    }
+
+    private String determineCardType(final AdyenPaymentMethodsRecord paymentMethodsRecord, final Iterable<PluginProperty> properties) {
+        final String ddAccountNumber = PluginProperties.getValue(PROPERTY_DD_ACCOUNT_NUMBER, paymentMethodsRecord.getCcNumber(), properties);
+        final String paymentMethodFirstName = paymentMethodsRecord.getCcFirstName();
+        final String paymentMethodLastName = paymentMethodsRecord.getCcLastName();
+        final String paymentMethodHolderName = paymentMethodFirstName != null || paymentMethodLastName != null ? holderName(paymentMethodFirstName, paymentMethodLastName) : null;
+        final String ddHolderName = PluginProperties.getValue(PROPERTY_DD_HOLDER_NAME, paymentMethodHolderName, properties);
+        final String ddBic = PluginProperties.findPluginPropertyValue(PROPERTY_DD_BANK_IDENTIFIER_CODE, properties);
+        final String ddBlz = PluginProperties.findPluginPropertyValue(PROPERTY_DD_BANKLEITZAHL, properties);
+
+        if (allNotNull(ddAccountNumber, ddHolderName, ddBic)) {
+            return SEPA_DIRECT_DEBIT;
+        } else if (allNotNull(ddAccountNumber, ddHolderName, ddBlz)) {
+            return ELV;
+        } else {
+            return CREDITCARD;
+        }
+
+    }
+
+    private static boolean allNotNull(final Object... objects) {
+        for (final Object object : objects) {
+            if (object == null) {
+                return false;
+            }
+        }
+        return true;
     }
 
     /**
