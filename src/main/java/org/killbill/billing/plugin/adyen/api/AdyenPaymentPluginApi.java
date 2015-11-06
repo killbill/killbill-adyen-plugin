@@ -167,7 +167,6 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
     public static final String PROPERTY_CONTINUOUS_AUTHENTICATION = "contAuth";
     private static final String SEPA_DIRECT_DEBIT = "sepadirectdebit";
     private static final String ELV = "elv";
-    private static final String CREDITCARD = "creditcard";
 
     private final AdyenConfigurationHandler adyenConfigurationHandler;
     private final AdyenHostedPaymentPageConfigurationHandler adyenHppConfigurationHandler;
@@ -680,13 +679,14 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
         final String ddHolderName = PluginProperties.getValue(PROPERTY_DD_HOLDER_NAME, paymentMethodHolderName, properties);
         final String ddBic = PluginProperties.findPluginPropertyValue(PROPERTY_DD_BANK_IDENTIFIER_CODE, properties);
         final String ddBlz = PluginProperties.findPluginPropertyValue(PROPERTY_DD_BANKLEITZAHL, properties);
+        final String ccType = PluginProperties.getValue(PROPERTY_CC_TYPE, paymentMethodsRecord.getCcType(), properties);
 
         if (allNotNull(ddAccountNumber, ddHolderName, ddBic)) {
             return SEPA_DIRECT_DEBIT;
         } else if (allNotNull(ddAccountNumber, ddHolderName, ddBlz)) {
             return ELV;
         } else {
-            return CREDITCARD;
+            return ccType;
         }
 
     }
@@ -873,9 +873,8 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
         } else if (pluginPropertyPaymentProviderType != null) {
             paymentProviderPaymentType = PaymentType.getByName(pluginPropertyPaymentProviderType);
         } else {
-            final String pluginPropertyCCType = PluginProperties.findPluginPropertyValue(PROPERTY_CC_TYPE, properties);
-            final String paymentMethodCCType = paymentMethodsRecord == null || paymentMethodsRecord.getCcType() == null ? null : paymentMethodsRecord.getCcType();
-            paymentProviderPaymentType = pluginPropertyCCType == null ? (paymentMethodCCType == null ? PaymentType.CREDITCARD : PaymentType.getByName(paymentMethodCCType)) : PaymentType.getByName(pluginPropertyCCType);
+            final String cardType = determineCardType(paymentMethodsRecord, properties);
+            paymentProviderPaymentType = cardType == null ? PaymentType.CREDITCARD : PaymentType.getByName(cardType);
         }
 
         final RecurringType paymentProviderRecurringType;

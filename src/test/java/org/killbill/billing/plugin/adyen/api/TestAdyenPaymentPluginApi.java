@@ -127,8 +127,8 @@ public class TestAdyenPaymentPluginApi extends TestWithEmbeddedDBBase {
                                                          .put(AdyenPaymentPluginApi.PROPERTY_THREE_D_THRESHOLD, "25000")
                                                          .build());
 
-        propertiesWithSepaInfo = toProperties(ImmutableMap.of(AdyenPaymentPluginApi.PROPERTY_CC_TYPE, DD_TYPE));
-        propertiesWithElvInfo = toProperties(ImmutableMap.of(AdyenPaymentPluginApi.PROPERTY_CC_TYPE, ELV_TYPE));
+        propertiesWithSepaInfo = toProperties(ImmutableMap.<String, String>of());
+        propertiesWithElvInfo = toProperties(ImmutableMap.<String, String>of());
         final String customerId = UUID.randomUUID().toString();
         propertiesForRecurring = ImmutableMap.of(AdyenPaymentPluginApi.PROPERTY_CUSTOMER_ID, customerId,
                                                  AdyenPaymentPluginApi.PROPERTY_EMAIL, customerId + "0@example.com");
