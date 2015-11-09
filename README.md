@@ -220,10 +220,6 @@ curl -v \
        "pluginInfo": {
          "properties": [
            {
-             "key": "ccType",
-             "value": "sepadirectdebit"
-           },
-           {
              "key": "ddHolderName",
              "value": "A. Schneider"
            },
@@ -257,10 +253,6 @@ curl -v \
        "pluginName": "killbill-adyen",
        "pluginInfo": {
          "properties": [
-           {
-             "key": "ccType",
-             "value": "elv"
-           },
            {
              "key": "ddHolderName",
              "value": "Bill Killson"
