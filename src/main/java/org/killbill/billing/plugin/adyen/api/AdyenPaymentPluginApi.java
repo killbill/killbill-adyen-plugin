@@ -852,7 +852,7 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
     }
 
     private PaymentProvider buildPaymentProvider(final AccountData account, @Nullable final UUID kbPaymentMethodId, @Nullable final Currency currency, final Iterable<PluginProperty> properties, final TenantContext context) {
-        final AdyenPaymentMethodsRecord paymentMethodsRecord = kbPaymentMethodId == null ? null : getAdyenPaymentMethodsRecord(kbPaymentMethodId, context);
+        final AdyenPaymentMethodsRecord paymentMethodsRecord = kbPaymentMethodId == null ? emptyRecord(kbPaymentMethodId) : getAdyenPaymentMethodsRecord(kbPaymentMethodId, context);
         return buildPaymentProvider(account, paymentMethodsRecord, currency, properties, context);
     }
 
