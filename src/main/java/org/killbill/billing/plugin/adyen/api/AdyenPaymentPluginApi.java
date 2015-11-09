@@ -672,14 +672,15 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
     }
 
     private String determineCardType(final AdyenPaymentMethodsRecord paymentMethodsRecord, final Iterable<PluginProperty> properties) {
-        final String ddAccountNumber = PluginProperties.getValue(PROPERTY_DD_ACCOUNT_NUMBER, paymentMethodsRecord.getCcNumber(), properties);
-        final String paymentMethodFirstName = paymentMethodsRecord.getCcFirstName();
-        final String paymentMethodLastName = paymentMethodsRecord.getCcLastName();
+        final AdyenPaymentMethodsRecord nonNullPaymentMethodsRecord = paymentMethodsRecord == null ? new AdyenPaymentMethodsRecord() : paymentMethodsRecord;
+        final String ddAccountNumber = PluginProperties.getValue(PROPERTY_DD_ACCOUNT_NUMBER, nonNullPaymentMethodsRecord.getCcNumber(), properties);
+        final String paymentMethodFirstName = nonNullPaymentMethodsRecord.getCcFirstName();
+        final String paymentMethodLastName = nonNullPaymentMethodsRecord.getCcLastName();
         final String paymentMethodHolderName = paymentMethodFirstName != null || paymentMethodLastName != null ? holderName(paymentMethodFirstName, paymentMethodLastName) : null;
         final String ddHolderName = PluginProperties.getValue(PROPERTY_DD_HOLDER_NAME, paymentMethodHolderName, properties);
         final String ddBic = PluginProperties.findPluginPropertyValue(PROPERTY_DD_BANK_IDENTIFIER_CODE, properties);
         final String ddBlz = PluginProperties.findPluginPropertyValue(PROPERTY_DD_BANKLEITZAHL, properties);
-        final String ccType = PluginProperties.getValue(PROPERTY_CC_TYPE, paymentMethodsRecord.getCcType(), properties);
+        final String ccType = PluginProperties.getValue(PROPERTY_CC_TYPE, nonNullPaymentMethodsRecord.getCcType(), properties);
 
         if (allNotNull(ddAccountNumber, ddHolderName, ddBic)) {
             return SEPA_DIRECT_DEBIT;
@@ -852,7 +853,7 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
     }
 
     private PaymentProvider buildPaymentProvider(final AccountData account, @Nullable final UUID kbPaymentMethodId, @Nullable final Currency currency, final Iterable<PluginProperty> properties, final TenantContext context) {
-        final AdyenPaymentMethodsRecord paymentMethodsRecord = kbPaymentMethodId == null ? emptyRecord(kbPaymentMethodId) : getAdyenPaymentMethodsRecord(kbPaymentMethodId, context);
+        final AdyenPaymentMethodsRecord paymentMethodsRecord = kbPaymentMethodId == null ? null : getAdyenPaymentMethodsRecord(kbPaymentMethodId, context);
         return buildPaymentProvider(account, paymentMethodsRecord, currency, properties, context);
     }
 
