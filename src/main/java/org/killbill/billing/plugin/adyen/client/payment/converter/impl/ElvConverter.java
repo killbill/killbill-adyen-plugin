@@ -16,7 +16,7 @@
 
 package org.killbill.billing.plugin.adyen.client.payment.converter.impl;
 
-import org.killbill.adyen.payment.ELV;
+import org.killbill.adyen.payment.BankAccount;
 import org.killbill.adyen.payment.PaymentRequest;
 import org.killbill.billing.plugin.adyen.client.model.PaymentInfo;
 import org.killbill.billing.plugin.adyen.client.model.PaymentType;
@@ -28,12 +28,12 @@ public class ElvConverter implements PaymentInfoConverter<Elv> {
 
     @Override
     public Object convertPaymentInfoToPSPTransferObject(final String holderName, final Elv paymentInfo) {
-        final ELV elv = new ELV();
+        final BankAccount elv = new BankAccount();
         elv.setBankAccountNumber(paymentInfo.getElvKontoNummer());
         elv.setBankLocationId(paymentInfo.getElvBlz());
-        elv.setAccountHolderName(holderName(paymentInfo, holderName));
+        elv.setOwnerName(holderName(paymentInfo, holderName));
         final PaymentRequest paymentRequest = new PaymentRequest();
-        paymentRequest.setElv(elv);
+        paymentRequest.setBankAccount(elv);
         return paymentRequest;
     }
 

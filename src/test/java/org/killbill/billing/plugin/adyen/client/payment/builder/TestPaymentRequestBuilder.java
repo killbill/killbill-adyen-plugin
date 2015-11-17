@@ -26,7 +26,7 @@ import org.killbill.adyen.common.Gender;
 import org.killbill.adyen.common.Name;
 import org.killbill.adyen.payment.AnyType2AnyTypeMap;
 import org.killbill.adyen.payment.AnyType2AnyTypeMap.Entry;
-import org.killbill.adyen.payment.ELV;
+import org.killbill.adyen.payment.BankAccount;
 import org.killbill.adyen.payment.PaymentRequest;
 import org.killbill.billing.plugin.adyen.client.AdyenConfigProperties;
 import org.killbill.billing.plugin.adyen.client.model.PaymentInfo;
@@ -69,9 +69,9 @@ public class TestPaymentRequestBuilder extends BaseTestPaymentRequestBuilder {
         final String bankAccountNumber = "bankAccountNumber";
         final String bankLocationId = "bankLocationId";
 
-        final ELV expectedElv = createExpectedElvForRequest(accountHolderName, bankName, bankAccountNumber, bankLocationId);
+        final BankAccount expectedElv = createExpectedElvForRequest(accountHolderName, bankName, bankAccountNumber, bankLocationId);
         final PaymentRequest converterRequest = new PaymentRequest();
-        converterRequest.setElv(expectedElv);
+        converterRequest.setBankAccount(expectedElv);
         final Elv elv = new Elv(new PaymentProvider(adyenConfigProperties));
 
         Mockito.when(paymentInfoConverterManagement.getConverterForPaymentInfo(elv)).thenReturn(paymentInfoConverter);
@@ -79,7 +79,7 @@ public class TestPaymentRequestBuilder extends BaseTestPaymentRequestBuilder {
 
         final PaymentRequest paymentRequest = new PaymentRequestBuilder(elv, paymentInfoConverterManagement, ANY_HOLDER_NAME).build();
 
-        final ELV actualElv = paymentRequest.getElv();
+        final BankAccount actualElv = paymentRequest.getBankAccount();
         Assert.assertSame(actualElv, expectedElv);
     }
 
@@ -404,14 +404,13 @@ public class TestPaymentRequestBuilder extends BaseTestPaymentRequestBuilder {
         return elvPaymentInfo;
     }
 
-    private ELV createExpectedElvForRequest(final String accountHolderName,
+    private BankAccount createExpectedElvForRequest(final String accountHolderName,
                                             final String bankName,
                                             final String bankAccountNumber,
                                             final String bankLocationId) {
-        final ELV expectedElv = new ELV();
-        expectedElv.setAccountHolderName(accountHolderName);
+        final BankAccount expectedElv = new BankAccount();
+        expectedElv.setOwnerName(accountHolderName);
         expectedElv.setBankAccountNumber(bankAccountNumber);
-        expectedElv.setBankLocation(" "); // the bank location is always a whitespace in the result
         expectedElv.setBankLocationId(bankLocationId);
         expectedElv.setBankName(bankName);
         return expectedElv;

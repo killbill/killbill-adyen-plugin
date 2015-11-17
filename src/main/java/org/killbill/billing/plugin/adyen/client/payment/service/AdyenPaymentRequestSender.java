@@ -27,8 +27,6 @@ import javax.xml.ws.soap.SOAPFaultException;
 
 import org.apache.cxf.binding.soap.SoapFault;
 import org.apache.cxf.transport.http.HTTPException;
-import org.killbill.adyen.payment.DirectDebitRequest;
-import org.killbill.adyen.payment.DirectDebitResponse;
 import org.killbill.adyen.payment.ModificationRequest;
 import org.killbill.adyen.payment.ModificationResult;
 import org.killbill.adyen.payment.PaymentPortType;
@@ -57,16 +55,6 @@ public class AdyenPaymentRequestSender implements Closeable {
 
     public AdyenPaymentRequestSender(final PaymentPortRegistry adyenPaymentPortRegistry) {
         this.adyenPaymentPortRegistry = adyenPaymentPortRegistry;
-    }
-
-    @SuppressWarnings("unused")
-    public AdyenCallResult<DirectDebitResponse> directdebit(final String countryIsoCode, final DirectDebitRequest request) {
-        return callAdyen(countryIsoCode, new AdyenCall<PaymentPortType, DirectDebitResponse>() {
-            @Override
-            public DirectDebitResponse apply(final PaymentPortType paymentPort) throws ServiceException {
-                return paymentPort.directdebit(request);
-            }
-        });
     }
 
     public AdyenCallResult<PaymentResult> authorise(final String countryIsoCode, final PaymentRequest request) {

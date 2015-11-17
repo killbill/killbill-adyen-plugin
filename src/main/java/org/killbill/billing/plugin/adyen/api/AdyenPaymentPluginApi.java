@@ -277,10 +277,6 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
         final AdyenConfigProperties adyenConfigProperties = adyenHppConfigurationHandler.getConfigurable(context.getTenantId()).getAdyenConfigProperties();
         final String merchantAccount = adyenConfigProperties.getMerchantAccount(countryCode);
 
-        // Update the latest known payment method with the recurring details. We cannot easily map recurring contracts to payment methods:
-        // it seems that Adyen exposes the pspReference of the first recurring payment that created the recurring details
-        // (see https://docs.adyen.com/display/TD/listRecurringDetails+response) but it isn't populated in my testing
-        // TODO Investigate?
         for (final AdyenPaymentMethodsRecord record : Lists.<AdyenPaymentMethodsRecord>reverse(existingPaymentMethods)) {
             if (record.getToken() != null) {
                 // Immutable in Adyen -- nothing to do
@@ -307,16 +303,28 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
             } catch (final ServiceException e) {
                 throw new PaymentPluginApiException("Unable to retrieve recurring details in Adyen", e);
             }
-
-            if (!recurringDetailList.isEmpty()) {
-                final String token = recurringDetailList.get(recurringDetailList.size() - 1).getRecurringDetailReference();
+            for (final RecurringDetail recurringDetail : recurringDetailList) {
+                final AdyenResponsesRecord formerResponse;
                 try {
-                    dao.setPaymentMethodToken(record.getKbPaymentMethodId(), token, record.getKbTenantId());
+                    formerResponse = dao.getResponse(recurringDetail.getFirstPspReference());
+                } catch (SQLException e) {
+                    throw new PaymentPluginApiException("Unable to retrieve adyen response", e);
+                }
+                final Payment payment;
+                try {
+                    payment = killbillAPI.getPaymentApi().getPayment(UUID.fromString(formerResponse.getKbPaymentId()), true, properties, context);
+                } catch (PaymentApiException e) {
+                    throw new PaymentPluginApiException("Unable to retrieve Payment for externalKey " + recurringDetail.getFirstPspReference(), e);
+                }
+                if (payment == null) {
+                    continue;
+                }
+                try {
+                    dao.setPaymentMethodToken(record.getKbPaymentMethodId(), recurringDetail.getRecurringDetailReference(), context.getTenantId().toString());
                 } catch (final SQLException e) {
                     throw new PaymentPluginApiException("Unable to update token", e);
                 }
             }
-            break;
         }
 
         return super.getPaymentMethods(kbAccountId, false, properties, context);
