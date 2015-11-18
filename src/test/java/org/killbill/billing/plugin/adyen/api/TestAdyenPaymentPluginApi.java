@@ -396,10 +396,10 @@ public class TestAdyenPaymentPluginApi extends TestWithEmbeddedDBBase {
                                                                                                             propertiesWithCCInfoWrongCVV,
                                                                                                             context);
 
-        assertEquals(authorizationInfoPlugin.getGatewayErrorCode(), "CVC Declined");
+        assertEquals(authorizationInfoPlugin.getGatewayError(), "CVC Declined");
         final List<PaymentTransactionInfoPlugin> fromDBList = adyenPaymentPluginApi.getPaymentInfo(payment.getAccountId(), payment.getId(), ImmutableList.<PluginProperty>of(), context);
         assertFalse(fromDBList.isEmpty());
-        assertEquals(fromDBList.get(0).getGatewayErrorCode(), "CVC Declined");
+        assertEquals(fromDBList.get(0).getGatewayError(), "CVC Declined");
     }
 
     @Test(groups = "slow")
@@ -581,7 +581,7 @@ public class TestAdyenPaymentPluginApi extends TestWithEmbeddedDBBase {
                                                                                                              propertiesWith3DSInfo,
                                                                                                              context);
 
-        assertEquals(authorizationInfoPlugin1.getGatewayError(), "RedirectShopper");
+        assertEquals(authorizationInfoPlugin1.getGatewayErrorCode(), "RedirectShopper");
         assertEquals(authorizationInfoPlugin1.getStatus(), PaymentPluginStatus.PENDING);
         final URL issuerUrl = new URL(PluginProperties.findPluginPropertyValue("issuerUrl", authorizationInfoPlugin1.getProperties()));
         final String md = PluginProperties.findPluginPropertyValue("MD", authorizationInfoPlugin1.getProperties());
@@ -705,11 +705,11 @@ public class TestAdyenPaymentPluginApi extends TestWithEmbeddedDBBase {
         assertNotNull(paymentTransactionInfoPlugin.getCreatedDate());
         assertNotNull(paymentTransactionInfoPlugin.getEffectiveDate());
 
-        final List<String> expectedGatewayErrors;
+        final List<String> expectedGatewayErrorCodes;
         final List<PaymentPluginStatus> expectedPaymentPluginStatus;
         switch (paymentTransaction.getTransactionType()) {
             case AUTHORIZE:
-                expectedGatewayErrors = authorizedProcessed
+                expectedGatewayErrorCodes = authorizedProcessed
                                         ? ImmutableList.of("Authorised")
                                         : ImmutableList.of("Authorised", "Received");
                 expectedPaymentPluginStatus = authorizedProcessed
@@ -718,26 +718,26 @@ public class TestAdyenPaymentPluginApi extends TestWithEmbeddedDBBase {
                 break;
             case CAPTURE:
             case PURCHASE:
-                expectedGatewayErrors = ImmutableList.of("[capture-received]");
+                expectedGatewayErrorCodes = ImmutableList.of("[capture-received]");
                 expectedPaymentPluginStatus = ImmutableList.of(PaymentPluginStatus.PENDING);
                 break;
             case REFUND:
-                expectedGatewayErrors = ImmutableList.of("[refund-received]");
+                expectedGatewayErrorCodes = ImmutableList.of("[refund-received]");
                 expectedPaymentPluginStatus = ImmutableList.of(PaymentPluginStatus.PENDING);
                 break;
             case VOID:
-                expectedGatewayErrors = ImmutableList.of("[cancel-received]");
+                expectedGatewayErrorCodes = ImmutableList.of("[cancel-received]");
                 expectedPaymentPluginStatus = ImmutableList.of(PaymentPluginStatus.PENDING);
                 break;
             default:
-                expectedGatewayErrors = ImmutableList.of();
+                expectedGatewayErrorCodes = ImmutableList.of();
                 expectedPaymentPluginStatus = ImmutableList.of(PaymentPluginStatus.PENDING);
                 break;
         }
-        assertTrue(expectedGatewayErrors.contains(paymentTransactionInfoPlugin.getGatewayError()), "was: " + paymentTransactionInfoPlugin.getGatewayError());
+        assertTrue(expectedGatewayErrorCodes.contains(paymentTransactionInfoPlugin.getGatewayErrorCode()), "was: " + paymentTransactionInfoPlugin.getGatewayErrorCode());
         assertTrue(expectedPaymentPluginStatus.contains(paymentTransactionInfoPlugin.getStatus()), "was: " + paymentTransactionInfoPlugin.getStatus());
 
-        assertNull(paymentTransactionInfoPlugin.getGatewayErrorCode());
+        assertNull(paymentTransactionInfoPlugin.getGatewayError());
         assertNotNull(paymentTransactionInfoPlugin.getFirstPaymentReferenceId());
         // NULL for subsequent transactions (modifications)
         //Assert.assertNotNull(paymentTransactionInfoPlugin.getSecondPaymentReferenceId());
