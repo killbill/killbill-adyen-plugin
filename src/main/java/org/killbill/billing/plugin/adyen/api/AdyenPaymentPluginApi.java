@@ -61,7 +61,6 @@ import org.killbill.billing.plugin.adyen.client.model.SplitSettlementData;
 import org.killbill.billing.plugin.adyen.client.model.UserData;
 import org.killbill.billing.plugin.adyen.client.model.paymentinfo.Card;
 import org.killbill.billing.plugin.adyen.client.model.paymentinfo.CreditCard;
-import org.killbill.billing.plugin.adyen.client.model.paymentinfo.Elv;
 import org.killbill.billing.plugin.adyen.client.model.paymentinfo.OneClick;
 import org.killbill.billing.plugin.adyen.client.model.paymentinfo.Recurring;
 import org.killbill.billing.plugin.adyen.client.model.paymentinfo.SepaDirectDebit;
@@ -150,7 +149,6 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
     public static final String PROPERTY_DD_HOLDER_NAME = "ddHolderName";
     public static final String PROPERTY_DD_ACCOUNT_NUMBER = "ddNumber";
     public static final String PROPERTY_DD_BANK_IDENTIFIER_CODE = "ddBic";
-    public static final String PROPERTY_DD_BANKLEITZAHL = "ddBlz";
 
     // user data properties
     public static final String PROPERTY_FIRST_NAME = "firstName";
@@ -166,7 +164,6 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
      */
     public static final String PROPERTY_CONTINUOUS_AUTHENTICATION = "contAuth";
     private static final String SEPA_DIRECT_DEBIT = "sepadirectdebit";
-    private static final String ELV = "elv";
 
     private final AdyenConfigurationHandler adyenConfigurationHandler;
     private final AdyenHostedPaymentPageConfigurationHandler adyenHppConfigurationHandler;
@@ -660,8 +657,6 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
             paymentInfo = buildRecurring(paymentMethodsRecord, paymentProvider, properties);
         } else if (SEPA_DIRECT_DEBIT.equals(cardType)) {
             paymentInfo = buildSepaDirectDebit(paymentMethodsRecord, paymentProvider, properties);
-        } else if (ELV.equals(cardType)) {
-            paymentInfo = buildElv(paymentMethodsRecord, paymentProvider, properties);
         } else {
             paymentInfo = buildCreditCard(paymentMethodsRecord, paymentProvider, properties);
         }
@@ -687,13 +682,10 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
         final String paymentMethodHolderName = paymentMethodFirstName != null || paymentMethodLastName != null ? holderName(paymentMethodFirstName, paymentMethodLastName) : null;
         final String ddHolderName = PluginProperties.getValue(PROPERTY_DD_HOLDER_NAME, paymentMethodHolderName, properties);
         final String ddBic = PluginProperties.findPluginPropertyValue(PROPERTY_DD_BANK_IDENTIFIER_CODE, properties);
-        final String ddBlz = PluginProperties.findPluginPropertyValue(PROPERTY_DD_BANKLEITZAHL, properties);
         final String ccType = PluginProperties.getValue(PROPERTY_CC_TYPE, nonNullPaymentMethodsRecord.getCcType(), properties);
 
         if (allNotNull(ddAccountNumber, ddHolderName, ddBic)) {
             return SEPA_DIRECT_DEBIT;
-        } else if (allNotNull(ddAccountNumber, ddHolderName, ddBlz)) {
-            return ELV;
         } else {
             return ccType;
         }
@@ -805,23 +797,6 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
         sepaDirectDebit.setCountryCode(countryCode);
 
         return sepaDirectDebit;
-    }
-
-    private Elv buildElv(final AdyenPaymentMethodsRecord paymentMethodsRecord, final PaymentProvider paymentProvider, final Iterable<PluginProperty> properties) {
-        final Elv elv = new Elv(paymentProvider);
-
-        final String ddAccountNumber = PluginProperties.getValue(PROPERTY_DD_ACCOUNT_NUMBER, paymentMethodsRecord.getCcNumber(), properties);
-        elv.setElvKontoNummer(ddAccountNumber);
-
-        final String paymentMethodHolderName = holderName(paymentMethodsRecord.getCcFirstName(), paymentMethodsRecord.getCcLastName());
-        final String ddHolderName = PluginProperties.getValue(PROPERTY_DD_HOLDER_NAME, paymentMethodHolderName, properties);
-        elv.setElvAccountHolder(ddHolderName);
-
-        final String paymentMethodBlz = PluginProperties.findPluginPropertyValue(PROPERTY_DD_BANKLEITZAHL, properties);
-        final String ddBlz = PluginProperties.getValue(PROPERTY_DD_BANKLEITZAHL, paymentMethodBlz, properties);
-        elv.setElvBlz(ddBlz);
-
-        return elv;
     }
 
     private Recurring buildRecurring(final AdyenPaymentMethodsRecord paymentMethodsRecord, final PaymentProvider paymentProvider, final Iterable<PluginProperty> properties) {

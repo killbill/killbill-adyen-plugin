@@ -64,7 +64,6 @@ import com.jayway.restassured.http.ContentType;
 
 import static com.jayway.restassured.RestAssured.given;
 import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.PROPERTY_DD_ACCOUNT_NUMBER;
-import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.PROPERTY_DD_BANKLEITZAHL;
 import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.PROPERTY_DD_BANK_IDENTIFIER_CODE;
 import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.PROPERTY_DD_HOLDER_NAME;
 import static org.testng.Assert.assertEquals;
@@ -329,45 +328,6 @@ public class TestAdyenPaymentPluginApi extends TestWithEmbeddedDBBase {
                                                                                                      captureTransaction2.getAmount(),
                                                                                                      captureTransaction2.getCurrency(),
                                                                                                      propertiesWithSepaInfo,
-                                                                                                     context);
-        verifyPaymentTransactionInfoPlugin(captureTransaction2, captureInfoPlugin2);
-    }
-
-    @Test(groups = "slow")
-    public void testAuthorizeAndMultipleCapturesELV() throws Exception {
-        adyenPaymentPluginApi.addPaymentMethod(payment.getAccountId(), payment.getPaymentMethodId(), adyenPaymentMethodPluginElv(), true, propertiesWithElvInfo, context);
-
-        final PaymentTransaction authorizationTransaction = TestUtils.buildPaymentTransaction(payment, TransactionType.AUTHORIZE, DEFAULT_CURRENCY);
-        final PaymentTransaction captureTransaction1 = TestUtils.buildPaymentTransaction(payment, TransactionType.CAPTURE, DEFAULT_CURRENCY);
-        final PaymentTransaction captureTransaction2 = TestUtils.buildPaymentTransaction(payment, TransactionType.CAPTURE, DEFAULT_CURRENCY);
-
-        final PaymentTransactionInfoPlugin authorizationInfoPlugin = adyenPaymentPluginApi.authorizePayment(payment.getAccountId(),
-                                                                                                            payment.getId(),
-                                                                                                            authorizationTransaction.getId(),
-                                                                                                            payment.getPaymentMethodId(),
-                                                                                                            authorizationTransaction.getAmount(),
-                                                                                                            authorizationTransaction.getCurrency(),
-                                                                                                            propertiesWithElvInfo,
-                                                                                                            context);
-        verifyPaymentTransactionInfoPlugin(authorizationTransaction, authorizationInfoPlugin, false);
-
-        final PaymentTransactionInfoPlugin captureInfoPlugin1 = adyenPaymentPluginApi.capturePayment(payment.getAccountId(),
-                                                                                                     payment.getId(),
-                                                                                                     captureTransaction1.getId(),
-                                                                                                     payment.getPaymentMethodId(),
-                                                                                                     captureTransaction1.getAmount(),
-                                                                                                     captureTransaction1.getCurrency(),
-                                                                                                     propertiesWithElvInfo,
-                                                                                                     context);
-        verifyPaymentTransactionInfoPlugin(captureTransaction1, captureInfoPlugin1);
-
-        final PaymentTransactionInfoPlugin captureInfoPlugin2 = adyenPaymentPluginApi.capturePayment(payment.getAccountId(),
-                                                                                                     payment.getId(),
-                                                                                                     captureTransaction2.getId(),
-                                                                                                     payment.getPaymentMethodId(),
-                                                                                                     captureTransaction2.getAmount(),
-                                                                                                     captureTransaction2.getCurrency(),
-                                                                                                     propertiesWithElvInfo,
                                                                                                      context);
         verifyPaymentTransactionInfoPlugin(captureTransaction2, captureInfoPlugin2);
     }
@@ -764,14 +724,6 @@ public class TestAdyenPaymentPluginApi extends TestWithEmbeddedDBBase {
                                                                                  + '"' + PROPERTY_DD_HOLDER_NAME + "\":\"" + DD_HOLDER_NAME + "\","
                                                                                  + '"' + PROPERTY_DD_ACCOUNT_NUMBER + "\":\"" + DD_IBAN + "\","
                                                                                  + '"' + PROPERTY_DD_BANK_IDENTIFIER_CODE + "\":\"" + DD_BIC + '"'
-                                                                                 + '}');
-    }
-
-    private PaymentMethodPlugin adyenPaymentMethodPluginElv() {
-        return adyenPaymentMethodPlugin(payment.getPaymentMethodId().toString(), "{"
-                                                                                 + '"' + PROPERTY_DD_HOLDER_NAME + "\":\"" + ELV_HOLDER_NAME + "\","
-                                                                                 + '"' + PROPERTY_DD_ACCOUNT_NUMBER + "\":\"" + ELV_ACCOUNT_NUMBER + "\","
-                                                                                 + '"' + PROPERTY_DD_BANKLEITZAHL + "\":\"" + ELV_BLZ + '"'
                                                                                  + '}');
     }
 

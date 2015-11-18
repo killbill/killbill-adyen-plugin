@@ -237,40 +237,6 @@ curl -v \
      "http://127.0.0.1:8080/1.0/kb/accounts/<ACCOUNT_ID>/paymentMethods?isDefault=true"
 ```
 
-### ELV
-
-The APIs are similar to the Credit Card use-case. Here is an example payload for the add payment method call:
-
-```
-curl -v \
-     -u admin:password \
-     -H "X-Killbill-ApiKey: bob" \
-     -H "X-Killbill-ApiSecret: lazar" \
-     -H "Content-Type: application/json" \
-     -H "X-Killbill-CreatedBy: demo" \
-     -X POST \
-     --data-binary '{
-       "pluginName": "killbill-adyen",
-       "pluginInfo": {
-         "properties": [
-           {
-             "key": "ddHolderName",
-             "value": "Bill Killson"
-           },
-           {
-             "key": "ddNumber",
-             "value": "1234567890"
-           },
-           {
-             "key": "ddBlz",
-             "value": "12345678"
-           }
-         ]
-       }
-     }' \
-     "http://127.0.0.1:8080/1.0/kb/accounts/<ACCOUNT_ID>/paymentMethods?isDefault=true"
-```
-
 ### HPP
 
 To generate an HPP url:
