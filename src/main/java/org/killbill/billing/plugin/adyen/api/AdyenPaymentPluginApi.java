@@ -61,7 +61,6 @@ import org.killbill.billing.plugin.adyen.client.model.SplitSettlementData;
 import org.killbill.billing.plugin.adyen.client.model.UserData;
 import org.killbill.billing.plugin.adyen.client.model.paymentinfo.Card;
 import org.killbill.billing.plugin.adyen.client.model.paymentinfo.CreditCard;
-import org.killbill.billing.plugin.adyen.client.model.paymentinfo.Elv;
 import org.killbill.billing.plugin.adyen.client.model.paymentinfo.OneClick;
 import org.killbill.billing.plugin.adyen.client.model.paymentinfo.Recurring;
 import org.killbill.billing.plugin.adyen.client.model.paymentinfo.SepaDirectDebit;
@@ -150,7 +149,6 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
     public static final String PROPERTY_DD_HOLDER_NAME = "ddHolderName";
     public static final String PROPERTY_DD_ACCOUNT_NUMBER = "ddNumber";
     public static final String PROPERTY_DD_BANK_IDENTIFIER_CODE = "ddBic";
-    public static final String PROPERTY_DD_BANKLEITZAHL = "ddBlz";
 
     // user data properties
     public static final String PROPERTY_FIRST_NAME = "firstName";
@@ -166,7 +164,6 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
      */
     public static final String PROPERTY_CONTINUOUS_AUTHENTICATION = "contAuth";
     private static final String SEPA_DIRECT_DEBIT = "sepadirectdebit";
-    private static final String ELV = "elv";
 
     private final AdyenConfigurationHandler adyenConfigurationHandler;
     private final AdyenHostedPaymentPageConfigurationHandler adyenHppConfigurationHandler;
@@ -277,14 +274,10 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
         final AdyenConfigProperties adyenConfigProperties = adyenHppConfigurationHandler.getConfigurable(context.getTenantId()).getAdyenConfigProperties();
         final String merchantAccount = adyenConfigProperties.getMerchantAccount(countryCode);
 
-        // Update the latest known payment method with the recurring details. We cannot easily map recurring contracts to payment methods:
-        // it seems that Adyen exposes the pspReference of the first recurring payment that created the recurring details
-        // (see https://docs.adyen.com/display/TD/listRecurringDetails+response) but it isn't populated in my testing
-        // TODO Investigate?
         for (final AdyenPaymentMethodsRecord record : Lists.<AdyenPaymentMethodsRecord>reverse(existingPaymentMethods)) {
             if (record.getToken() != null) {
                 // Immutable in Adyen -- nothing to do
-                break;
+                continue;
             }
 
             final Map additionalData = AdyenDao.fromAdditionalData(record.getAdditionalData());
@@ -305,18 +298,33 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
             try {
                 recurringDetailList = adyenRecurringClient.getRecurringDetailList(countryCode, customerId.toString(), merchantAccount, recurringType.toString());
             } catch (final ServiceException e) {
-                throw new PaymentPluginApiException("Unable to retrieve recurring details in Adyen", e);
+                logService.log(LogService.LOG_ERROR, "Unable to retrieve recurring details in Adyen", e);
+                continue;
             }
-
-            if (!recurringDetailList.isEmpty()) {
-                final String token = recurringDetailList.get(recurringDetailList.size() - 1).getRecurringDetailReference();
+            for (final RecurringDetail recurringDetail : recurringDetailList) {
+                final AdyenResponsesRecord formerResponse;
                 try {
-                    dao.setPaymentMethodToken(record.getKbPaymentMethodId(), token, record.getKbTenantId());
+                    formerResponse = dao.getResponse(recurringDetail.getFirstPspReference());
                 } catch (final SQLException e) {
-                    throw new PaymentPluginApiException("Unable to update token", e);
+                    logService.log(LogService.LOG_ERROR, "Unable to retrieve adyen response", e);
+                    continue;
+                }
+                final Payment payment;
+                try {
+                    payment = killbillAPI.getPaymentApi().getPayment(UUID.fromString(formerResponse.getKbPaymentId()), false, properties, context);
+                } catch (final PaymentApiException e) {
+                    logService.log(LogService.LOG_ERROR, "Unable to retrieve Payment for externalKey " + recurringDetail.getFirstPspReference(), e);
+                    continue;
+                }
+                if (payment.getPaymentMethodId().toString().equals(record.getKbPaymentMethodId())) {
+                    try {
+                        dao.setPaymentMethodToken(record.getKbPaymentMethodId(), recurringDetail.getRecurringDetailReference(), context.getTenantId().toString());
+                    } catch (final SQLException e) {
+                        logService.log(LogService.LOG_ERROR, "Unable to update token", e);
+                        continue;
+                    }
                 }
             }
-            break;
         }
 
         return super.getPaymentMethods(kbAccountId, false, properties, context);
@@ -652,8 +660,6 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
             paymentInfo = buildRecurring(paymentMethodsRecord, paymentProvider, properties);
         } else if (SEPA_DIRECT_DEBIT.equals(cardType)) {
             paymentInfo = buildSepaDirectDebit(paymentMethodsRecord, paymentProvider, properties);
-        } else if (ELV.equals(cardType)) {
-            paymentInfo = buildElv(paymentMethodsRecord, paymentProvider, properties);
         } else {
             paymentInfo = buildCreditCard(paymentMethodsRecord, paymentProvider, properties);
         }
@@ -679,13 +685,10 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
         final String paymentMethodHolderName = paymentMethodFirstName != null || paymentMethodLastName != null ? holderName(paymentMethodFirstName, paymentMethodLastName) : null;
         final String ddHolderName = PluginProperties.getValue(PROPERTY_DD_HOLDER_NAME, paymentMethodHolderName, properties);
         final String ddBic = PluginProperties.findPluginPropertyValue(PROPERTY_DD_BANK_IDENTIFIER_CODE, properties);
-        final String ddBlz = PluginProperties.findPluginPropertyValue(PROPERTY_DD_BANKLEITZAHL, properties);
         final String ccType = PluginProperties.getValue(PROPERTY_CC_TYPE, nonNullPaymentMethodsRecord.getCcType(), properties);
 
         if (allNotNull(ddAccountNumber, ddHolderName, ddBic)) {
             return SEPA_DIRECT_DEBIT;
-        } else if (allNotNull(ddAccountNumber, ddHolderName, ddBlz)) {
-            return ELV;
         } else {
             return ccType;
         }
@@ -797,23 +800,6 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
         sepaDirectDebit.setCountryCode(countryCode);
 
         return sepaDirectDebit;
-    }
-
-    private Elv buildElv(final AdyenPaymentMethodsRecord paymentMethodsRecord, final PaymentProvider paymentProvider, final Iterable<PluginProperty> properties) {
-        final Elv elv = new Elv(paymentProvider);
-
-        final String ddAccountNumber = PluginProperties.getValue(PROPERTY_DD_ACCOUNT_NUMBER, paymentMethodsRecord.getCcNumber(), properties);
-        elv.setElvKontoNummer(ddAccountNumber);
-
-        final String paymentMethodHolderName = holderName(paymentMethodsRecord.getCcFirstName(), paymentMethodsRecord.getCcLastName());
-        final String ddHolderName = PluginProperties.getValue(PROPERTY_DD_HOLDER_NAME, paymentMethodHolderName, properties);
-        elv.setElvAccountHolder(ddHolderName);
-
-        final String paymentMethodBlz = PluginProperties.findPluginPropertyValue(PROPERTY_DD_BANKLEITZAHL, properties);
-        final String ddBlz = PluginProperties.getValue(PROPERTY_DD_BANKLEITZAHL, paymentMethodBlz, properties);
-        elv.setElvBlz(ddBlz);
-
-        return elv;
     }
 
     private Recurring buildRecurring(final AdyenPaymentMethodsRecord paymentMethodsRecord, final PaymentProvider paymentProvider, final Iterable<PluginProperty> properties) {

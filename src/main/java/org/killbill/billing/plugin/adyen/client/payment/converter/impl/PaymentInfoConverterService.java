@@ -37,7 +37,6 @@ public class PaymentInfoConverterService implements PaymentInfoConverterManageme
                 new AmexConverter(),
                 new DinersConverter(),
                 new CreditCardConverter(),
-                new ElvConverter(),
                 new MaestroConverter(),
                 new MaestroUKConverter(),
                 new MasterCardConverter(),

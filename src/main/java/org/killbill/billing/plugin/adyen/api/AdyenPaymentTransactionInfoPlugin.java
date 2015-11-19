@@ -114,27 +114,27 @@ public class AdyenPaymentTransactionInfoPlugin extends PluginPaymentTransactionI
     }
 
     private static String getGatewayError(final PurchaseResult purchaseResult) {
-        return purchaseResult.getResultCode() != null ? purchaseResult.getResultCode() : purchaseResult.getAdditionalData().get(PurchaseResult.EXCEPTION_MESSAGE);
+        return purchaseResult.getReason() != null ? purchaseResult.getReason() : purchaseResult.getAdditionalData().get(PurchaseResult.EXCEPTION_MESSAGE);
     }
 
     private static String getGatewayError(final PaymentModificationResponse paymentModificationResponse) {
-        return paymentModificationResponse.getResponse() != null ? paymentModificationResponse.getResponse() : toString(paymentModificationResponse.getAdditionalData().get(PurchaseResult.EXCEPTION_MESSAGE));
+        return toString(paymentModificationResponse.getAdditionalData().get(PurchaseResult.EXCEPTION_MESSAGE));
     }
 
     private static String getGatewayError(final AdyenResponsesRecord record) {
-        return record.getResultCode() != null ? record.getResultCode() : toString(AdyenDao.fromAdditionalData(record.getAdditionalData()).get(PurchaseResult.EXCEPTION_MESSAGE));
+        return record.getRefusalReason() != null ? record.getRefusalReason() : toString(AdyenDao.fromAdditionalData(record.getAdditionalData()).get(PurchaseResult.EXCEPTION_MESSAGE));
     }
 
     private static String getGatewayErrorCode(final PurchaseResult purchaseResult) {
-        return purchaseResult.getReason() != null ? purchaseResult.getReason() : purchaseResult.getAdditionalData().get(PurchaseResult.EXCEPTION_CLASS);
+        return purchaseResult.getResultCode() != null ? purchaseResult.getResultCode() : purchaseResult.getAdditionalData().get(PurchaseResult.EXCEPTION_CLASS);
     }
 
     private static String getGatewayErrorCode(final PaymentModificationResponse paymentModificationResponse) {
-        return toString(paymentModificationResponse.getAdditionalData().get(PurchaseResult.EXCEPTION_CLASS));
+        return paymentModificationResponse.getResponse() != null ? paymentModificationResponse.getResponse() : toString(paymentModificationResponse.getAdditionalData().get(PurchaseResult.EXCEPTION_CLASS));
     }
 
     private static String getGatewayErrorCode(final AdyenResponsesRecord record) {
-        return record.getRefusalReason() != null ? record.getRefusalReason() : toString(AdyenDao.fromAdditionalData(record.getAdditionalData()).get(PurchaseResult.EXCEPTION_CLASS));
+        return record.getResultCode() != null ? record.getResultCode() : toString(AdyenDao.fromAdditionalData(record.getAdditionalData()).get(PurchaseResult.EXCEPTION_CLASS));
     }
 
     /**

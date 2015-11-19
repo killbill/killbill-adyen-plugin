@@ -64,7 +64,6 @@ import com.jayway.restassured.http.ContentType;
 
 import static com.jayway.restassured.RestAssured.given;
 import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.PROPERTY_DD_ACCOUNT_NUMBER;
-import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.PROPERTY_DD_BANKLEITZAHL;
 import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.PROPERTY_DD_BANK_IDENTIFIER_CODE;
 import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.PROPERTY_DD_HOLDER_NAME;
 import static org.testng.Assert.assertEquals;
@@ -334,45 +333,6 @@ public class TestAdyenPaymentPluginApi extends TestWithEmbeddedDBBase {
     }
 
     @Test(groups = "slow")
-    public void testAuthorizeAndMultipleCapturesELV() throws Exception {
-        adyenPaymentPluginApi.addPaymentMethod(payment.getAccountId(), payment.getPaymentMethodId(), adyenPaymentMethodPluginElv(), true, propertiesWithElvInfo, context);
-
-        final PaymentTransaction authorizationTransaction = TestUtils.buildPaymentTransaction(payment, TransactionType.AUTHORIZE, DEFAULT_CURRENCY);
-        final PaymentTransaction captureTransaction1 = TestUtils.buildPaymentTransaction(payment, TransactionType.CAPTURE, DEFAULT_CURRENCY);
-        final PaymentTransaction captureTransaction2 = TestUtils.buildPaymentTransaction(payment, TransactionType.CAPTURE, DEFAULT_CURRENCY);
-
-        final PaymentTransactionInfoPlugin authorizationInfoPlugin = adyenPaymentPluginApi.authorizePayment(payment.getAccountId(),
-                                                                                                            payment.getId(),
-                                                                                                            authorizationTransaction.getId(),
-                                                                                                            payment.getPaymentMethodId(),
-                                                                                                            authorizationTransaction.getAmount(),
-                                                                                                            authorizationTransaction.getCurrency(),
-                                                                                                            propertiesWithElvInfo,
-                                                                                                            context);
-        verifyPaymentTransactionInfoPlugin(authorizationTransaction, authorizationInfoPlugin, false);
-
-        final PaymentTransactionInfoPlugin captureInfoPlugin1 = adyenPaymentPluginApi.capturePayment(payment.getAccountId(),
-                                                                                                     payment.getId(),
-                                                                                                     captureTransaction1.getId(),
-                                                                                                     payment.getPaymentMethodId(),
-                                                                                                     captureTransaction1.getAmount(),
-                                                                                                     captureTransaction1.getCurrency(),
-                                                                                                     propertiesWithElvInfo,
-                                                                                                     context);
-        verifyPaymentTransactionInfoPlugin(captureTransaction1, captureInfoPlugin1);
-
-        final PaymentTransactionInfoPlugin captureInfoPlugin2 = adyenPaymentPluginApi.capturePayment(payment.getAccountId(),
-                                                                                                     payment.getId(),
-                                                                                                     captureTransaction2.getId(),
-                                                                                                     payment.getPaymentMethodId(),
-                                                                                                     captureTransaction2.getAmount(),
-                                                                                                     captureTransaction2.getCurrency(),
-                                                                                                     propertiesWithElvInfo,
-                                                                                                     context);
-        verifyPaymentTransactionInfoPlugin(captureTransaction2, captureInfoPlugin2);
-    }
-
-    @Test(groups = "slow")
     public void testAuthorizeFailingInvalidCVV() throws Exception {
         final Iterable<PluginProperty> propertiesWithCCInfoWrongCVV = toProperties(ImmutableMap.<String, String>builder()
                                                                                                .put(AdyenPaymentPluginApi.PROPERTY_CC_TYPE, CC_TYPE)
@@ -396,10 +356,10 @@ public class TestAdyenPaymentPluginApi extends TestWithEmbeddedDBBase {
                                                                                                             propertiesWithCCInfoWrongCVV,
                                                                                                             context);
 
-        assertEquals(authorizationInfoPlugin.getGatewayErrorCode(), "CVC Declined");
+        assertEquals(authorizationInfoPlugin.getGatewayError(), "CVC Declined");
         final List<PaymentTransactionInfoPlugin> fromDBList = adyenPaymentPluginApi.getPaymentInfo(payment.getAccountId(), payment.getId(), ImmutableList.<PluginProperty>of(), context);
         assertFalse(fromDBList.isEmpty());
-        assertEquals(fromDBList.get(0).getGatewayErrorCode(), "CVC Declined");
+        assertEquals(fromDBList.get(0).getGatewayError(), "CVC Declined");
     }
 
     @Test(groups = "slow")
@@ -581,7 +541,7 @@ public class TestAdyenPaymentPluginApi extends TestWithEmbeddedDBBase {
                                                                                                              propertiesWith3DSInfo,
                                                                                                              context);
 
-        assertEquals(authorizationInfoPlugin1.getGatewayError(), "RedirectShopper");
+        assertEquals(authorizationInfoPlugin1.getGatewayErrorCode(), "RedirectShopper");
         assertEquals(authorizationInfoPlugin1.getStatus(), PaymentPluginStatus.PENDING);
         final URL issuerUrl = new URL(PluginProperties.findPluginPropertyValue("issuerUrl", authorizationInfoPlugin1.getProperties()));
         final String md = PluginProperties.findPluginPropertyValue("MD", authorizationInfoPlugin1.getProperties());
@@ -705,11 +665,11 @@ public class TestAdyenPaymentPluginApi extends TestWithEmbeddedDBBase {
         assertNotNull(paymentTransactionInfoPlugin.getCreatedDate());
         assertNotNull(paymentTransactionInfoPlugin.getEffectiveDate());
 
-        final List<String> expectedGatewayErrors;
+        final List<String> expectedGatewayErrorCodes;
         final List<PaymentPluginStatus> expectedPaymentPluginStatus;
         switch (paymentTransaction.getTransactionType()) {
             case AUTHORIZE:
-                expectedGatewayErrors = authorizedProcessed
+                expectedGatewayErrorCodes = authorizedProcessed
                                         ? ImmutableList.of("Authorised")
                                         : ImmutableList.of("Authorised", "Received");
                 expectedPaymentPluginStatus = authorizedProcessed
@@ -718,26 +678,26 @@ public class TestAdyenPaymentPluginApi extends TestWithEmbeddedDBBase {
                 break;
             case CAPTURE:
             case PURCHASE:
-                expectedGatewayErrors = ImmutableList.of("[capture-received]");
+                expectedGatewayErrorCodes = ImmutableList.of("[capture-received]");
                 expectedPaymentPluginStatus = ImmutableList.of(PaymentPluginStatus.PENDING);
                 break;
             case REFUND:
-                expectedGatewayErrors = ImmutableList.of("[refund-received]");
+                expectedGatewayErrorCodes = ImmutableList.of("[refund-received]");
                 expectedPaymentPluginStatus = ImmutableList.of(PaymentPluginStatus.PENDING);
                 break;
             case VOID:
-                expectedGatewayErrors = ImmutableList.of("[cancel-received]");
+                expectedGatewayErrorCodes = ImmutableList.of("[cancel-received]");
                 expectedPaymentPluginStatus = ImmutableList.of(PaymentPluginStatus.PENDING);
                 break;
             default:
-                expectedGatewayErrors = ImmutableList.of();
+                expectedGatewayErrorCodes = ImmutableList.of();
                 expectedPaymentPluginStatus = ImmutableList.of(PaymentPluginStatus.PENDING);
                 break;
         }
-        assertTrue(expectedGatewayErrors.contains(paymentTransactionInfoPlugin.getGatewayError()), "was: " + paymentTransactionInfoPlugin.getGatewayError());
+        assertTrue(expectedGatewayErrorCodes.contains(paymentTransactionInfoPlugin.getGatewayErrorCode()), "was: " + paymentTransactionInfoPlugin.getGatewayErrorCode());
         assertTrue(expectedPaymentPluginStatus.contains(paymentTransactionInfoPlugin.getStatus()), "was: " + paymentTransactionInfoPlugin.getStatus());
 
-        assertNull(paymentTransactionInfoPlugin.getGatewayErrorCode());
+        assertNull(paymentTransactionInfoPlugin.getGatewayError());
         assertNotNull(paymentTransactionInfoPlugin.getFirstPaymentReferenceId());
         // NULL for subsequent transactions (modifications)
         //Assert.assertNotNull(paymentTransactionInfoPlugin.getSecondPaymentReferenceId());
@@ -764,14 +724,6 @@ public class TestAdyenPaymentPluginApi extends TestWithEmbeddedDBBase {
                                                                                  + '"' + PROPERTY_DD_HOLDER_NAME + "\":\"" + DD_HOLDER_NAME + "\","
                                                                                  + '"' + PROPERTY_DD_ACCOUNT_NUMBER + "\":\"" + DD_IBAN + "\","
                                                                                  + '"' + PROPERTY_DD_BANK_IDENTIFIER_CODE + "\":\"" + DD_BIC + '"'
-                                                                                 + '}');
-    }
-
-    private PaymentMethodPlugin adyenPaymentMethodPluginElv() {
-        return adyenPaymentMethodPlugin(payment.getPaymentMethodId().toString(), "{"
-                                                                                 + '"' + PROPERTY_DD_HOLDER_NAME + "\":\"" + ELV_HOLDER_NAME + "\","
-                                                                                 + '"' + PROPERTY_DD_ACCOUNT_NUMBER + "\":\"" + ELV_ACCOUNT_NUMBER + "\","
-                                                                                 + '"' + PROPERTY_DD_BANKLEITZAHL + "\":\"" + ELV_BLZ + '"'
                                                                                  + '}');
     }
 

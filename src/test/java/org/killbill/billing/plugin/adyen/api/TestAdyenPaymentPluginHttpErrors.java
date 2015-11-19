@@ -164,9 +164,10 @@ public class TestAdyenPaymentPluginHttpErrors {
     /**
      * Sanity check that a refused purchase (wrong cc data) still results in an error.
      */
-    @Test(groups = "slow", dataProvider = "invalidCreditCardData")
-    public void testAuthorizeWithIncorrectValues(final Iterable<PluginProperty> inValidPurchaseData, final String gatewayErrorCode) throws Exception {
-
+    @Test(groups = "slow")
+    public void testAuthorizeWithIncorrectValues() throws Exception {
+        final String expectedGatewayError = "CVC Declined";
+        final String expectedGatewayErrorCode = "Refused";
         final Account account = defaultAccount();
         final Payment payment = killBillPayment(account);
         final AdyenCallContext callContext = newCallContext();
@@ -177,16 +178,42 @@ public class TestAdyenPaymentPluginHttpErrors {
                                                                       .withDatabaseAccess(dao)
                                                                       .build();
 
-        final PaymentTransactionInfoPlugin result = authorizeCall(account, payment, callContext, pluginApi, inValidPurchaseData);
+        final PaymentTransactionInfoPlugin result = authorizeCall(account, payment, callContext, pluginApi, invalidCreditCardData(AdyenPaymentPluginApi.PROPERTY_CC_VERIFICATION_VALUE, String.valueOf("1234")));
         assertEquals(result.getStatus(), PaymentPluginStatus.ERROR);
-        assertEquals(result.getGatewayError(), "Refused");
-        assertEquals(result.getGatewayErrorCode(), gatewayErrorCode);
+        assertEquals(result.getGatewayError(), expectedGatewayError);
+        assertEquals(result.getGatewayErrorCode(), expectedGatewayErrorCode);
 
         final List<PaymentTransactionInfoPlugin> results = pluginApi.getPaymentInfo(account.getId(), payment.getId(), ImmutableList.<PluginProperty>of(), callContext);
         assertEquals(results.size(), 1);
         assertEquals(results.get(0).getStatus(), PaymentPluginStatus.ERROR);
-        assertEquals(results.get(0).getGatewayError(), "Refused");
-        assertEquals(results.get(0).getGatewayErrorCode(), gatewayErrorCode);
+        assertEquals(results.get(0).getGatewayError(), expectedGatewayError);
+        assertEquals(results.get(0).getGatewayErrorCode(), expectedGatewayErrorCode);
+    }
+
+    @Test(groups = "slow")
+    public void testAuthorizeWithInvalidValues() throws Exception {
+        final String expectedGatewayError = "validation Expiry month should be between 1 and 12 inclusive Card";
+        final String expectedGatewayErrorCode = "org.apache.cxf.binding.soap.SoapFault";
+        final Account account = defaultAccount();
+        final Payment payment = killBillPayment(account);
+        final AdyenCallContext callContext = newCallContext();
+
+        final AdyenPaymentPluginApi pluginApi = AdyenPluginMockBuilder.newPlugin()
+                                                                      .withAccount(account)
+                                                                      .withPayment(payment)
+                                                                      .withDatabaseAccess(dao)
+                                                                      .build();
+
+        final PaymentTransactionInfoPlugin result = authorizeCall(account, payment, callContext, pluginApi, invalidCreditCardData(AdyenPaymentPluginApi.PROPERTY_CC_EXPIRATION_MONTH, String.valueOf("123")));
+        assertEquals(result.getStatus(), PaymentPluginStatus.CANCELED);
+        assertEquals(result.getGatewayError(), expectedGatewayError);
+        assertEquals(result.getGatewayErrorCode(), expectedGatewayErrorCode);
+
+        final List<PaymentTransactionInfoPlugin> results = pluginApi.getPaymentInfo(account.getId(), payment.getId(), ImmutableList.<PluginProperty>of(), callContext);
+        assertEquals(results.size(), 1);
+        assertEquals(results.get(0).getStatus(), PaymentPluginStatus.CANCELED);
+        assertEquals(results.get(0).getGatewayError(), expectedGatewayError);
+        assertEquals(results.get(0).getGatewayErrorCode(), expectedGatewayErrorCode);
     }
 
     @Test(groups = "slow")
@@ -315,8 +342,8 @@ public class TestAdyenPaymentPluginHttpErrors {
         final List<PaymentTransactionInfoPlugin> results = refundApi.getPaymentInfo(account.getId(), payment.getId(), ImmutableList.<PluginProperty>of(), callContext);
         assertEquals(results.size(), 2);
         assertEquals(results.get(0).getStatus(), PaymentPluginStatus.PROCESSED);
-        assertEquals(results.get(0).getGatewayError(), "Authorised");
-        assertNull(results.get(0).getGatewayErrorCode());
+        assertEquals(results.get(0).getGatewayErrorCode(), "Authorised");
+        assertNull(results.get(0).getGatewayError());
         assertEquals(results.get(1).getStatus(), PaymentPluginStatus.UNDEFINED);
         assertEquals(results.get(1).getGatewayError(), "Invalid Http response");
         assertEquals(results.get(1).getGatewayErrorCode(), "java.io.IOException");

@@ -26,7 +26,7 @@ import org.killbill.adyen.common.Gender;
 import org.killbill.adyen.common.Name;
 import org.killbill.adyen.payment.AnyType2AnyTypeMap;
 import org.killbill.adyen.payment.AnyType2AnyTypeMap.Entry;
-import org.killbill.adyen.payment.ELV;
+import org.killbill.adyen.payment.BankAccount;
 import org.killbill.adyen.payment.PaymentRequest;
 import org.killbill.billing.plugin.adyen.client.AdyenConfigProperties;
 import org.killbill.billing.plugin.adyen.client.model.PaymentInfo;
@@ -36,7 +36,7 @@ import org.killbill.billing.plugin.adyen.client.model.SplitSettlementData;
 import org.killbill.billing.plugin.adyen.client.model.SplitSettlementData.Item;
 import org.killbill.billing.plugin.adyen.client.model.paymentinfo.Amex;
 import org.killbill.billing.plugin.adyen.client.model.paymentinfo.Card;
-import org.killbill.billing.plugin.adyen.client.model.paymentinfo.Elv;
+import org.killbill.billing.plugin.adyen.client.model.paymentinfo.SepaDirectDebit;
 import org.killbill.billing.plugin.adyen.client.payment.converter.PaymentInfoConverter;
 import org.killbill.billing.plugin.adyen.client.payment.converter.PaymentInfoConverterManagement;
 import org.mockito.Mockito;
@@ -51,10 +51,10 @@ public class TestPaymentRequestBuilder extends BaseTestPaymentRequestBuilder {
     private static final String ANY_HOLDER_NAME = "anyHolderName";
 
     private final AdyenConfigProperties adyenConfigProperties = new AdyenConfigProperties(new Properties());
-    private final PaymentInfo anyPaymentInfo = new Elv(new PaymentProvider(adyenConfigProperties));
+    private final PaymentInfo anyPaymentInfo = new SepaDirectDebit(new PaymentProvider(adyenConfigProperties));
 
-    private PaymentInfoConverterManagement<Elv> paymentInfoConverterManagement;
-    private PaymentInfoConverter<Elv> paymentInfoConverter;
+    private PaymentInfoConverterManagement<SepaDirectDebit> paymentInfoConverterManagement;
+    private PaymentInfoConverter<SepaDirectDebit> paymentInfoConverter;
 
     @BeforeMethod(groups = "fast")
     public void setUp() throws Exception {
@@ -63,24 +63,24 @@ public class TestPaymentRequestBuilder extends BaseTestPaymentRequestBuilder {
     }
 
     @Test(groups = "fast")
-    public void shouldUseTheElvParamsOfTheRequestTheConverterCreated() {
+    public void shouldUseTheBankAccountParamsOfTheRequestTheConverterCreated() {
         final String accountHolderName = "accountHolderName";
         final String bankName = "bankName";
         final String bankAccountNumber = "bankAccountNumber";
         final String bankLocationId = "bankLocationId";
 
-        final ELV expectedElv = createExpectedElvForRequest(accountHolderName, bankName, bankAccountNumber, bankLocationId);
+        final BankAccount expectedBankAccount = createExpectedBankAccountForRequest(accountHolderName, bankName, bankAccountNumber, bankLocationId);
         final PaymentRequest converterRequest = new PaymentRequest();
-        converterRequest.setElv(expectedElv);
-        final Elv elv = new Elv(new PaymentProvider(adyenConfigProperties));
+        converterRequest.setBankAccount(expectedBankAccount);
+        final SepaDirectDebit sepa = new SepaDirectDebit(new PaymentProvider(adyenConfigProperties));
 
-        Mockito.when(paymentInfoConverterManagement.getConverterForPaymentInfo(elv)).thenReturn(paymentInfoConverter);
-        Mockito.when(paymentInfoConverter.convertPaymentInfoToPSPTransferObject(ANY_HOLDER_NAME, elv)).thenReturn(converterRequest);
+        Mockito.when(paymentInfoConverterManagement.getConverterForPaymentInfo(sepa)).thenReturn(paymentInfoConverter);
+        Mockito.when(paymentInfoConverter.convertPaymentInfoToPSPTransferObject(ANY_HOLDER_NAME, sepa)).thenReturn(converterRequest);
 
-        final PaymentRequest paymentRequest = new PaymentRequestBuilder(elv, paymentInfoConverterManagement, ANY_HOLDER_NAME).build();
+        final PaymentRequest paymentRequest = new PaymentRequestBuilder(sepa, paymentInfoConverterManagement, ANY_HOLDER_NAME).build();
 
-        final ELV actualElv = paymentRequest.getElv();
-        Assert.assertSame(actualElv, expectedElv);
+        final BankAccount actualBankAccount = paymentRequest.getBankAccount();
+        Assert.assertSame(actualBankAccount, expectedBankAccount);
     }
 
     @Test(groups = "fast")
@@ -161,7 +161,7 @@ public class TestPaymentRequestBuilder extends BaseTestPaymentRequestBuilder {
     @Test(groups = "fast", dataProvider = DP_RECURRING_TYPES)
     public void shouldContainTheRecurringContractIfUserAndPaymentProviderIsEnabledForRecurring(final RecurringType recurringType) {
         final PaymentProvider paymentProvider = createPaymentProviderWithRecurringType(recurringType);
-        final Elv paymentInfoForPaymentProviderWithRecurring = new Elv(paymentProvider);
+        final SepaDirectDebit paymentInfoForPaymentProviderWithRecurring = new SepaDirectDebit(paymentProvider);
 
         final PaymentRequest paymentRequest = new PaymentRequestBuilder(paymentInfoForPaymentProviderWithRecurring, paymentInfoConverterManagement, ANY_HOLDER_NAME).withRecurringContractForUser()
                                                                                                                                                                     .build();
@@ -173,7 +173,7 @@ public class TestPaymentRequestBuilder extends BaseTestPaymentRequestBuilder {
     @Test(groups = "fast")
     public void shouldContainNoRecurringInformationIfPaymentProviderIsDisabledForRecurring() {
         final PaymentProvider paymentProviderWithoutRecurring = createPaymentProviderWithRecurringType(null);
-        final Elv paymentInfoForPaymentProviderWithRecurring = new Elv(paymentProviderWithoutRecurring);
+        final SepaDirectDebit paymentInfoForPaymentProviderWithRecurring = new SepaDirectDebit(paymentProviderWithoutRecurring);
 
         final PaymentRequest paymentRequest = new PaymentRequestBuilder(paymentInfoForPaymentProviderWithRecurring, paymentInfoConverterManagement, ANY_HOLDER_NAME).withRecurringContractForUser()
                                                                                                                                                                     .build();
@@ -202,7 +202,7 @@ public class TestPaymentRequestBuilder extends BaseTestPaymentRequestBuilder {
         final BrowserInfo notExpectedBrowserInfo = createBrowserInfo();
 
         final PaymentProvider paymentProvider = new PaymentProvider(adyenConfigProperties);
-        final Elv notACardPaymentInfo = createDefaultElvWithPaymentProvider(paymentProvider);
+        final SepaDirectDebit notACardPaymentInfo = createDefaultSepaWithPaymentProvider(paymentProvider);
         Mockito.when(paymentInfoConverterManagement.getBrowserInfoFor3DSecureAuth(Mockito.anyLong(), Mockito.any(Card.class))).thenReturn(notExpectedBrowserInfo);
 
         final PaymentRequest paymentRequest = new PaymentRequestBuilder(notACardPaymentInfo, paymentInfoConverterManagement, ANY_HOLDER_NAME).withBrowserInfo(amount)
@@ -231,7 +231,7 @@ public class TestPaymentRequestBuilder extends BaseTestPaymentRequestBuilder {
 
         final PaymentProvider paymentProvider = Mockito.mock(PaymentProvider.class);
         Mockito.when(paymentProvider.send3DSTermUrl()).thenReturn(true);
-        final Elv notACardPaymentInfo = createDefaultElvWithPaymentProvider(paymentProvider);
+        final SepaDirectDebit notACardPaymentInfo = createDefaultSepaWithPaymentProvider(paymentProvider);
 
         final PaymentRequest paymentRequest = new PaymentRequestBuilder(notACardPaymentInfo, paymentInfoConverterManagement, ANY_HOLDER_NAME).withReturnUrl(returnUrl)
                                                                                                                                              .build();
@@ -354,8 +354,8 @@ public class TestPaymentRequestBuilder extends BaseTestPaymentRequestBuilder {
         return null;
     }
 
-    private Elv createDefaultElvWithPaymentProvider(final PaymentProvider paymentProvider) {
-        return createElv("accountHolderName", "recurringDetailId", "bankName", "bankAccountNumber", "bankLocationId", paymentProvider);
+    private SepaDirectDebit createDefaultSepaWithPaymentProvider(final PaymentProvider paymentProvider) {
+        return createSepa("accountHolderName", "recurringDetailId", "iban", "bic", paymentProvider);
     }
 
     private void assertAdditionalDataDoesNotContain(final PaymentRequest paymentRequest, final String key, final String value) {
@@ -389,29 +389,26 @@ public class TestPaymentRequestBuilder extends BaseTestPaymentRequestBuilder {
         return paymentProvider;
     }
 
-    private Elv createElv(final String accountHolderName,
-                          final String recurringDetailId,
-                          final String bankName,
-                          final String bankAccountNumber,
-                          final String bankLocationId,
-                          final PaymentProvider paymentProvider) {
-        final Elv elvPaymentInfo = new Elv(paymentProvider);
-        elvPaymentInfo.setElvAccountHolder(accountHolderName);
-        elvPaymentInfo.setRecurringDetailId(recurringDetailId);
-        elvPaymentInfo.setElvBankName(bankName);
-        elvPaymentInfo.setElvKontoNummer(bankAccountNumber);
-        elvPaymentInfo.setElvBlz(bankLocationId);
-        return elvPaymentInfo;
+    private SepaDirectDebit createSepa(final String accountHolderName,
+                                       final String recurringDetailId,
+                                       final String iban,
+                                       final String bic,
+                                       final PaymentProvider paymentProvider) {
+        final SepaDirectDebit sepaPaymentInfo = new SepaDirectDebit(paymentProvider);
+        sepaPaymentInfo.setSepaAccountHolder(accountHolderName);
+        sepaPaymentInfo.setRecurringDetailId(recurringDetailId);
+        sepaPaymentInfo.setIban(iban);
+        sepaPaymentInfo.setBic(bic);
+        return sepaPaymentInfo;
     }
 
-    private ELV createExpectedElvForRequest(final String accountHolderName,
-                                            final String bankName,
-                                            final String bankAccountNumber,
-                                            final String bankLocationId) {
-        final ELV expectedElv = new ELV();
-        expectedElv.setAccountHolderName(accountHolderName);
+    private BankAccount createExpectedBankAccountForRequest(final String accountHolderName,
+                                                            final String bankName,
+                                                            final String bankAccountNumber,
+                                                            final String bankLocationId) {
+        final BankAccount expectedElv = new BankAccount();
+        expectedElv.setOwnerName(accountHolderName);
         expectedElv.setBankAccountNumber(bankAccountNumber);
-        expectedElv.setBankLocation(" "); // the bank location is always a whitespace in the result
         expectedElv.setBankLocationId(bankLocationId);
         expectedElv.setBankName(bankName);
         return expectedElv;

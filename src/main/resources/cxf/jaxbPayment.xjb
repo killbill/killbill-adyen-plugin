@@ -28,16 +28,4 @@ http://java.sun.com/xml/ns/jaxb http://java.sun.com/xml/ns/jaxb/bindingschema_2_
 		</jaxb:schemaBindings>
 	</jaxb:bindings>
 
-	<jaxb:bindings scd="/element::adyenPayment:directdebitResponse">
-		<jaxb:class name="DirectDebitResponseElement">
-			<jaxb:javadoc><![CDATA[corrected broken Payment wsdl]]></jaxb:javadoc>
-		</jaxb:class>
-	</jaxb:bindings>
-	
-	<jaxb:bindings scd="/element::adyenPayment:directdebit">
-		<jaxb:class name="DirectDebit">
-			<jaxb:javadoc><![CDATA[corrected broken Payment wsdl]]></jaxb:javadoc>
-		</jaxb:class>
-	</jaxb:bindings>
-
 </jaxb:bindings>
