@@ -277,7 +277,7 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
         for (final AdyenPaymentMethodsRecord record : Lists.<AdyenPaymentMethodsRecord>reverse(existingPaymentMethods)) {
             if (record.getToken() != null) {
                 // Immutable in Adyen -- nothing to do
-                break;
+                continue;
             }
 
             final Map additionalData = AdyenDao.fromAdditionalData(record.getAdditionalData());
@@ -298,28 +298,31 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
             try {
                 recurringDetailList = adyenRecurringClient.getRecurringDetailList(countryCode, customerId.toString(), merchantAccount, recurringType.toString());
             } catch (final ServiceException e) {
-                throw new PaymentPluginApiException("Unable to retrieve recurring details in Adyen", e);
+                logService.log(LogService.LOG_ERROR, "Unable to retrieve recurring details in Adyen", e);
+                continue;
             }
             for (final RecurringDetail recurringDetail : recurringDetailList) {
                 final AdyenResponsesRecord formerResponse;
                 try {
                     formerResponse = dao.getResponse(recurringDetail.getFirstPspReference());
-                } catch (SQLException e) {
-                    throw new PaymentPluginApiException("Unable to retrieve adyen response", e);
+                } catch (final SQLException e) {
+                    logService.log(LogService.LOG_ERROR, "Unable to retrieve adyen response", e);
+                    continue;
                 }
                 final Payment payment;
                 try {
-                    payment = killbillAPI.getPaymentApi().getPayment(UUID.fromString(formerResponse.getKbPaymentId()), true, properties, context);
-                } catch (PaymentApiException e) {
-                    throw new PaymentPluginApiException("Unable to retrieve Payment for externalKey " + recurringDetail.getFirstPspReference(), e);
-                }
-                if (payment == null) {
+                    payment = killbillAPI.getPaymentApi().getPayment(UUID.fromString(formerResponse.getKbPaymentId()), false, properties, context);
+                } catch (final PaymentApiException e) {
+                    logService.log(LogService.LOG_ERROR, "Unable to retrieve Payment for externalKey " + recurringDetail.getFirstPspReference(), e);
                     continue;
                 }
-                try {
-                    dao.setPaymentMethodToken(record.getKbPaymentMethodId(), recurringDetail.getRecurringDetailReference(), context.getTenantId().toString());
-                } catch (final SQLException e) {
-                    throw new PaymentPluginApiException("Unable to update token", e);
+                if (payment.getPaymentMethodId().toString().equals(record.getKbPaymentMethodId())) {
+                    try {
+                        dao.setPaymentMethodToken(record.getKbPaymentMethodId(), recurringDetail.getRecurringDetailReference(), context.getTenantId().toString());
+                    } catch (final SQLException e) {
+                        logService.log(LogService.LOG_ERROR, "Unable to update token", e);
+                        continue;
+                    }
                 }
             }
         }
