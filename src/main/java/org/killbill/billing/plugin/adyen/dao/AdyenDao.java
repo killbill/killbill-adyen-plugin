@@ -188,7 +188,6 @@ public class AdyenDao extends PluginPaymentDao<AdyenResponsesRecord, AdyenRespon
                             final PurchaseResult result,
                             final DateTime utcNow,
                             final UUID kbTenantId) throws SQLException {
-        final String errorCodes = getErrorCodes(result);
         final String dccAmountValue = getProperty(AdyenPaymentPluginApi.PROPERTY_DCC_AMOUNT_VALUE, result);
         final String additionalData = getAdditionalData(result);
 
@@ -234,7 +233,7 @@ public class AdyenDao extends PluginPaymentDao<AdyenResponsesRecord, AdyenRespon
                                    result.getResultCode(),
                                    result.getReason(),
                                    result.getReference(),
-                                   errorCodes,
+                                   null,
                                    result.getPaymentInternalRef(),
                                    result.getFormUrl(),
                                    dccAmountValue == null ? null : new BigDecimal(dccAmountValue),
@@ -450,10 +449,6 @@ public class AdyenDao extends PluginPaymentDao<AdyenResponsesRecord, AdyenRespon
                                          .fetchOne();
                            }
                        });
-    }
-
-    private String getErrorCodes(final PurchaseResult result) {
-        return getString(result.getErrorCodes());
     }
 
     private String getString(@Nullable final Iterable iterable) {
