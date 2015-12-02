@@ -86,8 +86,8 @@ public class RecurringConverter implements PaymentInfoConverter<Recurring> {
     }
 
     @Override
-    public PaymentType getPaymentType() {
-        return EMPTY;
+    public boolean supportsPaymentType(final PaymentType type) {
+        return EMPTY.equals(type);
     }
 
 }

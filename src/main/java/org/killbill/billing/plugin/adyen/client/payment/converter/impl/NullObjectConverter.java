@@ -25,7 +25,7 @@ import org.killbill.billing.plugin.adyen.client.payment.converter.PaymentInfoCon
 public class NullObjectConverter implements PaymentInfoConverter {
 
     @Override
-    public PaymentType getPaymentType() {
+    public boolean supportsPaymentType(PaymentType type) {
         throw new UnsupportedOperationException("method is not supported!");
     }
 

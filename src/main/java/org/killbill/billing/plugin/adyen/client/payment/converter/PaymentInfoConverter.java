@@ -23,9 +23,9 @@ import org.killbill.billing.plugin.adyen.client.model.paymentinfo.Card;
 public interface PaymentInfoConverter<T extends PaymentInfo> {
 
     /**
-     * @return the payment type this converter is handling
+     * @return {@code true} if this converter is handling the payment type
      */
-    PaymentType getPaymentType();
+    boolean supportsPaymentType(PaymentType type);
 
     /**
      * Convert a PaymentInfo Object into an object understandable by the payment service provider

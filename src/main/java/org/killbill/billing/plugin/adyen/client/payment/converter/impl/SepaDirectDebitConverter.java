@@ -57,8 +57,8 @@ public class SepaDirectDebitConverter implements PaymentInfoConverter<SepaDirect
     }
 
     @Override
-    public PaymentType getPaymentType() {
-        return SEPA_DIRECT_DEBIT;
+    public boolean supportsPaymentType(final PaymentType type) {
+        return SEPA_DIRECT_DEBIT.equals(type);
     }
 
     private String holderName(final SepaDirectDebit sepaDirectDebit, final String holderName) {
