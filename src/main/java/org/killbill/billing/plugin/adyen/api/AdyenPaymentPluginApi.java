@@ -858,10 +858,10 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
         if (recurringDetailId != null) {
             paymentProviderPaymentType = PaymentType.EMPTY;
         } else if (pluginPropertyPaymentProviderType != null) {
-            paymentProviderPaymentType = PaymentType.getByName(pluginPropertyPaymentProviderType);
+            paymentProviderPaymentType = MoreObjects.firstNonNull(PaymentType.getByName(pluginPropertyPaymentProviderType), PaymentType.CREDITCARD);
         } else {
             final String cardType = determineCardType(paymentMethodsRecord, properties);
-            paymentProviderPaymentType = cardType == null ? PaymentType.CREDITCARD : PaymentType.getByName(cardType);
+            paymentProviderPaymentType = MoreObjects.firstNonNull(PaymentType.getByName(cardType), PaymentType.CREDITCARD);
         }
 
         final RecurringType paymentProviderRecurringType;
