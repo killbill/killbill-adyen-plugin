@@ -34,13 +34,10 @@ public class PaymentInfoConverterService implements PaymentInfoConverterManageme
 
     public PaymentInfoConverterService() {
         this(ImmutableList.<PaymentInfoConverter<? extends PaymentInfo>>of(
-                new AmexConverter(),
-                new DinersConverter(),
                 new CreditCardConverter(),
                 new MaestroConverter(),
                 new MaestroUKConverter(),
-                new MasterCardConverter(),
-                new VisaConverter(),
+                new IsracardConverter(),
                 new SepaDirectDebitConverter(),
                 new RecurringConverter()));
     }
@@ -56,7 +53,7 @@ public class PaymentInfoConverterService implements PaymentInfoConverterManageme
         checkNotNull(card, "card is null");
 
         for (final PaymentInfoConverter pic : paymentInfoConverters) {
-            if (pic.getPaymentType().equals(card.getPaymentProvider().getPaymentType())) {
+            if (pic.supportsPaymentType(card.getPaymentProvider().getPaymentType())) {
                 return pic.convertPaymentInfoFor3DSecureAuth(billedAmount, card);
             }
         }
@@ -66,7 +63,7 @@ public class PaymentInfoConverterService implements PaymentInfoConverterManageme
     @Override
     public PaymentInfoConverter<PaymentInfo> getConverterForPaymentInfo(final PaymentInfo paymentInfo) {
         for (final PaymentInfoConverter pic : paymentInfoConverters) {
-            if (pic.getPaymentType().equals(paymentInfo.getPaymentProvider().getPaymentType())) {
+            if (pic.supportsPaymentType(paymentInfo.getPaymentProvider().getPaymentType())) {
                 return pic;
             }
         }

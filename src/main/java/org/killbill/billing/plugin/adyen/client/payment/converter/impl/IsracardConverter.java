@@ -16,15 +16,24 @@
 
 package org.killbill.billing.plugin.adyen.client.payment.converter.impl;
 
+import org.killbill.adyen.payment.PaymentRequest;
 import org.killbill.billing.plugin.adyen.client.model.PaymentType;
+import org.killbill.billing.plugin.adyen.client.model.paymentinfo.Card;
 
-import static org.killbill.billing.plugin.adyen.client.model.PaymentType.AMEX;
+import static org.killbill.billing.plugin.adyen.client.model.PaymentType.ISRACARD;
 
-public class AmexConverter extends CreditCardConverter {
+public class IsracardConverter extends CreditCardConverter {
 
     @Override
-    public PaymentType getPaymentType() {
-        return AMEX;
+    public Object convertPaymentInfoToPSPTransferObject(final String holderName, final Card paymentInfo) {
+        final PaymentRequest result = (PaymentRequest) super.convertPaymentInfoToPSPTransferObject(holderName, paymentInfo);
+        result.setSelectedBrand(ISRACARD.getName());
+        return result;
+    }
+
+    @Override
+    public boolean supportsPaymentType(final PaymentType type) {
+        return ISRACARD.equals(type);
     }
 
 }

@@ -23,6 +23,8 @@ import org.killbill.billing.plugin.adyen.client.model.paymentinfo.Card;
 import org.killbill.billing.plugin.adyen.client.model.paymentinfo.MaestroUK;
 import org.killbill.billing.plugin.adyen.client.payment.converter.PaymentInfoConverter;
 
+import static org.killbill.billing.plugin.adyen.client.model.PaymentType.MAESTROUK;
+
 public class MaestroUKConverter implements PaymentInfoConverter<MaestroUK> {
 
     @Override
@@ -59,7 +61,8 @@ public class MaestroUKConverter implements PaymentInfoConverter<MaestroUK> {
     }
 
     @Override
-    public PaymentType getPaymentType() {
-        return PaymentType.MAESTROUK;
+    public boolean supportsPaymentType(final PaymentType type) {
+        return MAESTROUK.equals(type);
     }
+
 }

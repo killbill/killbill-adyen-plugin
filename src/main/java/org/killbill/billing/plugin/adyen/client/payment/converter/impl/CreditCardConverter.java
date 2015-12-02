@@ -16,6 +16,7 @@
 
 package org.killbill.billing.plugin.adyen.client.payment.converter.impl;
 
+import com.google.common.collect.ImmutableSet;
 import org.killbill.adyen.common.BrowserInfo;
 import org.killbill.adyen.payment.AnyType2AnyTypeMap;
 import org.killbill.adyen.payment.PaymentRequest;
@@ -29,7 +30,23 @@ import org.killbill.billing.plugin.adyen.client.payment.converter.PaymentInfoCon
 
 import com.google.common.base.Strings;
 
+import java.util.Set;
+
+import static org.killbill.billing.plugin.adyen.client.model.PaymentType.*;
+
 public class CreditCardConverter implements PaymentInfoConverter<Card> {
+
+    private static final Set<PaymentType> SUPPORTED_PAYMENT_TYPES = ImmutableSet.<PaymentType>builder()
+                                                                                .add(CREDITCARD)
+                                                                                .add(MASTERCARD)
+                                                                                .add(VISA)
+                                                                                .add(AMEX)
+                                                                                .add(DINERSCLUB)
+                                                                                .add(ELO)
+                                                                                .add(DANKORT)
+                                                                                .add(SHOPPING)
+                                                                                .add(CABAL)
+                                                                                .build();
 
     @Override
     public Object convertPaymentInfoToPSPTransferObject(final String holderName, final Card paymentInfo) {
@@ -117,8 +134,8 @@ public class CreditCardConverter implements PaymentInfoConverter<Card> {
     }
 
     @Override
-    public PaymentType getPaymentType() {
-        return PaymentType.CREDITCARD;
+    public boolean supportsPaymentType(final PaymentType type) {
+        return type != null && SUPPORTED_PAYMENT_TYPES.contains(type);
     }
 
     public String getCcSecCode(final Card card) {

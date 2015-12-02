@@ -27,12 +27,13 @@ public class MaestroConverter extends CreditCardConverter {
     @Override
     public Object convertPaymentInfoToPSPTransferObject(final String holderName, final Card paymentInfo) {
         final PaymentRequest result = (PaymentRequest) super.convertPaymentInfoToPSPTransferObject(holderName, paymentInfo);
-        result.setSelectedBrand("maestro");
+        result.setSelectedBrand(MAESTRO.getName());
         return result;
     }
 
     @Override
-    public PaymentType getPaymentType() {
-        return MAESTRO;
+    public boolean supportsPaymentType(final PaymentType type) {
+        return MAESTRO.equals(type);
     }
+
 }
