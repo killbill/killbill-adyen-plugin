@@ -36,6 +36,7 @@ import org.killbill.billing.payment.api.PluginProperty;
 import org.killbill.billing.payment.api.TransactionType;
 import org.killbill.billing.payment.plugin.api.HostedPaymentPageFormDescriptor;
 import org.killbill.billing.payment.plugin.api.PaymentMethodInfoPlugin;
+import org.killbill.billing.payment.plugin.api.PaymentPluginApiException;
 import org.killbill.billing.payment.plugin.api.PaymentPluginStatus;
 import org.killbill.billing.payment.plugin.api.PaymentTransactionInfoPlugin;
 import org.killbill.billing.plugin.TestUtils;
@@ -56,10 +57,12 @@ import org.testng.annotations.Test;
 import com.ning.http.util.UTF8UrlEncoder;
 
 import com.google.common.base.Function;
+import com.google.common.base.Predicate;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 import com.jayway.restassured.http.ContentType;
 
 import static com.jayway.restassured.RestAssured.given;
@@ -636,8 +639,19 @@ public class TestAdyenPaymentPluginApi extends TestWithEmbeddedDBBase {
         }
     }
 
-    private void verifyPaymentTransactionInfoPlugin(final PaymentTransaction paymentTransaction, final PaymentTransactionInfoPlugin paymentTransactionInfoPlugin) {
+    private void verifyPaymentTransactionInfoPlugin(final PaymentTransaction paymentTransaction, final PaymentTransactionInfoPlugin paymentTransactionInfoPlugin) throws PaymentPluginApiException {
         verifyPaymentTransactionInfoPlugin(paymentTransaction, paymentTransactionInfoPlugin, true);
+
+        // Verify we can fetch the details
+        final List<PaymentTransactionInfoPlugin> paymentTransactionInfoPlugins = adyenPaymentPluginApi.getPaymentInfo(payment.getAccountId(), paymentTransactionInfoPlugin.getKbPaymentId(), ImmutableList.<PluginProperty>of(), context);
+        final PaymentTransactionInfoPlugin paymentTransactionInfoPluginFetched = Iterables.<PaymentTransactionInfoPlugin>find(Lists.<PaymentTransactionInfoPlugin>reverse(paymentTransactionInfoPlugins),
+                                                                                                                              new Predicate<PaymentTransactionInfoPlugin>() {
+                                                                                                                                  @Override
+                                                                                                                                  public boolean apply(final PaymentTransactionInfoPlugin input) {
+                                                                                                                                      return input.getKbTransactionPaymentId().equals(paymentTransaction.getId());
+                                                                                                                                  }
+                                                                                                                              });
+        verifyPaymentTransactionInfoPlugin(paymentTransaction, paymentTransactionInfoPluginFetched, true);
     }
 
     /**
@@ -659,7 +673,7 @@ public class TestAdyenPaymentPluginApi extends TestWithEmbeddedDBBase {
             assertNull(paymentTransactionInfoPlugin.getAmount());
             assertNull(paymentTransactionInfoPlugin.getAmount());
         } else {
-            assertEquals(paymentTransactionInfoPlugin.getAmount(), paymentTransaction.getAmount());
+            assertEquals(paymentTransactionInfoPlugin.getAmount().compareTo(paymentTransaction.getAmount()), 0);
             assertEquals(paymentTransactionInfoPlugin.getCurrency(), paymentTransaction.getCurrency());
         }
         assertNotNull(paymentTransactionInfoPlugin.getCreatedDate());
@@ -701,8 +715,6 @@ public class TestAdyenPaymentPluginApi extends TestWithEmbeddedDBBase {
         assertNotNull(paymentTransactionInfoPlugin.getFirstPaymentReferenceId());
         // NULL for subsequent transactions (modifications)
         //Assert.assertNotNull(paymentTransactionInfoPlugin.getSecondPaymentReferenceId());
-        // No additional data for our simple scenarii
-        assertTrue(paymentTransactionInfoPlugin.getProperties().isEmpty());
     }
 
     private Iterable<PluginProperty> toProperties(final Map<String, String> propertiesString) {

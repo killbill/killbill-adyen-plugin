@@ -134,7 +134,14 @@ public class AdyenPaymentTransactionInfoPlugin extends PluginPaymentTransactionI
     }
 
     private static String getGatewayErrorCode(final AdyenResponsesRecord record) {
-        return record.getResultCode() != null ? record.getResultCode() : toString(AdyenDao.fromAdditionalData(record.getAdditionalData()).get(PurchaseResult.EXCEPTION_CLASS));
+        if (record.getResultCode() != null) {
+            return record.getResultCode();
+        } else if (record.getPspResult() != null) {
+            // PaymentModificationResponse
+            return record.getPspResult();
+        } else {
+            return toString(AdyenDao.fromAdditionalData(record.getAdditionalData()).get(PurchaseResult.EXCEPTION_CLASS));
+        }
     }
 
     /**
@@ -161,7 +168,8 @@ public class AdyenPaymentTransactionInfoPlugin extends PluginPaymentTransactionI
             }
             return adyenCallErrorStatusToPaymentPluginStatus(adyenCallErrorStatus);
         } else {
-            final Optional<PaymentServiceProviderResult> pspResult = Optional.of(PaymentServiceProviderResult.getPaymentResultForId(record.getPspResult()));
+            final PaymentServiceProviderResult paymentResult = PaymentServiceProviderResult.getPaymentResultForId(record.getResultCode() != null ? record.getResultCode() : record.getPspResult());
+            final Optional<PaymentServiceProviderResult> pspResult = Optional.of(paymentResult);
             return getPaymentPluginStatus(pspResult);
         }
     }

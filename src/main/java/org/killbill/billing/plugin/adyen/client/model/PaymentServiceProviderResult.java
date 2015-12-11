@@ -16,51 +16,44 @@
 
 package org.killbill.billing.plugin.adyen.client.model;
 
+import java.util.Arrays;
+
+import javax.annotation.Nullable;
+
 public enum PaymentServiceProviderResult {
 
-    INITIALISED("Initialised"), // be careful with this state, it's only here to enable orders from OfflineFundsTransfer to be able to expire in every case after 7 days
-    AUTHORISED("Authorised"),
-    REDIRECT_SHOPPER("RedirectShopper"), // authorize return code when using 3D-Secure
-    RECEIVED("Received"), // direct debit, ideal payment response
-    REFUSED("Refused"),
-    PENDING("Pending"),
-    ERROR("Error"),
-    CANCELLED("Cancelled");
+    INITIALISED(new String[]{"Initialised"}), // be careful with this state, it's only here to enable orders from OfflineFundsTransfer to be able to expire in every case after 7 days
+    AUTHORISED(new String[]{"Authorised"}),
+    REDIRECT_SHOPPER(new String[]{"RedirectShopper"}), // authorize return code when using 3D-Secure
+    RECEIVED(new String[]{"Received", "Pending", "[capture-received]", "[cancel-received]", "[cancelOrRefund-received]", "[refund-received]", "[all-details-successfully-disabled]", "[detail-successfully-disabled]"}), // direct debit, ideal payment response
+    REFUSED(new String[]{"Refused"}),
+    PENDING(new String[]{"Pending"}),
+    ERROR(new String[]{"Error", "[error]"}),
+    CANCELLED(new String[]{"Cancelled"});
 
-    private final String id;
+    private final String[] responses;
 
-    private PaymentServiceProviderResult(final String id) {
-        this.id = id;
+    private PaymentServiceProviderResult(final String[] responses) {
+        this.responses = responses;
     }
 
-    public String getId() {
-        return id;
-    }
-
-    public static PaymentServiceProviderResult getPaymentResultForId(final String id) {
-        if (id.equalsIgnoreCase(AUTHORISED.getId())) {
-            return AUTHORISED;
-        } else if (id.equalsIgnoreCase(REFUSED.getId())) {
-            return REFUSED;
-        } else if (id.equalsIgnoreCase(RECEIVED.getId())) {
-            return RECEIVED;
-        } else if (id.equalsIgnoreCase(PENDING.getId())) {
-            return PENDING;
-        } else if (id.equalsIgnoreCase(ERROR.getId())) {
+    public static PaymentServiceProviderResult getPaymentResultForId(@Nullable final String id) {
+        if (id == null) {
             return ERROR;
-        } else if (id.equalsIgnoreCase(CANCELLED.getId())) {
-            return CANCELLED;
-        } else if (id.equalsIgnoreCase(REDIRECT_SHOPPER.getId())) {
-            return REDIRECT_SHOPPER;
-        } else if (id.equalsIgnoreCase(INITIALISED.getId())) {
-            return INITIALISED;
-        } else {
-            throw new IllegalArgumentException("Unknown PaymentResultType id: " + id);
         }
+
+        for (final PaymentServiceProviderResult result : values()) {
+            for (final String res : result.responses) {
+                if (res.equalsIgnoreCase(id)) {
+                    return result;
+                }
+            }
+        }
+        throw new IllegalArgumentException("Unknown PaymentResultType id: " + id);
     }
 
     @Override
     public String toString() {
-        return this.id;
+        return Arrays.toString(this.responses);
     }
 }
