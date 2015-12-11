@@ -18,6 +18,7 @@ package org.killbill.billing.plugin.adyen.client.payment.service;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -48,7 +49,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 
-public class AdyenPaymentServiceProviderPort implements Closeable {
+public class AdyenPaymentServiceProviderPort extends BaseAdyenPaymentServiceProviderPort implements Closeable {
 
     private static final Logger logger = LoggerFactory.getLogger("adyen.port");
 
@@ -69,7 +70,7 @@ public class AdyenPaymentServiceProviderPort implements Closeable {
         adyenPaymentRequestSender.close();
     }
 
-    public PurchaseResult authorise(final Long amount,
+    public PurchaseResult authorise(final BigDecimal amountBD,
                                     final PaymentData paymentData,
                                     final OrderData orderData,
                                     final UserData userData,
@@ -84,6 +85,8 @@ public class AdyenPaymentServiceProviderPort implements Closeable {
         Preconditions.checkNotNull(paymentInfo.getPaymentProvider(), "paymentProvider");
         Preconditions.checkNotNull(paymentInfo.getPaymentProvider().getCurrency(), "currency");
         Preconditions.checkNotNull(paymentInfo.getPaymentProvider().getCountryIsoCode(), "countryIsoCode");
+
+        final Long amount = toMinorUnits(paymentInfo, amountBD);
 
         final PaymentRequest request = adyenRequestFactory.createPaymentRequest(amount, orderData, paymentData, userData, termUrl, splitSettlementData);
         return authorise(request, paymentInfo.getPaymentProvider().getCountryIsoCode(), paymentData, !paymentInfo.getPaymentProvider().send3DSTermUrl() ? termUrl : null);
@@ -143,15 +146,17 @@ public class AdyenPaymentServiceProviderPort implements Closeable {
         return new PurchaseResult(paymentData.getPaymentInternalRef(), adyenCallResult);
     }
 
-    public PurchaseResult authorize3DSecure(final Long billedAmount,
+    public PurchaseResult authorize3DSecure(final BigDecimal amountBD,
                                             final PaymentData<Card> paymentData,
                                             final UserData userData,
                                             final Map<String, String> requestParameterMap,
                                             final SplitSettlementData splitSettlementData) {
-        logger.info("authorize3DSecure Start {} {}", billedAmount, userData);
+        logger.info("authorize3DSecure Start {} {}", amountBD, userData);
+
+        final Long amount = toMinorUnits(paymentData, amountBD);
 
         final Card paymentInfo = paymentData.getPaymentInfo();
-        final BrowserInfo info = (BrowserInfo) paymentInfoConverterManagement.getBrowserInfoFor3DSecureAuth(billedAmount, paymentData.getPaymentInfo());
+        final BrowserInfo info = (BrowserInfo) paymentInfoConverterManagement.getBrowserInfoFor3DSecureAuth(amount, paymentData.getPaymentInfo());
         final PaymentRequest3D request = adyenRequestFactory.paymentRequest3d(paymentData.getPaymentInternalRef(),
                                                                               paymentInfo,
                                                                               info,
@@ -198,13 +203,15 @@ public class AdyenPaymentServiceProviderPort implements Closeable {
         return purchaseResult;
     }
 
-    public PaymentModificationResponse refund(final Long externalAmount,
+    public PaymentModificationResponse refund(final BigDecimal amountBD,
                                               final PaymentProvider paymentProvider,
                                               final String pspReference,
                                               final SplitSettlementData splitSettlementData) {
         logger.info("refund Start for pspReference {}", pspReference);
 
-        final ModificationRequest modificationRequest = adyenRequestFactory.paymentExecutionToAdyenModificationRequest(paymentProvider, externalAmount, pspReference, splitSettlementData);
+        final Long amount = toMinorUnits(paymentProvider, amountBD);
+
+        final ModificationRequest modificationRequest = adyenRequestFactory.paymentExecutionToAdyenModificationRequest(paymentProvider, amount, pspReference, splitSettlementData);
         final AdyenCallResult<ModificationResult> adyenCallResult = adyenPaymentRequestSender.refund(paymentProvider.getCountryIsoCode(), modificationRequest);
 
         if (!adyenCallResult.receivedWellFormedResponse()) {
@@ -248,11 +255,13 @@ public class AdyenPaymentServiceProviderPort implements Closeable {
         return response;
     }
 
-    public PaymentModificationResponse capture(final Long amount,
+    public PaymentModificationResponse capture(final BigDecimal amountBD,
                                                final PaymentProvider paymentProvider,
                                                final String pspReference,
                                                final SplitSettlementData splitSettlementData) {
         logger.info("capture Start for pspReference {}", pspReference);
+
+        final Long amount = toMinorUnits(paymentProvider, amountBD);
 
         final ModificationRequest modificationRequest = adyenRequestFactory.paymentExecutionToAdyenModificationRequest(paymentProvider, amount, pspReference, splitSettlementData);
         final AdyenCallResult<ModificationResult> adyenCallResult = adyenPaymentRequestSender.capture(paymentProvider.getCountryIsoCode(), modificationRequest);

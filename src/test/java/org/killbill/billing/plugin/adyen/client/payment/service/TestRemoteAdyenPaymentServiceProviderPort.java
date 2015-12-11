@@ -16,6 +16,7 @@
 
 package org.killbill.billing.plugin.adyen.client.payment.service;
 
+import java.math.BigDecimal;
 import java.util.Currency;
 import java.util.UUID;
 
@@ -38,7 +39,7 @@ public class TestRemoteAdyenPaymentServiceProviderPort extends TestRemoteBase {
 
     @Test(groups = "slow")
     public void testAuthorizeAndMultiplePartialCaptures() throws Exception {
-        final long authAmount = 10L;
+        final BigDecimal authAmount = BigDecimal.TEN;
         final PaymentData<CreditCard> paymentData = new PaymentData<CreditCard>();
         paymentData.setPaymentTxnInternalRef(UUID.randomUUID().toString());
         paymentData.setPaymentInfo(getCreditCard());
@@ -57,7 +58,7 @@ public class TestRemoteAdyenPaymentServiceProviderPort extends TestRemoteBase {
         // Adyen's mapped refusal reason, populated if the payment was refused
         Assert.assertNull(authorizeResult.getReason());
 
-        final long captureAmount = 5L;
+        final BigDecimal captureAmount = new BigDecimal("5");
         final PaymentProvider paymentProvider = paymentData.getPaymentInfo().getPaymentProvider();
         final String pspReference = authorizeResult.getPspReference();
 
@@ -74,7 +75,7 @@ public class TestRemoteAdyenPaymentServiceProviderPort extends TestRemoteBase {
 
     @Test(groups = "slow")
     public void testAuthorizeAndVoid() throws Exception {
-        final long authAmount = 10L;
+        final BigDecimal authAmount = BigDecimal.TEN;
         final PaymentData<CreditCard> paymentData = new PaymentData<CreditCard>();
         paymentData.setPaymentTxnInternalRef(UUID.randomUUID().toString());
         paymentData.setPaymentInfo(getCreditCard());
@@ -99,7 +100,7 @@ public class TestRemoteAdyenPaymentServiceProviderPort extends TestRemoteBase {
 
     @Test(groups = "slow")
     public void testAuthorizeCaptureAndRefund() throws Exception {
-        final long authAmount = 10L;
+        final BigDecimal authAmount = BigDecimal.TEN;
         final PaymentData<CreditCard> paymentData = new PaymentData<CreditCard>();
         paymentData.setPaymentTxnInternalRef(UUID.randomUUID().toString());
         paymentData.setPaymentInfo(getCreditCard());
@@ -115,7 +116,7 @@ public class TestRemoteAdyenPaymentServiceProviderPort extends TestRemoteBase {
         Assert.assertNull(authorizeResult.getReason());
 
         //noinspection UnnecessaryLocalVariable
-        final long captureAmount = authAmount;
+        final BigDecimal captureAmount = authAmount;
         final PaymentProvider paymentProvider = paymentData.getPaymentInfo().getPaymentProvider();
         final String capturePspReference = authorizeResult.getPspReference();
 
@@ -124,7 +125,7 @@ public class TestRemoteAdyenPaymentServiceProviderPort extends TestRemoteBase {
         Assert.assertEquals(captureResult.getResponse(), "[capture-received]");
 
         //noinspection UnnecessaryLocalVariable
-        final long refundAmount = captureAmount;
+        final BigDecimal refundAmount = captureAmount;
         final String refundPspReference = captureResult.getPspReference();
 
         final PaymentModificationResponse refundResult = adyenPaymentServiceProviderPort.refund(refundAmount, paymentProvider, refundPspReference, splitSettlementData);
@@ -134,7 +135,7 @@ public class TestRemoteAdyenPaymentServiceProviderPort extends TestRemoteBase {
 
     @Test(groups = "slow")
     public void testAuthorizeAndBadVoid() throws Exception {
-        final long authAmount = 10L;
+        final BigDecimal authAmount = BigDecimal.TEN;
         final PaymentData<CreditCard> paymentData = new PaymentData<CreditCard>();
         paymentData.setPaymentTxnInternalRef(UUID.randomUUID().toString());
         paymentData.setPaymentInfo(getCreditCard());

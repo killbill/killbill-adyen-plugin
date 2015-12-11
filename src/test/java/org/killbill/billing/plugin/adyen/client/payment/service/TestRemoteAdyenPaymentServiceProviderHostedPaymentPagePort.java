@@ -16,6 +16,7 @@
 
 package org.killbill.billing.plugin.adyen.client.payment.service;
 
+import java.math.BigDecimal;
 import java.util.Currency;
 import java.util.Locale;
 import java.util.Map;
@@ -38,7 +39,7 @@ public class TestRemoteAdyenPaymentServiceProviderHostedPaymentPagePort extends 
 
     @Test(groups = "slow")
     public void testRedirectHPP() throws Exception {
-        final long authAmount = 10L;
+        final BigDecimal authAmount = BigDecimal.TEN;
 
         final PaymentProvider paymentProvider = new PaymentProvider(adyenConfigProperties);
         paymentProvider.setCurrency(Currency.getInstance(DEFAULT_CURRENCY.name()));

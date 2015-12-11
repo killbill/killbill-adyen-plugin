@@ -18,6 +18,7 @@ package org.killbill.billing.plugin.adyen.client.payment.service;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.util.Map;
 
 import org.killbill.billing.plugin.adyen.client.AdyenConfigProperties;
@@ -36,7 +37,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 
-public class AdyenPaymentServiceProviderHostedPaymentPagePort implements Closeable {
+public class AdyenPaymentServiceProviderHostedPaymentPagePort extends BaseAdyenPaymentServiceProviderPort implements Closeable {
 
     private static final Logger logger = LoggerFactory.getLogger("adyen");
 
@@ -54,14 +55,16 @@ public class AdyenPaymentServiceProviderHostedPaymentPagePort implements Closeab
         // No-op for now
     }
 
-    public Map<String, String> getFormParameter(final Long amount, final PaymentData paymentData, final OrderData orderData, final UserData userData, final String serverUrl, final String resultUrl) throws SignatureGenerationException {
-        Preconditions.checkNotNull(amount, "amount");
+    public Map<String, String> getFormParameter(final BigDecimal amountBD, final PaymentData paymentData, final OrderData orderData, final UserData userData, final String serverUrl, final String resultUrl) throws SignatureGenerationException {
+        Preconditions.checkNotNull(amountBD, "amount");
         Preconditions.checkNotNull(paymentData.getPaymentInternalRef(), "paymentData#paymentInternalRef");
         Preconditions.checkNotNull(paymentData.getPaymentInfo(), "paymentData#paymentInfo");
         Preconditions.checkNotNull(paymentData.getPaymentInfo().getPaymentProvider(), "paymentInfo#paymentProvider");
         Preconditions.checkNotNull(paymentData.getPaymentInfo().getPaymentProvider().getCurrency(), "paymentProvider#currency");
         Preconditions.checkNotNull(orderData.getShipBeforeDate(), "orderData#shipBeforeDate");
         Preconditions.checkNotNull(userData.getCustomerLocale(), "userData#customerLocale");
+
+        final Long amount = toMinorUnits(paymentData, amountBD);
 
         return adyenRequestFactory.createHppRequest(amount, paymentData, orderData, userData, serverUrl, resultUrl, null);
     }

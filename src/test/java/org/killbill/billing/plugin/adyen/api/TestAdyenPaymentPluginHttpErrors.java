@@ -17,6 +17,7 @@
 package org.killbill.billing.plugin.adyen.api;
 
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.net.ServerSocket;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -41,6 +42,7 @@ import org.killbill.billing.plugin.adyen.AdyenPluginMockBuilder;
 import org.killbill.billing.plugin.adyen.EmbeddedDbHelper;
 import org.killbill.billing.plugin.adyen.dao.AdyenDao;
 import org.killbill.billing.util.callcontext.CallContext;
+import org.mockito.Mockito;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
@@ -572,6 +574,7 @@ public class TestAdyenPaymentPluginHttpErrors {
 
     private PaymentTransactionInfoPlugin authorizeCall(final Account account, final Payment payment, final CallContext callContext, final PaymentPluginApi pluginApi, final Iterable<PluginProperty> pluginProperties) throws PaymentPluginApiException {
         final PaymentTransaction authorizationTransaction = TestUtils.buildPaymentTransaction(payment, TransactionType.AUTHORIZE, Currency.EUR);
+        Mockito.when(authorizationTransaction.getAmount()).thenReturn(BigDecimal.TEN);
 
         return pluginApi.authorizePayment(account.getId(),
                                           payment.getId(),
