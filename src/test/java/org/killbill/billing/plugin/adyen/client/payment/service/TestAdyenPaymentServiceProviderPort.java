@@ -64,7 +64,7 @@ public class TestAdyenPaymentServiceProviderPort {
                                                                                                mock(AdyenRequestFactory.class),
                                                                                                adyenPaymentRequestSender));
         final PaymentResult paymentResult = new PaymentResult();
-        paymentResult.setResultCode("RedirectShopper");
+        paymentResult.setResultCode(PaymentServiceProviderResult.REDIRECT_SHOPPER.getResponses()[0]);
         final AdyenCallResult adyenCallResult = mock(AdyenCallResult.class);
         when(adyenCallResult.receivedWellFormedResponse()).thenReturn(true);
         when(adyenCallResult.getResult()).thenReturn(Optional.of(paymentResult));
