@@ -17,6 +17,8 @@
 package org.killbill.billing.plugin.adyen.client.model;
 
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 
 import javax.annotation.Nullable;
 
@@ -30,6 +32,16 @@ public enum PaymentServiceProviderResult {
     PENDING("Pending"),
     ERROR(new String[]{"Error", "[error]"}),
     CANCELLED("Cancelled");
+
+    private static final Map<String, PaymentServiceProviderResult> REVERSE_LOOKUP = new HashMap<String, PaymentServiceProviderResult>();
+
+    static {
+        for (final PaymentServiceProviderResult providerResult : PaymentServiceProviderResult.values()) {
+            for (final String response : providerResult.getResponses()) {
+                REVERSE_LOOKUP.put(response, providerResult);
+            }
+        }
+    }
 
     private final String[] responses;
 
@@ -46,14 +58,16 @@ public enum PaymentServiceProviderResult {
             return ERROR;
         }
 
-        for (final PaymentServiceProviderResult result : values()) {
-            for (final String res : result.responses) {
-                if (res.equalsIgnoreCase(id)) {
-                    return result;
-                }
-            }
+        final PaymentServiceProviderResult result = REVERSE_LOOKUP.get(id);
+        if (result != null) {
+            return result;
+        } else {
+            throw new IllegalArgumentException("Unknown PaymentResultType id: " + id);
         }
-        throw new IllegalArgumentException("Unknown PaymentResultType id: " + id);
+    }
+
+    public String[] getResponses() {
+        return responses;
     }
 
     @Override

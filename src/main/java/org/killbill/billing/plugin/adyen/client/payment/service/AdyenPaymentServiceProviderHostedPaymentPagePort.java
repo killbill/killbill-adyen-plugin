@@ -119,7 +119,12 @@ public class AdyenPaymentServiceProviderHostedPaymentPagePort extends BaseAdyenP
 
     public HppCompletedResult parsePSPResponse(final long billingId, final Map<String, String[]> requestParameterMap) {
         final String pspReference = getPspReference(requestParameterMap);
-        final PaymentServiceProviderResult pspResult = PaymentServiceProviderResult.getPaymentResultForId(requestParameterMap.get("authResult") != null && requestParameterMap.get("authResult")[0] != null ? requestParameterMap.get("authResult")[0] : "ERROR");
+        final PaymentServiceProviderResult pspResult;
+        if (requestParameterMap.get("authResult") != null && requestParameterMap.get("authResult")[0] != null) {
+            pspResult = PaymentServiceProviderResult.getPaymentResultForId(requestParameterMap.get("authResult")[0]);
+        } else {
+            pspResult = PaymentServiceProviderResult.ERROR;
+        }
         return new HppCompletedResult(billingId, pspReference, pspResult, null);
     }
 
