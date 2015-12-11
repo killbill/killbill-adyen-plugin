@@ -22,16 +22,20 @@ import javax.annotation.Nullable;
 
 public enum PaymentServiceProviderResult {
 
-    INITIALISED(new String[]{"Initialised"}), // be careful with this state, it's only here to enable orders from OfflineFundsTransfer to be able to expire in every case after 7 days
-    AUTHORISED(new String[]{"Authorised"}),
-    REDIRECT_SHOPPER(new String[]{"RedirectShopper"}), // authorize return code when using 3D-Secure
+    INITIALISED("Initialised"), // be careful with this state, it's only here to enable orders from OfflineFundsTransfer to be able to expire in every case after 7 days
+    AUTHORISED("Authorised"),
+    REDIRECT_SHOPPER("RedirectShopper"), // authorize return code when using 3D-Secure
     RECEIVED(new String[]{"Received", "Pending", "[capture-received]", "[cancel-received]", "[cancelOrRefund-received]", "[refund-received]", "[all-details-successfully-disabled]", "[detail-successfully-disabled]"}), // direct debit, ideal payment response
-    REFUSED(new String[]{"Refused"}),
-    PENDING(new String[]{"Pending"}),
+    REFUSED("Refused"),
+    PENDING("Pending"),
     ERROR(new String[]{"Error", "[error]"}),
-    CANCELLED(new String[]{"Cancelled"});
+    CANCELLED("Cancelled");
 
     private final String[] responses;
+
+    private PaymentServiceProviderResult(final String response) {
+        this(new String[]{response});
+    }
 
     private PaymentServiceProviderResult(final String[] responses) {
         this.responses = responses;
