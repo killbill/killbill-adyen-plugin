@@ -200,9 +200,8 @@ public class TestAdyenPaymentPluginApi extends TestWithEmbeddedDBBase {
 
         adyenPaymentPluginApi.deletePaymentMethod(payment.getAccountId(), payment.getPaymentMethodId(), ImmutableList.<PluginProperty>of(), context);
 
-        // TODO until plugin-framework-java bug is fixed
-        //assertEquals(adyenPaymentPluginApi.getPaymentMethods(payment.getAccountId(), false, ImmutableList.<PluginProperty>of(), context).size(), 0);
-        //assertEquals(adyenPaymentPluginApi.getPaymentMethods(payment.getAccountId(), true, ImmutableList.<PluginProperty>of(), context).size(), 0);
+        assertEquals(adyenPaymentPluginApi.getPaymentMethods(payment.getAccountId(), false, ImmutableList.<PluginProperty>of(), context).size(), 0);
+        assertEquals(adyenPaymentPluginApi.getPaymentMethods(payment.getAccountId(), true, ImmutableList.<PluginProperty>of(), context).size(), 0);
     }
 
     @Test(groups = "slow")
