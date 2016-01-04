@@ -17,6 +17,7 @@
 package org.killbill.billing.plugin.adyen.client.payment.service;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 
 import org.joda.money.CurrencyUnit;
 import org.joda.money.Money;
@@ -50,6 +51,6 @@ public abstract class BaseAdyenPaymentServiceProviderPort {
     protected Long toMinorUnits(final String currencyIsoCode, final BigDecimal amountBD) {
         // The payment amount specified in minor units, without the decimal separator
         final CurrencyUnit currencyUnit = CurrencyUnit.of(currencyIsoCode);
-        return Money.of(currencyUnit, amountBD).getAmountMinorLong();
+        return Money.of(currencyUnit, amountBD, RoundingMode.UNNECESSARY).getAmountMinorLong();
     }
 }
