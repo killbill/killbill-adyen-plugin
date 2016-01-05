@@ -299,7 +299,7 @@ There are 3 different use cases:
 
 1. Use Adyen's recurring payments feature with contract `RECURRING`: CVV is not required (it's an implicit `contAuth`)
 2. Use Adyen's recurring payment feature with contract `ONECLICK`: CVV is always required
-3. Use you own card-on-file system + `contAuth` to simulate option 1. Instead of providing Adyen's `recurringDetailId` the merchant retrieves stored payment data from it's store and populates the fields like a normal payment request. `contAuth` is needed to turn Adyen's (not needed) validations off.
+3. Use you own card-on-file system + `contAuth` to simulate option 1. Instead of providing Adyen's `recurringDetailId`, the merchant retrieves stored payment data from its store and populates the fields like a normal payment request. `contAuth` is needed to turn Adyen's (not needed) validations off.
 
 Plugin properties
 -----------------
