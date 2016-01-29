@@ -30,6 +30,7 @@ import org.killbill.billing.catalog.api.Currency;
 import org.killbill.billing.payment.api.Payment;
 import org.killbill.billing.payment.api.PaymentApiException;
 import org.killbill.billing.payment.api.PaymentMethod;
+import org.killbill.billing.payment.api.PaymentTransaction;
 import org.killbill.billing.payment.api.PluginProperty;
 import org.killbill.billing.payment.api.TransactionType;
 import org.killbill.billing.plugin.adyen.api.AdyenCallContext;
@@ -106,8 +107,7 @@ public class KillbillAdyenNotificationHandler implements AdyenNotificationHandle
 
     @Override
     public void chargeback(final NotificationRequestItem item) {
-        // TODO
-        handleNotification(TransactionType.CHARGEBACK, item);
+        handleChargebackNotification(item, true);
     }
 
     @Override
@@ -138,8 +138,7 @@ public class KillbillAdyenNotificationHandler implements AdyenNotificationHandle
 
     @Override
     public void notificationOfChargeback(final NotificationRequestItem item) {
-        // TODO
-        handleNotification(TransactionType.CHARGEBACK, item);
+        handleChargebackNotification(item, true);
     }
 
     @Override
@@ -204,6 +203,32 @@ public class KillbillAdyenNotificationHandler implements AdyenNotificationHandle
         handleNotification(null, item);
     }
 
+    private void handleChargebackNotification(final NotificationRequestItem item, boolean success) {
+        final NotificationItem notification = new NotificationItem(item);
+        final DateTime utcNow = clock.getUTCNow();
+
+        final AdyenResponsesRecord originalRecord = getResponseRecord(item.getOriginalReference());
+        final UUID kbAccountId = UUID.fromString(originalRecord.getKbAccountId());
+        final UUID kbTenantId = UUID.fromString(originalRecord.getKbTenantId());
+        final UUID kbPaymentId = UUID.fromString(originalRecord.getKbPaymentId());
+
+        final CallContext context = new AdyenCallContext(utcNow, kbTenantId);
+        final Account account = getAccount(kbAccountId, context);
+
+        UUID kbPaymentTransactionId = null;
+        try {
+            final Payment payment = osgiKillbillAPI.getPaymentApi().createChargeback(account, kbPaymentId, notification.getAmount(), Currency.valueOf(notification.getCurrency()), null, context);
+            final PaymentTransaction lastTransaction = filterForLastTransaction(payment);
+            if (TransactionType.CHARGEBACK.equals(lastTransaction.getTransactionType())) {
+                kbPaymentTransactionId = lastTransaction.getId();
+            }
+        } catch (PaymentApiException e) {
+            throw new RuntimeException("It was not possible to create chargeback!", e);
+        } finally {
+            recordNotification(kbAccountId, kbPaymentId, kbPaymentTransactionId, TransactionType.CHARGEBACK, notification, utcNow, kbTenantId);
+        }
+    }
+
     private void handleNotification(@Nullable final TransactionType transactionType, final NotificationRequestItem item) {
         final NotificationItem notification = new NotificationItem(item);
         final DateTime utcNow = clock.getUTCNow();
@@ -214,7 +239,7 @@ public class KillbillAdyenNotificationHandler implements AdyenNotificationHandle
         UUID kbTenantId = null;
         try {
             // First, determine if we already have a payment for that notification
-            final AdyenResponsesRecord record = getResponseRecord(item);
+            final AdyenResponsesRecord record = getResponseRecord(item.getPspReference());
             if (record != null) {
                 kbAccountId = UUID.fromString(record.getKbAccountId());
                 kbTenantId = UUID.fromString(record.getKbTenantId());
@@ -249,12 +274,12 @@ public class KillbillAdyenNotificationHandler implements AdyenNotificationHandle
         }
     }
 
-    private AdyenResponsesRecord getResponseRecord(final NotificationRequestItem item) {
+    private AdyenResponsesRecord getResponseRecord(final String pspReference) {
         try {
-            return dao.getResponse(item.getPspReference());
+            return dao.getResponse(pspReference);
         } catch (final SQLException e) {
             // Have Adyen retry
-            throw new RuntimeException("Unable to retrieve response for pspReference " + item.getPspReference(), e);
+            throw new RuntimeException("Unable to retrieve response for pspReference " + pspReference, e);
         }
     }
 
@@ -385,5 +410,10 @@ public class KillbillAdyenNotificationHandler implements AdyenNotificationHandle
             // Have Adyen retry
             throw new RuntimeException("Unable to update response " + notification, e);
         }
+    }
+
+    private PaymentTransaction filterForLastTransaction(Payment payment) {
+        int numberOfTransaction = payment.getTransactions().size();
+        return payment.getTransactions().get(numberOfTransaction - 1);
     }
 }
