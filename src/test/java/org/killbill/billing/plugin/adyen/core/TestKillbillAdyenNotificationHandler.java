@@ -46,6 +46,9 @@ import org.mockito.stubbing.Answer;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
 public class TestKillbillAdyenNotificationHandler {
 
     @Test(groups = "fast")
@@ -121,19 +124,24 @@ public class TestKillbillAdyenNotificationHandler {
         final AdyenDao adyenDao = getAdyenDao(payment, paymentTransaction, transactionType, item, isNotificationRecorded);
         final DefaultClock clock = new DefaultClock();
 
-        return new KillbillAdyenNotificationHandler(killbillApi, adyenDao, clock);
+        return new KillbillAdyenNotificationHandler(killbillApi, adyenDao, clock, new IdentifierGenerator());
     }
 
     private KillbillAdyenNotificationHandler getKillbillAdyenNotificationHandlerForChargeback(@Nullable final TransactionType transactionType, final NotificationRequestItem item, final AtomicBoolean isNotificationRecorded, final AtomicBoolean isKillBillNotified) throws AccountApiException, PaymentApiException, SQLException {
         final Account account = TestUtils.buildAccount(Currency.EUR, "DE");
         final Payment payment = TestUtils.buildPayment(account.getId(), account.getPaymentMethodId(), account.getCurrency());
         final PaymentTransaction paymentTransaction = TestUtils.buildPaymentTransaction(payment, transactionType, account.getCurrency());
+        String paymentTransactionExternalKey = UUID.randomUUID().toString();
+        when(paymentTransaction.getExternalKey()).thenReturn(paymentTransactionExternalKey);
 
         final OSGIKillbillAPI killbillApi = getOSGIKillbillAPIForChargeback(account, payment, item, isKillBillNotified);
         final AdyenDao adyenDao = getAdyenDaoForChargeback(payment, paymentTransaction, transactionType, item, isNotificationRecorded);
         final DefaultClock clock = new DefaultClock();
 
-        return new KillbillAdyenNotificationHandler(killbillApi, adyenDao, clock);
+        IdentifierGenerator identifierGenerator = mock(IdentifierGenerator.class);
+        when(identifierGenerator.getRandomPaymentTransactionExternalKey()).thenReturn(paymentTransactionExternalKey);
+
+        return new KillbillAdyenNotificationHandler(killbillApi, adyenDao, clock, identifierGenerator);
     }
 
     private NotificationRequestItem getNotificationRequestItem(final boolean success) {
@@ -164,7 +172,7 @@ public class TestKillbillAdyenNotificationHandler {
 
     private OSGIKillbillAPI getOSGIKillbillAPI(final Account account, final Payment payment, final NotificationRequestItem item, final AtomicBoolean isKillBillNotified) throws AccountApiException, PaymentApiException {
         final OSGIKillbillAPI killbillApi = TestUtils.buildOSGIKillbillAPI(account, payment, null);
-        Mockito.when(killbillApi.getPaymentApi().notifyPendingTransactionOfStateChanged(Mockito.eq(account),
+        when(killbillApi.getPaymentApi().notifyPendingTransactionOfStateChanged(Mockito.eq(account),
                                                                                         Mockito.<UUID>any(),
                                                                                         Mockito.eq(item.isSuccess()),
                                                                                         Mockito.<CallContext>any()))
@@ -182,7 +190,7 @@ public class TestKillbillAdyenNotificationHandler {
 
     private OSGIKillbillAPI getOSGIKillbillAPIForChargeback(final Account account, final Payment payment, final NotificationRequestItem item, final AtomicBoolean isKillBillNotified) throws AccountApiException, PaymentApiException {
         final OSGIKillbillAPI killbillApi = TestUtils.buildOSGIKillbillAPI(account, payment, null);
-        Mockito.when(killbillApi.getPaymentApi().createChargeback(Mockito.eq(account),
+        when(killbillApi.getPaymentApi().createChargeback(Mockito.eq(account),
                                                                   Mockito.<UUID>any(),
                                                                   Mockito.<BigDecimal>any(),
                                                                   Mockito.<Currency>any(),
@@ -202,7 +210,7 @@ public class TestKillbillAdyenNotificationHandler {
     }
 
     private AdyenDao getAdyenDao(final Payment payment, final PaymentTransaction paymentTransaction, final TransactionType transactionType, final NotificationRequestItem item, final AtomicBoolean isNotificationRecorded) throws SQLException {
-        final AdyenDao adyenDao = Mockito.mock(AdyenDao.class);
+        final AdyenDao adyenDao = mock(AdyenDao.class);
 
         if (transactionType != null) {
             final AdyenResponsesRecord record = new AdyenResponsesRecord();
@@ -211,7 +219,7 @@ public class TestKillbillAdyenNotificationHandler {
             record.setKbPaymentTransactionId(paymentTransaction.getId().toString());
             record.setKbTenantId(UUID.randomUUID().toString());
 
-            Mockito.when(adyenDao.getResponse(item.getPspReference())).thenReturn(record);
+            when(adyenDao.getResponse(item.getPspReference())).thenReturn(record);
             Mockito.doAnswer(new Answer<Void>() {
                 @Override
                 public Void answer(final InvocationOnMock invocation) throws Throwable {
@@ -250,7 +258,7 @@ public class TestKillbillAdyenNotificationHandler {
     }
 
     private AdyenDao getAdyenDaoForChargeback(final Payment payment, final PaymentTransaction paymentTransaction, final TransactionType transactionType, final NotificationRequestItem item, final AtomicBoolean isNotificationRecorded) throws SQLException {
-        final AdyenDao adyenDao = Mockito.mock(AdyenDao.class);
+        final AdyenDao adyenDao = mock(AdyenDao.class);
 
         if (transactionType.equals(TransactionType.CHARGEBACK)) {
             final AdyenResponsesRecord record = new AdyenResponsesRecord();
@@ -259,7 +267,7 @@ public class TestKillbillAdyenNotificationHandler {
             record.setKbPaymentTransactionId(paymentTransaction.getId().toString());
             record.setKbTenantId(UUID.randomUUID().toString());
 
-            Mockito.when(adyenDao.getResponse(item.getOriginalReference())).thenReturn(record);
+            when(adyenDao.getResponse(item.getOriginalReference())).thenReturn(record);
             Mockito.doAnswer(new Answer<Void>() {
                 @Override
                 public Void answer(final InvocationOnMock invocation) throws Throwable {
