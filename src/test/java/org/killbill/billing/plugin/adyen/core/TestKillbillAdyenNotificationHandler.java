@@ -16,6 +16,7 @@
 
 package org.killbill.billing.plugin.adyen.core;
 
+import java.math.BigDecimal;
 import java.sql.SQLException;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -23,6 +24,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import javax.annotation.Nullable;
 
 import org.joda.time.DateTime;
+import org.killbill.adyen.common.Amount;
 import org.killbill.adyen.notification.NotificationRequestItem;
 import org.killbill.billing.account.api.Account;
 import org.killbill.billing.account.api.AccountApiException;
@@ -44,7 +46,12 @@ import org.mockito.stubbing.Answer;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
 public class TestKillbillAdyenNotificationHandler {
+
+    private final static String NO_PAYMENT = "NoPayment";
 
     @Test(groups = "fast")
     public void testHandleAuthorizationSuccess() throws Exception {
@@ -79,6 +86,39 @@ public class TestKillbillAdyenNotificationHandler {
     }
 
     @Test(groups = "fast")
+    public void testHandleChargeback() throws Exception {
+        final boolean success = true;
+
+        final AtomicBoolean isNotificationRecorded = new AtomicBoolean(false);
+        final AtomicBoolean isKillbillNotified = new AtomicBoolean(false);
+
+        final NotificationRequestItem item = getNotificationRequestItemForChargeback(success);
+        final KillbillAdyenNotificationHandler killbillAdyenNotificationHandler = getKillbillAdyenNotificationHandlerForChargeback(TransactionType.CHARGEBACK, item, isNotificationRecorded, isKillbillNotified);
+
+        killbillAdyenNotificationHandler.chargeback(item);
+
+        Assert.assertTrue(isNotificationRecorded.get());
+        Assert.assertTrue(isKillbillNotified.get());
+    }
+
+    @Test(groups = "fast")
+    public void testHandleChargebackForNotificationWithoutChargeback() throws Exception {
+        final boolean success = true;
+
+        final AtomicBoolean isNotificationRecorded = new AtomicBoolean(false);
+        final AtomicBoolean isKillbillNotified = new AtomicBoolean(false);
+
+        final NotificationRequestItem item = getNotificationRequestItemForChargeback(success);
+        item.setOriginalReference(NO_PAYMENT);
+        final KillbillAdyenNotificationHandler killbillAdyenNotificationHandler = getKillbillAdyenNotificationHandlerForChargeback(TransactionType.CHARGEBACK, item, isNotificationRecorded, isKillbillNotified);
+
+        killbillAdyenNotificationHandler.chargeback(item);
+
+        Assert.assertTrue(isNotificationRecorded.get());
+        Assert.assertFalse(isKillbillNotified.get());
+    }
+
+    @Test(groups = "fast")
     public void testReportAvailable() throws Exception {
         final boolean success = true;
 
@@ -106,6 +146,20 @@ public class TestKillbillAdyenNotificationHandler {
         return new KillbillAdyenNotificationHandler(killbillApi, adyenDao, clock);
     }
 
+    private KillbillAdyenNotificationHandler getKillbillAdyenNotificationHandlerForChargeback(@Nullable final TransactionType transactionType, final NotificationRequestItem item, final AtomicBoolean isNotificationRecorded, final AtomicBoolean isKillBillNotified) throws AccountApiException, PaymentApiException, SQLException {
+        final Account account = TestUtils.buildAccount(Currency.EUR, "DE");
+        final Payment payment = TestUtils.buildPayment(account.getId(), account.getPaymentMethodId(), account.getCurrency());
+        final PaymentTransaction paymentTransaction = TestUtils.buildPaymentTransaction(payment, transactionType, account.getCurrency());
+        String paymentTransactionExternalKey = UUID.randomUUID().toString();
+        when(paymentTransaction.getExternalKey()).thenReturn(paymentTransactionExternalKey);
+
+        final OSGIKillbillAPI killbillApi = getOSGIKillbillAPIForChargeback(account, payment, item, isKillBillNotified);
+        final AdyenDao adyenDao = getAdyenDaoForChargeback(payment, paymentTransaction, transactionType, item, isNotificationRecorded);
+        final DefaultClock clock = new DefaultClock();
+
+        return new KillbillAdyenNotificationHandler(killbillApi, adyenDao, clock);
+    }
+
     private NotificationRequestItem getNotificationRequestItem(final boolean success) {
         final String pspReference = UUID.randomUUID().toString();
 
@@ -116,9 +170,25 @@ public class TestKillbillAdyenNotificationHandler {
         return item;
     }
 
+    private NotificationRequestItem getNotificationRequestItemForChargeback(final boolean success) {
+        final String originalReference = UUID.randomUUID().toString();
+
+        final NotificationRequestItem item = new NotificationRequestItem();
+        item.setOriginalReference(originalReference);
+        item.setSuccess(success);
+
+        Amount amount = new Amount();
+        amount.setCurrency("EUR");
+        amount.setValue(10l);
+
+        item.setAmount(amount);
+
+        return item;
+    }
+
     private OSGIKillbillAPI getOSGIKillbillAPI(final Account account, final Payment payment, final NotificationRequestItem item, final AtomicBoolean isKillBillNotified) throws AccountApiException, PaymentApiException {
         final OSGIKillbillAPI killbillApi = TestUtils.buildOSGIKillbillAPI(account, payment, null);
-        Mockito.when(killbillApi.getPaymentApi().notifyPendingTransactionOfStateChanged(Mockito.eq(account),
+        when(killbillApi.getPaymentApi().notifyPendingTransactionOfStateChanged(Mockito.eq(account),
                                                                                         Mockito.<UUID>any(),
                                                                                         Mockito.eq(item.isSuccess()),
                                                                                         Mockito.<CallContext>any()))
@@ -134,8 +204,29 @@ public class TestKillbillAdyenNotificationHandler {
         return killbillApi;
     }
 
+    private OSGIKillbillAPI getOSGIKillbillAPIForChargeback(final Account account, final Payment payment, final NotificationRequestItem item, final AtomicBoolean isKillBillNotified) throws AccountApiException, PaymentApiException {
+        final OSGIKillbillAPI killbillApi = TestUtils.buildOSGIKillbillAPI(account, payment, null);
+        when(killbillApi.getPaymentApi().createChargeback(Mockito.eq(account),
+                                                                  Mockito.<UUID>any(),
+                                                                  Mockito.<BigDecimal>any(),
+                                                                  Mockito.<Currency>any(),
+                                                                  Mockito.<String>any(),
+                                                                  Mockito.<CallContext>any()))
+               .thenAnswer(new Answer<Payment>() {
+                   @Override
+                   public Payment answer(final InvocationOnMock invocation) throws Throwable {
+                       // Had to use Mockito.<UUID>any() above instead of the actual id
+                       isKillBillNotified.set(true);
+
+                       return payment;
+                   }
+               });
+
+        return killbillApi;
+    }
+
     private AdyenDao getAdyenDao(final Payment payment, final PaymentTransaction paymentTransaction, final TransactionType transactionType, final NotificationRequestItem item, final AtomicBoolean isNotificationRecorded) throws SQLException {
-        final AdyenDao adyenDao = Mockito.mock(AdyenDao.class);
+        final AdyenDao adyenDao = mock(AdyenDao.class);
 
         if (transactionType != null) {
             final AdyenResponsesRecord record = new AdyenResponsesRecord();
@@ -144,7 +235,7 @@ public class TestKillbillAdyenNotificationHandler {
             record.setKbPaymentTransactionId(paymentTransaction.getId().toString());
             record.setKbTenantId(UUID.randomUUID().toString());
 
-            Mockito.when(adyenDao.getResponse(item.getPspReference())).thenReturn(record);
+            when(adyenDao.getResponse(item.getPspReference())).thenReturn(record);
             Mockito.doAnswer(new Answer<Void>() {
                 @Override
                 public Void answer(final InvocationOnMock invocation) throws Throwable {
@@ -181,4 +272,46 @@ public class TestKillbillAdyenNotificationHandler {
 
         return adyenDao;
     }
+
+    private AdyenDao getAdyenDaoForChargeback(final Payment payment, final PaymentTransaction paymentTransaction, final TransactionType transactionType, final NotificationRequestItem item, final AtomicBoolean isNotificationRecorded) throws SQLException {
+        final AdyenDao adyenDao = mock(AdyenDao.class);
+
+        if (!item.getOriginalReference().equals(NO_PAYMENT)) {
+            final AdyenResponsesRecord record = new AdyenResponsesRecord();
+            record.setKbAccountId(payment.getAccountId().toString());
+            record.setKbPaymentId(payment.getId().toString());
+            record.setKbPaymentTransactionId(paymentTransaction.getId().toString());
+            record.setKbTenantId(UUID.randomUUID().toString());
+
+            when(adyenDao.getResponse(item.getOriginalReference())).thenReturn(record);
+            Mockito.doAnswer(new Answer<Void>() {
+                @Override
+                public Void answer(final InvocationOnMock invocation) throws Throwable {
+                    isNotificationRecorded.set(true);
+                    return null;
+                }
+            }).when(adyenDao)
+                   .addNotification                                                    (Mockito.eq(UUID.fromString(record.getKbAccountId())),
+                                    Mockito.eq(UUID.fromString(record.getKbPaymentId())),
+                                    Mockito.eq(UUID.fromString(record.getKbPaymentTransactionId())),
+                                    Mockito.eq(transactionType),
+                                    Mockito.<NotificationItem>any(),
+                                    Mockito.<DateTime>any(),
+                                    Mockito.eq(UUID.fromString(record.getKbTenantId())));
+        } else {
+            when(adyenDao.getResponse(item.getOriginalReference())).thenReturn(null);
+            Mockito.doAnswer(new Answer<Void>() {
+                @Override
+                public Void answer(final InvocationOnMock invocation) throws Throwable {
+                    isNotificationRecorded.set(true);
+                    return null;
+                }
+            }).when(adyenDao)
+                   .addNotification(Mockito.<UUID>any(), Mockito.<UUID>any(), Mockito.<UUID>any(), Mockito.eq(transactionType), Mockito.<NotificationItem>any(), Mockito.<DateTime>any(), Mockito.<UUID>any());
+
+        }
+
+        return adyenDao;
+    }
+
 }
