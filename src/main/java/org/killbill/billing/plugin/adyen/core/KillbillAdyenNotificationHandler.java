@@ -210,6 +210,11 @@ public class KillbillAdyenNotificationHandler implements AdyenNotificationHandle
         final DateTime utcNow = clock.getUTCNow();
 
         final AdyenResponsesRecord originalRecord = getResponseRecord(item.getOriginalReference());
+        if (originalRecord == null) {
+            recordNotification(null, null, null, TransactionType.CHARGEBACK, notification, utcNow, null);
+            return;
+        }
+
         final UUID kbAccountId = UUID.fromString(originalRecord.getKbAccountId());
         final UUID kbTenantId = UUID.fromString(originalRecord.getKbTenantId());
         final UUID kbPaymentId = UUID.fromString(originalRecord.getKbPaymentId());
