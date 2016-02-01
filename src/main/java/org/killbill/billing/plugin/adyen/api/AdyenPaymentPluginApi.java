@@ -75,7 +75,6 @@ import org.killbill.billing.plugin.adyen.core.AdyenActivator;
 import org.killbill.billing.plugin.adyen.core.AdyenConfigurationHandler;
 import org.killbill.billing.plugin.adyen.core.AdyenHostedPaymentPageConfigurationHandler;
 import org.killbill.billing.plugin.adyen.core.AdyenRecurringConfigurationHandler;
-import org.killbill.billing.plugin.adyen.core.IdentifierGenerator;
 import org.killbill.billing.plugin.adyen.core.KillbillAdyenNotificationHandler;
 import org.killbill.billing.plugin.adyen.dao.AdyenDao;
 import org.killbill.billing.plugin.adyen.dao.gen.tables.AdyenPaymentMethods;
@@ -186,7 +185,7 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
         this.adyenRecurringConfigurationHandler = adyenRecurringConfigurationHandler;
         this.dao = dao;
 
-        final AdyenNotificationHandler adyenNotificationHandler = new KillbillAdyenNotificationHandler(killbillApi, dao, clock, new IdentifierGenerator());
+        final AdyenNotificationHandler adyenNotificationHandler = new KillbillAdyenNotificationHandler(killbillApi, dao, clock);
         //noinspection RedundantTypeArguments
         this.adyenNotificationService = new AdyenNotificationService(ImmutableList.<AdyenNotificationHandler>of(adyenNotificationHandler));
     }

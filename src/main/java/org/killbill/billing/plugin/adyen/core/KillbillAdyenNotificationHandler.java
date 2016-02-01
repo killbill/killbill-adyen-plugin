@@ -57,13 +57,11 @@ public class KillbillAdyenNotificationHandler implements AdyenNotificationHandle
     private final OSGIKillbillAPI osgiKillbillAPI;
     private final AdyenDao dao;
     private final Clock clock;
-    private final IdentifierGenerator identifierGenerator;
 
-    public KillbillAdyenNotificationHandler(final OSGIKillbillAPI osgiKillbillAPI, final AdyenDao dao, final Clock clock, final IdentifierGenerator identifierGenerator) {
+    public KillbillAdyenNotificationHandler(final OSGIKillbillAPI osgiKillbillAPI, final AdyenDao dao, final Clock clock) {
         this.osgiKillbillAPI = osgiKillbillAPI;
         this.dao = dao;
         this.clock = clock;
-        this.identifierGenerator = identifierGenerator;
     }
 
     @Override
@@ -223,12 +221,10 @@ public class KillbillAdyenNotificationHandler implements AdyenNotificationHandle
         final Account account = getAccount(kbAccountId, context);
 
         UUID kbPaymentTransactionId = null;
-        String paymentTransactionExternalKey = identifierGenerator.getRandomPaymentTransactionExternalKey();
         try {
-
-            final Payment payment = osgiKillbillAPI.getPaymentApi().createChargeback(account, kbPaymentId, notification.getAmount(), Currency.valueOf(notification.getCurrency()), paymentTransactionExternalKey, context);
+            final Payment payment = osgiKillbillAPI.getPaymentApi().createChargeback(account, kbPaymentId, notification.getAmount(), Currency.valueOf(notification.getCurrency()), null, context);
             final PaymentTransaction lastTransaction = filterForLastTransaction(payment);
-            if (lastTransaction.getExternalKey() != null && lastTransaction.getExternalKey().equals(paymentTransactionExternalKey)) {
+            if (TransactionType.CHARGEBACK.equals(lastTransaction.getTransactionType())) {
                 kbPaymentTransactionId = lastTransaction.getId();
             }
         } catch (PaymentApiException e) {

@@ -143,7 +143,7 @@ public class TestKillbillAdyenNotificationHandler {
         final AdyenDao adyenDao = getAdyenDao(payment, paymentTransaction, transactionType, item, isNotificationRecorded);
         final DefaultClock clock = new DefaultClock();
 
-        return new KillbillAdyenNotificationHandler(killbillApi, adyenDao, clock, new IdentifierGenerator());
+        return new KillbillAdyenNotificationHandler(killbillApi, adyenDao, clock);
     }
 
     private KillbillAdyenNotificationHandler getKillbillAdyenNotificationHandlerForChargeback(@Nullable final TransactionType transactionType, final NotificationRequestItem item, final AtomicBoolean isNotificationRecorded, final AtomicBoolean isKillBillNotified) throws AccountApiException, PaymentApiException, SQLException {
@@ -157,10 +157,7 @@ public class TestKillbillAdyenNotificationHandler {
         final AdyenDao adyenDao = getAdyenDaoForChargeback(payment, paymentTransaction, transactionType, item, isNotificationRecorded);
         final DefaultClock clock = new DefaultClock();
 
-        IdentifierGenerator identifierGenerator = mock(IdentifierGenerator.class);
-        when(identifierGenerator.getRandomPaymentTransactionExternalKey()).thenReturn(paymentTransactionExternalKey);
-
-        return new KillbillAdyenNotificationHandler(killbillApi, adyenDao, clock, identifierGenerator);
+        return new KillbillAdyenNotificationHandler(killbillApi, adyenDao, clock);
     }
 
     private NotificationRequestItem getNotificationRequestItem(final boolean success) {
