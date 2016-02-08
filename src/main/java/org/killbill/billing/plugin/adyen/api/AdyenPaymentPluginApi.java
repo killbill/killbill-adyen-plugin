@@ -61,6 +61,7 @@ import org.killbill.billing.plugin.adyen.client.model.SplitSettlementData;
 import org.killbill.billing.plugin.adyen.client.model.UserData;
 import org.killbill.billing.plugin.adyen.client.model.paymentinfo.Card;
 import org.killbill.billing.plugin.adyen.client.model.paymentinfo.CreditCard;
+import org.killbill.billing.plugin.adyen.client.model.paymentinfo.MaestroUK;
 import org.killbill.billing.plugin.adyen.client.model.paymentinfo.OneClick;
 import org.killbill.billing.plugin.adyen.client.model.paymentinfo.Recurring;
 import org.killbill.billing.plugin.adyen.client.model.paymentinfo.SepaDirectDebit;
@@ -164,6 +165,7 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
      */
     public static final String PROPERTY_CONTINUOUS_AUTHENTICATION = "contAuth";
     private static final String SEPA_DIRECT_DEBIT = "sepadirectdebit";
+    private static final String MAESTRO_UK = "maestrouk";
 
     private final AdyenConfigurationHandler adyenConfigurationHandler;
     private final AdyenHostedPaymentPageConfigurationHandler adyenHppConfigurationHandler;
@@ -657,6 +659,8 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
             paymentInfo = buildRecurring(paymentMethodsRecord, paymentProvider, properties);
         } else if (SEPA_DIRECT_DEBIT.equals(cardType)) {
             paymentInfo = buildSepaDirectDebit(paymentMethodsRecord, paymentProvider, properties);
+        } else if (MAESTRO_UK.equals(cardType)) {
+            paymentInfo = buildMaestroUK(paymentMethodsRecord, paymentProvider, properties);
         } else {
             paymentInfo = buildCreditCard(paymentMethodsRecord, paymentProvider, properties);
         }
@@ -771,12 +775,39 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
     private CreditCard buildCreditCard(final AdyenPaymentMethodsRecord paymentMethodsRecord, final PaymentProvider paymentProvider, final Iterable<PluginProperty> properties) {
         final CreditCard creditCard = buildCard(new CreditCard(paymentProvider), paymentMethodsRecord, properties);
 
+        applyInstallments(creditCard, properties);
+
+        return creditCard;
+    }
+
+    private MaestroUK buildMaestroUK(final AdyenPaymentMethodsRecord paymentMethodsRecord, final PaymentProvider paymentProvider, final Iterable<PluginProperty> properties) {
+        final MaestroUK maestroUK = buildCard(new MaestroUK(paymentProvider), paymentMethodsRecord, properties);
+
+        applyInstallments(maestroUK, properties);
+
+        final String startMonth = PluginProperties.getValue(PROPERTY_CC_START_MONTH, paymentMethodsRecord.getCcStartMonth(), properties);
+        if (startMonth != null) {
+            maestroUK.setValidStartMonth(Integer.valueOf(startMonth));
+        }
+
+        final String startYear = PluginProperties.getValue(PROPERTY_CC_START_YEAR, paymentMethodsRecord.getCcStartYear(), properties);
+        if (startYear != null) {
+            maestroUK.setValidStartYear(Integer.valueOf(startYear));
+        }
+
+        final String issuerNumber = PluginProperties.getValue(PROPERTY_CC_ISSUE_NUMBER, paymentMethodsRecord.getCcIssueNumber(), properties);
+        if (issuerNumber != null) {
+            maestroUK.setCcIssueNumber(issuerNumber);
+        }
+
+        return maestroUK;
+    }
+
+    private <C extends CreditCard> void applyInstallments(final C creditCard, final Iterable<PluginProperty> properties) {
         final String installments = PluginProperties.findPluginPropertyValue(PROPERTY_INSTALLMENTS, properties);
         if (installments != null ) {
             creditCard.setInstallments(Integer.valueOf(installments));
         }
-
-        return creditCard;
     }
 
     private SepaDirectDebit buildSepaDirectDebit(final AdyenPaymentMethodsRecord paymentMethodsRecord, final PaymentProvider paymentProvider, final Iterable<PluginProperty> properties) {
