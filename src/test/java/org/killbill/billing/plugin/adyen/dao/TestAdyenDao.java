@@ -74,6 +74,10 @@ public class TestAdyenDao extends TestWithEmbeddedDBBase {
         final Currency currency = Currency.EUR;
         final DateTime dateTime = new DateTime(DateTimeZone.UTC);
         final UUID kbTenantId = UUID.randomUUID();
+        final Map<String, String> expectedAdditionalData = ImmutableMap.<String, String>builder()
+                                                                       .putAll(purchaseResult.getAdditionalData())
+                                                                       .putAll(purchaseResult.getFormParameter())
+                                                                       .build();
         dao.addResponse(kbAccountId, kbPaymentId, kbPaymentTransactionId, transactionType, amount, currency, purchaseResult, dateTime, kbTenantId);
 
         final List<AdyenResponsesRecord> result = dao.getResponses(kbPaymentId, kbTenantId);
@@ -90,7 +94,7 @@ public class TestAdyenDao extends TestWithEmbeddedDBBase {
         Assert.assertEquals(record.getKbTenantId(), kbTenantId.toString());
         Assert.assertEquals(record.getDccAmount().compareTo(BigDecimal.TEN), 0);
         Assert.assertEquals(record.getDccCurrency(), "EUR");
-        Assert.assertEquals(objectMapper.readValue(record.getAdditionalData(), Map.class), purchaseResult.getAdditionalData());
+        Assert.assertEquals(objectMapper.readValue(record.getAdditionalData(), Map.class), expectedAdditionalData);
         Assert.assertEquals(record.getPspResult(), PaymentServiceProviderResult.AUTHORISED.toString());
     }
 
