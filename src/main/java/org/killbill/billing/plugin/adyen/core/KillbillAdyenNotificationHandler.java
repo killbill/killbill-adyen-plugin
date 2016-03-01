@@ -24,6 +24,7 @@ import javax.annotation.Nullable;
 
 import org.joda.time.DateTime;
 import org.killbill.adyen.notification.NotificationRequestItem;
+import org.killbill.billing.ErrorCode;
 import org.killbill.billing.account.api.Account;
 import org.killbill.billing.account.api.AccountApiException;
 import org.killbill.billing.catalog.api.Currency;
@@ -305,13 +306,16 @@ public class KillbillAdyenNotificationHandler implements AdyenNotificationHandle
         }
     }
 
-    private Payment notifyKillBill(final Account account, final UUID kbPaymentTransactionId, final NotificationItem notification, final CallContext context) {
+    private void notifyKillBill(final Account account, final UUID kbPaymentTransactionId, final NotificationItem notification, final CallContext context) {
         final Boolean isSuccess = MoreObjects.firstNonNull(notification.getSuccess(), false);
         try {
-            return osgiKillbillAPI.getPaymentApi().notifyPendingTransactionOfStateChanged(account, kbPaymentTransactionId, isSuccess, context);
+            osgiKillbillAPI.getPaymentApi().notifyPendingTransactionOfStateChanged(account, kbPaymentTransactionId, isSuccess, context);
         } catch (final PaymentApiException e) {
-            // Have Adyen retry
-            throw new RuntimeException("Failed to notify Kill Bill for kbPaymentTransactionId " + kbPaymentTransactionId, e);
+            // PAYMENT_NO_SUCH_SUCCESS_PAYMENT means the payment wasn't PENDING (e.g. for authorizations)
+            if (e.getCode() != ErrorCode.PAYMENT_NO_SUCH_SUCCESS_PAYMENT.getCode()) {
+                // Have Adyen retry
+                throw new RuntimeException("Failed to notify Kill Bill for kbPaymentTransactionId " + kbPaymentTransactionId, e);
+            }
         }
     }
 
