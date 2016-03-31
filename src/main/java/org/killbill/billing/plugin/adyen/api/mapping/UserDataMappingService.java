@@ -110,13 +110,23 @@ public class UserDataMappingService {
      * @return the locale as an Optional
      */
     public static Optional<Locale> toCustomerLocale(String propertyLocaleString, Account account) {
+        final String candidateString;
         if (propertyLocaleString != null) {
-            return Optional.of(Locale.forLanguageTag(propertyLocaleString));
+            candidateString = propertyLocaleString;
         } else if (account != null && account.getLocale() != null) {
-            return Optional.of(new Locale(account.getLocale()));
+            candidateString = account.getLocale();
         } else {
             return Optional.absent();
         }
+
+        Locale candidateLocale = Locale.forLanguageTag(candidateString);
+        if (candidateLocale.toString().isEmpty()) {
+            candidateLocale = Locale.forLanguageTag(candidateString.replace("_", "-"));
+            if (candidateLocale.toString().isEmpty()) {
+                candidateLocale = new Locale(candidateString);
+            }
+        }
+        return Optional.of(candidateLocale);
     }
 
     /**

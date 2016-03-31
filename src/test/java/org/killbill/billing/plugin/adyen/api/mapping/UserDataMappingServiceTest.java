@@ -92,9 +92,8 @@ public class UserDataMappingServiceTest {
         assertFalse(customerIdOptional.isPresent());
     }
 
-    @Test(groups = "fast", enabled = false,
-            description = "Test describes the expected behavior. Disabled until bugfix is implemented")
-    public void testToCustomerLocalForCustomerLocale() {
+    @Test(groups = "fast")
+    public void testToCustomerLocalForCustomerLocaleV1() {
         final String customerLocaleProperty = "de_DE";
         final String accountLocaleProperty = "en_GB";
 
@@ -103,21 +102,36 @@ public class UserDataMappingServiceTest {
 
         final Optional<Locale> customerLocale = UserDataMappingService.toCustomerLocale(customerLocaleProperty, account);
         assertTrue(customerLocale.isPresent());
+        assertEquals(customerLocale.get().getLanguage(), "de");
         assertEquals(customerLocale.get().getCountry(), "DE");
     }
 
-    @Test(groups = "fast", enabled = false,
-            description = "Test describes the expected behavior. Disabled until bugfix is implemented")
-    public void testToCustomerLocalForAccountLocale() {
-        final String customerLocaleProperty = null;
-        final String accountLocaleProperty = "en_GB";
+    @Test(groups = "fast")
+    public void testToCustomerLocalForCustomerLocaleV2() {
+        final String customerLocaleProperty = "de-DE";
+        final String accountLocaleProperty = "en-GB";
 
         final Account account = mock(Account.class);
         when(account.getLocale()).thenReturn(accountLocaleProperty);
 
         final Optional<Locale> customerLocale = UserDataMappingService.toCustomerLocale(customerLocaleProperty, account);
         assertTrue(customerLocale.isPresent());
-        assertEquals(customerLocale.get().getCountry(), "GB");
+        assertEquals(customerLocale.get().getLanguage(), "de");
+        assertEquals(customerLocale.get().getCountry(), "DE");
+    }
+
+    @Test(groups = "fast")
+    public void testToCustomerLocalForAccountLocale() {
+        final String customerLocaleProperty = null;
+        final String accountLocaleProperty = Locale.CANADA_FRENCH.toString();
+
+        final Account account = mock(Account.class);
+        when(account.getLocale()).thenReturn(accountLocaleProperty);
+
+        final Optional<Locale> customerLocale = UserDataMappingService.toCustomerLocale(customerLocaleProperty, account);
+        assertTrue(customerLocale.isPresent());
+        assertEquals(customerLocale.get().getLanguage(), "fr");
+        assertEquals(customerLocale.get().getCountry(), "CA");
     }
 
     @Test(groups = "fast")
