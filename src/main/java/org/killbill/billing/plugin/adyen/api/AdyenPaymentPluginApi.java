@@ -472,7 +472,6 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
         }
 
         final String serverUrl = PluginProperties.findPluginPropertyValue(PROPERTY_SERVER_URL, mergedProperties);
-        Preconditions.checkState(!Strings.isNullOrEmpty(serverUrl), "serverUrl not specified");
         final String resultUrl = PluginProperties.findPluginPropertyValue(PROPERTY_RESULT_URL, mergedProperties);
 
         try {
