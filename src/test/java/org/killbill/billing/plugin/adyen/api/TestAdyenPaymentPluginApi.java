@@ -80,7 +80,6 @@ import static org.testng.Assert.fail;
 public class TestAdyenPaymentPluginApi extends TestWithEmbeddedDBBase {
 
     private static final long SLEEP_IN_MILLIS_FOR_RECURRING_DETAIL = 3000L; // 3 Seconds
-    private static final String DUMMY_URL = "dummy://url";
     private static final int HTTP_200_OK = 200;
     private static final int HTTP_PORT = 80;
     private static final int HTTPS_PORT = 443;
@@ -126,6 +125,7 @@ public class TestAdyenPaymentPluginApi extends TestWithEmbeddedDBBase {
                                                          .put(AdyenPaymentPluginApi.PROPERTY_CC_VERIFICATION_VALUE, CC_VERIFICATION_VALUE)
                                                          .put(AdyenPaymentPluginApi.PROPERTY_USER_AGENT, "Java/1.8")
                                                          .put(AdyenPaymentPluginApi.PROPERTY_ACCEPT_HEADER, "application/json")
+                                                         .put(AdyenPaymentPluginApi.PROPERTY_TERM_URL, "dummy://url")
                                                          .put(AdyenPaymentPluginApi.PROPERTY_THREE_D_THRESHOLD, "25000")
                                                          .build());
 
@@ -547,13 +547,14 @@ public class TestAdyenPaymentPluginApi extends TestWithEmbeddedDBBase {
         final URL issuerUrl = new URL(PluginProperties.findPluginPropertyValue("issuerUrl", authorizationInfoPlugin1.getProperties()));
         final String md = PluginProperties.findPluginPropertyValue("MD", authorizationInfoPlugin1.getProperties());
         final String paReq = PluginProperties.findPluginPropertyValue("PaReq", authorizationInfoPlugin1.getProperties());
+        final String termUrl = PluginProperties.findPluginPropertyValue("TermUrl", authorizationInfoPlugin1.getProperties());
 
         final String responseHTML = given().log().all()
                                            .contentType(ContentType.URLENC)
                                            .accept(ContentType.HTML)
                                            .formParam("MD", md)
                                            .formParam("PaReq", paReq)
-                                           .formParam("TermUrl", DUMMY_URL)
+                                           .formParam("TermUrl", termUrl)
                                            .post(issuerUrl)
                                            .then().log().all()
                                            .statusCode(HTTP_200_OK)
@@ -577,7 +578,7 @@ public class TestAdyenPaymentPluginApi extends TestWithEmbeddedDBBase {
 
         final Map<String, String> redirectFormParams = extractForm(redirectHTML);
         assertFalse(redirectFormParams.isEmpty(), "No FORM found in redirect HTML response");
-        assertEquals(DUMMY_URL, redirectFormParams.remove("formAction"));
+        assertEquals(termUrl, redirectFormParams.remove("formAction"));
         // simulate url encoding that happens in the KillBill Client
         redirectFormParams.put("MD", UTF8UrlEncoder.encode(redirectFormParams.get("MD")));
         redirectFormParams.put("PaRes", UTF8UrlEncoder.encode(redirectFormParams.get("PaRes")));
