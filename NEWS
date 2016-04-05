@@ -1,3 +1,10 @@
+0.3.1
+    MaestroUK support
+    Chargeback notifications support
+    Handle gracefully bogus notifications
+    serverUrl is now optional (HPP)
+    https://github.com/killbill/killbill-adyen-plugin/issues/44
+
 0.3.0
     Initial release for Kill Bill 0.16.x
 
