@@ -16,7 +16,7 @@ package org.killbill.billing.plugin.adyen.dao.gen.tables;
 @java.lang.SuppressWarnings({ "all", "unchecked", "rawtypes" })
 public class AdyenHppRequests extends org.jooq.impl.TableImpl<org.killbill.billing.plugin.adyen.dao.gen.tables.records.AdyenHppRequestsRecord> {
 
-	private static final long serialVersionUID = -2014591445;
+	private static final long serialVersionUID = 1755384022;
 
 	/**
 	 * The reference instance of <code>killbill.adyen_hpp_requests</code>
@@ -40,6 +40,16 @@ public class AdyenHppRequests extends org.jooq.impl.TableImpl<org.killbill.billi
 	 * The column <code>killbill.adyen_hpp_requests.kb_account_id</code>.
 	 */
 	public final org.jooq.TableField<org.killbill.billing.plugin.adyen.dao.gen.tables.records.AdyenHppRequestsRecord, java.lang.String> KB_ACCOUNT_ID = createField("kb_account_id", org.jooq.impl.SQLDataType.CHAR.length(36).nullable(false), this, "");
+
+	/**
+	 * The column <code>killbill.adyen_hpp_requests.kb_payment_id</code>.
+	 */
+	public final org.jooq.TableField<org.killbill.billing.plugin.adyen.dao.gen.tables.records.AdyenHppRequestsRecord, java.lang.String> KB_PAYMENT_ID = createField("kb_payment_id", org.jooq.impl.SQLDataType.CHAR.length(36), this, "");
+
+	/**
+	 * The column <code>killbill.adyen_hpp_requests.kb_payment_transaction_id</code>.
+	 */
+	public final org.jooq.TableField<org.killbill.billing.plugin.adyen.dao.gen.tables.records.AdyenHppRequestsRecord, java.lang.String> KB_PAYMENT_TRANSACTION_ID = createField("kb_payment_transaction_id", org.jooq.impl.SQLDataType.CHAR.length(36), this, "");
 
 	/**
 	 * The column <code>killbill.adyen_hpp_requests.transaction_external_key</code>.

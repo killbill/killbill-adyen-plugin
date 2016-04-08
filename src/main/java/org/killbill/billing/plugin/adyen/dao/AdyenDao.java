@@ -1,7 +1,8 @@
 /*
- * Copyright 2014 Groupon, Inc
+ * Copyright 2014-2016 Groupon, Inc
+ * Copyright 2014-2016 The Billing Project, LLC
  *
- * Groupon licenses this file to you under the Apache License, version 2.0
+ * The Billing Project licenses this file to you under the Apache License, version 2.0
  * (the "License"); you may not use this file except in compliance with the
  * License.  You may obtain a copy of the License at:
  *
@@ -88,6 +89,8 @@ public class AdyenDao extends PluginPaymentDao<AdyenResponsesRecord, AdyenRespon
     // HPP requests
 
     public void addHppRequest(final UUID kbAccountId,
+                              @Nullable final UUID kbPaymentId,
+                              @Nullable final UUID kbPaymentTransactionId,
                               final String transactionExternalKey,
                               final Map additionalDataMap,
                               final DateTime utcNow,
@@ -101,11 +104,15 @@ public class AdyenDao extends PluginPaymentDao<AdyenResponsesRecord, AdyenRespon
                         DSL.using(conn, dialect, settings)
                            .insertInto(ADYEN_HPP_REQUESTS,
                                        ADYEN_HPP_REQUESTS.KB_ACCOUNT_ID,
+                                       ADYEN_HPP_REQUESTS.KB_PAYMENT_ID,
+                                       ADYEN_HPP_REQUESTS.KB_PAYMENT_TRANSACTION_ID,
                                        ADYEN_HPP_REQUESTS.TRANSACTION_EXTERNAL_KEY,
                                        ADYEN_HPP_REQUESTS.ADDITIONAL_DATA,
                                        ADYEN_HPP_REQUESTS.CREATED_DATE,
                                        ADYEN_HPP_REQUESTS.KB_TENANT_ID)
                            .values(kbAccountId.toString(),
+                                   kbPaymentId != null ? kbPaymentId.toString() : null,
+                                   kbPaymentTransactionId != null ? kbPaymentTransactionId.toString() : null,
                                    transactionExternalKey,
                                    additionalData,
                                    toTimestamp(utcNow),
@@ -323,8 +330,8 @@ public class AdyenDao extends PluginPaymentDao<AdyenResponsesRecord, AdyenRespon
                 });
     }
 
-    public AdyenResponsesRecord updateResponse(final UUID kbPaymentTransactionId, final Iterable<PluginProperty> pluginProperties, final UUID kbTenantId) throws SQLException {
-        final Map<String, Object> properties = PluginProperties.toMap(pluginProperties);
+    public AdyenResponsesRecord updateResponse(final UUID kbPaymentTransactionId, final Iterable<PluginProperty> additionalPluginProperties, final UUID kbTenantId) throws SQLException {
+        final Map<String, Object> additionalProperties = PluginProperties.toMap(additionalPluginProperties);
 
         return execute(dataSource.getConnection(),
                        new WithConnectionCallback<AdyenResponsesRecord>() {
@@ -342,12 +349,12 @@ public class AdyenDao extends PluginPaymentDao<AdyenResponsesRecord, AdyenRespon
                                }
 
                                final Map originalData = new HashMap(fromAdditionalData(response.getAdditionalData()));
-                               originalData.putAll(properties);
+                               originalData.putAll(additionalProperties);
                                final String mergedAdditionalData = getAdditionalData(originalData);
 
                                DSL.using(conn, dialect, settings)
                                   .update(ADYEN_RESPONSES)
-                                  .set(ADYEN_RESPONSES.PSP_REFERENCE, getProperty(AdyenPaymentPluginApi.PROPERTY_PSP_REFERENCE, properties))
+                                  .set(ADYEN_RESPONSES.PSP_REFERENCE, getProperty(AdyenPaymentPluginApi.PROPERTY_PSP_REFERENCE, additionalProperties))
                                   .set(ADYEN_RESPONSES.ADDITIONAL_DATA, mergedAdditionalData)
                                   .where(ADYEN_RESPONSES.RECORD_ID.equal(response.getRecordId()))
                                   .execute();

@@ -4,6 +4,8 @@ drop table if exists adyen_hpp_requests;
 create table adyen_hpp_requests (
   record_id int(11) unsigned not null auto_increment
 , kb_account_id char(36) not null
+, kb_payment_id char(36) default null
+, kb_payment_transaction_id char(36) default null
 , transaction_external_key varchar(255) not null
 , additional_data longtext default null
 , created_date datetime not null

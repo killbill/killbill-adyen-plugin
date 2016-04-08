@@ -1,7 +1,8 @@
 /*
- * Copyright 2014-2015 Groupon, Inc
+ * Copyright 2014-2016 Groupon, Inc
+ * Copyright 2014-2016 The Billing Project, LLC
  *
- * Groupon licenses this file to you under the Apache License, version 2.0
+ * The Billing Project licenses this file to you under the Apache License, version 2.0
  * (the "License"); you may not use this file except in compliance with the
  * License.  You may obtain a copy of the License at:
  *
@@ -467,8 +468,9 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
         final UserData userData = toUserData(account, mergedProperties);
 
         final boolean shouldCreatePendingPayment = Boolean.valueOf(PluginProperties.findPluginPropertyValue(PROPERTY_CREATE_PENDING_PAYMENT, mergedProperties));
+        Payment pendingPayment = null;
         if (shouldCreatePendingPayment) {
-            createPendingPayment(account, amount, paymentData, context);
+            pendingPayment = createPendingPayment(account, amount, paymentData, context);
         }
 
         final String serverUrl = PluginProperties.findPluginPropertyValue(PROPERTY_SERVER_URL, mergedProperties);
@@ -477,7 +479,13 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
         try {
             // Need to store on disk the mapping payment <-> user because Adyen's notification won't provide the latter
             //noinspection unchecked
-            dao.addHppRequest(kbAccountId, paymentData.getPaymentTxnInternalRef(), PluginProperties.toMap(mergedProperties), clock.getUTCNow(), context.getTenantId());
+            dao.addHppRequest(kbAccountId,
+                              pendingPayment == null ? null : pendingPayment.getId(),
+                              pendingPayment == null ? null : pendingPayment.getTransactions().get(0).getId(),
+                              pendingPayment == null ? paymentData.getPaymentTxnInternalRef() : pendingPayment.getTransactions().get(0).getExternalKey(),
+                              PluginProperties.toMap(mergedProperties),
+                              clock.getUTCNow(),
+                              context.getTenantId());
         } catch (final SQLException e) {
             throw new PaymentPluginApiException("Unable to store HPP request", e);
         }
@@ -939,7 +947,7 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
         return orderData;
     }
 
-    private void createPendingPayment(final Account account, final BigDecimal amount, final PaymentData paymentData, final CallContext context) throws PaymentPluginApiException {
+    private Payment createPendingPayment(final Account account, final BigDecimal amount, final PaymentData paymentData, final CallContext context) throws PaymentPluginApiException {
         final UUID kbPaymentId = null;
         final Currency currency = Currency.valueOf(paymentData.getPaymentInfo().getPaymentProvider().getCurrency().toString());
         final String paymentExternalKey = paymentData.getPaymentTxnInternalRef();
@@ -951,15 +959,15 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
 
         try {
             final UUID kbPaymentMethodId = getAdyenKbPaymentMethodId(account.getId(), context);
-            killbillAPI.getPaymentApi().createPurchase(account,
-                                                       kbPaymentMethodId,
-                                                       kbPaymentId,
-                                                       amount,
-                                                       currency,
-                                                       paymentExternalKey,
-                                                       paymentTransactionExternalKey,
-                                                       purchaseProperties,
-                                                       context);
+            return killbillAPI.getPaymentApi().createPurchase(account,
+                                                              kbPaymentMethodId,
+                                                              kbPaymentId,
+                                                              amount,
+                                                              currency,
+                                                              paymentExternalKey,
+                                                              paymentTransactionExternalKey,
+                                                              purchaseProperties,
+                                                              context);
         } catch (final PaymentApiException e) {
             throw new PaymentPluginApiException("Failed to record purchase", e);
         }
