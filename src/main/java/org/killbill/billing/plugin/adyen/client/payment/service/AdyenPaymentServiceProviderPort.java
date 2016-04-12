@@ -51,7 +51,7 @@ import com.google.common.base.Preconditions;
 
 public class AdyenPaymentServiceProviderPort extends BaseAdyenPaymentServiceProviderPort implements Closeable {
 
-    private static final Logger logger = LoggerFactory.getLogger("adyen.port");
+    private static final Logger logger = LoggerFactory.getLogger(AdyenPaymentServiceProviderPort.class);
 
     private final PaymentInfoConverterManagement paymentInfoConverterManagement;
     private final AdyenRequestFactory adyenRequestFactory;

@@ -35,7 +35,7 @@ import com.google.common.io.BaseEncoding;
 
 public class Signer {
 
-    private static final Logger logger = LoggerFactory.getLogger("adyen");
+    private static final Logger logger = LoggerFactory.getLogger(Signer.class);
     private static final String HMAC_ALGORITHM = "HmacSHA1";
     private static final BaseEncoding BASE_64_ENCODING = BaseEncoding.base64();
 

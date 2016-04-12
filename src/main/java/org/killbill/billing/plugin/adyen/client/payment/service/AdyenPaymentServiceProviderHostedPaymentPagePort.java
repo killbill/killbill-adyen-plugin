@@ -39,7 +39,7 @@ import com.google.common.base.Strings;
 
 public class AdyenPaymentServiceProviderHostedPaymentPagePort extends BaseAdyenPaymentServiceProviderPort implements Closeable {
 
-    private static final Logger logger = LoggerFactory.getLogger("adyen");
+    private static final Logger logger = LoggerFactory.getLogger(AdyenPaymentServiceProviderHostedPaymentPagePort.class);
 
     private final AdyenConfigProperties adyenConfigProperties;
     private final AdyenRequestFactory adyenRequestFactory;

@@ -49,7 +49,7 @@ import static org.killbill.billing.plugin.adyen.client.payment.service.AdyenCall
 
 public class AdyenPaymentRequestSender implements Closeable {
 
-    private static final Logger logger = LoggerFactory.getLogger("adyen.sender");
+    private static final Logger logger = LoggerFactory.getLogger(AdyenPaymentRequestSender.class);
 
     private final PaymentPortRegistry adyenPaymentPortRegistry;
 
