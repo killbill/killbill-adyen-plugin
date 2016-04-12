@@ -79,7 +79,7 @@ public class AdyenNotificationService {
 
             response = "[accepted]";
         } catch (final Exception e) {
-            logger.error("Error dealing with Adyen notification", e);
+            logger.warn("Error dealing with Adyen notification", e);
             /**
              * The Adyen server only knows the return string [accepted]. Therefore
              * this method cannot return any other string to signal an error.

@@ -16,6 +16,7 @@
 
 package org.killbill.billing.plugin.adyen.client.model;
 
+import java.util.Iterator;
 import java.util.Map;
 
 import javax.annotation.Nullable;
@@ -155,17 +156,32 @@ public class PurchaseResult extends FrontendForm {
 
     @Override
     public String toString() {
-        return "PurchaseResult{" +
-               "result=" + result +
-               ", authCode='" + authCode + '\'' +
-               ", pspReference='" + pspReference + '\'' +
-               ", reason='" + reason + '\'' +
-               ", resultCode='" + resultCode + '\'' +
-               ", reference='" + reference + '\'' +
-               ", paymentInternalRef='" + paymentInternalRef + '\'' +
-               ", adyenResponseStatus=" + adyenCallErrorStatus +
-               ", additionalData=" + additionalData +
-               '}';
+        final StringBuilder sb = new StringBuilder("PurchaseResult{");
+        sb.append("result='").append(result.isPresent() ? result.get() : null).append('\'');
+        sb.append(", authCode='").append(authCode).append('\'');
+        sb.append(", pspReference='").append(pspReference).append('\'');
+        sb.append(", reason='").append(reason).append('\'');
+        sb.append(", resultCode='").append(resultCode).append('\'');
+        sb.append(", reference='").append(reference).append('\'');
+        sb.append(", paymentInternalRef='").append(paymentInternalRef).append('\'');
+        sb.append(", adyenCallErrorStatus=").append(adyenCallErrorStatus);
+        sb.append(", additionalData={");
+        // Make sure to escape values, as they may contain spaces (e.g. avsResult='4 AVS not supported for this card type')
+        final Iterator<String> iterator = additionalData.keySet().iterator();
+        if (iterator.hasNext()) {
+            final String key = iterator.next();
+            sb.append(key).append("='").append(additionalData.get(key)).append("'");
+        }
+        while (iterator.hasNext()) {
+            final String key = iterator.next();
+            sb.append(", ")
+              .append(key)
+              .append("='")
+              .append(additionalData.get(key))
+              .append("'");
+        }
+        sb.append("}}");
+        return sb.toString();
     }
 
     @Override

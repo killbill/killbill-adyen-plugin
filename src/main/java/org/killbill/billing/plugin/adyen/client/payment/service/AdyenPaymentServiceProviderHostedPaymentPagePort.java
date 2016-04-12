@@ -104,7 +104,7 @@ public class AdyenPaymentServiceProviderHostedPaymentPagePort extends BaseAdyenP
             //signingData.append(merchantReturnData);
             return new Signer(adyenConfigProperties).verifyBase64EncodedSignature(countryIsoCode, merchantSig, signingData.toString());
         } catch (final SignatureVerificationException e) {
-            logger.error("Could not verify signature, exception was: ", e);
+            logger.warn("Could not verify signature", e);
             return false;
         }
     }
@@ -141,7 +141,7 @@ public class AdyenPaymentServiceProviderHostedPaymentPagePort extends BaseAdyenP
 
     private void ensureMatch(final String paymentOrBillingRef, final String merchantRef) {
         if (paymentOrBillingRef == null || merchantRef == null || !paymentOrBillingRef.equals(merchantRef)) {
-            logger.error("paymentOrBillingRef " + paymentOrBillingRef + " and merchantRef " + merchantRef + " do not match");
+            logger.warn("paymentOrBillingRef " + paymentOrBillingRef + " and merchantRef " + merchantRef + " do not match");
             throw new IllegalArgumentException("invalid foreignRef");
         }
     }

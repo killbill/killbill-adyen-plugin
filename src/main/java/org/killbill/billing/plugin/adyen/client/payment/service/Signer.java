@@ -71,7 +71,7 @@ public class Signer {
             }
             return getBase64EncodedSignature(adyenConfigProperties.getHmacSecret(paymentInfo.getPaymentProvider().getCountryIsoCode()), signingString.toString());
         } catch (final SignatureGenerationException e) {
-            logger.error("Could not build hpp signature");
+            logger.warn("Could not build hpp signature", e);
             return "";
         }
     }

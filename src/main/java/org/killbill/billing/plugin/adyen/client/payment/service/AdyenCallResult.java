@@ -69,9 +69,10 @@ class SuccessfulAdyenCall<T> implements AdyenCallResult<T> {
 
     @Override
     public String toString() {
-        return "SuccessfulAdyenCall{" +
-               "result=" + result +
-               '}';
+        final StringBuilder sb = new StringBuilder("SuccessfulAdyenCall{");
+        sb.append("result=").append(result);
+        sb.append('}');
+        return sb.toString();
     }
 }
 

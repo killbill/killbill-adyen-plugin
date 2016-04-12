@@ -23,6 +23,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import javax.annotation.Nullable;
+
 import org.killbill.adyen.common.BrowserInfo;
 import org.killbill.adyen.payment.AnyType2AnyTypeMap;
 import org.killbill.adyen.payment.ModificationRequest;
@@ -76,7 +78,7 @@ public class AdyenPaymentServiceProviderPort extends BaseAdyenPaymentServiceProv
                                     final UserData userData,
                                     final String termUrl,
                                     final SplitSettlementData splitSettlementData) {
-        logger.info("authorise Start");
+        logOperation("authorize", amountBD, paymentData, userData, null);
 
         Preconditions.checkNotNull(paymentData.getPaymentTxnInternalRef(), "paymentTxnInternalRef");
 
@@ -94,13 +96,13 @@ public class AdyenPaymentServiceProviderPort extends BaseAdyenPaymentServiceProv
 
     @VisibleForTesting
     PurchaseResult authorise(final PaymentRequest request, final String countryIsoCode, final PaymentData paymentData, final String termUrl) {
+        final String operation = "authorize";
         final AdyenCallResult<PaymentResult> adyenCallResult = adyenPaymentRequestSender.authorise(countryIsoCode, request);
 
         if (!adyenCallResult.receivedWellFormedResponse()) {
-            return handleTechnicalFailureAtPurchase("authorize", paymentData, adyenCallResult);
+            return handleTechnicalFailureAtPurchase(operation, paymentData, adyenCallResult);
         }
 
-        logger.info("received adyen authorize response: {}", adyenCallResult);
         final PurchaseResult purchaseResult;
         final PaymentResult result = adyenCallResult.getResult().get();
         final PaymentServiceProviderResult paymentServiceProviderResult = PaymentServiceProviderResult.getPaymentResultForId(result.getResultCode());
@@ -113,7 +115,6 @@ public class AdyenPaymentServiceProviderPort extends BaseAdyenPaymentServiceProv
                                                 paymentData.getPaymentInternalRef(),
                                                 anyType2AnyTypeMapToStringMap(result.getAdditionalData()));
         } else {
-            logger.info("proceed with 3dSecure flow");
             final Map<String, String> formParams = new HashMap<String, String>();
             formParams.put(AdyenPaymentPluginApi.PROPERTY_PA_REQ, result.getPaRequest());
             formParams.put(AdyenPaymentPluginApi.PROPERTY_MD, result.getMd());
@@ -137,12 +138,12 @@ public class AdyenPaymentServiceProviderPort extends BaseAdyenPaymentServiceProv
                                                 anyType2AnyTypeMapToStringMap(result.getAdditionalData()));
         }
 
-        logger.info("authorise Done {}", purchaseResult);
+        logger.info("op='{}', {}", operation, purchaseResult);
         return purchaseResult;
     }
 
     private PurchaseResult handleTechnicalFailureAtPurchase(final String callKey, final PaymentData paymentData, final AdyenCallResult<PaymentResult> adyenCallResult) {
-        logger.info("payment {} call failed for internalReference: {} because of: {}", callKey, paymentData.getPaymentInternalRef(), adyenCallResult);
+        logger.warn("op='{}', paymentInternalRef='{}', {}", callKey, paymentData.getPaymentInternalRef(), adyenCallResult);
         return new PurchaseResult(paymentData.getPaymentInternalRef(), adyenCallResult);
     }
 
@@ -151,7 +152,8 @@ public class AdyenPaymentServiceProviderPort extends BaseAdyenPaymentServiceProv
                                             final UserData userData,
                                             final Map<String, String> requestParameterMap,
                                             final SplitSettlementData splitSettlementData) {
-        logger.info("authorize3DSecure Start {} {}", amountBD, userData);
+        final String operation = "authorize3DSecure";
+        logOperation(operation, amountBD, paymentData, userData, null);
 
         final Long amount = toMinorUnits(paymentData, amountBD);
 
@@ -168,10 +170,9 @@ public class AdyenPaymentServiceProviderPort extends BaseAdyenPaymentServiceProv
         final AdyenCallResult<PaymentResult> adyenCallResult = adyenPaymentRequestSender.authorise3D(paymentInfo.getPaymentProvider().getCountryIsoCode(), request);
 
         if (!adyenCallResult.receivedWellFormedResponse()) {
-            return handleTechnicalFailureAtPurchase("3dSecureAuthorise", paymentData, adyenCallResult);
+            return handleTechnicalFailureAtPurchase(operation, paymentData, adyenCallResult);
         }
 
-        logger.info("received adyen 3dSecure authorize response: {}", adyenCallResult);
         final PurchaseResult purchaseResult;
         final PaymentResult result = adyenCallResult.getResult().get();
         final PaymentServiceProviderResult paymentServiceProviderResult = PaymentServiceProviderResult.getPaymentResultForId(result.getResultCode());
@@ -199,7 +200,7 @@ public class AdyenPaymentServiceProviderPort extends BaseAdyenPaymentServiceProv
                                                 anyType2AnyTypeMapToStringMap(result.getAdditionalData()));
         }
 
-        logger.info("authorize3DSecure Done {}", purchaseResult);
+        logger.info("op='{}', {}", operation, purchaseResult);
         return purchaseResult;
     }
 
@@ -207,7 +208,8 @@ public class AdyenPaymentServiceProviderPort extends BaseAdyenPaymentServiceProv
                                               final PaymentProvider paymentProvider,
                                               final String pspReference,
                                               final SplitSettlementData splitSettlementData) {
-        logger.info("refund Start for pspReference {}", pspReference);
+        final String operation = "refund";
+        logOperation(operation, amountBD, null, null, pspReference);
 
         final Long amount = toMinorUnits(paymentProvider, amountBD);
 
@@ -215,7 +217,7 @@ public class AdyenPaymentServiceProviderPort extends BaseAdyenPaymentServiceProv
         final AdyenCallResult<ModificationResult> adyenCallResult = adyenPaymentRequestSender.refund(paymentProvider.getCountryIsoCode(), modificationRequest);
 
         if (!adyenCallResult.receivedWellFormedResponse()) {
-            return handleTechnicalErrorAtModificationRequest("refund", pspReference, adyenCallResult);
+            return handleTechnicalErrorAtModificationRequest(operation, pspReference, adyenCallResult);
         }
 
         final ModificationResult result = adyenCallResult.getResult().get();
@@ -224,7 +226,7 @@ public class AdyenPaymentServiceProviderPort extends BaseAdyenPaymentServiceProv
         final PaymentModificationResponse paymentModificationResponse = new PaymentModificationResponse(result.getResponse(),
                                                                                                         result.getPspReference(),
                                                                                                         entriesToMap(result.getAdditionalData()));
-        logger.info("refund End: {}", paymentModificationResponse);
+        logger.info("op='{}', {}", operation, paymentModificationResponse);
         return paymentModificationResponse;
     }
 
@@ -236,13 +238,14 @@ public class AdyenPaymentServiceProviderPort extends BaseAdyenPaymentServiceProv
     public PaymentModificationResponse cancel(final PaymentProvider paymentProvider,
                                               final String pspReference,
                                               final SplitSettlementData splitSettlementData) {
-        logger.info("cancel Start for pspReference {}", pspReference);
+        final String operation = "cancel";
+        logOperation(operation, null, null, null, pspReference);
 
         final ModificationRequest modificationRequest = adyenRequestFactory.paymentExecutionToAdyenModificationRequest(paymentProvider, pspReference, splitSettlementData);
         final AdyenCallResult<ModificationResult> adyenCallResult = adyenPaymentRequestSender.cancel(paymentProvider.getCountryIsoCode(), modificationRequest);
 
         if (!adyenCallResult.receivedWellFormedResponse()) {
-            return handleTechnicalErrorAtModificationRequest("refund", pspReference, adyenCallResult);
+            return handleTechnicalErrorAtModificationRequest(operation, pspReference, adyenCallResult);
         }
 
         final ModificationResult result = adyenCallResult.getResult().get();
@@ -251,7 +254,7 @@ public class AdyenPaymentServiceProviderPort extends BaseAdyenPaymentServiceProv
         final PaymentModificationResponse response = new PaymentModificationResponse(result.getResponse(),
                                                                                      result.getPspReference(),
                                                                                      entriesToMap(result.getAdditionalData()));
-        logger.info("cancel End", response);
+        logger.info("op='{}', {}", operation, response);
         return response;
     }
 
@@ -259,7 +262,8 @@ public class AdyenPaymentServiceProviderPort extends BaseAdyenPaymentServiceProv
                                                final PaymentProvider paymentProvider,
                                                final String pspReference,
                                                final SplitSettlementData splitSettlementData) {
-        logger.info("capture Start for pspReference {}", pspReference);
+        final String operation = "capture";
+        logOperation(operation, amountBD, null, null, pspReference);
 
         final Long amount = toMinorUnits(paymentProvider, amountBD);
 
@@ -267,7 +271,7 @@ public class AdyenPaymentServiceProviderPort extends BaseAdyenPaymentServiceProv
         final AdyenCallResult<ModificationResult> adyenCallResult = adyenPaymentRequestSender.capture(paymentProvider.getCountryIsoCode(), modificationRequest);
 
         if (!adyenCallResult.receivedWellFormedResponse()) {
-            return handleTechnicalErrorAtModificationRequest("capture", pspReference, adyenCallResult);
+            return handleTechnicalErrorAtModificationRequest(operation, pspReference, adyenCallResult);
         }
 
         final ModificationResult result = adyenCallResult.getResult().get();
@@ -276,8 +280,43 @@ public class AdyenPaymentServiceProviderPort extends BaseAdyenPaymentServiceProv
         final PaymentModificationResponse response = new PaymentModificationResponse(result.getResponse(),
                                                                                      result.getPspReference(),
                                                                                      entriesToMap(result.getAdditionalData()));
-        logger.info("capture End", response);
+        logger.info("op='{}', {}", operation, response);
         return response;
+    }
+
+    private void logOperation(final String operation, @Nullable final BigDecimal amountBD, @Nullable final PaymentData paymentData, @Nullable final UserData userData, @Nullable final String pspReference) {
+        final StringBuilder stringBuilder = new StringBuilder("op='").append(operation).append("'");
+        if (amountBD != null) {
+            stringBuilder.append(", amount='")
+                         .append(amountBD)
+                         .append("'");
+        }
+        if (paymentData != null && paymentData.getPaymentId() != null) {
+            stringBuilder.append(", paymentId='")
+                         .append(paymentData.getPaymentId())
+                         .append("'");
+        }
+        if (paymentData != null && paymentData.getPaymentInternalRef() != null) {
+            stringBuilder.append(", paymentInternalRef='")
+                         .append(paymentData.getPaymentInternalRef())
+                         .append("'");
+        }
+        if (paymentData != null && paymentData.getPaymentTxnInternalRef() != null) {
+            stringBuilder.append(", paymentTxnInternalRef='")
+                         .append(paymentData.getPaymentTxnInternalRef())
+                         .append("'");
+        }
+        if (userData != null && userData.getCustomerId() != null) {
+            stringBuilder.append(", customerId='")
+                         .append(userData.getCustomerId())
+                         .append("'");
+        }
+        if (pspReference != null) {
+            stringBuilder.append(", pspReference='")
+                         .append(pspReference)
+                         .append("'");
+        }
+        logger.info(stringBuilder.toString());
     }
 
     /**

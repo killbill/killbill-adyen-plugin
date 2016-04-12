@@ -16,6 +16,7 @@
 
 package org.killbill.billing.plugin.adyen.client.model;
 
+import java.util.Iterator;
 import java.util.Map;
 
 import javax.annotation.Nullable;
@@ -87,12 +88,27 @@ public class PaymentModificationResponse {
 
     @Override
     public String toString() {
-        return "PaymentModificationResponse{" +
-               "additionalData=" + additionalData +
-               ", pspReference='" + pspReference + '\'' +
-               ", response='" + response + '\'' +
-               ", adyenCallErrorStatus=" + adyenCallErrorStatus +
-               '}';
+        final StringBuilder sb = new StringBuilder("PaymentModificationResponse{");
+        sb.append("adyenCallErrorStatus=").append(adyenCallErrorStatus);
+        sb.append(", pspReference='").append(pspReference).append('\'');
+        sb.append(", response='").append(response).append('\'');
+        sb.append(", additionalData={");
+        // Make sure to escape values, as they may contain spaces
+        final Iterator<Object> iterator = additionalData.keySet().iterator();
+        if (iterator.hasNext()) {
+            final Object key = iterator.next();
+            sb.append(key).append("='").append(additionalData.get(key)).append("'");
+        }
+        while (iterator.hasNext()) {
+            final Object key = iterator.next();
+            sb.append(", ")
+              .append(key)
+              .append("='")
+              .append(additionalData.get(key))
+              .append("'");
+        }
+        sb.append("}}");
+        return sb.toString();
     }
 
     @Override
