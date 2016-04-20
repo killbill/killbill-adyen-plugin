@@ -1,7 +1,8 @@
 /*
- * Copyright 2015 Groupon, Inc
+ * Copyright 2015-2016 Groupon, Inc
+ * Copyright 2015-2016 The Billing Project, LLC
  *
- * Groupon licenses this file to you under the Apache License, version 2.0
+ * The Billing Project licenses this file to you under the Apache License, version 2.0
  * (the "License"); you may not use this file except in compliance with the
  * License.  You may obtain a copy of the License at:
  *
@@ -51,6 +52,7 @@ public abstract class BaseAdyenPaymentServiceProviderPort {
     protected Long toMinorUnits(final String currencyIsoCode, final BigDecimal amountBD) {
         // The payment amount specified in minor units, without the decimal separator
         final CurrencyUnit currencyUnit = CurrencyUnit.of(currencyIsoCode);
-        return Money.of(currencyUnit, amountBD, RoundingMode.UNNECESSARY).getAmountMinorLong();
+        // HALF_UP consistent with org.killbill.billing.util.currency.KillBillMoney, although this might need to be configurable?
+        return Money.of(currencyUnit, amountBD, RoundingMode.HALF_UP).getAmountMinorLong();
     }
 }

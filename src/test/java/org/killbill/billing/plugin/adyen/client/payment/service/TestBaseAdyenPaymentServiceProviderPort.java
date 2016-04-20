@@ -29,6 +29,9 @@ public class TestBaseAdyenPaymentServiceProviderPort {
         final BaseAdyenPaymentServiceProviderPort port = new BaseAdyenPaymentServiceProviderPortTester();
         Assert.assertEquals(0L, (long) port.toMinorUnits("USD", BigDecimal.ZERO));
         Assert.assertEquals(100L, (long) port.toMinorUnits("USD", BigDecimal.ONE));
+        Assert.assertEquals(99L, (long) port.toMinorUnits("USD", new BigDecimal("0.99")));
+        // See https://github.com/killbill/killbill/issues/494
+        Assert.assertEquals(100L, (long) port.toMinorUnits("USD", new BigDecimal("0.999")));
         Assert.assertEquals(1000L, (long) port.toMinorUnits("USD", BigDecimal.TEN));
         Assert.assertEquals(1000L, (long) port.toMinorUnits("EUR", new BigDecimal("10.000000000")));
         // From https://docs.adyen.com/display/TD/HPP+currency+codes: 10 GBP is submitted as 1000, whereas 10 JPY is submitted as 10.
