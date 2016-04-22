@@ -502,7 +502,7 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
         }
 
         final String formUrl = hostedPaymentPagePort.getFormUrl(paymentData);
-        return new AdyenHostedPaymentPageFormDescriptor(kbAccountId, "GET", formUrl, PluginProperties.buildPluginProperties(formParameter), Collections.<PluginProperty>emptyList());
+        return new AdyenHostedPaymentPageFormDescriptor(kbAccountId, formUrl, PluginProperties.buildPluginProperties(formParameter));
     }
 
     @Override

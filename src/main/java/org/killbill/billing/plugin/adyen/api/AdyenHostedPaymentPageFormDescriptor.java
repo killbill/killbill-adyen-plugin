@@ -16,6 +16,7 @@
 
 package org.killbill.billing.plugin.adyen.api;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
@@ -24,7 +25,7 @@ import org.killbill.billing.plugin.api.payment.PluginHostedPaymentPageFormDescri
 
 public class AdyenHostedPaymentPageFormDescriptor extends PluginHostedPaymentPageFormDescriptor {
 
-    public AdyenHostedPaymentPageFormDescriptor(UUID kbAccountId, String formMethod, String formUrl, List<PluginProperty> formFields, List<PluginProperty> properties) {
-        super(kbAccountId, formMethod, formUrl, formFields, properties);
+    public AdyenHostedPaymentPageFormDescriptor(UUID kbAccountId, String formUrl, List<PluginProperty> formFields) {
+        super(kbAccountId, GET, formUrl, formFields, Collections.<PluginProperty>emptyList());
     }
 }
