@@ -514,6 +514,7 @@ public class TestAdyenPaymentPluginApi extends TestWithEmbeddedDBBase {
         assertEquals(descriptor.getKbAccountId(), payment.getAccountId());
         assertEquals(descriptor.getFormMethod(), "GET");
         assertNotNull(descriptor.getFormUrl());
+        assertFalse(descriptor.getFormFields().isEmpty());
         assertNotNull(dao.getHppRequest(paymentTransaction.getExternalKey()));
 
         // For manual testing
@@ -595,6 +596,7 @@ public class TestAdyenPaymentPluginApi extends TestWithEmbeddedDBBase {
         assertEquals(descriptor.getKbAccountId(), payment.getAccountId());
         assertEquals(descriptor.getFormMethod(), "GET");
         assertNotNull(descriptor.getFormUrl());
+        assertFalse(descriptor.getFormFields().isEmpty());
         assertNotNull(dao.getHppRequest(paymentTransaction.getExternalKey()));
 
         // For manual testing

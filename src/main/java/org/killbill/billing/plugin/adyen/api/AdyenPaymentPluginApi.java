@@ -22,11 +22,13 @@ import java.math.BigDecimal;
 import java.net.URISyntaxException;
 import java.net.URLDecoder;
 import java.sql.SQLException;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
 import javax.annotation.Nullable;
+import javax.annotation.concurrent.Immutable;
 import javax.xml.bind.JAXBException;
 
 import org.joda.time.DateTime;
@@ -500,12 +502,7 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
         }
 
         final String formUrl = hostedPaymentPagePort.getFormUrl(paymentData);
-
-        try {
-            return new AdyenHostedPaymentPageFormDescriptor(kbAccountId, formUrl, formParameter);
-        } catch (final URISyntaxException e) {
-            throw new PaymentPluginApiException("Unable to generate valid HPP url", e);
-        }
+        return new AdyenHostedPaymentPageFormDescriptor(kbAccountId, formUrl, PluginProperties.buildPluginProperties(formParameter));
     }
 
     @Override

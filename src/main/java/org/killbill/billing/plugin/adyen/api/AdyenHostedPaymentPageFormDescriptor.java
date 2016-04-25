@@ -16,15 +16,16 @@
 
 package org.killbill.billing.plugin.adyen.api;
 
-import java.net.URISyntaxException;
-import java.util.Map;
+import java.util.Collections;
+import java.util.List;
 import java.util.UUID;
 
+import org.killbill.billing.payment.api.PluginProperty;
 import org.killbill.billing.plugin.api.payment.PluginHostedPaymentPageFormDescriptor;
 
 public class AdyenHostedPaymentPageFormDescriptor extends PluginHostedPaymentPageFormDescriptor {
 
-    public AdyenHostedPaymentPageFormDescriptor(final UUID kbAccountId, final String formUrl, final Map<String, String> queryParams) throws URISyntaxException {
-        super(kbAccountId, formUrl, queryParams);
+    public AdyenHostedPaymentPageFormDescriptor(UUID kbAccountId, String formUrl, List<PluginProperty> formFields) {
+        super(kbAccountId, GET, formUrl, formFields, Collections.<PluginProperty>emptyList());
     }
 }
