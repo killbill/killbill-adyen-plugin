@@ -37,7 +37,7 @@ public class PaymentInfoConverterService implements PaymentInfoConverterManageme
         this(ImmutableList.<PaymentInfoConverter<? extends PaymentInfo>>of(
                 new CreditCardConverter(),
                 new MaestroConverter(),
-                new IsracardConverter(),
+                new MisterCashConverter(),
                 new SepaDirectDebitConverter(),
                 new RecurringConverter()));
     }

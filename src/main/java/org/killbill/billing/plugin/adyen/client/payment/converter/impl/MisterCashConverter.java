@@ -1,7 +1,8 @@
 /*
- * Copyright 2015 Groupon, Inc
+ * Copyright 2014-2016 Groupon, Inc
+ * Copyright 2014-2016 The Billing Project, LLC
  *
- * Groupon licenses this file to you under the Apache License, version 2.0
+ * The Billing Project licenses this file to you under the Apache License, version 2.0
  * (the "License"); you may not use this file except in compliance with the
  * License.  You may obtain a copy of the License at:
  *
@@ -20,20 +21,23 @@ import org.killbill.adyen.payment.PaymentRequest;
 import org.killbill.billing.plugin.adyen.client.model.PaymentType;
 import org.killbill.billing.plugin.adyen.client.model.paymentinfo.Card;
 
-import static org.killbill.billing.plugin.adyen.client.model.PaymentType.ISRACARD;
+import static org.killbill.billing.plugin.adyen.client.model.PaymentType.MISTER_CASH;
 
-public class IsracardConverter extends CreditCardConverter {
+public class MisterCashConverter extends CreditCardConverter {
+
+    private static final String SELECTED_BRAND_MISTER_CASH = "bcmc";
 
     @Override
     public Object convertPaymentInfoToPSPTransferObject(final String holderName, final Card paymentInfo) {
         final PaymentRequest result = (PaymentRequest) super.convertPaymentInfoToPSPTransferObject(holderName, paymentInfo);
-        result.setSelectedBrand(ISRACARD.getName());
+        // From https://docs.adyen.com/developers/api-manual#paymentrequests:
+        // For the MisterCash payment method, it can be set to bcmc, to be processed like a MisterCash card
+        result.setSelectedBrand(SELECTED_BRAND_MISTER_CASH);
         return result;
     }
 
     @Override
     public boolean supportsPaymentType(final PaymentType type) {
-        return ISRACARD.equals(type);
+        return MISTER_CASH.equals(type);
     }
-
 }

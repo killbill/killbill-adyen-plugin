@@ -1,7 +1,8 @@
 /*
- * Copyright 2015 Groupon, Inc
+ * Copyright 2014-2016 Groupon, Inc
+ * Copyright 2014-2016 The Billing Project, LLC
  *
- * Groupon licenses this file to you under the Apache License, version 2.0
+ * The Billing Project licenses this file to you under the Apache License, version 2.0
  * (the "License"); you may not use this file except in compliance with the
  * License.  You may obtain a copy of the License at:
  *
@@ -26,7 +27,6 @@ import org.killbill.billing.plugin.adyen.client.payment.converter.PaymentInfoCon
 
 import static org.killbill.billing.plugin.adyen.client.model.PaymentType.SEPA_DIRECT_DEBIT;
 
-
 public class SepaDirectDebitConverter implements PaymentInfoConverter<SepaDirectDebit> {
 
     private static final String SELECTED_BRAND_SEPA = "sepadirectdebit";
@@ -38,8 +38,11 @@ public class SepaDirectDebitConverter implements PaymentInfoConverter<SepaDirect
         bankAccount.setBic(sepaDirectDebit.getBic());
         bankAccount.setOwnerName(holderName(sepaDirectDebit, holderName));
         bankAccount.setCountryCode(sepaDirectDebit.getCountryCode());
+
         final PaymentRequest paymentRequest = new PaymentRequest();
         paymentRequest.setBankAccount(bankAccount);
+        // From https://docs.adyen.com/developers/api-manual#sepadirectdebit:
+        // An SDD payment request requires a selectedBrand field whose value needs to be sepadirectdebit
         paymentRequest.setSelectedBrand(SELECTED_BRAND_SEPA);
         return paymentRequest;
     }
@@ -68,5 +71,4 @@ public class SepaDirectDebitConverter implements PaymentInfoConverter<SepaDirect
             return holderName;
         }
     }
-
 }

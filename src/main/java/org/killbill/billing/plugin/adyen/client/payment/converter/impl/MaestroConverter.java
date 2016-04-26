@@ -1,7 +1,8 @@
 /*
- * Copyright 2015 Groupon, Inc
+ * Copyright 2014-2016 Groupon, Inc
+ * Copyright 2014-2016 The Billing Project, LLC
  *
- * Groupon licenses this file to you under the Apache License, version 2.0
+ * The Billing Project licenses this file to you under the Apache License, version 2.0
  * (the "License"); you may not use this file except in compliance with the
  * License.  You may obtain a copy of the License at:
  *
@@ -24,10 +25,14 @@ import static org.killbill.billing.plugin.adyen.client.model.PaymentType.MAESTRO
 
 public class MaestroConverter extends CreditCardConverter {
 
+    private static final String SELECTED_BRAND_MAESTRO = "maestro";
+
     @Override
     public Object convertPaymentInfoToPSPTransferObject(final String holderName, final Card paymentInfo) {
         final PaymentRequest result = (PaymentRequest) super.convertPaymentInfoToPSPTransferObject(holderName, paymentInfo);
-        result.setSelectedBrand(MAESTRO.getName());
+        // From https://docs.adyen.com/developers/api-manual#paymentrequests:
+        // For the MisterCash payment method, it can be set to maestro (default), to be processed like a Maestro card
+        result.setSelectedBrand(SELECTED_BRAND_MAESTRO);
         return result;
     }
 
@@ -35,5 +40,4 @@ public class MaestroConverter extends CreditCardConverter {
     public boolean supportsPaymentType(final PaymentType type) {
         return MAESTRO.equals(type);
     }
-
 }
