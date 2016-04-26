@@ -19,16 +19,13 @@ package org.killbill.billing.plugin.adyen.api;
 
 import java.io.UnsupportedEncodingException;
 import java.math.BigDecimal;
-import java.net.URISyntaxException;
 import java.net.URLDecoder;
 import java.sql.SQLException;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
 import javax.annotation.Nullable;
-import javax.annotation.concurrent.Immutable;
 import javax.xml.bind.JAXBException;
 
 import org.joda.time.DateTime;
@@ -64,7 +61,6 @@ import org.killbill.billing.plugin.adyen.client.model.SplitSettlementData;
 import org.killbill.billing.plugin.adyen.client.model.UserData;
 import org.killbill.billing.plugin.adyen.client.model.paymentinfo.Card;
 import org.killbill.billing.plugin.adyen.client.model.paymentinfo.CreditCard;
-import org.killbill.billing.plugin.adyen.client.model.paymentinfo.MaestroUK;
 import org.killbill.billing.plugin.adyen.client.model.paymentinfo.OneClick;
 import org.killbill.billing.plugin.adyen.client.model.paymentinfo.Recurring;
 import org.killbill.billing.plugin.adyen.client.model.paymentinfo.SepaDirectDebit;
@@ -663,8 +659,6 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
             paymentInfo = buildRecurring(paymentMethodsRecord, paymentProvider, properties);
         } else if (SEPA_DIRECT_DEBIT.equals(cardType)) {
             paymentInfo = buildSepaDirectDebit(paymentMethodsRecord, paymentProvider, properties);
-        } else if (MAESTRO_UK.equals(cardType)) {
-            paymentInfo = buildMaestroUK(paymentMethodsRecord, paymentProvider, properties);
         } else {
             paymentInfo = buildCreditCard(paymentMethodsRecord, paymentProvider, properties);
         }
@@ -782,29 +776,6 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
         applyInstallments(creditCard, properties);
 
         return creditCard;
-    }
-
-    private MaestroUK buildMaestroUK(final AdyenPaymentMethodsRecord paymentMethodsRecord, final PaymentProvider paymentProvider, final Iterable<PluginProperty> properties) {
-        final MaestroUK maestroUK = buildCard(new MaestroUK(paymentProvider), paymentMethodsRecord, properties);
-
-        applyInstallments(maestroUK, properties);
-
-        final String startMonth = PluginProperties.getValue(PROPERTY_CC_START_MONTH, paymentMethodsRecord.getCcStartMonth(), properties);
-        if (startMonth != null) {
-            maestroUK.setValidStartMonth(Integer.valueOf(startMonth));
-        }
-
-        final String startYear = PluginProperties.getValue(PROPERTY_CC_START_YEAR, paymentMethodsRecord.getCcStartYear(), properties);
-        if (startYear != null) {
-            maestroUK.setValidStartYear(Integer.valueOf(startYear));
-        }
-
-        final String issuerNumber = PluginProperties.getValue(PROPERTY_CC_ISSUE_NUMBER, paymentMethodsRecord.getCcIssueNumber(), properties);
-        if (issuerNumber != null) {
-            maestroUK.setCcIssueNumber(issuerNumber);
-        }
-
-        return maestroUK;
     }
 
     private <C extends CreditCard> void applyInstallments(final C creditCard, final Iterable<PluginProperty> properties) {
