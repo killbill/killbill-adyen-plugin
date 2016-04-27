@@ -1,7 +1,8 @@
 /*
- * Copyright 2014-2015 Groupon, Inc
+ * Copyright 2014-2016 Groupon, Inc
+ * Copyright 2014-2016 The Billing Project, LLC
  *
- * Groupon licenses this file to you under the Apache License, version 2.0
+ * The Billing Project licenses this file to you under the Apache License, version 2.0
  * (the "License"); you may not use this file except in compliance with the
  * License.  You may obtain a copy of the License at:
  *
@@ -80,7 +81,7 @@ public class AdyenPaymentServiceProviderPort extends BaseAdyenPaymentServiceProv
                                     final SplitSettlementData splitSettlementData) {
         logOperation("authorize", amountBD, paymentData, userData, null);
 
-        Preconditions.checkNotNull(paymentData.getPaymentTxnInternalRef(), "paymentTxnInternalRef");
+        Preconditions.checkNotNull(paymentData.getPaymentTransactionExternalKey(), "paymentTransactionExternalKey");
 
         final PaymentInfo paymentInfo = paymentData.getPaymentInfo();
         Preconditions.checkNotNull(paymentInfo, "paymentInfo");
@@ -112,7 +113,7 @@ public class AdyenPaymentServiceProviderPort extends BaseAdyenPaymentServiceProv
                                                 result.getPspReference(),
                                                 result.getRefusalReason(),
                                                 result.getResultCode(),
-                                                paymentData.getPaymentInternalRef(),
+                                                paymentData.getPaymentTransactionExternalKey(),
                                                 anyType2AnyTypeMapToStringMap(result.getAdditionalData()));
         } else {
             final Map<String, String> formParams = new HashMap<String, String>();
@@ -132,7 +133,7 @@ public class AdyenPaymentServiceProviderPort extends BaseAdyenPaymentServiceProv
                                                 result.getPspReference(),
                                                 result.getRefusalReason(),
                                                 result.getResultCode(),
-                                                paymentData.getPaymentInternalRef(),
+                                                paymentData.getPaymentTransactionExternalKey(),
                                                 result.getIssuerUrl(),
                                                 formParams,
                                                 anyType2AnyTypeMapToStringMap(result.getAdditionalData()));
@@ -143,8 +144,8 @@ public class AdyenPaymentServiceProviderPort extends BaseAdyenPaymentServiceProv
     }
 
     private PurchaseResult handleTechnicalFailureAtPurchase(final String callKey, final PaymentData paymentData, final AdyenCallResult<PaymentResult> adyenCallResult) {
-        logger.warn("op='{}', paymentInternalRef='{}', {}", callKey, paymentData.getPaymentInternalRef(), adyenCallResult);
-        return new PurchaseResult(paymentData.getPaymentInternalRef(), adyenCallResult);
+        logger.warn("op='{}', paymentTransactionExternalKey='{}', {}", callKey, paymentData.getPaymentTransactionExternalKey(), adyenCallResult);
+        return new PurchaseResult(paymentData.getPaymentTransactionExternalKey(), adyenCallResult);
     }
 
     public PurchaseResult authorize3DSecure(final BigDecimal amountBD,
@@ -159,7 +160,7 @@ public class AdyenPaymentServiceProviderPort extends BaseAdyenPaymentServiceProv
 
         final Card paymentInfo = paymentData.getPaymentInfo();
         final BrowserInfo info = (BrowserInfo) paymentInfoConverterManagement.getBrowserInfoFor3DSecureAuth(amount, paymentData.getPaymentInfo());
-        final PaymentRequest3D request = adyenRequestFactory.paymentRequest3d(paymentData.getPaymentInternalRef(),
+        final PaymentRequest3D request = adyenRequestFactory.paymentRequest3d(paymentData.getPaymentTransactionExternalKey(),
                                                                               paymentInfo,
                                                                               info,
                                                                               requestParameterMap,
@@ -182,7 +183,7 @@ public class AdyenPaymentServiceProviderPort extends BaseAdyenPaymentServiceProv
                                                 result.getPspReference(),
                                                 result.getRefusalReason(),
                                                 result.getResultCode(),
-                                                paymentData.getPaymentInternalRef(),
+                                                paymentData.getPaymentTransactionExternalKey(),
                                                 anyType2AnyTypeMapToStringMap(result.getAdditionalData()));
         } else {
             final Map<String, String> formParams = new HashMap<String, String>();
@@ -194,7 +195,7 @@ public class AdyenPaymentServiceProviderPort extends BaseAdyenPaymentServiceProv
                                                 result.getPspReference(),
                                                 result.getRefusalReason(),
                                                 result.getResultCode(),
-                                                paymentData.getPaymentInternalRef(),
+                                                paymentData.getPaymentTransactionExternalKey(),
                                                 result.getIssuerUrl(),
                                                 formParams,
                                                 anyType2AnyTypeMapToStringMap(result.getAdditionalData()));
@@ -291,19 +292,9 @@ public class AdyenPaymentServiceProviderPort extends BaseAdyenPaymentServiceProv
                          .append(amountBD)
                          .append("'");
         }
-        if (paymentData != null && paymentData.getPaymentId() != null) {
-            stringBuilder.append(", paymentId='")
-                         .append(paymentData.getPaymentId())
-                         .append("'");
-        }
-        if (paymentData != null && paymentData.getPaymentInternalRef() != null) {
-            stringBuilder.append(", paymentInternalRef='")
-                         .append(paymentData.getPaymentInternalRef())
-                         .append("'");
-        }
-        if (paymentData != null && paymentData.getPaymentTxnInternalRef() != null) {
-            stringBuilder.append(", paymentTxnInternalRef='")
-                         .append(paymentData.getPaymentTxnInternalRef())
+        if (paymentData != null && paymentData.getPaymentTransactionExternalKey() != null) {
+            stringBuilder.append(", paymentTransactionExternalKey='")
+                         .append(paymentData.getPaymentTransactionExternalKey())
                          .append("'");
         }
         if (userData != null && userData.getCustomerId() != null) {

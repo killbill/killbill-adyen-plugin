@@ -1,7 +1,8 @@
 /*
- * Copyright 2014 Groupon, Inc
+ * Copyright 2014-2016 Groupon, Inc
+ * Copyright 2014-2016 The Billing Project, LLC
  *
- * Groupon licenses this file to you under the Apache License, version 2.0
+ * The Billing Project licenses this file to you under the Apache License, version 2.0
  * (the "License"); you may not use this file except in compliance with the
  * License.  You may obtain a copy of the License at:
  *
@@ -16,53 +17,28 @@
 
 package org.killbill.billing.plugin.adyen.client.model;
 
-import java.util.UUID;
-
 public class PaymentData<I extends PaymentInfo> {
 
-    private UUID paymentId;
-    private String paymentInternalRef;
-    private String paymentTxnInternalRef;
-    private I paymentInfo;
+    private final String paymentTransactionExternalKey;
+    private final I paymentInfo;
 
-    public String getPaymentInternalRef() {
-        return paymentInternalRef;
+    public PaymentData(final String paymentTransactionExternalKey, final I paymentInfo) {
+        this.paymentTransactionExternalKey = paymentTransactionExternalKey;
+        this.paymentInfo = paymentInfo;
     }
 
-    public void setPaymentInternalRef(final String paymentInternalRef) {
-        this.paymentInternalRef = paymentInternalRef;
-    }
-
-    public String getPaymentTxnInternalRef() {
-        return paymentTxnInternalRef;
-    }
-
-    public void setPaymentTxnInternalRef(final String paymentTxnInternalRef) {
-        this.paymentTxnInternalRef = paymentTxnInternalRef;
+    public String getPaymentTransactionExternalKey() {
+        return paymentTransactionExternalKey;
     }
 
     public I getPaymentInfo() {
         return paymentInfo;
     }
 
-    public void setPaymentInfo(final I paymentInfo) {
-        this.paymentInfo = paymentInfo;
-    }
-
-    public UUID getPaymentId() {
-        return paymentId;
-    }
-
-    public void setPaymentId(final UUID paymentId) {
-        this.paymentId = paymentId;
-    }
-
     @Override
     public String toString() {
         final StringBuilder sb = new StringBuilder("PaymentData{");
-        sb.append("paymentId=").append(paymentId);
-        sb.append(", paymentInternalRef='").append(paymentInternalRef).append('\'');
-        sb.append(", paymentTxnInternalRef='").append(paymentTxnInternalRef).append('\'');
+        sb.append("paymentTransactionExternalKey='").append(paymentTransactionExternalKey).append('\'');
         sb.append(", paymentInfo=").append(paymentInfo);
         sb.append('}');
         return sb.toString();
@@ -77,29 +53,18 @@ public class PaymentData<I extends PaymentInfo> {
             return false;
         }
 
-        final PaymentData that = (PaymentData) o;
+        final PaymentData<?> that = (PaymentData<?>) o;
 
-        if (paymentId != null ? !paymentId.equals(that.paymentId) : that.paymentId != null) {
+        if (paymentTransactionExternalKey != null ? !paymentTransactionExternalKey.equals(that.paymentTransactionExternalKey) : that.paymentTransactionExternalKey != null) {
             return false;
         }
-        if (paymentInfo != null ? !paymentInfo.equals(that.paymentInfo) : that.paymentInfo != null) {
-            return false;
-        }
-        if (paymentInternalRef != null ? !paymentInternalRef.equals(that.paymentInternalRef) : that.paymentInternalRef != null) {
-            return false;
-        }
-        if (paymentTxnInternalRef != null ? !paymentTxnInternalRef.equals(that.paymentTxnInternalRef) : that.paymentTxnInternalRef != null) {
-            return false;
-        }
+        return paymentInfo != null ? paymentInfo.equals(that.paymentInfo) : that.paymentInfo == null;
 
-        return true;
     }
 
     @Override
     public int hashCode() {
-        int result = paymentId != null ? paymentId.hashCode() : 0;
-        result = 31 * result + (paymentInternalRef != null ? paymentInternalRef.hashCode() : 0);
-        result = 31 * result + (paymentTxnInternalRef != null ? paymentTxnInternalRef.hashCode() : 0);
+        int result = paymentTransactionExternalKey != null ? paymentTransactionExternalKey.hashCode() : 0;
         result = 31 * result + (paymentInfo != null ? paymentInfo.hashCode() : 0);
         return result;
     }

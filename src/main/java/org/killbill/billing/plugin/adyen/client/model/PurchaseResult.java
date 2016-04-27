@@ -1,7 +1,8 @@
 /*
- * Copyright 2014 Groupon, Inc
+ * Copyright 2014-2016 Groupon, Inc
+ * Copyright 2014-2016 The Billing Project, LLC
  *
- * Groupon licenses this file to you under the Apache License, version 2.0
+ * The Billing Project licenses this file to you under the Apache License, version 2.0
  * (the "License"); you may not use this file except in compliance with the
  * License.  You may obtain a copy of the License at:
  *
@@ -43,11 +44,11 @@ public class PurchaseResult extends FrontendForm {
     private final String reason;
     private final String resultCode;
     private final String reference;
-    private final String paymentInternalRef;
+    private final String paymentTransactionExternalKey;
     private final AdyenCallErrorStatus adyenCallErrorStatus;
     private final Map<String, String> additionalData;
 
-    public PurchaseResult(final String paymentInternalRef,
+    public PurchaseResult(final String paymentTransactionExternalKey,
                           final AdyenCallResult<PaymentResult> adyenCallResult) {
         this(Optional.<PaymentServiceProviderResult>absent(),
              null,
@@ -55,7 +56,7 @@ public class PurchaseResult extends FrontendForm {
              null,
              null,
              null,
-             paymentInternalRef,
+             paymentTransactionExternalKey,
              null,
              null,
              adyenCallResult.getResponseStatus().isPresent() ? adyenCallResult.getResponseStatus().get() : null,
@@ -69,11 +70,11 @@ public class PurchaseResult extends FrontendForm {
                           final String pspReference,
                           final String reason,
                           final String resultCode,
-                          final String paymentInternalRef,
+                          final String paymentTransactionExternalKey,
                           final String formUrl,
                           final Map<String, String> formParameter,
                           final Map<String, String> additionalData) {
-        this(Optional.of(result), authCode, pspReference, reason, resultCode, null, paymentInternalRef, formUrl, formParameter, null, additionalData);
+        this(Optional.of(result), authCode, pspReference, reason, resultCode, null, paymentTransactionExternalKey, formUrl, formParameter, null, additionalData);
     }
 
     public PurchaseResult(final PaymentServiceProviderResult result,
@@ -81,9 +82,9 @@ public class PurchaseResult extends FrontendForm {
                           final String pspReference,
                           final String reason,
                           final String resultCode,
-                          final String paymentInternalRef,
+                          final String paymentTransactionExternalKey,
                           final Map<String, String> additionalData) {
-        this(Optional.of(result), authCode, pspReference, reason, resultCode, null, paymentInternalRef, null, null, null, additionalData);
+        this(Optional.of(result), authCode, pspReference, reason, resultCode, null, paymentTransactionExternalKey, null, null, null, additionalData);
     }
 
     private PurchaseResult(final Optional<PaymentServiceProviderResult> result,
@@ -92,7 +93,7 @@ public class PurchaseResult extends FrontendForm {
                            final String reason,
                            @Nullable final String resultCode,
                            final String reference,
-                           final String paymentInternalRef,
+                           final String paymentTransactionExternalKey,
                            final String formUrl,
                            final Map<String, String> formParameter,
                            @Nullable final AdyenCallErrorStatus adyenCallErrorStatus,
@@ -106,7 +107,7 @@ public class PurchaseResult extends FrontendForm {
         this.reason = reason;
         this.resultCode = resultCode;
         this.reference = reference;
-        this.paymentInternalRef = paymentInternalRef;
+        this.paymentTransactionExternalKey = paymentTransactionExternalKey;
         this.additionalData = firstNonNull(additionalData, ImmutableMap.<String, String>of());
     }
 
@@ -114,8 +115,8 @@ public class PurchaseResult extends FrontendForm {
         return reference;
     }
 
-    public String getPaymentInternalRef() {
-        return paymentInternalRef;
+    public String getPaymentTransactionExternalKey() {
+        return paymentTransactionExternalKey;
     }
 
     public String getAuthCode() {
@@ -163,7 +164,7 @@ public class PurchaseResult extends FrontendForm {
         sb.append(", reason='").append(reason).append('\'');
         sb.append(", resultCode='").append(resultCode).append('\'');
         sb.append(", reference='").append(reference).append('\'');
-        sb.append(", paymentInternalRef='").append(paymentInternalRef).append('\'');
+        sb.append(", paymentTransactionExternalKey='").append(paymentTransactionExternalKey).append('\'');
         sb.append(", adyenCallErrorStatus=").append(adyenCallErrorStatus);
         sb.append(", additionalData={");
         // Make sure to escape values, as they may contain spaces (e.g. avsResult='4 AVS not supported for this card type')
@@ -231,7 +232,7 @@ public class PurchaseResult extends FrontendForm {
         result1 = 31 * result1 + (reason != null ? reason.hashCode() : 0);
         result1 = 31 * result1 + (resultCode != null ? resultCode.hashCode() : 0);
         result1 = 31 * result1 + (reference != null ? reference.hashCode() : 0);
-        result1 = 31 * result1 + (paymentInternalRef != null ? paymentInternalRef.hashCode() : 0);
+        result1 = 31 * result1 + (paymentTransactionExternalKey != null ? paymentTransactionExternalKey.hashCode() : 0);
         result1 = 31 * result1 + (adyenCallErrorStatus != null ? adyenCallErrorStatus.hashCode() : 0);
         result1 = 31 * result1 + (additionalData != null ? additionalData.hashCode() : 0);
         return result1;

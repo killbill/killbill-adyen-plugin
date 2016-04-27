@@ -1,7 +1,8 @@
 /*
- * Copyright 2014 Groupon, Inc
+ * Copyright 2014-2016 Groupon, Inc
+ * Copyright 2014-2016 The Billing Project, LLC
  *
- * Groupon licenses this file to you under the Apache License, version 2.0
+ * The Billing Project licenses this file to you under the Apache License, version 2.0
  * (the "License"); you may not use this file except in compliance with the
  * License.  You may obtain a copy of the License at:
  *
@@ -47,9 +48,7 @@ public class TestRemoteAdyenPaymentServiceProviderHostedPaymentPagePort extends 
         paymentProvider.setPaymentType(PaymentType.CREDITCARD);
         final WebPaymentFrontend paymentInfo = new WebPaymentFrontend(paymentProvider);
 
-        final PaymentData<WebPaymentFrontend> paymentData = new PaymentData<WebPaymentFrontend>();
-        paymentData.setPaymentInternalRef(UUID.randomUUID().toString());
-        paymentData.setPaymentInfo(paymentInfo);
+        final PaymentData<WebPaymentFrontend> paymentData = new PaymentData<WebPaymentFrontend>(UUID.randomUUID().toString(), paymentInfo);
 
         final OrderData orderData = new OrderData();
         orderData.setShipBeforeDate(new DateTime(DateTimeZone.UTC));

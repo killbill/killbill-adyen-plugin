@@ -40,9 +40,7 @@ public class TestRemoteAdyenPaymentServiceProviderPort extends TestRemoteBase {
     @Test(groups = "slow")
     public void testAuthorizeAndMultiplePartialCaptures() throws Exception {
         final BigDecimal authAmount = BigDecimal.TEN;
-        final PaymentData<CreditCard> paymentData = new PaymentData<CreditCard>();
-        paymentData.setPaymentTxnInternalRef(UUID.randomUUID().toString());
-        paymentData.setPaymentInfo(getCreditCard());
+        final PaymentData<CreditCard> paymentData = new PaymentData<CreditCard>(UUID.randomUUID().toString(), getCreditCard());
         final OrderData orderData = new OrderData();
         final UserData userData = new UserData();
         final String termUrl = null;
@@ -76,9 +74,7 @@ public class TestRemoteAdyenPaymentServiceProviderPort extends TestRemoteBase {
     @Test(groups = "slow")
     public void testAuthorizeAndVoid() throws Exception {
         final BigDecimal authAmount = BigDecimal.TEN;
-        final PaymentData<CreditCard> paymentData = new PaymentData<CreditCard>();
-        paymentData.setPaymentTxnInternalRef(UUID.randomUUID().toString());
-        paymentData.setPaymentInfo(getCreditCard());
+        final PaymentData<CreditCard> paymentData = new PaymentData<CreditCard>(UUID.randomUUID().toString(), getCreditCard());
         final OrderData orderData = new OrderData();
         final UserData userData = new UserData();
         final String termUrl = null;
@@ -101,9 +97,7 @@ public class TestRemoteAdyenPaymentServiceProviderPort extends TestRemoteBase {
     @Test(groups = "slow")
     public void testAuthorizeCaptureAndRefund() throws Exception {
         final BigDecimal authAmount = BigDecimal.TEN;
-        final PaymentData<CreditCard> paymentData = new PaymentData<CreditCard>();
-        paymentData.setPaymentTxnInternalRef(UUID.randomUUID().toString());
-        paymentData.setPaymentInfo(getCreditCard());
+        final PaymentData<CreditCard> paymentData = new PaymentData<CreditCard>(UUID.randomUUID().toString(), getCreditCard());
         final OrderData orderData = new OrderData();
         final UserData userData = new UserData();
         final String termUrl = null;
@@ -136,9 +130,7 @@ public class TestRemoteAdyenPaymentServiceProviderPort extends TestRemoteBase {
     @Test(groups = "slow")
     public void testAuthorizeAndBadVoid() throws Exception {
         final BigDecimal authAmount = BigDecimal.TEN;
-        final PaymentData<CreditCard> paymentData = new PaymentData<CreditCard>();
-        paymentData.setPaymentTxnInternalRef(UUID.randomUUID().toString());
-        paymentData.setPaymentInfo(getCreditCard());
+        final PaymentData<CreditCard> paymentData = new PaymentData<CreditCard>(UUID.randomUUID().toString(), getCreditCard());
         final OrderData orderData = new OrderData();
         final UserData userData = new UserData();
         final String termUrl = null;

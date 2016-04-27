@@ -81,7 +81,7 @@ public class AdyenRequestFactory {
                                                                                                                 .withMerchantAccount(getMerchantAccount(paymentInfo))
                                                                                                                 .withRecurringContractForUser()
                                                                                                                 .withSelectedRecurringDetailReference()
-                                                                                                                .withReference(paymentData.getPaymentTxnInternalRef())
+                                                                                                                .withReference(paymentData.getPaymentTransactionExternalKey())
                                                                                                                 .withShopperEmail(userData.getEmail())
                                                                                                                 .withShopperIp(userData.getIP())
                                                                                                                 .withShopperName(userData.getFirstName(), userData.getLastName())
@@ -156,7 +156,7 @@ public class AdyenRequestFactory {
                                resultUrl,
                                countryIsoCode,
                                currencyIsoCode,
-                               paymentData.getPaymentInternalRef(),
+                               paymentData.getPaymentTransactionExternalKey(),
                                shipBeforeDate,
                                paymentInfo,
                                splitSettlementData,

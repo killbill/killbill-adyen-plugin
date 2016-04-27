@@ -480,7 +480,7 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
             dao.addHppRequest(kbAccountId,
                               pendingPayment == null ? null : pendingPayment.getId(),
                               pendingPayment == null ? null : pendingPayment.getTransactions().get(0).getId(),
-                              pendingPayment == null ? paymentData.getPaymentTxnInternalRef() : pendingPayment.getTransactions().get(0).getExternalKey(),
+                              pendingPayment == null ? paymentData.getPaymentTransactionExternalKey() : pendingPayment.getTransactions().get(0).getExternalKey(),
                               PluginProperties.toMap(mergedProperties),
                               clock.getUTCNow(),
                               context.getTenantId());
@@ -608,43 +608,32 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
     }
 
     // For API
-    private PaymentData buildPaymentData(final AccountData account, final UUID kbPaymentId, final UUID kbTransactionId, final AdyenPaymentMethodsRecord paymentMethodsRecord, final Currency currency, final Iterable<PluginProperty> properties, final TenantContext context) {
-        final PaymentData<PaymentInfo> paymentData = new PaymentData<PaymentInfo>();
-
-        Payment payment = null;
-        PaymentTransaction paymentTransaction = null;
+    private PaymentData buildPaymentData(final AccountData account, final UUID kbPaymentId, final UUID kbTransactionId, final AdyenPaymentMethodsRecord paymentMethodsRecord, final Currency currency, final Iterable<PluginProperty> properties, final TenantContext context) throws PaymentPluginApiException {
+        final Payment payment;
         try {
             payment = killbillAPI.getPaymentApi().getPayment(kbPaymentId, false, properties, context);
-            //noinspection RedundantTypeArguments
-            paymentTransaction = Iterables.<PaymentTransaction>find(payment.getTransactions(),
-                                                new Predicate<PaymentTransaction>() {
-                                                    @Override
-                                                    public boolean apply(final PaymentTransaction input) {
-                                                        return kbTransactionId.equals(input.getId());
-                                                    }
-                                                });
         } catch (final PaymentApiException e) {
-            logService.log(LogService.LOG_WARNING, "Failed to retrieve payment " + kbPaymentId, e);
+            throw new PaymentPluginApiException(String.format("Unable to retrieve kbPaymentId='%s'", kbPaymentId), e);
         }
-        Preconditions.checkNotNull(payment);
-        Preconditions.checkNotNull(paymentTransaction);
 
-        paymentData.setPaymentId(kbPaymentId);
-        paymentData.setPaymentInternalRef(payment.getExternalKey());
-        paymentData.setPaymentTxnInternalRef(paymentTransaction.getExternalKey());
-        paymentData.setPaymentInfo(buildPaymentInfo(account, paymentMethodsRecord, currency, properties, context));
+        final PaymentTransaction paymentTransaction = Iterables.<PaymentTransaction>find(payment.getTransactions(),
+                                                                                         new Predicate<PaymentTransaction>() {
+                                                                                             @Override
+                                                                                             public boolean apply(final PaymentTransaction input) {
+                                                                                                 return kbTransactionId.equals(input.getId());
+                                                                                             }
+                                                                                         });
 
-        return paymentData;
+        final PaymentInfo paymentInfo = buildPaymentInfo(account, paymentMethodsRecord, currency, properties, context);
+
+        return new PaymentData<PaymentInfo>(paymentTransaction.getExternalKey(), paymentInfo);
     }
 
     // For HPP
     private PaymentData buildPaymentData(final AccountData account, final Iterable<PluginProperty> properties, final TenantContext context) {
-        final PaymentData<WebPaymentFrontend> paymentData = new PaymentData<WebPaymentFrontend>();
-        final String internalRef = PluginProperties.getValue(PROPERTY_PAYMENT_EXTERNAL_KEY, UUID.randomUUID().toString(), properties);
-        paymentData.setPaymentInternalRef(internalRef);
-        paymentData.setPaymentTxnInternalRef(internalRef);
-        paymentData.setPaymentInfo(buildPaymentInfo(account, properties, context));
-        return paymentData;
+        final WebPaymentFrontend webPaymentFrontend = buildPaymentInfo(account, properties, context);
+        final String paymentTransactionExternalKey = PluginProperties.getValue(PROPERTY_PAYMENT_EXTERNAL_KEY, UUID.randomUUID().toString(), properties);
+        return new PaymentData<WebPaymentFrontend>(paymentTransactionExternalKey, webPaymentFrontend);
     }
 
     // For API
@@ -918,9 +907,9 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
     private Payment createPendingPayment(final Account account, final BigDecimal amount, final PaymentData paymentData, final CallContext context) throws PaymentPluginApiException {
         final UUID kbPaymentId = null;
         final Currency currency = Currency.valueOf(paymentData.getPaymentInfo().getPaymentProvider().getCurrency().toString());
-        final String paymentExternalKey = paymentData.getPaymentTxnInternalRef();
+        final String paymentTransactionExternalKey = paymentData.getPaymentTransactionExternalKey();
         //noinspection UnnecessaryLocalVariable
-        final String paymentTransactionExternalKey = paymentExternalKey;
+        final String paymentExternalKey = paymentTransactionExternalKey;
         final ImmutableMap<String, Object> purchasePropertiesMap = ImmutableMap.<String, Object>of(AdyenPaymentPluginApi.PROPERTY_FROM_HPP, true,
                                                                                                    AdyenPaymentPluginApi.PROPERTY_FROM_HPP_TRANSACTION_STATUS, PaymentPluginStatus.PENDING.toString());
         final Iterable<PluginProperty> purchaseProperties = PluginProperties.buildPluginProperties(purchasePropertiesMap);

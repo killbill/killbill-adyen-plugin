@@ -241,7 +241,7 @@ public class AdyenDao extends PluginPaymentDao<AdyenResponsesRecord, AdyenRespon
                                    result.getReason(),
                                    result.getReference(),
                                    null,
-                                   result.getPaymentInternalRef(),
+                                   result.getPaymentTransactionExternalKey(),
                                    result.getFormUrl(),
                                    dccAmountValue == null ? null : new BigDecimal(dccAmountValue),
                                    getProperty(AdyenPaymentPluginApi.PROPERTY_DCC_AMOUNT_CURRENCY, result),

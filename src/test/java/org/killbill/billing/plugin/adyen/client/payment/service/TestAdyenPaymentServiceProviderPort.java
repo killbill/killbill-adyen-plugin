@@ -1,7 +1,8 @@
 /*
- * Copyright 2014 Groupon, Inc
+ * Copyright 2014-2016 Groupon, Inc
+ * Copyright 2014-2016 The Billing Project, LLC
  *
- * Groupon licenses this file to you under the Apache License, version 2.0
+ * The Billing Project licenses this file to you under the Apache License, version 2.0
  * (the "License"); you may not use this file except in compliance with the
  * License.  You may obtain a copy of the License at:
  *
@@ -15,6 +16,8 @@
  */
 
 package org.killbill.billing.plugin.adyen.client.payment.service;
+
+import java.util.UUID;
 
 import org.killbill.adyen.payment.Card;
 import org.killbill.adyen.payment.PaymentRequest;
@@ -57,8 +60,7 @@ public class TestAdyenPaymentServiceProviderPort {
         paymentRequest.setCard(card);
 
         final CreditCard paymentInfo = new CreditCard(paymentProvider);
-        this.paymentData = new PaymentData<CreditCard>();
-        this.paymentData.setPaymentInfo(paymentInfo);
+        this.paymentData = new PaymentData<CreditCard>(UUID.randomUUID().toString(), paymentInfo);
 
         this.adyenPaymentServiceProviderPort = Mockito.spy(new AdyenPaymentServiceProviderPort(paymentInfoConverterManagement,
                                                                                                mock(AdyenRequestFactory.class),

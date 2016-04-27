@@ -1,7 +1,8 @@
 /*
- * Copyright 2014 Groupon, Inc
+ * Copyright 2014-2016 Groupon, Inc
+ * Copyright 2014-2016 The Billing Project, LLC
  *
- * Groupon licenses this file to you under the Apache License, version 2.0
+ * The Billing Project licenses this file to you under the Apache License, version 2.0
  * (the "License"); you may not use this file except in compliance with the
  * License.  You may obtain a copy of the License at:
  *
@@ -57,7 +58,7 @@ public class AdyenPaymentServiceProviderHostedPaymentPagePort extends BaseAdyenP
 
     public Map<String, String> getFormParameter(final BigDecimal amountBD, final PaymentData paymentData, final OrderData orderData, final UserData userData, final String serverUrl, final String resultUrl) throws SignatureGenerationException {
         Preconditions.checkNotNull(amountBD, "amount");
-        Preconditions.checkNotNull(paymentData.getPaymentInternalRef(), "paymentData#paymentInternalRef");
+        Preconditions.checkNotNull(paymentData.getPaymentTransactionExternalKey(), "paymentData#paymentTransactionExternalKey");
         Preconditions.checkNotNull(paymentData.getPaymentInfo(), "paymentData#paymentInfo");
         Preconditions.checkNotNull(paymentData.getPaymentInfo().getPaymentProvider(), "paymentInfo#paymentProvider");
         Preconditions.checkNotNull(paymentData.getPaymentInfo().getPaymentProvider().getCurrency(), "paymentProvider#currency");
