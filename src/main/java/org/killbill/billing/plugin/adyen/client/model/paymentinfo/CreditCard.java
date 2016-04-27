@@ -48,11 +48,6 @@ public class CreditCard extends Card {
     }
 
     @Override
-    public String getValidCCNoSizes() {
-        return "13-16";
-    }
-
-    @Override
     public String toString() {
         final StringBuilder sb = new StringBuilder("CreditCard{");
         sb.append("installments=").append(installments);

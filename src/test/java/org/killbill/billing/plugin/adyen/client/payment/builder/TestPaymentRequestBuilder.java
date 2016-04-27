@@ -1,7 +1,8 @@
 /*
- * Copyright 2014 Groupon, Inc
+ * Copyright 2014-2016 Groupon, Inc
+ * Copyright 2014-2016 The Billing Project, LLC
  *
- * Groupon licenses this file to you under the Apache License, version 2.0
+ * The Billing Project licenses this file to you under the Apache License, version 2.0
  * (the "License"); you may not use this file except in compliance with the
  * License.  You may obtain a copy of the License at:
  *
@@ -34,8 +35,8 @@ import org.killbill.billing.plugin.adyen.client.model.PaymentProvider;
 import org.killbill.billing.plugin.adyen.client.model.RecurringType;
 import org.killbill.billing.plugin.adyen.client.model.SplitSettlementData;
 import org.killbill.billing.plugin.adyen.client.model.SplitSettlementData.Item;
-import org.killbill.billing.plugin.adyen.client.model.paymentinfo.Amex;
 import org.killbill.billing.plugin.adyen.client.model.paymentinfo.Card;
+import org.killbill.billing.plugin.adyen.client.model.paymentinfo.CreditCard;
 import org.killbill.billing.plugin.adyen.client.model.paymentinfo.SepaDirectDebit;
 import org.killbill.billing.plugin.adyen.client.payment.converter.PaymentInfoConverter;
 import org.killbill.billing.plugin.adyen.client.payment.converter.PaymentInfoConverterManagement;
@@ -187,7 +188,7 @@ public class TestPaymentRequestBuilder extends BaseTestPaymentRequestBuilder {
         final BrowserInfo expectedBrowserInfo = createBrowserInfo();
 
         final PaymentProvider paymentProvider = new PaymentProvider(adyenConfigProperties);
-        final Amex amex = new Amex(paymentProvider);
+        final CreditCard amex = new CreditCard(paymentProvider);
         Mockito.when(paymentInfoConverterManagement.getBrowserInfoFor3DSecureAuth(amount, amex)).thenReturn(expectedBrowserInfo);
 
         final PaymentRequest paymentRequest = new PaymentRequestBuilder(amex, paymentInfoConverterManagement, ANY_HOLDER_NAME).withBrowserInfo(amount)
@@ -217,7 +218,7 @@ public class TestPaymentRequestBuilder extends BaseTestPaymentRequestBuilder {
 
         final PaymentProvider paymentProvider = Mockito.mock(PaymentProvider.class);
         Mockito.when(paymentProvider.send3DSTermUrl()).thenReturn(true);
-        final Amex amex = new Amex(paymentProvider);
+        final CreditCard amex = new CreditCard(paymentProvider);
 
         final PaymentRequest paymentRequest = new PaymentRequestBuilder(amex, paymentInfoConverterManagement, ANY_HOLDER_NAME).withReturnUrl(returnUrl)
                                                                                                                               .build();
@@ -245,7 +246,7 @@ public class TestPaymentRequestBuilder extends BaseTestPaymentRequestBuilder {
 
         final PaymentProvider paymentProvider = Mockito.mock(PaymentProvider.class);
         Mockito.when(paymentProvider.send3DSTermUrl()).thenReturn(false);
-        final Amex card = new Amex(paymentProvider);
+        final CreditCard card = new CreditCard(paymentProvider);
 
         final PaymentRequest paymentRequest = new PaymentRequestBuilder(card, paymentInfoConverterManagement, ANY_HOLDER_NAME).withReturnUrl(returnUrl)
                                                                                                                               .build();
@@ -259,7 +260,7 @@ public class TestPaymentRequestBuilder extends BaseTestPaymentRequestBuilder {
 
         final PaymentProvider paymentProvider = new PaymentProvider(adyenConfigProperties);
         paymentProvider.setRecurringType(RecurringType.RECURRING);
-        final Amex amex = new Amex(paymentProvider);
+        final CreditCard amex = new CreditCard(paymentProvider);
         amex.setRecurringDetailId(myRecurringDetailId);
 
         final PaymentRequest paymentRequest = new PaymentRequestBuilder(amex, paymentInfoConverterManagement, ANY_HOLDER_NAME).withSelectedRecurringDetailReference()
@@ -273,7 +274,7 @@ public class TestPaymentRequestBuilder extends BaseTestPaymentRequestBuilder {
         final String myRecurringDetailId = null;
 
         final PaymentProvider paymentProvider = new PaymentProvider(adyenConfigProperties);
-        final Amex amex = new Amex(paymentProvider);
+        final CreditCard amex = new CreditCard(paymentProvider);
         amex.setRecurringDetailId(myRecurringDetailId);
 
         final PaymentRequest paymentRequest = new PaymentRequestBuilder(amex, paymentInfoConverterManagement, ANY_HOLDER_NAME).withSelectedRecurringDetailReference()
@@ -287,7 +288,7 @@ public class TestPaymentRequestBuilder extends BaseTestPaymentRequestBuilder {
         final String myRecurringDetailId = "";
 
         final PaymentProvider paymentProvider = new PaymentProvider(adyenConfigProperties);
-        final Amex amex = new Amex(paymentProvider);
+        final CreditCard amex = new CreditCard(paymentProvider);
         amex.setRecurringDetailId(myRecurringDetailId);
 
         final PaymentRequest paymentRequest = new PaymentRequestBuilder(amex, paymentInfoConverterManagement, ANY_HOLDER_NAME).withSelectedRecurringDetailReference()
@@ -300,7 +301,7 @@ public class TestPaymentRequestBuilder extends BaseTestPaymentRequestBuilder {
     public void shouldUseTheRecurringTypeOfThePaymentInfoWhenRecurringDetailReferenceIsSet() {
         final PaymentProvider paymentProvider = new PaymentProvider(adyenConfigProperties);
         paymentProvider.setRecurringType(RecurringType.ONECLICK);
-        final Amex amex = new Amex(paymentProvider);
+        final CreditCard amex = new CreditCard(paymentProvider);
         amex.setRecurringDetailId("anyRecurringDetailId");
 
         final PaymentRequest paymentRequest = new PaymentRequestBuilder(amex, paymentInfoConverterManagement, ANY_HOLDER_NAME).withRecurringContractForUser()
@@ -313,7 +314,7 @@ public class TestPaymentRequestBuilder extends BaseTestPaymentRequestBuilder {
     @Test(groups = "fast")
     public void shouldAlwaysContainTheSplitSettlementData() {
         final PaymentProvider paymentProvider = new PaymentProvider(adyenConfigProperties);
-        final Amex amex = new Amex(paymentProvider);
+        final CreditCard amex = new CreditCard(paymentProvider);
 
         final SplitSettlementData splitSettlementData = new SplitSettlementData(1, "EUR", ImmutableList.<Item>of(new SplitSettlementData.Item(500, "deal1", "voucherId", "voucher"),
                                                                                                                  new SplitSettlementData.Item(750, "deal1", "voucherId2", "voucher"),

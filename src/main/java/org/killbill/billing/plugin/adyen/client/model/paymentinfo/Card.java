@@ -133,10 +133,6 @@ public class Card extends PaymentInfo {
                 .toGregorianCalendar();
     }
 
-    public String getValidCCNoSizes() {
-        return "12-19";
-    }
-
     @Override
     public String toString() {
         final StringBuilder sb = new StringBuilder("Card{");

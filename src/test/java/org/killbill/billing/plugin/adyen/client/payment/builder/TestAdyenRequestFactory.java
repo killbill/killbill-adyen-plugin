@@ -1,7 +1,8 @@
 /*
- * Copyright 2014 Groupon, Inc
+ * Copyright 2014-2016 Groupon, Inc
+ * Copyright 2014-2016 The Billing Project, LLC
  *
- * Groupon licenses this file to you under the Apache License, version 2.0
+ * The Billing Project licenses this file to you under the Apache License, version 2.0
  * (the "License"); you may not use this file except in compliance with the
  * License.  You may obtain a copy of the License at:
  *
@@ -32,7 +33,7 @@ import org.killbill.billing.plugin.adyen.client.model.PaymentInfo;
 import org.killbill.billing.plugin.adyen.client.model.PaymentProvider;
 import org.killbill.billing.plugin.adyen.client.model.PaymentType;
 import org.killbill.billing.plugin.adyen.client.model.SplitSettlementData;
-import org.killbill.billing.plugin.adyen.client.model.paymentinfo.Amex;
+import org.killbill.billing.plugin.adyen.client.model.paymentinfo.CreditCard;
 import org.killbill.billing.plugin.adyen.client.payment.converter.PaymentInfoConverterManagement;
 import org.killbill.billing.plugin.adyen.client.payment.service.Signer;
 import org.mockito.Mockito;
@@ -131,7 +132,7 @@ public class TestAdyenRequestFactory {
                                                                       .withItem(new SplitSettlementData.Item(item2Amount, item2Group, item2Reference, item2Type))
                                                                       .build();
 
-        final Amex amex = Mockito.mock(Amex.class);
+        final CreditCard amex = Mockito.mock(CreditCard.class);
         final PaymentProvider paymentProvider = new PaymentProvider(adyenConfigProperties);
         paymentProvider.setPaymentType(PaymentType.AMEX);
 
