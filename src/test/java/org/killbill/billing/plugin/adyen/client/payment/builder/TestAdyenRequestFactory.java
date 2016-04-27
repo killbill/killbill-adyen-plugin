@@ -29,6 +29,7 @@ import org.killbill.adyen.payment.AnyType2AnyTypeMap;
 import org.killbill.adyen.payment.AnyType2AnyTypeMap.Entry;
 import org.killbill.adyen.payment.ModificationRequest;
 import org.killbill.billing.plugin.adyen.client.AdyenConfigProperties;
+import org.killbill.billing.plugin.adyen.client.model.PaymentData;
 import org.killbill.billing.plugin.adyen.client.model.PaymentInfo;
 import org.killbill.billing.plugin.adyen.client.model.PaymentProvider;
 import org.killbill.billing.plugin.adyen.client.model.PaymentType;
@@ -91,7 +92,7 @@ public class TestAdyenRequestFactory {
 
         final AdyenRequestFactory adyenRequestFactory = new AdyenRequestFactory(paymentInfoConverterManagement, adyenConfigProperties, null);
 
-        final ModificationRequest modificationRequest = adyenRequestFactory.paymentExecutionToAdyenModificationRequest(validPaymentProvider(), 0L, "ref", settlementData);
+        final ModificationRequest modificationRequest = adyenRequestFactory.createModificationRequest("UK", 1L, "EUR", "ref", "ref2", settlementData);
 
         assertSplitSettlementDataIsValid(settlementData, modificationRequest);
     }
@@ -104,7 +105,7 @@ public class TestAdyenRequestFactory {
                                                                       .build();
         final AdyenRequestFactory adyenRequestFactory = new AdyenRequestFactory(paymentInfoConverterManagement, adyenConfigProperties, null);
 
-        final ModificationRequest modificationRequest = adyenRequestFactory.paymentExecutionToAdyenModificationRequest(validPaymentProvider(), "ref", settlementData);
+        final ModificationRequest modificationRequest = adyenRequestFactory.createModificationRequest("UK", 1L, "EUR", "ref", "ref2", settlementData);
 
         assertSplitSettlementDataIsValid(settlementData, modificationRequest);
     }
@@ -172,12 +173,6 @@ public class TestAdyenRequestFactory {
         final AnyType2AnyTypeMap additionalData = modificationRequest.getAdditionalData();
         final Map<String, String> actualMap = anyType2AnyTypeMapToStringMap(additionalData);
         Assert.assertTrue(actualMap.entrySet().containsAll(expectedSplitSettlementEntries.entrySet()));
-    }
-
-    private PaymentProvider validPaymentProvider() {
-        final PaymentProvider paymentProvider = new PaymentProvider(adyenConfigProperties);
-        paymentProvider.setCurrency(Currency.getInstance("EUR"));
-        return paymentProvider;
     }
 
     private Map<String, String> getExpectedSplitSettlementParams(final SplitSettlementData settlementData) {

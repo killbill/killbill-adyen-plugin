@@ -1,7 +1,8 @@
 /*
- * Copyright 2014 Groupon, Inc
+ * Copyright 2014-2016 Groupon, Inc
+ * Copyright 2014-2016 The Billing Project, LLC
  *
- * Groupon licenses this file to you under the Apache License, version 2.0
+ * The Billing Project licenses this file to you under the Apache License, version 2.0
  * (the "License"); you may not use this file except in compliance with the
  * License.  You may obtain a copy of the License at:
  *
@@ -57,16 +58,15 @@ public class TestRemoteAdyenPaymentServiceProviderPort extends TestRemoteBase {
         Assert.assertNull(authorizeResult.getReason());
 
         final BigDecimal captureAmount = new BigDecimal("5");
-        final PaymentProvider paymentProvider = paymentData.getPaymentInfo().getPaymentProvider();
         final String pspReference = authorizeResult.getPspReference();
 
         // First capture
-        final PaymentModificationResponse capture1Result = adyenPaymentServiceProviderPort.capture(captureAmount, paymentProvider, pspReference, splitSettlementData);
+        final PaymentModificationResponse capture1Result = adyenPaymentServiceProviderPort.capture(captureAmount, DEFAULT_CURRENCY, paymentData, pspReference, splitSettlementData);
         Assert.assertNotNull(capture1Result.getPspReference());
         Assert.assertEquals(capture1Result.getResponse(), "[capture-received]");
 
         // Second capture
-        final PaymentModificationResponse capture2Result = adyenPaymentServiceProviderPort.capture(captureAmount, paymentProvider, pspReference, splitSettlementData);
+        final PaymentModificationResponse capture2Result = adyenPaymentServiceProviderPort.capture(captureAmount, DEFAULT_CURRENCY, paymentData, pspReference, splitSettlementData);
         Assert.assertNotNull(capture2Result.getPspReference());
         Assert.assertEquals(capture2Result.getResponse(), "[capture-received]");
     }
@@ -86,10 +86,9 @@ public class TestRemoteAdyenPaymentServiceProviderPort extends TestRemoteBase {
         Assert.assertNotNull(authorizeResult.getAuthCode());
         Assert.assertNull(authorizeResult.getReason());
 
-        final PaymentProvider paymentProvider = paymentData.getPaymentInfo().getPaymentProvider();
         final String pspReference = authorizeResult.getPspReference();
 
-        final PaymentModificationResponse voidResult = adyenPaymentServiceProviderPort.cancel(paymentProvider, pspReference, splitSettlementData);
+        final PaymentModificationResponse voidResult = adyenPaymentServiceProviderPort.cancel(paymentData, pspReference, splitSettlementData);
         Assert.assertNotNull(voidResult.getPspReference());
         Assert.assertEquals(voidResult.getResponse(), "[cancel-received]");
     }
@@ -111,10 +110,9 @@ public class TestRemoteAdyenPaymentServiceProviderPort extends TestRemoteBase {
 
         //noinspection UnnecessaryLocalVariable
         final BigDecimal captureAmount = authAmount;
-        final PaymentProvider paymentProvider = paymentData.getPaymentInfo().getPaymentProvider();
         final String capturePspReference = authorizeResult.getPspReference();
 
-        final PaymentModificationResponse captureResult = adyenPaymentServiceProviderPort.capture(captureAmount, paymentProvider, capturePspReference, splitSettlementData);
+        final PaymentModificationResponse captureResult = adyenPaymentServiceProviderPort.capture(captureAmount, DEFAULT_CURRENCY, paymentData, capturePspReference, splitSettlementData);
         Assert.assertNotNull(captureResult.getPspReference());
         Assert.assertEquals(captureResult.getResponse(), "[capture-received]");
 
@@ -122,7 +120,7 @@ public class TestRemoteAdyenPaymentServiceProviderPort extends TestRemoteBase {
         final BigDecimal refundAmount = captureAmount;
         final String refundPspReference = captureResult.getPspReference();
 
-        final PaymentModificationResponse refundResult = adyenPaymentServiceProviderPort.refund(refundAmount, paymentProvider, refundPspReference, splitSettlementData);
+        final PaymentModificationResponse refundResult = adyenPaymentServiceProviderPort.refund(refundAmount, DEFAULT_CURRENCY, paymentData, refundPspReference, splitSettlementData);
         Assert.assertNotNull(refundResult.getPspReference());
         Assert.assertEquals(refundResult.getResponse(), "[refund-received]");
     }
@@ -142,10 +140,9 @@ public class TestRemoteAdyenPaymentServiceProviderPort extends TestRemoteBase {
         Assert.assertNotNull(authorizeResult.getAuthCode());
         Assert.assertNull(authorizeResult.getReason());
 
-        final PaymentProvider paymentProvider = paymentData.getPaymentInfo().getPaymentProvider();
         final String pspReference = UUID.randomUUID().toString();
 
-        final PaymentModificationResponse voidResult = adyenPaymentServiceProviderPort.cancel(paymentProvider, pspReference, splitSettlementData);
+        final PaymentModificationResponse voidResult = adyenPaymentServiceProviderPort.cancel(paymentData, pspReference, splitSettlementData);
         assertFalse(voidResult.isTechnicallySuccessful());
     }
 

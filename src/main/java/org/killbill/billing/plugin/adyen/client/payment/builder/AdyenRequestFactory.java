@@ -114,24 +114,23 @@ public class AdyenRequestFactory {
                                             .build();
     }
 
-    public ModificationRequest paymentExecutionToAdyenModificationRequest(final PaymentProvider paymentProvider,
-                                                                          final String pspReference,
-                                                                          @Nullable final SplitSettlementData splitSettlementData) {
-        return new ModificationRequestBuilder().withOriginalReference(pspReference)
-                                               .withMerchantAccount(getMerchantAccount(paymentProvider))
-                                               .withSplitSettlementData(splitSettlementData)
-                                               .build();
-    }
+    public ModificationRequest createModificationRequest(final String country,
+                                                         @Nullable final Long amount,
+                                                         @Nullable final String currency,
+                                                         final String pspReference,
+                                                         final String paymentTransactionExternalKey,
+                                                         @Nullable final SplitSettlementData splitSettlementData) {
+        final ModificationRequestBuilder modificationRequestBuilder = new ModificationRequestBuilder(getMerchantAccount(country),
+                                                                                                     amount,
+                                                                                                     currency,
+                                                                                                     pspReference,
+                                                                                                     paymentTransactionExternalKey);
 
-    public ModificationRequest paymentExecutionToAdyenModificationRequest(final PaymentProvider paymentProvider,
-                                                                          final Long amount,
-                                                                          final String pspReference,
-                                                                          @Nullable final SplitSettlementData splitSettlementData) {
-        return new ModificationRequestBuilder().withAmount(paymentProvider.getCurrency().getCurrencyCode(), amount)
-                                               .withOriginalReference(pspReference)
-                                               .withMerchantAccount(getMerchantAccount(paymentProvider))
-                                               .withSplitSettlementData(splitSettlementData)
-                                               .build();
+        if (splitSettlementData != null) {
+            modificationRequestBuilder.withSplitSettlementData(splitSettlementData);
+        }
+
+        return modificationRequestBuilder.build();
     }
 
     public Map<String, String> createHppRequest(final Long amount,

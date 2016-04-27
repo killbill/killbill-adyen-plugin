@@ -1,7 +1,8 @@
 /*
- * Copyright 2014 Groupon, Inc
+ * Copyright 2014-2016 Groupon, Inc
+ * Copyright 2014-2016 The Billing Project, LLC
  *
- * Groupon licenses this file to you under the Apache License, version 2.0
+ * The Billing Project licenses this file to you under the Apache License, version 2.0
  * (the "License"); you may not use this file except in compliance with the
  * License.  You may obtain a copy of the License at:
  *
@@ -18,6 +19,8 @@ package org.killbill.billing.plugin.adyen.client.payment.builder;
 
 import java.util.List;
 
+import javax.annotation.Nullable;
+
 import org.killbill.adyen.common.Amount;
 import org.killbill.adyen.payment.AnyType2AnyTypeMap;
 import org.killbill.adyen.payment.ModificationRequest;
@@ -25,38 +28,28 @@ import org.killbill.billing.plugin.adyen.client.model.SplitSettlementData;
 
 public class ModificationRequestBuilder extends RequestBuilder<ModificationRequest> {
 
-    public ModificationRequestBuilder() {
+    public ModificationRequestBuilder(final String merchantAccount,
+                                      final String originalReference,
+                                      final String reference) {
+        this(merchantAccount, null, null, originalReference, reference);
+    }
+
+    public ModificationRequestBuilder(final String merchantAccount,
+                                      @Nullable final Long amountL,
+                                      final String currency,
+                                      final String originalReference,
+                                      final String reference) {
         super(new ModificationRequest());
-    }
 
-    public ModificationRequestBuilder withOriginalReference(final String value) {
-        request.setOriginalReference(value);
-        return this;
-    }
-
-    public ModificationRequestBuilder withMerchantAccount(final String value) {
-        request.setMerchantAccount(value);
-        return this;
-    }
-
-    public ModificationRequestBuilder withAuthorisationCode(final String value) {
-        request.setAuthorisationCode(value);
-        return this;
-    }
-
-    public ModificationRequestBuilder withAmount(final String currency, final Long value) {
-        if (value != null) {
+        request.setMerchantAccount(merchantAccount);
+        if (amountL != null) {
             final Amount amount = new Amount();
+            amount.setValue(amountL);
             amount.setCurrency(currency);
-            amount.setValue(value);
-            return withAmount(amount);
+            request.setModificationAmount(amount);
         }
-        return this;
-    }
-
-    public ModificationRequestBuilder withAmount(final Amount amount) {
-        request.setModificationAmount(amount);
-        return this;
+        request.setOriginalReference(originalReference);
+        request.setReference(reference);
     }
 
     public ModificationRequestBuilder withSplitSettlementData(final SplitSettlementData splitSettlementData) {
