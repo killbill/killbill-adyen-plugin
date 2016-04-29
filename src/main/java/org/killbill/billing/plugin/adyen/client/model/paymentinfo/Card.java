@@ -28,6 +28,7 @@ public class Card extends PaymentInfo {
     private Integer expiryYear;
     // Special fields
     private String issuerCountry;
+    private String token;
 
     public String getHolderName() {
         return holderName;
@@ -77,6 +78,14 @@ public class Card extends PaymentInfo {
         this.issuerCountry = issuerCountry;
     }
 
+    public String getToken() {
+        return token;
+    }
+
+    public void setToken(final String token) {
+        this.token = token;
+    }
+
     @Override
     public String toString() {
         final StringBuilder sb = new StringBuilder("Card{");
@@ -86,6 +95,7 @@ public class Card extends PaymentInfo {
         sb.append(", expiryMonth=").append(expiryMonth);
         sb.append(", expiryYear=").append(expiryYear);
         sb.append(", issuerCountry='").append(issuerCountry).append('\'');
+        sb.append(", token='").append(token).append('\'');
         sb.append('}');
         return sb.toString();
     }
@@ -119,8 +129,10 @@ public class Card extends PaymentInfo {
         if (expiryYear != null ? !expiryYear.equals(card.expiryYear) : card.expiryYear != null) {
             return false;
         }
-        return issuerCountry != null ? issuerCountry.equals(card.issuerCountry) : card.issuerCountry == null;
-
+        if (issuerCountry != null ? !issuerCountry.equals(card.issuerCountry) : card.issuerCountry != null) {
+            return false;
+        }
+        return token != null ? token.equals(card.token) : card.token == null;
     }
 
     @Override
@@ -132,6 +144,7 @@ public class Card extends PaymentInfo {
         result = 31 * result + (expiryMonth != null ? expiryMonth.hashCode() : 0);
         result = 31 * result + (expiryYear != null ? expiryYear.hashCode() : 0);
         result = 31 * result + (issuerCountry != null ? issuerCountry.hashCode() : 0);
+        result = 31 * result + (token != null ? token.hashCode() : 0);
         return result;
     }
 }

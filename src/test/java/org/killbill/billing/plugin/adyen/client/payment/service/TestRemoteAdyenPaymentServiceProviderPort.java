@@ -30,6 +30,9 @@ import org.killbill.billing.plugin.adyen.client.model.paymentinfo.Card;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
+import com.google.common.base.Charsets;
+import com.google.common.io.BaseEncoding;
+
 import static org.testng.Assert.assertFalse;
 
 public class TestRemoteAdyenPaymentServiceProviderPort extends TestRemoteBase {
@@ -134,6 +137,26 @@ public class TestRemoteAdyenPaymentServiceProviderPort extends TestRemoteBase {
         final PaymentData paymentData1 = new PaymentData<Card>(null, null, UUID.randomUUID().toString(), getCreditCard());
         final PaymentModificationResponse voidResult = adyenPaymentServiceProviderPort.cancel(paymentData1, pspReference, splitSettlementData);
         assertFalse(voidResult.isTechnicallySuccessful());
+    }
+
+    @Test(groups = "slow")
+    public void testAutoCaptureWithApplePay() throws Exception {
+        final Card creditCard = new Card();
+        creditCard.setCountry(DEFAULT_COUNTRY);
+        creditCard.setCaptureDelayHours(0);
+        // https://github.com/Adyen/AdyenPay-iOS/wiki/Adyen-Apple-Pay-Test-Tokens
+        final String rawToken = "{\"version\":\"Adyen_Test\",\"signature\":\"ZmFrZSBzaWduYXR1cmU=\",\"header\":{\"ephemeralPublicKey\":\"MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEWxfzrzPtm97IUgtBxqjYWIVVaQt80yLoRtAbLWzspJSkX9lRbacQ0ATlTMXUYkQuvhiOIAfqyZjtR0CPuX0ajA==\",\"publicKeyHash\":\"OrWgjRGkqEWjdkRdUrXfiLGD0he/zpEu512FJWrGYFo=\",\"transactionId\":\"1234567890ABCDEF\"},\"data\":\"ffiOJlsIrYkVSIumRqrJhdf2XOZKIzmBS2lQTxyiV+W0R0d3JCc6Dfb3Ysp2tz1NGmZSR02tWOgnhjZd4a0LxUf5ezv890BbElTpCM3RiKrC/YEYKluFtDhYJSa2WyYxLjSr6T22gn+iQ1Gik+41qbxhQKcqlz9WkXIkDCfXX81Cdc7AE4oSWjuhnpw/PFf4uGD2V7n8W5YpGybQOzcfbo53lqSA+nKjEvDgARwjelnsL1vCszOwLXEbWimW10YE32ZYriLPyi8TU7T5OkNNDM1b8obnC1EU8RA14H8lmvBlN7rywu8lxKWAA/w0D3zBefgTqonFpClyJOfqQ3KtWsQH2yTfzXnyx2yqfRaeUIgpdwrqvYNJkVsOY8P3e/QO8U8TO7bcd83vQ0vxXafTMbwSYO6+bScPednH3+Y6R40THRpTjSuXJd6P2C/o4OA1Bm+Y9+E6nWzDuUUr3oLUEzRziUkzmbKV/iGTAJDBGxD0QAIdzca0\"}";
+        creditCard.setToken(BaseEncoding.base64().encode(rawToken.getBytes(Charsets.US_ASCII)));
+
+        final PaymentData<Card> paymentData = new PaymentData<Card>(new BigDecimal("1"), DEFAULT_CURRENCY, UUID.randomUUID().toString(), creditCard);
+        final UserData userData = new UserData();
+        final SplitSettlementData splitSettlementData = null;
+
+        final PurchaseResult authorizeResult = adyenPaymentServiceProviderPort.authorise(paymentData, userData, splitSettlementData);
+        Assert.assertNotNull(authorizeResult.getPspReference());
+        Assert.assertEquals(authorizeResult.getResultCode(), "Authorised");
+        Assert.assertNotNull(authorizeResult.getAuthCode());
+        Assert.assertNull(authorizeResult.getReason());
     }
 
     private Card getCreditCard() {

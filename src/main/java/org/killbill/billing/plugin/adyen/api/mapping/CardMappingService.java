@@ -29,6 +29,7 @@ import static org.killbill.billing.plugin.api.payment.PluginPaymentPluginApi.PRO
 import static org.killbill.billing.plugin.api.payment.PluginPaymentPluginApi.PROPERTY_CC_LAST_NAME;
 import static org.killbill.billing.plugin.api.payment.PluginPaymentPluginApi.PROPERTY_CC_NUMBER;
 import static org.killbill.billing.plugin.api.payment.PluginPaymentPluginApi.PROPERTY_CC_VERIFICATION_VALUE;
+import static org.killbill.billing.plugin.api.payment.PluginPaymentPluginApi.PROPERTY_TOKEN;
 
 // By convention, support the same keys as the Ruby plugins (https://github.com/killbill/killbill-plugin-framework-ruby/blob/master/lib/killbill/helpers/active_merchant/payment_plugin.rb)
 public abstract class CardMappingService {
@@ -58,6 +59,9 @@ public abstract class CardMappingService {
 
         final String issuerCountry = PluginProperties.findPluginPropertyValue(PROPERTY_CC_ISSUER_COUNTRY, properties);
         card.setIssuerCountry(issuerCountry);
+
+        final String token = PluginProperties.findPluginPropertyValue(PROPERTY_TOKEN, properties);
+        card.setToken(token);
 
         return card;
     }

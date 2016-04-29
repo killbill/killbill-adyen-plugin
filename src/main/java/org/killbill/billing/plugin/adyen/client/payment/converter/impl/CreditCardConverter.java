@@ -17,7 +17,6 @@
 
 package org.killbill.billing.plugin.adyen.client.payment.converter.impl;
 
-import org.killbill.adyen.common.Address;
 import org.killbill.adyen.payment.AnyType2AnyTypeMap;
 import org.killbill.adyen.payment.PaymentRequest;
 import org.killbill.billing.plugin.adyen.client.model.PaymentInfo;
@@ -58,6 +57,14 @@ public class CreditCardConverter extends PaymentInfoConverter<Card> {
             final AnyType2AnyTypeMap.Entry issuerCountry = new AnyType2AnyTypeMap.Entry();
             issuerCountry.setKey("issuerCountry");
             issuerCountry.setValue(paymentInfo.getIssuerCountry());
+            paymentRequest.getAdditionalData().getEntry().add(issuerCountry);
+        }
+
+        // Apple Pay
+        if (paymentInfo.getToken() != null) {
+            final AnyType2AnyTypeMap.Entry issuerCountry = new AnyType2AnyTypeMap.Entry();
+            issuerCountry.setKey("payment.token");
+            issuerCountry.setValue(paymentInfo.getToken());
             paymentRequest.getAdditionalData().getEntry().add(issuerCountry);
         }
     }
