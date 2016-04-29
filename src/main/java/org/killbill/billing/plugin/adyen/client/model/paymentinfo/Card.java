@@ -1,7 +1,8 @@
 /*
- * Copyright 2014 Groupon, Inc
+ * Copyright 2014-2016 Groupon, Inc
+ * Copyright 2014-2016 The Billing Project, LLC
  *
- * Groupon licenses this file to you under the Apache License, version 2.0
+ * The Billing Project licenses this file to you under the Apache License, version 2.0
  * (the "License"); you may not use this file except in compliance with the
  * License.  You may obtain a copy of the License at:
  *
@@ -16,136 +17,75 @@
 
 package org.killbill.billing.plugin.adyen.client.model.paymentinfo;
 
-import java.util.Calendar;
-
-import org.joda.time.DateTime;
 import org.killbill.billing.plugin.adyen.client.model.PaymentInfo;
-import org.killbill.billing.plugin.adyen.client.model.PaymentProvider;
 
 public class Card extends PaymentInfo {
 
-    private String ccHolderName;
-    private String ccNumber;
-    private String ccSecCode;
-    private Integer validUntilMonth;
-    private Integer validUntilYear;
-    private String acceptHeader;
-    private String userAgent;
-    private String md;
-    private String paRes;
-    private String acquirer;
+    private String holderName;
+    private String number;
+    private String cvc;
+    private Integer expiryMonth;
+    private Integer expiryYear;
+    // Special fields
+    private String issuerCountry;
 
-    public Card(final PaymentProvider paymentProvider) {
-        super(paymentProvider);
+    public String getHolderName() {
+        return holderName;
     }
 
-    public String getCcNumber() {
-        return ccNumber;
+    public void setHolderName(final String holderName) {
+        this.holderName = holderName;
     }
 
-    public void setCcNumber(final String ccNumber) {
-        if (ccNumber == null) {
-            this.ccNumber = null;
-        } else {
-            this.ccNumber = ccNumber.replaceAll("\\s", "");
-        }
+    public String getNumber() {
+        return number;
     }
 
-    public Integer getValidUntilMonth() {
-        return validUntilMonth;
+    public void setNumber(final String number) {
+        this.number = number;
     }
 
-    public void setValidUntilMonth(final Integer validUntilMonth) {
-        this.validUntilMonth = validUntilMonth;
+    public String getCvc() {
+        return cvc;
     }
 
-    public Integer getValidUntilYear() {
-        return validUntilYear;
+    public void setCvc(final String cvc) {
+        this.cvc = cvc;
     }
 
-    public void setValidUntilYear(final Integer validUntilYear) {
-        this.validUntilYear = validUntilYear;
+    public Integer getExpiryMonth() {
+        return expiryMonth;
     }
 
-    public String getCcHolderName() {
-        return ccHolderName;
+    public void setExpiryMonth(final Integer expiryMonth) {
+        this.expiryMonth = expiryMonth;
     }
 
-    public void setCcHolderName(final String ccHolderName) {
-        this.ccHolderName = ccHolderName;
+    public Integer getExpiryYear() {
+        return expiryYear;
     }
 
-    public String getCcSecCode() {
-        return ccSecCode;
+    public void setExpiryYear(final Integer expiryYear) {
+        this.expiryYear = expiryYear;
     }
 
-    public void setCcSecCode(final String ccSecCode) {
-        this.ccSecCode = ccSecCode;
+    public String getIssuerCountry() {
+        return issuerCountry;
     }
 
-    public String getMd() {
-        return md;
-    }
-
-    public void setMd(final String md) {
-        this.md = md;
-    }
-
-    public String getPaRes() {
-        return paRes;
-    }
-
-    public void setPaRes(final String paRes) {
-        this.paRes = paRes;
-    }
-
-    public void setAcceptHeader(final String acceptHeader) {
-        this.acceptHeader = acceptHeader;
-    }
-
-    public String getAcceptHeader() {
-        return acceptHeader;
-    }
-
-    public void setUserAgent(final String userAgent) {
-        this.userAgent = userAgent;
-    }
-
-    public String getUserAgent() {
-        return userAgent;
-    }
-
-    public String getAcquirer() {
-        return acquirer;
-    }
-
-    public void setAcquirer(final String acquirer) {
-        this.acquirer = acquirer;
-    }
-
-    public Calendar getValidUntilDate() {
-        if (validUntilMonth == null || validUntilYear == null) {
-            return null;
-        }
-        return new DateTime(validUntilYear, validUntilMonth, 1, 23, 59, 59)
-                .dayOfMonth()
-                .withMaximumValue()
-                .toGregorianCalendar();
+    public void setIssuerCountry(final String issuerCountry) {
+        this.issuerCountry = issuerCountry;
     }
 
     @Override
     public String toString() {
         final StringBuilder sb = new StringBuilder("Card{");
-        sb.append("ccHolderName='").append(ccHolderName).append('\'');
-        sb.append(", ccNumber='").append(ccNumber).append('\'');
-        sb.append(", ccSecCode='").append(ccSecCode).append('\'');
-        sb.append(", validUntilMonth=").append(validUntilMonth);
-        sb.append(", validUntilYear=").append(validUntilYear);
-        sb.append(", acceptHeader='").append(acceptHeader).append('\'');
-        sb.append(", userAgent='").append(userAgent).append('\'');
-        sb.append(", md='").append(md).append('\'');
-        sb.append(", paRes='").append(paRes).append('\'');
-        sb.append(", acquirer='").append(acquirer).append('\'');
+        sb.append("holderName='").append(holderName).append('\'');
+        sb.append(", number='").append(number).append('\'');
+        sb.append(", cvc='").append(cvc).append('\'');
+        sb.append(", expiryMonth=").append(expiryMonth);
+        sb.append(", expiryYear=").append(expiryYear);
+        sb.append(", issuerCountry='").append(issuerCountry).append('\'');
         sb.append('}');
         return sb.toString();
     }
@@ -158,55 +98,40 @@ public class Card extends PaymentInfo {
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
+        if (!super.equals(o)) {
+            return false;
+        }
 
         final Card card = (Card) o;
 
-        if (acceptHeader != null ? !acceptHeader.equals(card.acceptHeader) : card.acceptHeader != null) {
+        if (holderName != null ? !holderName.equals(card.holderName) : card.holderName != null) {
             return false;
         }
-        if (acquirer != null ? !acquirer.equals(card.acquirer) : card.acquirer != null) {
+        if (number != null ? !number.equals(card.number) : card.number != null) {
             return false;
         }
-        if (ccHolderName != null ? !ccHolderName.equals(card.ccHolderName) : card.ccHolderName != null) {
+        if (cvc != null ? !cvc.equals(card.cvc) : card.cvc != null) {
             return false;
         }
-        if (ccNumber != null ? !ccNumber.equals(card.ccNumber) : card.ccNumber != null) {
+        if (expiryMonth != null ? !expiryMonth.equals(card.expiryMonth) : card.expiryMonth != null) {
             return false;
         }
-        if (ccSecCode != null ? !ccSecCode.equals(card.ccSecCode) : card.ccSecCode != null) {
+        if (expiryYear != null ? !expiryYear.equals(card.expiryYear) : card.expiryYear != null) {
             return false;
         }
-        if (md != null ? !md.equals(card.md) : card.md != null) {
-            return false;
-        }
-        if (paRes != null ? !paRes.equals(card.paRes) : card.paRes != null) {
-            return false;
-        }
-        if (userAgent != null ? !userAgent.equals(card.userAgent) : card.userAgent != null) {
-            return false;
-        }
-        if (validUntilMonth != null ? !validUntilMonth.equals(card.validUntilMonth) : card.validUntilMonth != null) {
-            return false;
-        }
-        if (validUntilYear != null ? !validUntilYear.equals(card.validUntilYear) : card.validUntilYear != null) {
-            return false;
-        }
+        return issuerCountry != null ? issuerCountry.equals(card.issuerCountry) : card.issuerCountry == null;
 
-        return true;
     }
 
     @Override
     public int hashCode() {
-        int result = ccHolderName != null ? ccHolderName.hashCode() : 0;
-        result = 31 * result + (ccNumber != null ? ccNumber.hashCode() : 0);
-        result = 31 * result + (ccSecCode != null ? ccSecCode.hashCode() : 0);
-        result = 31 * result + (validUntilMonth != null ? validUntilMonth.hashCode() : 0);
-        result = 31 * result + (validUntilYear != null ? validUntilYear.hashCode() : 0);
-        result = 31 * result + (acceptHeader != null ? acceptHeader.hashCode() : 0);
-        result = 31 * result + (userAgent != null ? userAgent.hashCode() : 0);
-        result = 31 * result + (md != null ? md.hashCode() : 0);
-        result = 31 * result + (paRes != null ? paRes.hashCode() : 0);
-        result = 31 * result + (acquirer != null ? acquirer.hashCode() : 0);
+        int result = super.hashCode();
+        result = 31 * result + (holderName != null ? holderName.hashCode() : 0);
+        result = 31 * result + (number != null ? number.hashCode() : 0);
+        result = 31 * result + (cvc != null ? cvc.hashCode() : 0);
+        result = 31 * result + (expiryMonth != null ? expiryMonth.hashCode() : 0);
+        result = 31 * result + (expiryYear != null ? expiryYear.hashCode() : 0);
+        result = 31 * result + (issuerCountry != null ? issuerCountry.hashCode() : 0);
         return result;
     }
 }

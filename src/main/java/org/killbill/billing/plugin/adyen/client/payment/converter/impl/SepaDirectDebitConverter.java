@@ -20,55 +20,31 @@ package org.killbill.billing.plugin.adyen.client.payment.converter.impl;
 import org.killbill.adyen.payment.BankAccount;
 import org.killbill.adyen.payment.PaymentRequest;
 import org.killbill.billing.plugin.adyen.client.model.PaymentInfo;
-import org.killbill.billing.plugin.adyen.client.model.PaymentType;
-import org.killbill.billing.plugin.adyen.client.model.paymentinfo.Card;
 import org.killbill.billing.plugin.adyen.client.model.paymentinfo.SepaDirectDebit;
 import org.killbill.billing.plugin.adyen.client.payment.converter.PaymentInfoConverter;
 
-import static org.killbill.billing.plugin.adyen.client.model.PaymentType.SEPA_DIRECT_DEBIT;
-
-public class SepaDirectDebitConverter implements PaymentInfoConverter<SepaDirectDebit> {
+public class SepaDirectDebitConverter extends PaymentInfoConverter<SepaDirectDebit> {
 
     private static final String SELECTED_BRAND_SEPA = "sepadirectdebit";
 
     @Override
-    public Object convertPaymentInfoToPSPTransferObject(final String holderName, final SepaDirectDebit sepaDirectDebit) {
-        BankAccount bankAccount = new BankAccount();
+    public boolean supportsPaymentInfo(final PaymentInfo type) {
+        return type instanceof SepaDirectDebit;
+    }
+
+    @Override
+    public PaymentRequest convertPaymentInfoToPaymentRequest(final SepaDirectDebit sepaDirectDebit) {
+        final BankAccount bankAccount = new BankAccount();
         bankAccount.setIban(sepaDirectDebit.getIban());
         bankAccount.setBic(sepaDirectDebit.getBic());
-        bankAccount.setOwnerName(holderName(sepaDirectDebit, holderName));
+        bankAccount.setOwnerName(sepaDirectDebit.getSepaAccountHolder());
         bankAccount.setCountryCode(sepaDirectDebit.getCountryCode());
 
-        final PaymentRequest paymentRequest = new PaymentRequest();
+        final PaymentRequest paymentRequest = super.convertPaymentInfoToPaymentRequest(sepaDirectDebit);
         paymentRequest.setBankAccount(bankAccount);
         // From https://docs.adyen.com/developers/api-manual#sepadirectdebit:
         // An SDD payment request requires a selectedBrand field whose value needs to be sepadirectdebit
         paymentRequest.setSelectedBrand(SELECTED_BRAND_SEPA);
         return paymentRequest;
-    }
-
-    /**
-     * There is no 3DSecure for Sepa Direct Debit.
-     *
-     * @param billedAmount Billed amount.
-     * @param card         {@link PaymentInfo} of type {@link Card}.
-     * @return Always {@literal null} for Sepa Direct Debit.
-     */
-    @Override
-    public Object convertPaymentInfoFor3DSecureAuth(final Long billedAmount, final Card card) {
-        return null;
-    }
-
-    @Override
-    public boolean supportsPaymentType(final PaymentType type) {
-        return SEPA_DIRECT_DEBIT.equals(type);
-    }
-
-    private String holderName(final SepaDirectDebit sepaDirectDebit, final String holderName) {
-        if (sepaDirectDebit.getSepaAccountHolder() != null && !sepaDirectDebit.getSepaAccountHolder().isEmpty()) {
-            return sepaDirectDebit.getSepaAccountHolder();
-        } else {
-            return holderName;
-        }
     }
 }

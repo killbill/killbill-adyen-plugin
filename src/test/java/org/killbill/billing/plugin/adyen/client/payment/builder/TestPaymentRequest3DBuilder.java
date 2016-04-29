@@ -1,7 +1,8 @@
 /*
- * Copyright 2014 Groupon, Inc
+ * Copyright 2014-2016 Groupon, Inc
+ * Copyright 2014-2016 The Billing Project, LLC
  *
- * Groupon licenses this file to you under the Apache License, version 2.0
+ * The Billing Project licenses this file to you under the Apache License, version 2.0
  * (the "License"); you may not use this file except in compliance with the
  * License.  You may obtain a copy of the License at:
  *
@@ -16,196 +17,129 @@
 
 package org.killbill.billing.plugin.adyen.client.payment.builder;
 
-import org.killbill.adyen.common.Amount;
-import org.killbill.adyen.common.Gender;
-import org.killbill.adyen.common.Name;
+import java.math.BigDecimal;
+import java.util.List;
+import java.util.UUID;
+
+import org.killbill.adyen.payment.AnyType2AnyTypeMap.Entry;
 import org.killbill.adyen.payment.PaymentRequest3D;
 import org.killbill.billing.catalog.api.Currency;
-import org.killbill.billing.plugin.adyen.client.model.PaymentProvider;
-import org.killbill.billing.plugin.adyen.client.model.RecurringType;
+import org.killbill.billing.plugin.adyen.client.model.PaymentData;
+import org.killbill.billing.plugin.adyen.client.model.PaymentInfo;
+import org.killbill.billing.plugin.adyen.client.model.SplitSettlementData;
+import org.killbill.billing.plugin.adyen.client.model.UserData;
+import org.killbill.billing.plugin.adyen.client.model.paymentinfo.Card;
+import org.killbill.billing.plugin.adyen.client.model.paymentinfo.Recurring;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 
 public class TestPaymentRequest3DBuilder extends BaseTestPaymentRequestBuilder {
 
-    private static final String CURRENCY = Currency.EUR.name();
-
     @Test(groups = "fast")
-    public void testWithMerchantAccount() throws Exception {
-        final String merchantAccount = "merchantAccount";
-        final PaymentRequest3D paymentRequest3D = new PaymentRequest3DBuilder().withMerchantAccount(merchantAccount)
-                                                                               .build();
+    public void testPaymentRequestBuilderWithEmptyFields() {
+        final String merchantAccount = UUID.randomUUID().toString();
+        final String paymentTransactionExternalKey = UUID.randomUUID().toString();
+        final PaymentData paymentData = new PaymentData(new BigDecimal("20"), Currency.EUR, paymentTransactionExternalKey, new Card());
+        final UserData userData = new UserData();
+        final SplitSettlementData splitSettlementData = null;
 
-        Assert.assertEquals(paymentRequest3D.getMerchantAccount(), merchantAccount, "Wrong MerchantAccount in Request");
-    }
+        final PaymentRequest3DBuilder builder = new PaymentRequest3DBuilder(merchantAccount, paymentData, userData, splitSettlementData);
+        final PaymentRequest3D paymentRequest = builder.build();
 
-    @Test(groups = "fast")
-    public void testWithMd() throws Exception {
-        final String md = "md";
-        final PaymentRequest3D paymentRequest3D = new PaymentRequest3DBuilder().withMd(md)
-                                                                               .build();
-
-        Assert.assertEquals(paymentRequest3D.getMd(), md, "Wrong MD in Request");
+        Assert.assertEquals(paymentRequest.getMerchantAccount(), merchantAccount);
+        Assert.assertEquals(paymentRequest.getAmount().getValue(), (Long) 2000L);
+        Assert.assertEquals(paymentRequest.getAmount().getCurrency(), "EUR");
+        Assert.assertEquals(paymentRequest.getReference(), paymentTransactionExternalKey);
     }
 
     @Test(groups = "fast")
-    public void testWithPaResponse() throws Exception {
-        final String paResponse = "paResponse";
-        final PaymentRequest3D paymentRequest3D = new PaymentRequest3DBuilder().withPaResponse(paResponse)
-                                                                               .build();
+    public void testPaymentRequestBuilderForCard() {
+        final Card paymentInfo = new Card();
+        paymentInfo.setMd(UUID.randomUUID().toString());
+        paymentInfo.setPaRes(UUID.randomUUID().toString());
 
-        Assert.assertEquals(paymentRequest3D.getPaResponse(), paResponse, "Wrong PaResponse in Request");
+        final PaymentRequest3D paymentRequest = verifyPaymentRequestBuilder(paymentInfo);
+        Assert.assertEquals(paymentRequest.getMd(), paymentInfo.getMd());
+        Assert.assertEquals(paymentRequest.getPaResponse(), paymentInfo.getPaRes());
     }
 
     @Test(groups = "fast")
-    public void testWithReference() throws Exception {
-        final String reference = "reference";
-        final PaymentRequest3D paymentRequest3D = new PaymentRequest3DBuilder().withReference(reference)
-                                                                               .build();
+    public void testPaymentRequestBuilderForRecurring() {
+        final Recurring paymentInfo = new Recurring();
+        paymentInfo.setContract(UUID.randomUUID().toString());
 
-        Assert.assertEquals(paymentRequest3D.getReference(), reference, "Wrong Reference in Request");
+        final PaymentRequest3D paymentRequest = verifyPaymentRequestBuilder(paymentInfo);
+        Assert.assertEquals(paymentRequest.getRecurring().getContract(), paymentInfo.getContract());
     }
 
-    @Test(groups = "fast")
-    public void testWithSessionId() throws Exception {
-        final String sessionId = "sessionId";
-        final PaymentRequest3D paymentRequest3D = new PaymentRequest3DBuilder().withSessionId(sessionId)
-                                                                               .build();
+    private PaymentRequest3D verifyPaymentRequestBuilder(final PaymentInfo paymentInfo) {
+        paymentInfo.setAcceptHeader(UUID.randomUUID().toString());
+        paymentInfo.setUserAgent(UUID.randomUUID().toString());
+        paymentInfo.setThreeDThreshold(0L);
+        paymentInfo.setTermUrl(UUID.randomUUID().toString());
+        paymentInfo.setMpiImplementationType("ACustom3DType");
+        paymentInfo.setMpiImplementationTypeValues(ImmutableMap.<String, String>of("ACustom3DType.responseKey1", "abcdefgh01",
+                                                                                   "ACustom3DType.responseKey2", "ijklmnop02"));
 
-        Assert.assertEquals(paymentRequest3D.getSessionId(), sessionId, "Wrong SessionId in Request");
-    }
+        final String merchantAccount = UUID.randomUUID().toString();
+        final String paymentTransactionExternalKey = UUID.randomUUID().toString();
+        final PaymentData paymentData = new PaymentData(new BigDecimal("20"), Currency.EUR, paymentTransactionExternalKey, paymentInfo);
 
-    @Test(groups = "fast")
-    public void testWithShopperEmail() throws Exception {
-        final String shopperEmail = "shopperEmail";
-        final PaymentRequest3D paymentRequest3D = new PaymentRequest3DBuilder().withShopperEmail(shopperEmail)
-                                                                               .build();
+        final UserData userData = new UserData();
+        userData.setShopperIP(UUID.randomUUID().toString());
+        userData.setShopperEmail(UUID.randomUUID().toString());
+        userData.setShopperReference(UUID.randomUUID().toString());
 
-        Assert.assertEquals(paymentRequest3D.getShopperEmail(), shopperEmail, "Wrong ShopperEmail in Request");
-    }
+        final SplitSettlementData splitSettlementData = new SplitSettlementData(1,
+                                                                                "EUR",
+                                                                                ImmutableList.<SplitSettlementData.Item>of(new SplitSettlementData.Item(500, "deal1", "voucherId", "voucher"),
+                                                                                                                           new SplitSettlementData.Item(750, "deal1", "voucherId2", "voucher"),
+                                                                                                                           new SplitSettlementData.Item(750, "deal2", "travelId", "travel")));
 
-    @Test(groups = "fast")
-    public void testWithShopperIP() throws Exception {
-        final String shopperIP = "shopperIP";
-        final PaymentRequest3D paymentRequest3D = new PaymentRequest3DBuilder().withShopperIP(shopperIP)
-                                                                               .build();
+        final PaymentRequest3DBuilder builder = new PaymentRequest3DBuilder(merchantAccount, paymentData, userData, splitSettlementData);
+        final PaymentRequest3D paymentRequest = builder.build();
 
-        Assert.assertEquals(paymentRequest3D.getShopperIP(), shopperIP, "Wrong ShopperIP in Request");
-    }
+        Assert.assertEquals(paymentRequest.getMerchantAccount(), merchantAccount);
+        Assert.assertEquals(paymentRequest.getAmount().getValue(), (Long) 2000L);
+        Assert.assertEquals(paymentRequest.getAmount().getCurrency(), "EUR");
+        Assert.assertEquals(paymentRequest.getReference(), paymentTransactionExternalKey);
+        Assert.assertEquals(paymentRequest.getShopperIP(), userData.getShopperIP());
+        Assert.assertEquals(paymentRequest.getShopperEmail(), userData.getShopperEmail());
+        Assert.assertEquals(paymentRequest.getShopperReference(), userData.getShopperReference());
+        if (paymentInfo.getSelectedBrand() != null) {
+            Assert.assertEquals(paymentRequest.getSelectedBrand(), paymentInfo.getSelectedBrand());
+        }
+        Assert.assertEquals(paymentRequest.getShopperInteraction(), paymentInfo.getShopperInteraction());
+        Assert.assertEquals(paymentRequest.getBrowserInfo().getAcceptHeader(), paymentInfo.getAcceptHeader());
+        Assert.assertEquals(paymentRequest.getBrowserInfo().getUserAgent(), paymentInfo.getUserAgent());
 
-    @Test(groups = "fast")
-    public void testWithShopperReference() throws Exception {
-        final String shopperReference = "shopperReference";
-        final PaymentRequest3D paymentRequest3D = new PaymentRequest3DBuilder().withShopperReference(shopperReference)
-                                                                               .build();
+        final List<Entry> entries = paymentRequest.getAdditionalData().getEntry();
+        Assert.assertEquals(findValue(entries, "mpiImplementationType"), "ACustom3DType");
+        Assert.assertEquals(findValue(entries, "ACustom3DType.responseKey1"), "abcdefgh01");
+        Assert.assertEquals(findValue(entries, "ACustom3DType.responseKey2"), "ijklmnop02");
+        Assert.assertEquals(findValue(entries, "splitsettlementdata.api"), "1");
+        Assert.assertEquals(findValue(entries, "splitsettlementdata.nrOfItems"), "3");
+        Assert.assertEquals(findValue(entries, "splitsettlementdata.totalAmount"), "2000");
+        Assert.assertEquals(findValue(entries, "splitsettlementdata.currencyCode"), "EUR");
+        Assert.assertEquals(findValue(entries, "splitsettlementdata.item1.amount"), "500");
+        Assert.assertEquals(findValue(entries, "splitsettlementdata.item1.currencyCode"), "EUR");
+        Assert.assertEquals(findValue(entries, "splitsettlementdata.item1.group"), "deal1");
+        Assert.assertEquals(findValue(entries, "splitsettlementdata.item1.reference"), "voucherId");
+        Assert.assertEquals(findValue(entries, "splitsettlementdata.item1.type"), "voucher");
+        Assert.assertEquals(findValue(entries, "splitsettlementdata.item2.amount"), "750");
+        Assert.assertEquals(findValue(entries, "splitsettlementdata.item2.currencyCode"), "EUR");
+        Assert.assertEquals(findValue(entries, "splitsettlementdata.item2.group"), "deal1");
+        Assert.assertEquals(findValue(entries, "splitsettlementdata.item2.reference"), "voucherId2");
+        Assert.assertEquals(findValue(entries, "splitsettlementdata.item2.type"), "voucher");
+        Assert.assertEquals(findValue(entries, "splitsettlementdata.item3.amount"), "750");
+        Assert.assertEquals(findValue(entries, "splitsettlementdata.item3.currencyCode"), "EUR");
+        Assert.assertEquals(findValue(entries, "splitsettlementdata.item3.group"), "deal2");
+        Assert.assertEquals(findValue(entries, "splitsettlementdata.item3.reference"), "travelId");
+        Assert.assertEquals(findValue(entries, "splitsettlementdata.item3.type"), "travel");
 
-        Assert.assertEquals(paymentRequest3D.getShopperReference(), shopperReference, "Wrong ShopperReference in Request");
-    }
-
-    @Test(groups = "fast")
-    public void testWithShopperStatement() throws Exception {
-        final String shopperStatement = "shopperStatement";
-        final PaymentRequest3D paymentRequest3D = new PaymentRequest3DBuilder().withShopperStatement(shopperStatement)
-                                                                               .build();
-
-        Assert.assertEquals(paymentRequest3D.getShopperStatement(), shopperStatement, "Wrong ShopperStatement in Request");
-    }
-
-    @Test(groups = "fast")
-    public void testWithShopperNameByValues() throws Exception {
-        final PaymentRequest3D paymentRequest3D = new PaymentRequest3DBuilder().withShopperName("First", "Last", "infix", true)
-                                                                               .build();
-
-        Assert.assertNotNull(paymentRequest3D.getShopperName(), "No ShopperName in Request");
-        Assert.assertEquals(paymentRequest3D.getShopperName().getFirstName(), "First", "Wrong First Name in ShopperName in Request");
-        Assert.assertEquals(paymentRequest3D.getShopperName().getLastName(), "Last", "Wrong Last Name in ShopperName in Request");
-        Assert.assertEquals(paymentRequest3D.getShopperName().getInfix(), "infix", "Wrong Infix in ShopperName in Request");
-        Assert.assertEquals(paymentRequest3D.getShopperName().getGender(), Gender.MALE, "Wrong Gender in ShopperName in Request");
-    }
-
-    @Test(groups = "fast")
-    public void testWithShopperNameByEntity() throws Exception {
-        final Name shopperName = new Name();
-        shopperName.setFirstName("First");
-        shopperName.setLastName("Last");
-        shopperName.setInfix("infix");
-        shopperName.setGender(Gender.MALE);
-        final PaymentRequest3D paymentRequest3D = new PaymentRequest3DBuilder().withShopperName(shopperName)
-                                                                               .build();
-
-        Assert.assertNotNull(paymentRequest3D.getShopperName(), "No ShopperName in Request");
-        Assert.assertEquals(paymentRequest3D.getShopperName().getFirstName(), "First", "Wrong First Name in ShopperName in Request");
-        Assert.assertEquals(paymentRequest3D.getShopperName().getLastName(), "Last", "Wrong Last Name in ShopperName in Request");
-        Assert.assertEquals(paymentRequest3D.getShopperName().getInfix(), "infix", "Wrong Infix in ShopperName in Request");
-        Assert.assertEquals(Gender.MALE, paymentRequest3D.getShopperName().getGender(), "Wrong Gender in ShopperName in Request");
-    }
-
-    @Test(groups = "fast", dataProvider = DP_RECURRING_TYPES)
-    public void testWithRecurring(final RecurringType recurringType) throws Exception {
-        final PaymentProvider recurringEnabledPaymentProvider = mock(PaymentProvider.class);
-        when(recurringEnabledPaymentProvider.isRecurringEnabled()).thenReturn(true);
-        when(recurringEnabledPaymentProvider.getRecurringType()).thenReturn(recurringType);
-
-        final PaymentRequest3D paymentRequest3D = new PaymentRequest3DBuilder().withRecurring(recurringEnabledPaymentProvider)
-                                                                               .build();
-
-        Assert.assertNotNull(paymentRequest3D.getRecurring(), "No Recurring in Request");
-        Assert.assertEquals(paymentRequest3D.getRecurring().getContract(), recurringType.name(), "Wrong Contract in Recurring in Request");
-    }
-
-    @Test(groups = "fast")
-    public void testWithAmountByValues() throws Exception {
-        final Long value = 1L;
-        final PaymentRequest3D paymentRequest3D = new PaymentRequest3DBuilder().withAmount(CURRENCY, value)
-                                                                               .build();
-
-        Assert.assertNotNull(paymentRequest3D.getAmount(), "No Amount in Request");
-        Assert.assertEquals(paymentRequest3D.getAmount().getCurrency(), CURRENCY, "Wrong Currency in Amount in Request");
-        Assert.assertEquals(paymentRequest3D.getAmount().getValue(), value, "Wrong Value in Amount in Request");
-    }
-
-    @Test(groups = "fast")
-    public void testWithAmountByEntity() throws Exception {
-        final Amount amount = createAmount(CURRENCY, 1L);
-
-        final PaymentRequest3D paymentRequest3D = new PaymentRequest3DBuilder().withAmount(amount)
-                                                                               .build();
-
-        Assert.assertNotNull(paymentRequest3D.getAmount(), "No Amount in Request");
-        Assert.assertEquals(paymentRequest3D.getAmount().getCurrency(), amount.getCurrency(), "Wrong Currency in Amount in Request");
-        Assert.assertEquals(paymentRequest3D.getAmount().getValue(), amount.getValue(), "Wrong Value in Amount in Request");
-    }
-
-    @Test(groups = "fast")
-    public void testWithAdditionalAmountByValues() throws Exception {
-        final Long value = 1L;
-        final PaymentRequest3D paymentRequest3D = new PaymentRequest3DBuilder().withAdditionalAmount(CURRENCY, value)
-                                                                               .build();
-
-        Assert.assertNotNull(paymentRequest3D.getAdditionalAmount(), "No Amount in Request");
-        Assert.assertEquals(paymentRequest3D.getAdditionalAmount().getCurrency(), CURRENCY, "Wrong Currency in Amount in Request");
-        Assert.assertEquals(paymentRequest3D.getAdditionalAmount().getValue(), value, "Wrong Value in Amount in Request");
-    }
-
-    @Test(groups = "fast")
-    public void testWithAdditionalAmountByEntity() throws Exception {
-        final Amount amount = createAmount(CURRENCY, 1L);
-
-        final PaymentRequest3D paymentRequest3D = new PaymentRequest3DBuilder().withAdditionalAmount(amount)
-                                                                               .build();
-
-        Assert.assertNotNull(paymentRequest3D.getAdditionalAmount(), "No Amount in Request");
-        Assert.assertEquals(paymentRequest3D.getAdditionalAmount().getCurrency(), amount.getCurrency(), "Wrong Currency in Amount in Request");
-        Assert.assertEquals(paymentRequest3D.getAdditionalAmount().getValue(), amount.getValue(), "Wrong Value in Amount in Request");
-    }
-
-    private Amount createAmount(final String currency, final Long value) {
-        final Amount amount = new Amount();
-        amount.setCurrency(currency);
-        amount.setValue(value);
-        return amount;
+        return paymentRequest;
     }
 }

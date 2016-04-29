@@ -16,12 +16,14 @@
 
 package org.killbill.billing.plugin.adyen.client.payment.builder;
 
-import java.util.ArrayList;
+import java.math.BigDecimal;
 import java.util.Collection;
-import java.util.List;
-import java.util.Map;
+
+import javax.annotation.Nullable;
 
 import org.killbill.adyen.payment.AnyType2AnyTypeMap;
+import org.killbill.adyen.payment.AnyType2AnyTypeMap.Entry;
+import org.killbill.billing.plugin.util.KillBillMoney;
 
 public abstract class RequestBuilder<R> {
 
@@ -35,38 +37,17 @@ public abstract class RequestBuilder<R> {
         return request;
     }
 
-    protected RequestBuilder() {
-        super();
-    }
-
-    public RequestBuilder<R> addAdditionalData(final Object key, final Object value) {
-        return addAdditionalData(createAdditionalDataEntry(key, value));
-    }
-
-    public RequestBuilder<R> addAdditionalData(final AnyType2AnyTypeMap.Entry entry) {
-        getAdditionalData().add(entry);
-        return this;
-    }
-
-    public RequestBuilder<R> addAdditionalData(final Map<Object, Object> entries) {
-        final List<AnyType2AnyTypeMap.Entry> result = new ArrayList<AnyType2AnyTypeMap.Entry>();
-        for (final Map.Entry<Object, Object> entry : entries.entrySet()) {
-            result.add(createAdditionalDataEntry(entry.getKey(), entry.getValue()));
-        }
-        return addAdditionalData(result);
-    }
-
-    public RequestBuilder<R> addAdditionalData(final Collection<AnyType2AnyTypeMap.Entry> entries) {
-        getAdditionalData().addAll(entries);
-        return this;
-    }
-
-    protected abstract List<AnyType2AnyTypeMap.Entry> getAdditionalData();
-
-    protected AnyType2AnyTypeMap.Entry createAdditionalDataEntry(final Object key, final Object value) {
+    protected void addAdditionalDataEntry(final Collection<Entry> entries, final String key, final String value) {
         final AnyType2AnyTypeMap.Entry entry = new AnyType2AnyTypeMap.Entry();
         entry.setKey(key);
         entry.setValue(value);
-        return entry;
+        entries.add(entry);
+    }
+
+    protected Long toMinorUnits(@Nullable final BigDecimal amountBD, @Nullable final String currencyIsoCode) {
+        if (amountBD == null || currencyIsoCode == null) {
+            return null;
+        }
+        return KillBillMoney.toMinorUnits(currencyIsoCode, amountBD);
     }
 }

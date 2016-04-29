@@ -330,6 +330,15 @@ public class AdyenDao extends PluginPaymentDao<AdyenResponsesRecord, AdyenRespon
                 });
     }
 
+    /**
+     * Update the PSP reference and additional data of the latest response row for a paymen transaction
+     *
+     * @param kbPaymentTransactionId     Kill Bill payment transaction id
+     * @param additionalPluginProperties Latest properties
+     * @param kbTenantId                 Kill Bill tenant id
+     * @return the latest version of the response row, null if one couldn't be found
+     * @throws SQLException For any unexpected SQL error
+     */
     public AdyenResponsesRecord updateResponse(final UUID kbPaymentTransactionId, final Iterable<PluginProperty> additionalPluginProperties, final UUID kbTenantId) throws SQLException {
         final Map<String, Object> additionalProperties = PluginProperties.toMap(additionalPluginProperties);
 
@@ -345,7 +354,7 @@ public class AdyenDao extends PluginPaymentDao<AdyenResponsesRecord, AdyenRespon
                                                                         .fetchOne();
 
                                if (response == null) {
-                                   throw new SQLException("Unable to retrieve response row for kbPaymentTransactionId " + kbPaymentTransactionId);
+                                   return null;
                                }
 
                                final Map originalData = new HashMap(fromAdditionalData(response.getAdditionalData()));

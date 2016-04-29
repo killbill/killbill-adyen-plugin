@@ -17,42 +17,36 @@
 
 package org.killbill.billing.plugin.adyen.client.payment.service;
 
-import java.math.BigDecimal;
-import java.math.RoundingMode;
+import javax.annotation.Nullable;
 
-import org.joda.money.CurrencyUnit;
-import org.joda.money.Money;
 import org.killbill.billing.plugin.adyen.client.model.PaymentData;
-import org.killbill.billing.plugin.adyen.client.model.PaymentInfo;
-import org.killbill.billing.plugin.adyen.client.model.PaymentProvider;
+import org.killbill.billing.plugin.adyen.client.model.UserData;
+import org.slf4j.Logger;
 
 public abstract class BaseAdyenPaymentServiceProviderPort {
 
-    protected Long toMinorUnits(final PaymentData paymentData, final BigDecimal amountBD) {
-        if (paymentData == null) {
-            return null;
+    protected void logOperation(final Logger logger, final String operation, @Nullable final PaymentData paymentData, @Nullable final UserData userData, @Nullable final String pspReference) {
+        final StringBuilder stringBuilder = new StringBuilder("op='").append(operation).append("'");
+        if (paymentData != null && paymentData.getAmount() != null) {
+            stringBuilder.append(", amount='")
+                         .append(paymentData.getAmount())
+                         .append("'");
         }
-        return toMinorUnits(paymentData.getPaymentInfo(), amountBD);
-    }
-
-    protected Long toMinorUnits(final PaymentInfo paymentInfo, final BigDecimal amountBD) {
-        if (paymentInfo == null) {
-            return null;
+        if (paymentData != null && paymentData.getPaymentTransactionExternalKey() != null) {
+            stringBuilder.append(", paymentTransactionExternalKey='")
+                         .append(paymentData.getPaymentTransactionExternalKey())
+                         .append("'");
         }
-        return toMinorUnits(paymentInfo.getPaymentProvider(), amountBD);
-    }
-
-    protected Long toMinorUnits(final PaymentProvider paymentProvider, final BigDecimal amountBD) {
-        if (paymentProvider == null || paymentProvider.getCurrency() == null) {
-            return null;
+        if (userData != null && userData.getShopperReference() != null) {
+            stringBuilder.append(", customerId='")
+                         .append(userData.getShopperReference())
+                         .append("'");
         }
-        return toMinorUnits(paymentProvider.getCurrency().getCurrencyCode(), amountBD);
-    }
-
-    protected Long toMinorUnits(final String currencyIsoCode, final BigDecimal amountBD) {
-        // The payment amount specified in minor units, without the decimal separator
-        final CurrencyUnit currencyUnit = CurrencyUnit.of(currencyIsoCode);
-        // HALF_UP consistent with org.killbill.billing.util.currency.KillBillMoney, although this might need to be configurable?
-        return Money.of(currencyUnit, amountBD, RoundingMode.HALF_UP).getAmountMinorLong();
+        if (pspReference != null) {
+            stringBuilder.append(", pspReference='")
+                         .append(pspReference)
+                         .append("'");
+        }
+        logger.info(stringBuilder.toString());
     }
 }

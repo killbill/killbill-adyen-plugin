@@ -25,20 +25,13 @@ public class HppCompletedResult {
     private final String pspReference;
     private final PaymentServiceProviderResult result;
     private final String reason;
-    private final long billingId;
 
-    public HppCompletedResult(final long billingId,
-                              final String pspReference,
+    public HppCompletedResult(final String pspReference,
                               final PaymentServiceProviderResult result,
                               @Nullable final String reason) {
-        this.billingId = billingId;
         this.pspReference = pspReference;
         this.result = Preconditions.checkNotNull(result);
         this.reason = reason;
-    }
-
-    public long getBillingId() {
-        return billingId;
     }
 
     public String getPspReference() {
@@ -59,7 +52,6 @@ public class HppCompletedResult {
         sb.append("pspReference='").append(pspReference).append('\'');
         sb.append(", result=").append(result);
         sb.append(", reason='").append(reason).append('\'');
-        sb.append(", billingId=").append(billingId);
         sb.append('}');
         return sb.toString();
     }
@@ -75,9 +67,6 @@ public class HppCompletedResult {
 
         final HppCompletedResult that = (HppCompletedResult) o;
 
-        if (billingId != that.billingId) {
-            return false;
-        }
         if (pspReference != null ? !pspReference.equals(that.pspReference) : that.pspReference != null) {
             return false;
         }
@@ -96,7 +85,6 @@ public class HppCompletedResult {
         int result1 = pspReference != null ? pspReference.hashCode() : 0;
         result1 = 31 * result1 + (result != null ? result.hashCode() : 0);
         result1 = 31 * result1 + (reason != null ? reason.hashCode() : 0);
-        result1 = 31 * result1 + (int) (billingId ^ (billingId >>> 32));
         return result1;
     }
 }

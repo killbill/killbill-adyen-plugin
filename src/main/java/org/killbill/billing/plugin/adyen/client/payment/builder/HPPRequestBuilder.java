@@ -1,7 +1,8 @@
 /*
- * Copyright 2014 Groupon, Inc
+ * Copyright 2014-2016 Groupon, Inc
+ * Copyright 2014-2016 The Billing Project, LLC
  *
- * Groupon licenses this file to you under the Apache License, version 2.0
+ * The Billing Project licenses this file to you under the Apache License, version 2.0
  * (the "License"); you may not use this file except in compliance with the
  * License.  You may obtain a copy of the License at:
  *
@@ -16,132 +17,126 @@
 
 package org.killbill.billing.plugin.adyen.client.payment.builder;
 
-import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.TreeMap;
 
-import org.killbill.adyen.payment.AnyType2AnyTypeMap;
+import javax.annotation.Nullable;
+
 import org.killbill.billing.plugin.adyen.client.AdyenConfigProperties;
-import org.killbill.billing.plugin.adyen.client.model.PaymentInfo;
-import org.killbill.billing.plugin.adyen.client.model.PaymentProvider;
-import org.killbill.billing.plugin.adyen.client.model.PaymentType;
+import org.killbill.billing.plugin.adyen.client.model.PaymentData;
+import org.killbill.billing.plugin.adyen.client.model.SplitSettlementData;
+import org.killbill.billing.plugin.adyen.client.model.UserData;
+import org.killbill.billing.plugin.adyen.client.model.paymentinfo.WebPaymentFrontend;
+import org.killbill.billing.plugin.adyen.client.payment.exception.SignatureGenerationException;
 import org.killbill.billing.plugin.adyen.client.payment.service.PayPalCountryCodes;
+import org.killbill.billing.plugin.adyen.client.payment.service.Signer;
+
+import com.google.common.base.Predicates;
+import com.google.common.collect.Maps;
 
 public class HPPRequestBuilder extends RequestBuilder<Map<String, String>> {
 
-    public HPPRequestBuilder() {
+    private final String merchantAccount;
+    private final PaymentData paymentData;
+    private final UserData userData;
+    private final SplitSettlementData splitSettlementData;
+    private final String hmacSecret;
+    private final Signer signer;
+
+    public HPPRequestBuilder(final String merchantAccount,
+                             final PaymentData paymentData,
+                             final UserData userData,
+                             @Nullable final SplitSettlementData splitSettlementData,
+                             final String hmacSecret,
+                             final Signer signer) {
         super(new TreeMap<String, String>());
-    }
-
-    public HPPRequestBuilder withShopperLocale(final PaymentType paymentType, final Locale customerLocale) {
-        final String shopperLocale;
-        if (paymentType == PaymentType.PAYPAL
-            && PayPalCountryCodes.isNotPayPalIsoCode(AdyenConfigProperties.gbToUK(customerLocale).getCountry())
-            && PayPalCountryCodes.isNotPayPalLocale(customerLocale)) {
-            shopperLocale = Locale.US.toString();
-        } else {
-            shopperLocale = AdyenConfigProperties.gbToUK(customerLocale).toString();
-        }
-        request.put("shopperLocale", shopperLocale);
-        return this;
-    }
-
-    public HPPRequestBuilder withBrandCodeAndOrAllowedMethods(final PaymentInfo paymentInfo) {
-        final String variant = paymentInfo.getPaymentProvider().getHppVariantOverride();
-        if (variant != null) {
-            request.put("brandCode", variant);
-        } else {
-            request.put("allowedMethods", paymentInfo.getPaymentProvider().getAllowedMethods());
-            if (paymentInfo.getPaymentProvider().getPaymentType() != PaymentType.DEBITCARDS_HPP) {
-                request.put("brandCode", paymentInfo.getPaymentProvider().getAllowedMethods());
-            }
-        }
-        return this;
-    }
-
-    public HPPRequestBuilder withSkinCode(final String skinCode) {
-        request.put("skinCode", skinCode);
-        return this;
-    }
-
-    public HPPRequestBuilder withMerchantAccount(final String merchantAccount) {
-        request.put("merchantAccount", merchantAccount);
-        return this;
-    }
-
-    public HPPRequestBuilder withCountryCode(final String countryCode) {
-        request.put("countryCode", countryCode);
-        return this;
-    }
-
-    public HPPRequestBuilder withMerchantReference(final String value) {
-        request.put("merchantReference", value);
-        return this;
-    }
-
-    public HPPRequestBuilder withPaymentAmount(final Number value) {
-        return withPaymentAmount(value.toString());
-    }
-
-    public HPPRequestBuilder withPaymentAmount(final String value) {
-        request.put("paymentAmount", value);
-        return this;
-    }
-
-    public HPPRequestBuilder withCurrencyCode(final String value) {
-        request.put("currencyCode", value);
-        return this;
-    }
-
-    public HPPRequestBuilder withShipBeforeDate(final String value) {
-        request.put("shipBeforeDate", value);
-        return this;
-    }
-
-    public HPPRequestBuilder withShopperEmail(final String value) {
-        request.put("shopperEmail", value);
-        return this;
-    }
-
-    public HPPRequestBuilder withShopperReference(final Number value) {
-        return withShopperReference(value.toString());
-    }
-
-    public HPPRequestBuilder withShopperReference(final String value) {
-        request.put("shopperReference", value);
-        return this;
-    }
-
-    public HPPRequestBuilder withRecurringContract(final PaymentProvider paymentProvider) {
-        if (paymentProvider.isRecurringEnabled()) {
-            request.put("recurringContract", paymentProvider.getRecurringType().name());
-        }
-        return this;
-    }
-
-    public HPPRequestBuilder withSessionValidity(final String sessionValidity) {
-        request.put("sessionValidity", sessionValidity);
-        return this;
-    }
-
-    public HPPRequestBuilder withResURL(final String value) {
-        request.put("resURL", value);
-        return this;
-    }
-
-    public HPPRequestBuilder withMerchantSig(final String value) {
-        request.put("merchantSig", value);
-        return this;
-    }
-
-    public HPPRequestBuilder withSplitSettlementParameters(final Map<String, String> params) {
-        request.putAll(params);
-        return this;
+        this.merchantAccount = merchantAccount;
+        this.paymentData = paymentData;
+        this.userData = userData;
+        this.splitSettlementData = splitSettlementData;
+        this.hmacSecret = hmacSecret;
+        this.signer = signer;
     }
 
     @Override
-    protected List<AnyType2AnyTypeMap.Entry> getAdditionalData() {
-        throw new UnsupportedOperationException();
+    public Map<String, String> build() {
+        request.put("merchantAccount", merchantAccount);
+        request.put("merchantReference", paymentData.getPaymentTransactionExternalKey());
+
+        final String currency = paymentData.getCurrency().name();
+        final Long amount = toMinorUnits(paymentData.getAmount(), currency);
+        request.put("paymentAmount", amount.toString());
+        request.put("currencyCode", currency);
+
+        final WebPaymentFrontend paymentInfo = (WebPaymentFrontend) paymentData.getPaymentInfo();
+        final String merchantSignature = signer.computeSignature(amount,
+                                                                 currency,
+                                                                 paymentInfo.getShipBeforeDate(),
+                                                                 paymentData.getPaymentTransactionExternalKey(),
+                                                                 paymentInfo.getSkinCode(),
+                                                                 merchantAccount,
+                                                                 userData.getShopperEmail(),
+                                                                 userData.getShopperReference(),
+                                                                 paymentInfo.getContract(),
+                                                                 paymentInfo.getAllowedMethods(),
+                                                                 paymentInfo.getSessionValidity(),
+                                                                 hmacSecret);
+        request.put("merchantSig", merchantSignature);
+
+        setShopperData();
+        try {
+            setSplitSettlementData(merchantSignature);
+        } catch (final SignatureGenerationException e) {
+            throw new RuntimeException(e);
+        }
+
+        Locale shopperLocale = AdyenConfigProperties.gbToUK(userData.getShopperLocale());
+        if ("paypal".equalsIgnoreCase(paymentInfo.getBrandCode()) &&
+            PayPalCountryCodes.isNotPayPalIsoCode(shopperLocale.getCountry()) &&
+            PayPalCountryCodes.isNotPayPalLocale(userData.getShopperLocale())) {
+            shopperLocale = Locale.US;
+        }
+        request.put("shopperLocale", shopperLocale.toString());
+        request.put("countryCode", paymentInfo.getCountry());
+        request.put("shipBeforeDate", paymentInfo.getShipBeforeDate());
+        request.put("skinCode", paymentInfo.getSkinCode());
+        request.put("sessionValidity", paymentInfo.getSessionValidity());
+        request.put("resURL", paymentInfo.getResURL());
+        request.put("brandCode", paymentInfo.getBrandCode());
+        request.put("allowedMethods", paymentInfo.getAllowedMethods());
+
+        request.put("recurringContract", paymentInfo.getContract());
+
+        return Maps.filterValues(request, Predicates.notNull());
+    }
+
+    private void setShopperData() {
+        request.put("shopper.firstName", userData.getFirstName());
+        request.put("shopper.infix", userData.getInfix());
+        request.put("shopper.lastName", userData.getLastName());
+        if (userData.getGender() != null) {
+            request.put("shopper.gender", userData.getGender().toUpperCase());
+        }
+        request.put("shopper.telephoneNumber", userData.getTelephoneNumber());
+        request.put("shopper.socialSecurityNumber", userData.getSocialSecurityNumber());
+        if (userData.getDateOfBirth() != null) {
+            request.put("shopper.dateOfBirthDayOfMonth", String.valueOf(userData.getDateOfBirth().getDayOfMonth()));
+            request.put("shopper.dateOfBirthMonth", String.valueOf(userData.getDateOfBirth().getMonthOfYear()));
+            request.put("shopper.dateOfBirthYear", String.valueOf(userData.getDateOfBirth().getYear()));
+        }
+        request.put("shopperEmail", userData.getShopperEmail());
+        request.put("shopperIP", userData.getShopperIP());
+        request.put("shopperReference", userData.getShopperReference());
+    }
+
+    private void setSplitSettlementData(final String merchantSignature) throws SignatureGenerationException {
+        if (splitSettlementData != null) {
+            final Map<String, String> entries = new SplitSettlementParamsBuilder().createSignedParamsFrom(splitSettlementData,
+                                                                                                          merchantSignature,
+                                                                                                          signer,
+                                                                                                          hmacSecret);
+            request.putAll(entries);
+        }
     }
 }

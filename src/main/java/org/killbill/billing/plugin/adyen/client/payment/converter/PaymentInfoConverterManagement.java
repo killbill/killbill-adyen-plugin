@@ -1,7 +1,8 @@
 /*
- * Copyright 2014 Groupon, Inc
+ * Copyright 2014-2016 Groupon, Inc
+ * Copyright 2014-2016 The Billing Project, LLC
  *
- * Groupon licenses this file to you under the Apache License, version 2.0
+ * The Billing Project licenses this file to you under the Apache License, version 2.0
  * (the "License"); you may not use this file except in compliance with the
  * License.  You may obtain a copy of the License at:
  *
@@ -16,18 +17,10 @@
 
 package org.killbill.billing.plugin.adyen.client.payment.converter;
 
+import org.killbill.adyen.payment.PaymentRequest;
 import org.killbill.billing.plugin.adyen.client.model.PaymentInfo;
-import org.killbill.billing.plugin.adyen.client.model.paymentinfo.Card;
 
-/**
- * Converts the paymentInfo transfer object into the representation needed by the selected paymentServiceProvider
- */
 public interface PaymentInfoConverterManagement<T extends PaymentInfo> {
 
-    /**
-     * returns the browser info element for 3-D Secure authorisation
-     */
-    public Object getBrowserInfoFor3DSecureAuth(Long billedAmount, Card card);
-
-    PaymentInfoConverter<T> getConverterForPaymentInfo(T paymentInfo);
+    PaymentRequest convertPaymentInfoToPaymentRequest(final T paymentInfo);
 }

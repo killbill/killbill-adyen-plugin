@@ -1,7 +1,8 @@
 /*
- * Copyright 2014 Groupon, Inc
+ * Copyright 2014-2016 Groupon, Inc
+ * Copyright 2014-2016 The Billing Project, LLC
  *
- * Groupon licenses this file to you under the Apache License, version 2.0
+ * The Billing Project licenses this file to you under the Apache License, version 2.0
  * (the "License"); you may not use this file except in compliance with the
  * License.  You may obtain a copy of the License at:
  *
@@ -16,180 +17,163 @@
 
 package org.killbill.billing.plugin.adyen.client.payment.builder;
 
+import java.math.BigDecimal;
 import java.util.List;
+
+import javax.annotation.Nullable;
+import javax.xml.datatype.DatatypeConfigurationException;
+import javax.xml.datatype.DatatypeFactory;
+import javax.xml.datatype.XMLGregorianCalendar;
 
 import org.killbill.adyen.common.Amount;
 import org.killbill.adyen.common.BrowserInfo;
+import org.killbill.adyen.common.Gender;
 import org.killbill.adyen.common.Name;
 import org.killbill.adyen.payment.AnyType2AnyTypeMap;
 import org.killbill.adyen.payment.PaymentRequest;
-import org.killbill.adyen.payment.Recurring;
+import org.killbill.adyen.payment.ThreeDSecureData;
+import org.killbill.billing.plugin.adyen.client.model.PaymentData;
 import org.killbill.billing.plugin.adyen.client.model.PaymentInfo;
 import org.killbill.billing.plugin.adyen.client.model.SplitSettlementData;
-import org.killbill.billing.plugin.adyen.client.model.RecurringType;
-import org.killbill.billing.plugin.adyen.client.model.paymentinfo.Card;
-import org.killbill.billing.plugin.adyen.client.payment.converter.PaymentInfoConverter;
+import org.killbill.billing.plugin.adyen.client.model.UserData;
 import org.killbill.billing.plugin.adyen.client.payment.converter.PaymentInfoConverterManagement;
-import org.killbill.billing.plugin.adyen.client.payment.converter.impl.NullObjectConverter;
 
-import com.google.common.base.MoreObjects;
-import com.google.common.base.Strings;
+import com.google.common.base.Charsets;
+import com.google.common.io.BaseEncoding;
 
 public class PaymentRequestBuilder extends RequestBuilder<PaymentRequest> {
 
-    private static final String CONTINOUS_AUTHENTICATION_ADYEN = "ContAuth";
+    private final String merchantAccount;
+    private final PaymentData paymentData;
+    private final UserData userData;
+    private final SplitSettlementData splitSettlementData;
 
-    private static final PaymentInfoConverter NULL_CONVERTER = new NullObjectConverter();
-
-    private final PaymentInfo paymentInfo;
-    private final PaymentInfoConverterManagement paymentInfoConverterManagement;
-
-    PaymentRequestBuilder(final PaymentInfo paymentInfo,
-                          final PaymentInfoConverterManagement paymentInfoConverterManagement,
-                          final String holderName) {
-        this.paymentInfo = paymentInfo;
-        this.paymentInfoConverterManagement = paymentInfoConverterManagement;
-
-        request = createInitialRequestForPaymentInfo(holderName);
-    }
-
-    private PaymentRequest createInitialRequestForPaymentInfo(final String holderName) {
-        final PaymentRequest initialRequest = createRequestForPaymentInfo(holderName);
-        if (initialRequest.getAdditionalData() == null) {
-            initialRequest.setAdditionalData(new AnyType2AnyTypeMap());
-        }
-        if (paymentInfo.isContinuousAuthenticationEnabled()) {
-            initialRequest.setShopperInteraction(CONTINOUS_AUTHENTICATION_ADYEN);
-        }
-        return initialRequest;
-    }
-
-    private PaymentRequest createRequestForPaymentInfo(final String holderName) {
-        final PaymentInfoConverter<PaymentInfo> converter = MoreObjects.<PaymentInfoConverter>firstNonNull(paymentInfoConverterManagement.getConverterForPaymentInfo(paymentInfo), NULL_CONVERTER);
-        final Object convertedObject = converter.convertPaymentInfoToPSPTransferObject(holderName, paymentInfo);
-        if (convertedObject instanceof PaymentRequest) {
-            return (PaymentRequest) convertedObject;
-        }
-        throw new IllegalStateException("converted object must be of type PaymentRequest: " + convertedObject);
-    }
-
-    @Override
-    protected List<AnyType2AnyTypeMap.Entry> getAdditionalData() {
-        return request.getAdditionalData().getEntry();
-    }
-
-    public PaymentRequestBuilder withMerchantAccount(final String merchantAccount) {
-        request.setMerchantAccount(merchantAccount);
-        return this;
+    public PaymentRequestBuilder(final String merchantAccount,
+                                 final PaymentData paymentData,
+                                 final UserData userData,
+                                 @Nullable final SplitSettlementData splitSettlementData,
+                                 final PaymentInfoConverterManagement paymentInfoConverterManagement) {
+        super(paymentInfoConverterManagement.convertPaymentInfoToPaymentRequest(paymentData.getPaymentInfo()));
+        this.merchantAccount = merchantAccount;
+        this.paymentData = paymentData;
+        this.userData = userData;
+        this.splitSettlementData = splitSettlementData;
     }
 
     @Override
     public PaymentRequest build() {
-        if (paymentRequestWithRecurringPaymentData()) {
-            final Recurring recurring = (request.getRecurring() == null) ? new Recurring() : request.getRecurring();
-            recurring.setContract(paymentInfo.getPaymentProvider().getRecurringType().name());
-        }
+        request.setMerchantAccount(merchantAccount);
+        request.setReference(paymentData.getPaymentTransactionExternalKey());
+
+        setAmount();
+        setRecurring();
+        setShopperData();
+        set3DSecureFields();
+        setSplitSettlementData();
+
         return request;
     }
 
-    private boolean paymentRequestWithRecurringPaymentData() {
-        return !Strings.isNullOrEmpty(request.getSelectedRecurringDetailReference());
-    }
-
-    public PaymentRequestBuilder withAmount(final String currency, final Long value) {
-        if (value != null) {
-            final Amount amount = new Amount();
-            amount.setCurrency(currency);
-            amount.setValue(value);
-            return withAmount(amount);
+    private void setAmount() {
+        if (paymentData.getAmount() == null || paymentData.getCurrency() == null) {
+            return;
         }
-        return this;
-    }
 
-    public PaymentRequestBuilder withAmount(final Amount amount) {
+        final String currency = paymentData.getCurrency().name();
+        final Amount amount = new Amount();
+        amount.setValue(toMinorUnits(paymentData.getAmount(), currency));
+        amount.setCurrency(currency);
         request.setAmount(amount);
-        return this;
     }
 
-    public PaymentRequestBuilder withShopperReference(final String shopperReference) {
-        request.setShopperReference(shopperReference);
-        return this;
-    }
-
-    public PaymentRequestBuilder withShopperEmail(final String shopperEmail) {
-        request.setShopperEmail(shopperEmail);
-        return this;
-    }
-
-    public PaymentRequestBuilder withShopperIp(final String shopperIp) {
-        request.setShopperIP(shopperIp);
-        return this;
-    }
-
-    public PaymentRequestBuilder withReference(final String reference) {
-        request.setReference(reference);
-        return this;
-    }
-
-    public PaymentRequestBuilder withShopperName(final String firstName, final String lastName) {
-        final Name name = new Name();
-        name.setFirstName(firstName);
-        name.setLastName(lastName);
-        return withShopperName(name);
-    }
-
-    public PaymentRequestBuilder withShopperName(final Name shopperName) {
-        request.setShopperName(shopperName);
-        return this;
-    }
-
-    public PaymentRequestBuilder withRecurringContractForUser() {
-        if (paymentInfo.getPaymentProvider().isRecurringEnabled()) {
-            final Recurring recurring = createRecurring(paymentInfo.getRecurringType());
+    private void setRecurring() {
+        if (paymentData.getPaymentInfo().getContract() != null) {
+            final org.killbill.adyen.payment.Recurring recurring = new org.killbill.adyen.payment.Recurring();
+            recurring.setContract(paymentData.getPaymentInfo().getContract());
             request.setRecurring(recurring);
         }
-        return this;
     }
 
-    private Recurring createRecurring(final RecurringType recurringContract) {
-        final Recurring recurring = new Recurring();
-        recurring.setContract(recurringContract.name());
-        return recurring;
+    private void setShopperData() {
+        final Name name = new Name();
+        name.setFirstName(userData.getFirstName());
+        name.setInfix(userData.getInfix());
+        name.setLastName(userData.getLastName());
+        if (userData.getGender() != null) {
+            name.setGender(Gender.valueOf(userData.getGender().toUpperCase()));
+        }
+        if (userData.getFirstName() != null ||
+            userData.getInfix() != null ||
+            userData.getLastName() != null ||
+            userData.getGender() != null) {
+            request.setShopperName(name);
+        }
+
+        request.setTelephoneNumber(userData.getTelephoneNumber());
+        request.setSocialSecurityNumber(userData.getSocialSecurityNumber());
+        if (userData.getDateOfBirth() != null) {
+            final XMLGregorianCalendar xgc;
+            try {
+                xgc = DatatypeFactory.newInstance().newXMLGregorianCalendar(userData.getDateOfBirth().toGregorianCalendar());
+                request.setDateOfBirth(xgc);
+            } catch (final DatatypeConfigurationException e) {
+                throw new RuntimeException(e);
+            }
+        }
+        request.setShopperEmail(userData.getShopperEmail());
+        request.setShopperIP(userData.getShopperIP());
+        request.setShopperReference(userData.getShopperReference());
     }
 
-    public PaymentRequestBuilder withBrowserInfo(final Long amount) {
-        if (isCard()) {
-            final BrowserInfo browserInfo = (BrowserInfo) paymentInfoConverterManagement.getBrowserInfoFor3DSecureAuth(amount, (Card) paymentInfo);
+    private void set3DSecureFields() {
+        final BigDecimal amount = paymentData.getAmount();
+        final PaymentInfo paymentInfo = paymentData.getPaymentInfo();
+
+        boolean thresholdReached = false;
+        if (amount != null && paymentInfo.getThreeDThreshold() != null) {
+            final Long amountMinorUnits = toMinorUnits(amount, paymentData.getCurrency().name());
+            thresholdReached = amountMinorUnits.compareTo(paymentInfo.getThreeDThreshold()) >= 0;
+        }
+        if (!thresholdReached) {
+            return;
+        }
+
+        final BrowserInfo browserInfo = new BrowserInfo();
+        browserInfo.setAcceptHeader(paymentInfo.getAcceptHeader());
+        browserInfo.setUserAgent(paymentInfo.getUserAgent());
+        if (browserInfo.getAcceptHeader() != null || browserInfo.getUserAgent() != null) {
             request.setBrowserInfo(browserInfo);
         }
-        return this;
-    }
 
-    public PaymentRequestBuilder withReturnUrl(final String returnUrl) {
-        if (isCard() && paymentInfo.getPaymentProvider().send3DSTermUrl()) {
-            addAdditionalData("returnUrl", returnUrl);
+        final ThreeDSecureData threeDSecureData = new ThreeDSecureData();
+        threeDSecureData.setDirectoryResponse(paymentInfo.getMpiDataDirectoryResponse());
+        threeDSecureData.setAuthenticationResponse(paymentInfo.getMpiDataAuthenticationResponse());
+        if (paymentInfo.getMpiDataCavv() != null) {
+            threeDSecureData.setCavv(BaseEncoding.base64().encode(paymentInfo.getMpiDataCavv().getBytes(Charsets.US_ASCII)).getBytes(Charsets.US_ASCII));
         }
-        return this;
-    }
-
-    private boolean isCard() {
-        return paymentInfo instanceof Card;
-    }
-
-    public PaymentRequestBuilder withSelectedRecurringDetailReference() {
-        if (isRecurringInformationAvailable()) {
-            request.setSelectedRecurringDetailReference(paymentInfo.getRecurringDetailId());
+        threeDSecureData.setCavvAlgorithm(paymentInfo.getMpiDataCavvAlgorithm());
+        if (paymentInfo.getMpiDataXid() != null) {
+            threeDSecureData.setXid(BaseEncoding.base64().encode(paymentInfo.getMpiDataXid().getBytes(Charsets.US_ASCII)).getBytes(Charsets.US_ASCII));
         }
-        return this;
+        threeDSecureData.setEci(paymentInfo.getMpiDataEci());
+        if (threeDSecureData.getDirectoryResponse() != null ||
+            threeDSecureData.getAuthenticationResponse() != null ||
+            threeDSecureData.getCavv() != null ||
+            threeDSecureData.getCavvAlgorithm() != null ||
+            threeDSecureData.getXid() != null ||
+            threeDSecureData.getEci() != null) {
+            request.setMpiData(threeDSecureData);
+        }
+
+        if (paymentInfo.getTermUrl() != null) {
+            addAdditionalDataEntry(request.getAdditionalData().getEntry(), "returnUrl", paymentInfo.getTermUrl());
+        }
     }
 
-    private boolean isRecurringInformationAvailable() {
-        return !Strings.isNullOrEmpty(paymentInfo.getRecurringDetailId());
-    }
-
-    public PaymentRequestBuilder withSplitSettlementData(final SplitSettlementData splitSettlementData) {
-        final List<AnyType2AnyTypeMap.Entry> entries = new SplitSettlementParamsBuilder().createEntriesFrom(splitSettlementData);
-        addAdditionalData(entries);
-        return this;
+    private void setSplitSettlementData() {
+        if (splitSettlementData != null) {
+            final List<AnyType2AnyTypeMap.Entry> entries = new SplitSettlementParamsBuilder().createEntriesFrom(splitSettlementData);
+            request.getAdditionalData().getEntry().addAll(entries);
+        }
     }
 }

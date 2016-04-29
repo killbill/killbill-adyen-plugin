@@ -19,54 +19,30 @@ package org.killbill.billing.plugin.adyen.client.payment.converter.impl;
 
 import java.util.List;
 
+import org.killbill.adyen.payment.PaymentRequest;
 import org.killbill.billing.plugin.adyen.client.model.PaymentInfo;
-import org.killbill.billing.plugin.adyen.client.model.paymentinfo.Card;
 import org.killbill.billing.plugin.adyen.client.payment.converter.PaymentInfoConverter;
 import org.killbill.billing.plugin.adyen.client.payment.converter.PaymentInfoConverterManagement;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-
-import static com.google.common.base.Preconditions.checkNotNull;
 
 public class PaymentInfoConverterService implements PaymentInfoConverterManagement<PaymentInfo> {
 
     private final List<PaymentInfoConverter<? extends PaymentInfo>> paymentInfoConverters;
 
     public PaymentInfoConverterService() {
-        this(ImmutableList.<PaymentInfoConverter<? extends PaymentInfo>>of(
-                new CreditCardConverter(),
-                new MaestroConverter(),
-                new MisterCashConverter(),
-                new SepaDirectDebitConverter(),
-                new RecurringConverter()));
-    }
-
-    public PaymentInfoConverterService(final List<PaymentInfoConverter<? extends PaymentInfo>> paymentInfoConverterList) {
-        Preconditions.checkArgument(paymentInfoConverterList != null, "paymentInfoConverterList is null");
-        this.paymentInfoConverters = paymentInfoConverterList;
+        this.paymentInfoConverters = ImmutableList.<PaymentInfoConverter<? extends PaymentInfo>>of(new CreditCardConverter(),
+                                                                                                   new SepaDirectDebitConverter(),
+                                                                                                   new RecurringConverter());
     }
 
     @Override
-    public Object getBrowserInfoFor3DSecureAuth(final Long billedAmount, final Card card) {
-        checkNotNull(billedAmount, "billedAmount is null");
-        checkNotNull(card, "card is null");
-
+    public PaymentRequest convertPaymentInfoToPaymentRequest(final PaymentInfo paymentInfo) {
         for (final PaymentInfoConverter pic : paymentInfoConverters) {
-            if (pic.supportsPaymentType(card.getPaymentProvider().getPaymentType())) {
-                return pic.convertPaymentInfoFor3DSecureAuth(billedAmount, card);
+            if (pic.supportsPaymentInfo(paymentInfo)) {
+                return pic.convertPaymentInfoToPaymentRequest(paymentInfo);
             }
         }
-        throw new IllegalArgumentException("No PaymentInfoConverter for " + card.getPaymentProvider().getPaymentType() + " found.");
-    }
-
-    @Override
-    public PaymentInfoConverter<PaymentInfo> getConverterForPaymentInfo(final PaymentInfo paymentInfo) {
-        for (final PaymentInfoConverter pic : paymentInfoConverters) {
-            if (pic.supportsPaymentType(paymentInfo.getPaymentProvider().getPaymentType())) {
-                return pic;
-            }
-        }
-        throw new IllegalArgumentException("No PaymentInfoConverter for " + paymentInfo.getPaymentProvider().getPaymentType() + " found.");
+        throw new IllegalArgumentException("No PaymentInfoConverter for " + paymentInfo + " found.");
     }
 }

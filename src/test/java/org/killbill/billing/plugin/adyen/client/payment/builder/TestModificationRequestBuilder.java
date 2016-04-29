@@ -17,27 +17,76 @@
 
 package org.killbill.billing.plugin.adyen.client.payment.builder;
 
+import java.math.BigDecimal;
+import java.util.List;
+import java.util.UUID;
+
+import org.killbill.adyen.payment.AnyType2AnyTypeMap.Entry;
 import org.killbill.adyen.payment.ModificationRequest;
 import org.killbill.billing.catalog.api.Currency;
+import org.killbill.billing.plugin.adyen.client.model.PaymentData;
+import org.killbill.billing.plugin.adyen.client.model.SplitSettlementData;
+import org.killbill.billing.plugin.adyen.client.model.paymentinfo.Card;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-public class TestModificationRequestBuilder {
+import com.google.common.collect.ImmutableList;
 
-    private static final String CURRENCY = Currency.EUR.name();
+public class TestModificationRequestBuilder extends BaseTestPaymentRequestBuilder {
 
     @Test(groups = "fast")
-    public void testBuilder() throws Exception {
-        final String merchantAccount = "merchantAccount";
-        final Long value = 1L;
-        final String originalReference = "originalReference";
-        final String reference = "reference";
-        final ModificationRequest modificationRequest = new ModificationRequestBuilder(merchantAccount, value, CURRENCY, originalReference, reference).build();
+    public void testPaymentRequestBuilderWithoutSplitSettlements() {
+        final SplitSettlementData splitSettlementData = null;
 
-        Assert.assertEquals(modificationRequest.getMerchantAccount(), merchantAccount, "Wrong MerchantAccount in Request");
-        Assert.assertEquals(modificationRequest.getOriginalReference(), originalReference, "Wrong OriginalReference in Request");
-        Assert.assertNotNull(modificationRequest.getModificationAmount(), "No Amount in Request");
-        Assert.assertEquals(modificationRequest.getModificationAmount().getCurrency(), CURRENCY, "Wrong Currency in Amount in Request");
-        Assert.assertEquals(modificationRequest.getModificationAmount().getValue(), value, "Wrong Value in Amount in Request");
+        verifyModificationRequestBuilder(splitSettlementData);
+    }
+
+    @Test(groups = "fast")
+    public void testPaymentRequestBuilderWithSplitSettlements() {
+        final SplitSettlementData splitSettlementData = new SplitSettlementData(1,
+                                                                                "EUR",
+                                                                                ImmutableList.<SplitSettlementData.Item>of(new SplitSettlementData.Item(500, "deal1", "voucherId", "voucher"),
+                                                                                                                           new SplitSettlementData.Item(750, "deal1", "voucherId2", "voucher"),
+                                                                                                                           new SplitSettlementData.Item(750, "deal2", "travelId", "travel")));
+
+        final ModificationRequest modificationRequest = verifyModificationRequestBuilder(splitSettlementData);
+
+        final List<Entry> entries = modificationRequest.getAdditionalData().getEntry();
+        Assert.assertEquals(findValue(entries, "splitsettlementdata.api"), "1");
+        Assert.assertEquals(findValue(entries, "splitsettlementdata.nrOfItems"), "3");
+        Assert.assertEquals(findValue(entries, "splitsettlementdata.totalAmount"), "2000");
+        Assert.assertEquals(findValue(entries, "splitsettlementdata.currencyCode"), "EUR");
+        Assert.assertEquals(findValue(entries, "splitsettlementdata.item1.amount"), "500");
+        Assert.assertEquals(findValue(entries, "splitsettlementdata.item1.currencyCode"), "EUR");
+        Assert.assertEquals(findValue(entries, "splitsettlementdata.item1.group"), "deal1");
+        Assert.assertEquals(findValue(entries, "splitsettlementdata.item1.reference"), "voucherId");
+        Assert.assertEquals(findValue(entries, "splitsettlementdata.item1.type"), "voucher");
+        Assert.assertEquals(findValue(entries, "splitsettlementdata.item2.amount"), "750");
+        Assert.assertEquals(findValue(entries, "splitsettlementdata.item2.currencyCode"), "EUR");
+        Assert.assertEquals(findValue(entries, "splitsettlementdata.item2.group"), "deal1");
+        Assert.assertEquals(findValue(entries, "splitsettlementdata.item2.reference"), "voucherId2");
+        Assert.assertEquals(findValue(entries, "splitsettlementdata.item2.type"), "voucher");
+        Assert.assertEquals(findValue(entries, "splitsettlementdata.item3.amount"), "750");
+        Assert.assertEquals(findValue(entries, "splitsettlementdata.item3.currencyCode"), "EUR");
+        Assert.assertEquals(findValue(entries, "splitsettlementdata.item3.group"), "deal2");
+        Assert.assertEquals(findValue(entries, "splitsettlementdata.item3.reference"), "travelId");
+        Assert.assertEquals(findValue(entries, "splitsettlementdata.item3.type"), "travel");
+    }
+
+    private ModificationRequest verifyModificationRequestBuilder(final SplitSettlementData splitSettlementData) {
+        final String merchantAccount = UUID.randomUUID().toString();
+        final String paymentTransactionExternalKey = UUID.randomUUID().toString();
+        final PaymentData paymentData = new PaymentData(new BigDecimal("20"), Currency.EUR, paymentTransactionExternalKey, new Card());
+        final String originalReference = UUID.randomUUID().toString();
+
+        final ModificationRequestBuilder builder = new ModificationRequestBuilder(merchantAccount, paymentData, originalReference, splitSettlementData);
+        final ModificationRequest modificationRequest = builder.build();
+
+        Assert.assertEquals(modificationRequest.getMerchantAccount(), merchantAccount);
+        Assert.assertEquals(modificationRequest.getModificationAmount().getValue(), (Long) 2000L);
+        Assert.assertEquals(modificationRequest.getOriginalReference(), originalReference);
+        Assert.assertEquals(modificationRequest.getReference(), paymentTransactionExternalKey);
+
+        return modificationRequest;
     }
 }

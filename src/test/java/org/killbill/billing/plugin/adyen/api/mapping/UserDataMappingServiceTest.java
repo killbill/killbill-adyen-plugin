@@ -347,12 +347,12 @@ public class UserDataMappingServiceTest {
                 new PluginProperty(AdyenPaymentPluginApi.PROPERTY_IP, customerIpProperty, false));
 
         final UserData userData = UserDataMappingService.toUserData(null, pluginProperties);
-        assertEquals(userData.getCustomerId(), customerIdProperty);
-        assertEquals(userData.getCustomerLocale().toString(), customerLocaleProperty);
-        assertEquals(userData.getEmail(), customerEmailProperty);
+        assertEquals(userData.getShopperReference(), customerIdProperty);
+        assertEquals(userData.getShopperLocale().toString(), customerLocaleProperty);
+        assertEquals(userData.getShopperEmail(), customerEmailProperty);
         assertEquals(userData.getFirstName(), customerFirstNameProperty);
         assertEquals(userData.getLastName(), customerLastNameProperty);
-        assertEquals(userData.getIP(), customerIpProperty);
+        assertEquals(userData.getShopperIP(), customerIpProperty);
     }
 
     @Test(groups = "fast")
@@ -375,12 +375,12 @@ public class UserDataMappingServiceTest {
                 ImmutableList.of(new PluginProperty(AdyenPaymentPluginApi.PROPERTY_IP, customerIpProperty, false));
 
         final UserData userData = UserDataMappingService.toUserData(account, pluginProperties);
-        assertEquals(userData.getCustomerId(), externalKey);
-        assertEquals(userData.getCustomerLocale().toString(), accountLocale);
-        assertEquals(userData.getEmail(), email);
+        assertEquals(userData.getShopperReference(), externalKey);
+        assertEquals(userData.getShopperLocale().toString(), accountLocale);
+        assertEquals(userData.getShopperEmail(), email);
         assertEquals(userData.getFirstName(), "Erl");
         assertEquals(userData.getLastName(), "Koenig");
-        assertEquals(userData.getIP(), customerIpProperty);
+        assertEquals(userData.getShopperIP(), customerIpProperty);
     }
 
 
@@ -389,11 +389,11 @@ public class UserDataMappingServiceTest {
         final List<PluginProperty> pluginProperties = ImmutableList.of();
 
         final UserData userData = UserDataMappingService.toUserData(null, pluginProperties);
-        assertEquals(userData.getCustomerId(), null);
-        assertEquals(userData.getCustomerLocale(), null);
-        assertEquals(userData.getEmail(), null);
+        assertEquals(userData.getShopperReference(), null);
+        assertEquals(userData.getShopperLocale(), null);
+        assertEquals(userData.getShopperEmail(), null);
         assertEquals(userData.getFirstName(), null);
         assertEquals(userData.getLastName(), null);
-        assertEquals(userData.getIP(), null);
+        assertEquals(userData.getShopperIP(), null);
     }
 }

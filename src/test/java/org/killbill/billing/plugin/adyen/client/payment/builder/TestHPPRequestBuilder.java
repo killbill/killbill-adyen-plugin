@@ -1,7 +1,8 @@
 /*
- * Copyright 2014 Groupon, Inc
+ * Copyright 2014-2016 Groupon, Inc
+ * Copyright 2014-2016 The Billing Project, LLC
  *
- * Groupon licenses this file to you under the Apache License, version 2.0
+ * The Billing Project licenses this file to you under the Apache License, version 2.0
  * (the "License"); you may not use this file except in compliance with the
  * License.  You may obtain a copy of the License at:
  *
@@ -16,22 +17,25 @@
 
 package org.killbill.billing.plugin.adyen.client.payment.builder;
 
-import java.util.HashMap;
+import java.math.BigDecimal;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Properties;
+import java.util.UUID;
 
 import org.joda.time.DateTime;
-import org.killbill.billing.plugin.adyen.client.AdyenConfigProperties;
-import org.killbill.billing.plugin.adyen.client.model.PaymentInfo;
-import org.killbill.billing.plugin.adyen.client.model.PaymentProvider;
-import org.killbill.billing.plugin.adyen.client.model.PaymentType;
-import org.killbill.billing.plugin.adyen.client.model.paymentinfo.CreditCard;
+import org.killbill.billing.catalog.api.Currency;
+import org.killbill.billing.plugin.adyen.client.model.PaymentData;
+import org.killbill.billing.plugin.adyen.client.model.SplitSettlementData;
+import org.killbill.billing.plugin.adyen.client.model.UserData;
 import org.killbill.billing.plugin.adyen.client.model.paymentinfo.WebPaymentFrontend;
+import org.killbill.billing.plugin.adyen.client.payment.service.Signer;
+import org.mockito.Mockito;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-public class TestHPPRequestBuilder {
+import com.google.common.collect.ImmutableList;
+
+public class TestHPPRequestBuilder extends BaseTestPaymentRequestBuilder {
 
     public static final String COUNTRY_CODE = "DE";
     public static final String MERCHANT_ACCOUNT = "ShoppyShop" + COUNTRY_CODE;
@@ -40,42 +44,60 @@ public class TestHPPRequestBuilder {
     public static final String SHOPPER_EMAIL = "test@killbill.io";
     public static final String RES_URL = "http://killbill.io";
     public static final String MERCHANT_SIG = "signature";
-    public static final String DATE_TIME_PATTERN = "yyyy-MM-dd'T'HH:mm";
-    public static final String VARIANT_OVERRIDE = "variantOverride";
     public static final String MERCHANT_REFERENCE = "merchantReference";
+    public static final String BRAND_CODE = "brandCode";
+    public static final String ALLOWED_METHODS = "allowedMethods";
 
-    private final AdyenConfigProperties adyenConfigProperties = new AdyenConfigProperties(new Properties());
+    public static final String DATE_TIME_PATTERN = "yyyy-MM-dd'T'HH:mm";
 
     @Test(groups = "fast")
-    public void testWithAll() throws Exception {
-        final PaymentInfo paymentInfo = buildCCPaymentInfo();
-        final PaymentType paymentType = paymentInfo.getPaymentProvider().getPaymentType();
-        final Map<String, String> splitSettlementParameters = new HashMap<String, String>();
-        splitSettlementParameters.put("splitKey", "splitValue");
-        final Map<String, String> params = new HPPRequestBuilder().withCountryCode(COUNTRY_CODE)
-                                                                  .withMerchantReference(MERCHANT_REFERENCE)
-                                                                  .withPaymentAmount(100L)
-                                                                  .withCurrencyCode(CURRENCY_CODE)
-                                                                  .withShopperEmail(SHOPPER_EMAIL)
-                                                                  .withShopperReference(123)
-                                                                  .withRecurringContract(paymentInfo.getPaymentProvider())
-                                                                  .withResURL(RES_URL)
-                                                                  .withMerchantSig(MERCHANT_SIG)
-                                                                  .withShipBeforeDate(DateTime.now().toString(DATE_TIME_PATTERN))
-                                                                  .withSessionValidity(DateTime.now().plusMinutes(15).toString(DATE_TIME_PATTERN))
-                                                                  .withSplitSettlementParameters(splitSettlementParameters)
-                                                                  .withMerchantAccount(MERCHANT_ACCOUNT)
-                                                                  .withSkinCode(SKIN_CODE)
-                                                                  .withBrandCodeAndOrAllowedMethods(paymentInfo)
-                                                                  .withShopperLocale(paymentType, Locale.GERMANY)
-                                                                  .build();
+    public void testBuilder() throws Exception {
+        final String merchantAccount = MERCHANT_ACCOUNT;
+        final String paymentTransactionExternalKey = MERCHANT_REFERENCE;
+
+        final WebPaymentFrontend webPaymentFrontend = new WebPaymentFrontend();
+        webPaymentFrontend.setCountry(COUNTRY_CODE);
+        webPaymentFrontend.setSkinCode(SKIN_CODE);
+        webPaymentFrontend.setShipBeforeDate(DateTime.now().toString(DATE_TIME_PATTERN));
+        webPaymentFrontend.setSessionValidity(DateTime.now().plusMinutes(15).toString(DATE_TIME_PATTERN));
+        webPaymentFrontend.setResURL(RES_URL);
+        webPaymentFrontend.setBrandCode(BRAND_CODE);
+        webPaymentFrontend.setAllowedMethods(ALLOWED_METHODS);
+        final PaymentData paymentData = new PaymentData(new BigDecimal("1"), Currency.EUR, paymentTransactionExternalKey, webPaymentFrontend);
+
+        final UserData userData = new UserData();
+        userData.setShopperEmail(SHOPPER_EMAIL);
+        userData.setShopperReference("123");
+        userData.setShopperLocale(Locale.GERMANY);
+
+        final SplitSettlementData splitSettlementData = new SplitSettlementData(1,
+                                                                                "EUR",
+                                                                                ImmutableList.<SplitSettlementData.Item>of(new SplitSettlementData.Item(500, "deal1", "voucherId", "voucher"),
+                                                                                                                           new SplitSettlementData.Item(750, "deal1", "voucherId2", "voucher"),
+                                                                                                                           new SplitSettlementData.Item(750, "deal2", "travelId", "travel")));
+
+        final Signer signer = Mockito.mock(Signer.class);
+        Mockito.when(signer.computeSignature(Mockito.anyLong(),
+                                             Mockito.anyString(),
+                                             Mockito.anyString(),
+                                             Mockito.anyString(),
+                                             Mockito.anyString(),
+                                             Mockito.anyString(),
+                                             Mockito.anyString(),
+                                             Mockito.anyString(),
+                                             Mockito.anyString(),
+                                             Mockito.anyString(),
+                                             Mockito.anyString(),
+                                             Mockito.anyString())).thenReturn(MERCHANT_SIG);
+
+        final Map<String, String> params = new HPPRequestBuilder(merchantAccount, paymentData, userData, splitSettlementData, UUID.randomUUID().toString(), signer).build();
 
         Assert.assertFalse(params.isEmpty(), "HPP Params map should not be empty");
         Assert.assertEquals(params.get("countryCode"), COUNTRY_CODE, "Wrong value for 'countryCode'");
         Assert.assertEquals(params.get("merchantAccount"), MERCHANT_ACCOUNT, "Wrong value for 'merchantAccount'");
         Assert.assertEquals(params.get("skinCode"), SKIN_CODE, "Wrong value for 'skinCode'");
-        Assert.assertEquals(params.get("brandCode"), paymentType.getName(), "Wrong value for 'brandCode'");
-        Assert.assertEquals(params.get("allowedMethods"), paymentType.getName(), "Wrong value for 'allowedMethods'");
+        Assert.assertEquals(params.get("brandCode"), BRAND_CODE, "Wrong value for 'brandCode'");
+        Assert.assertEquals(params.get("allowedMethods"), ALLOWED_METHODS, "Wrong value for 'allowedMethods'");
         Assert.assertEquals(params.get("merchantReference"), MERCHANT_REFERENCE, "Wrong value for 'merchantReference'");
         Assert.assertEquals(params.get("paymentAmount"), "100", "Wrong value for 'paymentAmount'");
         Assert.assertEquals(params.get("currencyCode"), CURRENCY_CODE, "Wrong value for 'currencyCode'");
@@ -85,58 +107,25 @@ public class TestHPPRequestBuilder {
         Assert.assertEquals(params.get("merchantSig"), MERCHANT_SIG, "Wrong value for 'merchantSig'");
         Assert.assertEquals(params.get("shipBeforeDate"), DateTime.now().toString(DATE_TIME_PATTERN), "Wrong value for 'shipBeforeDate'");
         Assert.assertEquals(params.get("sessionValidity"), DateTime.now().plusMinutes(15).toString(DATE_TIME_PATTERN), "Wrong value for 'sessionValidity'");
-        Assert.assertEquals(params.get("splitKey"), "splitValue", "Wrong value for 'splitKey'");
         Assert.assertEquals(params.get("shopperLocale"), Locale.GERMANY.toString(), "Wrong value for 'shopperLocale'");
-    }
-
-    @Test(groups = "fast")
-    public void testWithPaymentTypeDOTPAY() throws Exception {
-        final Map<String, String> params = new HPPRequestBuilder().withCountryCode(COUNTRY_CODE)
-                                                                  .withResURL(RES_URL)
-                                                                  .build();
-
-        Assert.assertTrue(params.containsKey("resURL"), "HPP Params map should contain a 'resURL'");
-    }
-
-    @Test(groups = "fast")
-    public void testWithPaymentTypeDEBITCARDSHPP() throws Exception {
-        final Map<String, String> params = new HPPRequestBuilder().withCountryCode(COUNTRY_CODE)
-                                                                  .build();
-
-        Assert.assertFalse(params.containsKey("brandCode"), "HPP Params map should not containing a 'brandCode'");
-    }
-
-    @Test(groups = "fast")
-    public void testWithHppVariantOverride() throws Exception {
-        final PaymentInfo paymentInfo = buildCardPaymentInfo(PaymentType.DEBITCARDS_HPP);
-        paymentInfo.getPaymentProvider().setHppVariantOverride(VARIANT_OVERRIDE);
-        final Map<String, String> params = new HPPRequestBuilder().withCountryCode(COUNTRY_CODE)
-                                                                  .withBrandCodeAndOrAllowedMethods(paymentInfo)
-                                                                  .build();
-
-        Assert.assertEquals(params.get("brandCode"), params.get("brandCode"), "Wrong value for 'brandCode'");
-        Assert.assertFalse(params.containsKey("allowedMethods"), "HPP Params map should not containing a 'allowedMethods'");
-    }
-
-    @Test(groups = "fast")
-    public void testWithNonPayPalLocale() throws Exception {
-        final PaymentProvider paymentProvider = new PaymentProvider(adyenConfigProperties);
-        paymentProvider.setPaymentType(PaymentType.PAYPAL);
-        final PaymentInfo paymentInfo = new WebPaymentFrontend(paymentProvider);
-        final Map<String, String> params = new HPPRequestBuilder().withShopperLocale(paymentInfo.getPaymentProvider().getPaymentType(), Locale.JAPAN)
-                                                                  .withCountryCode("JP")
-                                                                  .build();
-
-        Assert.assertEquals(params.get("shopperLocale"), Locale.US.toString(), "Wrong value for 'shopperLocale'");
-    }
-
-    private PaymentInfo buildCardPaymentInfo(final PaymentType paymentType) {
-        final PaymentProvider paymentProvider = new PaymentProvider(adyenConfigProperties);
-        paymentProvider.setPaymentType(paymentType);
-        return new CreditCard(paymentProvider);
-    }
-
-    private PaymentInfo buildCCPaymentInfo() {
-        return buildCardPaymentInfo(PaymentType.CREDITCARD);
+        Assert.assertEquals(params.get("splitsettlementdata.api"), "1");
+        Assert.assertEquals(params.get("splitsettlementdata.nrOfItems"), "3");
+        Assert.assertEquals(params.get("splitsettlementdata.totalAmount"), "2000");
+        Assert.assertEquals(params.get("splitsettlementdata.currencyCode"), "EUR");
+        Assert.assertEquals(params.get("splitsettlementdata.item1.amount"), "500");
+        Assert.assertEquals(params.get("splitsettlementdata.item1.currencyCode"), "EUR");
+        Assert.assertEquals(params.get("splitsettlementdata.item1.group"), "deal1");
+        Assert.assertEquals(params.get("splitsettlementdata.item1.reference"), "voucherId");
+        Assert.assertEquals(params.get("splitsettlementdata.item1.type"), "voucher");
+        Assert.assertEquals(params.get("splitsettlementdata.item2.amount"), "750");
+        Assert.assertEquals(params.get("splitsettlementdata.item2.currencyCode"), "EUR");
+        Assert.assertEquals(params.get("splitsettlementdata.item2.group"), "deal1");
+        Assert.assertEquals(params.get("splitsettlementdata.item2.reference"), "voucherId2");
+        Assert.assertEquals(params.get("splitsettlementdata.item2.type"), "voucher");
+        Assert.assertEquals(params.get("splitsettlementdata.item3.amount"), "750");
+        Assert.assertEquals(params.get("splitsettlementdata.item3.currencyCode"), "EUR");
+        Assert.assertEquals(params.get("splitsettlementdata.item3.group"), "deal2");
+        Assert.assertEquals(params.get("splitsettlementdata.item3.reference"), "travelId");
+        Assert.assertEquals(params.get("splitsettlementdata.item3.type"), "travel");
     }
 }

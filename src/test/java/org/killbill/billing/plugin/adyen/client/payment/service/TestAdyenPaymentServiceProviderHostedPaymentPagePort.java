@@ -41,19 +41,19 @@ public class TestAdyenPaymentServiceProviderHostedPaymentPagePort {
 
     @Test(groups = "fast")
     public void parsePspResponseShouldSetNullIfExternalRefIsNotGivenNull() {
-        final HppCompletedResult hppCompletedResult = adyenPaymentServiceProviderHostedPaymentPagePort.parsePSPResponse(12L, new HashMap<String, String[]>());
+        final HppCompletedResult hppCompletedResult = adyenPaymentServiceProviderHostedPaymentPagePort.parsePSPResponse(new HashMap<String, String[]>());
         Assert.assertNull(hppCompletedResult.getPspReference());
     }
 
     @Test(groups = "fast")
     public void parsePspResponseShouldSetNullIfExternalRefIsNotGivenEmptyString() {
-        final HppCompletedResult hppCompletedResult = adyenPaymentServiceProviderHostedPaymentPagePort.parsePSPResponse(12L, ImmutableMap.of("pspReference", new String[]{""}));
+        final HppCompletedResult hppCompletedResult = adyenPaymentServiceProviderHostedPaymentPagePort.parsePSPResponse(ImmutableMap.of("pspReference", new String[]{""}));
         Assert.assertNull(hppCompletedResult.getPspReference());
     }
 
     @Test(groups = "fast")
     public void parsePspResponseShouldSetNullIfExternalRefIsNotGivenEscapedEmptyString() {
-        final HppCompletedResult hppCompletedResult = adyenPaymentServiceProviderHostedPaymentPagePort.parsePSPResponse(12L, ImmutableMap.of("pspReference", new String[]{"\"\""}));
+        final HppCompletedResult hppCompletedResult = adyenPaymentServiceProviderHostedPaymentPagePort.parsePSPResponse(ImmutableMap.of("pspReference", new String[]{"\"\""}));
         Assert.assertNull(hppCompletedResult.getPspReference());
     }
 
@@ -61,7 +61,7 @@ public class TestAdyenPaymentServiceProviderHostedPaymentPagePort {
     public void parsePspResponseShouldSetTheExternalRefIfItIsGiven() {
         final String expectedPspReference = "123456";
 
-        final HppCompletedResult hppCompletedResult = adyenPaymentServiceProviderHostedPaymentPagePort.parsePSPResponse(12L, ImmutableMap.of("pspReference", new String[]{expectedPspReference}));
+        final HppCompletedResult hppCompletedResult = adyenPaymentServiceProviderHostedPaymentPagePort.parsePSPResponse(ImmutableMap.of("pspReference", new String[]{expectedPspReference}));
         Assert.assertEquals(hppCompletedResult.getPspReference(), expectedPspReference);
     }
 }

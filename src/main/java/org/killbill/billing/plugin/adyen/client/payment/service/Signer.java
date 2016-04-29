@@ -1,7 +1,8 @@
 /*
- * Copyright 2014 Groupon, Inc
+ * Copyright 2014-2016 Groupon, Inc
+ * Copyright 2014-2016 The Billing Project, LLC
  *
- * Groupon licenses this file to you under the Apache License, version 2.0
+ * The Billing Project licenses this file to you under the Apache License, version 2.0
  * (the "License"); you may not use this file except in compliance with the
  * License.  You may obtain a copy of the License at:
  *
@@ -25,7 +26,6 @@ import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 
 import org.killbill.billing.plugin.adyen.client.AdyenConfigProperties;
-import org.killbill.billing.plugin.adyen.client.model.PaymentInfo;
 import org.killbill.billing.plugin.adyen.client.payment.exception.SignatureGenerationException;
 import org.killbill.billing.plugin.adyen.client.payment.exception.SignatureVerificationException;
 import org.slf4j.Logger;
@@ -45,7 +45,18 @@ public class Signer {
         this.adyenConfigProperties = adyenConfigProperties;
     }
 
-    public String computeSignature(final Long amount, final String currency, final String shipBeforeDate, final String reference, final String skin, final String merchantAccount, final String email, final String customerId, final PaymentInfo paymentInfo, final String sessionValidity) {
+    public String computeSignature(final Long amount,
+                                   final String currency,
+                                   final String shipBeforeDate,
+                                   final String reference,
+                                   final String skin,
+                                   final String merchantAccount,
+                                   final String email,
+                                   final String customerId,
+                                   final String contract,
+                                   final String allowedMethods,
+                                   final String sessionValidity,
+                                   final String hmacSecret) {
         try {
             final StringBuilder signingString = new StringBuilder();
             signingString.append(amount);
@@ -62,14 +73,13 @@ public class Signer {
                 signingString.append(customerId);
             }
             // shopperLocale is ignored
-            if (paymentInfo.getPaymentProvider().isRecurringEnabled()) {
-                signingString.append(paymentInfo.getPaymentProvider().getRecurringType().name());
+            if (contract != null) {
+                signingString.append(contract);
             }
-            final String variant = paymentInfo.getPaymentProvider().getHppVariantOverride();
-            if (variant == null && paymentInfo.getPaymentProvider().getAllowedMethods() != null) {
-                signingString.append(paymentInfo.getPaymentProvider().getAllowedMethods());
+            if (allowedMethods != null) {
+                signingString.append(allowedMethods);
             }
-            return getBase64EncodedSignature(adyenConfigProperties.getHmacSecret(paymentInfo.getPaymentProvider().getCountryIsoCode()), signingString.toString());
+            return getBase64EncodedSignature(hmacSecret, signingString.toString());
         } catch (final SignatureGenerationException e) {
             logger.warn("Could not build hpp signature", e);
             return "";

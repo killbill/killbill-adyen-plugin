@@ -18,18 +18,13 @@
 package org.killbill.billing.plugin.adyen.client.payment.service;
 
 import java.math.BigDecimal;
-import java.util.Currency;
 import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 
-import org.joda.time.DateTime;
-import org.joda.time.DateTimeZone;
+import org.killbill.billing.catalog.api.Currency;
 import org.killbill.billing.plugin.adyen.TestRemoteBase;
-import org.killbill.billing.plugin.adyen.client.model.OrderData;
 import org.killbill.billing.plugin.adyen.client.model.PaymentData;
-import org.killbill.billing.plugin.adyen.client.model.PaymentProvider;
-import org.killbill.billing.plugin.adyen.client.model.PaymentType;
 import org.killbill.billing.plugin.adyen.client.model.UserData;
 import org.killbill.billing.plugin.adyen.client.model.paymentinfo.WebPaymentFrontend;
 import org.killbill.billing.plugin.util.http.QueryComputer;
@@ -40,27 +35,20 @@ public class TestRemoteAdyenPaymentServiceProviderHostedPaymentPagePort extends 
 
     @Test(groups = "slow")
     public void testRedirectHPP() throws Exception {
-        final BigDecimal authAmount = BigDecimal.TEN;
+        final WebPaymentFrontend paymentInfo = new WebPaymentFrontend();
+        paymentInfo.setCountry(DEFAULT_COUNTRY);
+        paymentInfo.setSkinCode(adyenConfigProperties.getSkin(paymentInfo.getCountry()));
+        paymentInfo.setShipBeforeDate("2019-01-01");
+        paymentInfo.setSessionValidity("2019-01-01T12:12:12Z");
+        paymentInfo.setTermUrl("http://killbill.io?q=test+adyen+redirect+success");
 
-        final PaymentProvider paymentProvider = new PaymentProvider(adyenConfigProperties);
-        paymentProvider.setCurrency(Currency.getInstance(DEFAULT_CURRENCY.name()));
-        paymentProvider.setCountryIsoCode(DEFAULT_COUNTRY);
-        paymentProvider.setPaymentType(PaymentType.CREDITCARD);
-        final WebPaymentFrontend paymentInfo = new WebPaymentFrontend(paymentProvider);
-
-        final PaymentData<WebPaymentFrontend> paymentData = new PaymentData<WebPaymentFrontend>(UUID.randomUUID().toString(), paymentInfo);
-
-        final OrderData orderData = new OrderData();
-        orderData.setShipBeforeDate(new DateTime(DateTimeZone.UTC));
+        final PaymentData<WebPaymentFrontend> paymentData = new PaymentData<WebPaymentFrontend>(BigDecimal.TEN, Currency.USD, UUID.randomUUID().toString(), paymentInfo);
 
         final UserData userData = new UserData();
-        userData.setCustomerLocale(new Locale("en", DEFAULT_COUNTRY));
+        userData.setShopperLocale(new Locale("en", DEFAULT_COUNTRY));
 
-        final String serverUrl = "http://killbill.io";
-        final String resultUrl = "?q=test+adyen+redirect+success";
-
-        final Map<String, String> formParameter = adyenPaymentServiceProviderHostedPaymentPagePort.getFormParameter(authAmount, paymentData, orderData, userData, serverUrl, resultUrl);
-        final String formUrl = adyenPaymentServiceProviderHostedPaymentPagePort.getFormUrl(paymentData);
+        final Map<String, String> formParameter = adyenPaymentServiceProviderHostedPaymentPagePort.getFormParameter(paymentData, userData, null);
+        final String formUrl = adyenConfigProperties.getHppTarget();
 
         Assert.assertNotNull(formParameter.get("merchantReference"));
         Assert.assertNotNull(formParameter.get("paymentAmount"));

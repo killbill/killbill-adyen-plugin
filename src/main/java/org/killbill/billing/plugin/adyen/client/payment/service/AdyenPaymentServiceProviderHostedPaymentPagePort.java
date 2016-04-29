@@ -19,15 +19,13 @@ package org.killbill.billing.plugin.adyen.client.payment.service;
 
 import java.io.Closeable;
 import java.io.IOException;
-import java.math.BigDecimal;
 import java.util.Map;
 
 import org.killbill.billing.plugin.adyen.client.AdyenConfigProperties;
 import org.killbill.billing.plugin.adyen.client.model.HppCompletedResult;
-import org.killbill.billing.plugin.adyen.client.model.OrderData;
 import org.killbill.billing.plugin.adyen.client.model.PaymentData;
-import org.killbill.billing.plugin.adyen.client.model.PaymentProvider;
 import org.killbill.billing.plugin.adyen.client.model.PaymentServiceProviderResult;
+import org.killbill.billing.plugin.adyen.client.model.SplitSettlementData;
 import org.killbill.billing.plugin.adyen.client.model.UserData;
 import org.killbill.billing.plugin.adyen.client.payment.builder.AdyenRequestFactory;
 import org.killbill.billing.plugin.adyen.client.payment.exception.SignatureGenerationException;
@@ -35,7 +33,6 @@ import org.killbill.billing.plugin.adyen.client.payment.exception.SignatureVerif
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 
 public class AdyenPaymentServiceProviderHostedPaymentPagePort extends BaseAdyenPaymentServiceProviderPort implements Closeable {
@@ -56,53 +53,40 @@ public class AdyenPaymentServiceProviderHostedPaymentPagePort extends BaseAdyenP
         // No-op for now
     }
 
-    public Map<String, String> getFormParameter(final BigDecimal amountBD, final PaymentData paymentData, final OrderData orderData, final UserData userData, final String serverUrl, final String resultUrl) throws SignatureGenerationException {
-        Preconditions.checkNotNull(amountBD, "amount");
-        Preconditions.checkNotNull(paymentData.getPaymentTransactionExternalKey(), "paymentData#paymentTransactionExternalKey");
-        Preconditions.checkNotNull(paymentData.getPaymentInfo(), "paymentData#paymentInfo");
-        Preconditions.checkNotNull(paymentData.getPaymentInfo().getPaymentProvider(), "paymentInfo#paymentProvider");
-        Preconditions.checkNotNull(paymentData.getPaymentInfo().getPaymentProvider().getCurrency(), "paymentProvider#currency");
-        Preconditions.checkNotNull(orderData.getShipBeforeDate(), "orderData#shipBeforeDate");
-        Preconditions.checkNotNull(userData.getCustomerLocale(), "userData#customerLocale");
-
-        final Long amount = toMinorUnits(paymentData, amountBD);
-
-        return adyenRequestFactory.createHppRequest(amount, paymentData, orderData, userData, serverUrl, resultUrl, null);
+    public Map<String, String> getFormParameter(final PaymentData paymentData, final UserData userData, final SplitSettlementData splitSettlementData) throws SignatureGenerationException {
+        logOperation(logger, "createHppRequest", paymentData, userData, null);
+        return adyenRequestFactory.createHppRequest(paymentData, userData, splitSettlementData);
     }
 
-    public String getFormUrl(final PaymentData paymentData) {
-        return getFormUrl(paymentData.getPaymentInfo().getPaymentProvider());
-    }
+    // Used to verify completion
+    public Boolean verifyRequestIntegrity(final Map<String, String> requestParameterMap, final String countryIsoCode) {
+        final String authResult = requestParameterMap.get("authResult");
+        final String pspReference = requestParameterMap.get("pspReference");
+        final String merchantReference = requestParameterMap.get("merchantReference");
+        final String skinCode = requestParameterMap.get("skinCode");
+        final String merchantSig = requestParameterMap.get("merchantSig");
+        final String paymentMethod = requestParameterMap.get("paymentMethod");
+        final String shopperLocale = requestParameterMap.get("shopperLocale");
+        final String merchantReturnData = requestParameterMap.get("merchantReturnData");
 
-    private String getFormUrl(final PaymentProvider paymentProvider) {
-        final String hppTarget = adyenConfigProperties.getHppTarget();
-        final String hppTargetOverride = paymentProvider.getHppTargetOverride();
-        final String formUrl;
-        if (!Strings.isNullOrEmpty(hppTargetOverride) && hppTarget.contains("/")) {
-            formUrl = hppTarget.substring(0, hppTarget.lastIndexOf('/') + 1) + hppTargetOverride;
-        } else {
-            formUrl = hppTarget;
-        }
-        return formUrl;
-    }
-
-    public Boolean verifyRequestIntegrity(final Map<String, String[]> requestParameterMap, final String countryIsoCode, final Long paymentId) {
-        ensureMatch(toPaymentRef(paymentId), extractFirst(requestParameterMap.get("merchantReference")));
-        try {
-            final String authResult = requestParameterMap.get("authResult") != null && requestParameterMap.get("authResult")[0] != null ? requestParameterMap.get("authResult")[0] : "ERROR";
-            final String pspReference = requestParameterMap.get("pspReference") != null && requestParameterMap.get("pspReference")[0] != null ? requestParameterMap.get("pspReference")[0] : "";
-            final String merchantReference = requestParameterMap.get("merchantReference") != null && requestParameterMap.get("merchantReference")[0] != null ? requestParameterMap.get("merchantReference")[0] : "";
-            final String skinCode = requestParameterMap.get("skinCode") != null && requestParameterMap.get("skinCode")[0] != null ? requestParameterMap.get("skinCode")[0] : "";
-            final String merchantSig = requestParameterMap.get("merchantSig") != null && requestParameterMap.get("merchantSig")[0] != null ? requestParameterMap.get("merchantSig")[0] : "";
-            final StringBuilder signingData = new StringBuilder();
+        final StringBuilder signingData = new StringBuilder();
+        if (authResult != null) {
             signingData.append(authResult);
-            if (pspReference != null) {
-                signingData.append(pspReference);
-            }
+        }
+        if (pspReference != null) {
+            signingData.append(pspReference);
+        }
+        if (merchantReference != null) {
             signingData.append(merchantReference);
+        }
+        if (skinCode != null) {
             signingData.append(skinCode);
-            // TODO: add back in when paypal sends merchant return data in a cancelled transaction
-            //signingData.append(merchantReturnData);
+        }
+        if (merchantReturnData != null) {
+            signingData.append(merchantReturnData);
+        }
+
+        try {
             return new Signer(adyenConfigProperties).verifyBase64EncodedSignature(countryIsoCode, merchantSig, signingData.toString());
         } catch (final SignatureVerificationException e) {
             logger.warn("Could not verify signature", e);
@@ -114,11 +98,7 @@ public class AdyenPaymentServiceProviderHostedPaymentPagePort extends BaseAdyenP
         return adyenConfigProperties;
     }
 
-    private String toPaymentRef(final Long paymentId) {
-        return "P" + paymentId;
-    }
-
-    public HppCompletedResult parsePSPResponse(final long billingId, final Map<String, String[]> requestParameterMap) {
+    public HppCompletedResult parsePSPResponse(final Map<String, String[]> requestParameterMap) {
         final String pspReference = getPspReference(requestParameterMap);
         final PaymentServiceProviderResult pspResult;
         if (requestParameterMap.get("authResult") != null && requestParameterMap.get("authResult")[0] != null) {
@@ -126,7 +106,7 @@ public class AdyenPaymentServiceProviderHostedPaymentPagePort extends BaseAdyenP
         } else {
             pspResult = PaymentServiceProviderResult.ERROR;
         }
-        return new HppCompletedResult(billingId, pspReference, pspResult, null);
+        return new HppCompletedResult(pspReference, pspResult, null);
     }
 
     private String getPspReference(final Map<String, String[]> requestParameterMap) {
@@ -138,20 +118,5 @@ public class AdyenPaymentServiceProviderHostedPaymentPagePort extends BaseAdyenP
             return null;
         }
         return pspReference;
-    }
-
-    private void ensureMatch(final String paymentOrBillingRef, final String merchantRef) {
-        if (paymentOrBillingRef == null || merchantRef == null || !paymentOrBillingRef.equals(merchantRef)) {
-            logger.warn("paymentOrBillingRef " + paymentOrBillingRef + " and merchantRef " + merchantRef + " do not match");
-            throw new IllegalArgumentException("invalid foreignRef");
-        }
-    }
-
-    private String extractFirst(final String[] array) {
-        if (array != null && array.length > 0) {
-            return array[0];
-        } else {
-            return null;
-        }
     }
 }

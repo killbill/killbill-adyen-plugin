@@ -24,45 +24,58 @@ import javax.annotation.Nullable;
 import org.killbill.adyen.common.Amount;
 import org.killbill.adyen.payment.AnyType2AnyTypeMap;
 import org.killbill.adyen.payment.ModificationRequest;
+import org.killbill.billing.plugin.adyen.client.model.PaymentData;
 import org.killbill.billing.plugin.adyen.client.model.SplitSettlementData;
 
 public class ModificationRequestBuilder extends RequestBuilder<ModificationRequest> {
 
-    public ModificationRequestBuilder(final String merchantAccount,
-                                      final String originalReference,
-                                      final String reference) {
-        this(merchantAccount, null, null, originalReference, reference);
-    }
+    private final String merchantAccount;
+    private final PaymentData paymentData;
+    private final String originalReference;
+    private final SplitSettlementData splitSettlementData;
 
     public ModificationRequestBuilder(final String merchantAccount,
-                                      @Nullable final Long amountL,
-                                      final String currency,
+                                      final PaymentData paymentData,
                                       final String originalReference,
-                                      final String reference) {
+                                      @Nullable final SplitSettlementData splitSettlementData) {
         super(new ModificationRequest());
+        final AnyType2AnyTypeMap map = new AnyType2AnyTypeMap();
+        request.setAdditionalData(map);
 
-        request.setMerchantAccount(merchantAccount);
-        if (amountL != null) {
-            final Amount amount = new Amount();
-            amount.setValue(amountL);
-            amount.setCurrency(currency);
-            request.setModificationAmount(amount);
-        }
-        request.setOriginalReference(originalReference);
-        request.setReference(reference);
-    }
-
-    public ModificationRequestBuilder withSplitSettlementData(final SplitSettlementData splitSettlementData) {
-        final List<AnyType2AnyTypeMap.Entry> entries = new SplitSettlementParamsBuilder().createEntriesFrom(splitSettlementData);
-        addAdditionalData(entries);
-        return this;
+        this.merchantAccount = merchantAccount;
+        this.paymentData = paymentData;
+        this.originalReference = originalReference;
+        this.splitSettlementData = splitSettlementData;
     }
 
     @Override
-    protected List<AnyType2AnyTypeMap.Entry> getAdditionalData() {
-        if (request.getAdditionalData() == null) {
-            request.setAdditionalData(new AnyType2AnyTypeMap());
+    public ModificationRequest build() {
+        request.setMerchantAccount(merchantAccount);
+        request.setOriginalReference(originalReference);
+        request.setReference(paymentData.getPaymentTransactionExternalKey());
+
+        setAmount();
+        setSplitSettlementData();
+
+        return request;
+    }
+
+    private void setAmount() {
+        if (paymentData.getAmount() == null || paymentData.getCurrency() == null) {
+            return;
         }
-        return request.getAdditionalData().getEntry();
+
+        final String currency = paymentData.getCurrency().name();
+        final Amount amount = new Amount();
+        amount.setValue(toMinorUnits(paymentData.getAmount(), currency));
+        amount.setCurrency(currency);
+        request.setModificationAmount(amount);
+    }
+
+    private void setSplitSettlementData() {
+        if (splitSettlementData != null) {
+            final List<AnyType2AnyTypeMap.Entry> entries = new SplitSettlementParamsBuilder().createEntriesFrom(splitSettlementData);
+            request.getAdditionalData().getEntry().addAll(entries);
+        }
     }
 }

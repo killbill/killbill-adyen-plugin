@@ -1,7 +1,8 @@
 /*
- * Copyright 2015 Groupon, Inc
+ * Copyright 2014-2016 Groupon, Inc
+ * Copyright 2014-2016 The Billing Project, LLC
  *
- * Groupon licenses this file to you under the Apache License, version 2.0
+ * The Billing Project licenses this file to you under the Apache License, version 2.0
  * (the "License"); you may not use this file except in compliance with the
  * License.  You may obtain a copy of the License at:
  *
@@ -17,39 +18,63 @@
 package org.killbill.billing.plugin.adyen.client.model.paymentinfo;
 
 import org.killbill.billing.plugin.adyen.client.model.PaymentInfo;
-import org.killbill.billing.plugin.adyen.client.model.PaymentProvider;
-
 
 public class Recurring extends PaymentInfo {
 
-    private Integer installments;
+    private String recurringDetailReference;
+    private String cvc;
 
-    public Recurring(final PaymentProvider paymentProvider) {
-        super(paymentProvider);
-        setContinuousAuthenticationEnabled(true);
+    public String getRecurringDetailReference() {
+        return recurringDetailReference;
     }
 
-    public String getRecurringDetailId() {
-        return super.getRecurringDetailId();
+    public void setRecurringDetailReference(final String recurringDetailReference) {
+        this.recurringDetailReference = recurringDetailReference;
     }
 
-    public void setRecurringDetailId(final String recurringDetailId) {
-        super.setRecurringDetailId(recurringDetailId);
+    public String getCvc() {
+        return cvc;
     }
 
-    public Integer getInstallments() {
-        return installments;
-    }
-
-    public void setInstallments(final Integer installments) {
-        this.installments = installments;
+    public void setCvc(final String cvc) {
+        this.cvc = cvc;
     }
 
     @Override
     public String toString() {
-        return String.format("Recurring{recurringDetailId='%s', installments=%d}",
-                             getRecurringDetailId(),
-                             getInstallments());
+        final StringBuilder sb = new StringBuilder("Recurring{");
+        sb.append("recurringDetailReference='").append(recurringDetailReference).append('\'');
+        sb.append(", cvc='").append(cvc).append('\'');
+        sb.append('}');
+        return sb.toString();
     }
 
+    @Override
+    public boolean equals(final Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        if (!super.equals(o)) {
+            return false;
+        }
+
+        final Recurring recurring = (Recurring) o;
+
+        if (recurringDetailReference != null ? !recurringDetailReference.equals(recurring.recurringDetailReference) : recurring.recurringDetailReference != null) {
+            return false;
+        }
+        return cvc != null ? cvc.equals(recurring.cvc) : recurring.cvc == null;
+
+    }
+
+    @Override
+    public int hashCode() {
+        int result = super.hashCode();
+        result = 31 * result + (recurringDetailReference != null ? recurringDetailReference.hashCode() : 0);
+        result = 31 * result + (cvc != null ? cvc.hashCode() : 0);
+        return result;
+    }
 }

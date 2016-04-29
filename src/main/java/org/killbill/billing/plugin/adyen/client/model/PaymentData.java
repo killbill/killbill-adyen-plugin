@@ -17,14 +17,30 @@
 
 package org.killbill.billing.plugin.adyen.client.model;
 
+import java.math.BigDecimal;
+
+import org.killbill.billing.catalog.api.Currency;
+
 public class PaymentData<I extends PaymentInfo> {
 
+    private final BigDecimal amount;
+    private final Currency currency;
     private final String paymentTransactionExternalKey;
     private final I paymentInfo;
 
-    public PaymentData(final String paymentTransactionExternalKey, final I paymentInfo) {
+    public PaymentData(final BigDecimal amount, final Currency currency, final String paymentTransactionExternalKey, final I paymentInfo) {
+        this.amount = amount;
+        this.currency = currency;
         this.paymentTransactionExternalKey = paymentTransactionExternalKey;
         this.paymentInfo = paymentInfo;
+    }
+
+    public BigDecimal getAmount() {
+        return amount;
+    }
+
+    public Currency getCurrency() {
+        return currency;
     }
 
     public String getPaymentTransactionExternalKey() {
@@ -38,7 +54,9 @@ public class PaymentData<I extends PaymentInfo> {
     @Override
     public String toString() {
         final StringBuilder sb = new StringBuilder("PaymentData{");
-        sb.append("paymentTransactionExternalKey='").append(paymentTransactionExternalKey).append('\'');
+        sb.append("amount=").append(amount);
+        sb.append(", currency=").append(currency);
+        sb.append(", paymentTransactionExternalKey='").append(paymentTransactionExternalKey).append('\'');
         sb.append(", paymentInfo=").append(paymentInfo);
         sb.append('}');
         return sb.toString();
@@ -55,6 +73,12 @@ public class PaymentData<I extends PaymentInfo> {
 
         final PaymentData<?> that = (PaymentData<?>) o;
 
+        if (amount != null ? !amount.equals(that.amount) : that.amount != null) {
+            return false;
+        }
+        if (currency != that.currency) {
+            return false;
+        }
         if (paymentTransactionExternalKey != null ? !paymentTransactionExternalKey.equals(that.paymentTransactionExternalKey) : that.paymentTransactionExternalKey != null) {
             return false;
         }
@@ -64,7 +88,9 @@ public class PaymentData<I extends PaymentInfo> {
 
     @Override
     public int hashCode() {
-        int result = paymentTransactionExternalKey != null ? paymentTransactionExternalKey.hashCode() : 0;
+        int result = amount != null ? amount.hashCode() : 0;
+        result = 31 * result + (currency != null ? currency.hashCode() : 0);
+        result = 31 * result + (paymentTransactionExternalKey != null ? paymentTransactionExternalKey.hashCode() : 0);
         result = 31 * result + (paymentInfo != null ? paymentInfo.hashCode() : 0);
         return result;
     }

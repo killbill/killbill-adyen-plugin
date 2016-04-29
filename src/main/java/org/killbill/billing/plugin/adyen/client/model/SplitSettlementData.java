@@ -27,10 +27,6 @@ public class SplitSettlementData {
     private final String currencyCode;
     private final List<Item> items;
 
-    public static Builder newInstance(final int api, final String currencyCode) {
-        return new Builder(api, currencyCode);
-    }
-
     public SplitSettlementData(final int api, final String currencyCode, final List<Item> items) {
         this.api = api;
         this.currencyCode = currencyCode;

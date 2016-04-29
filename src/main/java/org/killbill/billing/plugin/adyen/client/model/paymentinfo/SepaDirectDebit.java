@@ -1,7 +1,8 @@
 /*
- * Copyright 2015 Groupon, Inc
+ * Copyright 2014-2016 Groupon, Inc
+ * Copyright 2014-2016 The Billing Project, LLC
  *
- * Groupon licenses this file to you under the Apache License, version 2.0
+ * The Billing Project licenses this file to you under the Apache License, version 2.0
  * (the "License"); you may not use this file except in compliance with the
  * License.  You may obtain a copy of the License at:
  *
@@ -17,19 +18,28 @@
 package org.killbill.billing.plugin.adyen.client.model.paymentinfo;
 
 import org.killbill.billing.plugin.adyen.client.model.PaymentInfo;
-import org.killbill.billing.plugin.adyen.client.model.PaymentProvider;
 
 public class SepaDirectDebit extends PaymentInfo {
-
-    public static final String SELECTED_BRAND = "sepadirectdebit";
 
     private String countryCode;
     private String iban;
     private String bic;
     private String sepaAccountHolder;
 
-    public SepaDirectDebit(final PaymentProvider paymentProvider) {
-        super(paymentProvider);
+    public String getCountryCode() {
+        return countryCode;
+    }
+
+    public void setCountryCode(final String countryCode) {
+        this.countryCode = countryCode;
+    }
+
+    public String getIban() {
+        return iban;
+    }
+
+    public void setIban(final String iban) {
+        this.iban = iban;
     }
 
     public String getBic() {
@@ -38,30 +48,6 @@ public class SepaDirectDebit extends PaymentInfo {
 
     public void setBic(final String bic) {
         this.bic = bic;
-    }
-
-    public String getCountryCode() {
-        return countryCode;
-    }
-
-    public void setCountryCode(final String countryCode) {
-        if (countryCode == null) {
-            this.countryCode = null;
-        } else {
-            this.countryCode = countryCode.replaceAll("\\s", "");
-        }
-    }
-
-    public String getIban() {
-        return iban;
-    }
-
-    public void setIban(final String iban) {
-        if (iban == null) {
-            this.iban = null;
-        } else {
-            this.iban = iban.replaceAll("\\s", "");
-        }
     }
 
     public String getSepaAccountHolder() {
@@ -74,12 +60,13 @@ public class SepaDirectDebit extends PaymentInfo {
 
     @Override
     public String toString() {
-        return "SepaDirectDebit{" +
-               "countryCode='" + countryCode + '\'' +
-               ", iban='" + iban + '\'' +
-               ", bic='" + bic + '\'' +
-               ", sepaAccountHolder='" + sepaAccountHolder + '\'' +
-               '}';
+        final StringBuilder sb = new StringBuilder("SepaDirectDebit{");
+        sb.append("countryCode='").append(countryCode).append('\'');
+        sb.append(", iban='").append(iban).append('\'');
+        sb.append(", bic='").append(bic).append('\'');
+        sb.append(", sepaAccountHolder='").append(sepaAccountHolder).append('\'');
+        sb.append('}');
+        return sb.toString();
     }
 
     @Override
@@ -90,28 +77,29 @@ public class SepaDirectDebit extends PaymentInfo {
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-
-        final SepaDirectDebit sepaDirectDebit = (SepaDirectDebit) o;
-
-        if (sepaAccountHolder != null ? !sepaAccountHolder.equals(sepaDirectDebit.sepaAccountHolder) : sepaDirectDebit.sepaAccountHolder != null) {
-            return false;
-        }
-        if (bic != null ? !bic.equals(sepaDirectDebit.bic) : sepaDirectDebit.bic != null) {
-            return false;
-        }
-        if (countryCode != null ? !countryCode.equals(sepaDirectDebit.countryCode) : sepaDirectDebit.countryCode != null) {
-            return false;
-        }
-        if (iban != null ? !iban.equals(sepaDirectDebit.iban) : sepaDirectDebit.iban != null) {
+        if (!super.equals(o)) {
             return false;
         }
 
-        return true;
+        final SepaDirectDebit that = (SepaDirectDebit) o;
+
+        if (countryCode != null ? !countryCode.equals(that.countryCode) : that.countryCode != null) {
+            return false;
+        }
+        if (iban != null ? !iban.equals(that.iban) : that.iban != null) {
+            return false;
+        }
+        if (bic != null ? !bic.equals(that.bic) : that.bic != null) {
+            return false;
+        }
+        return sepaAccountHolder != null ? sepaAccountHolder.equals(that.sepaAccountHolder) : that.sepaAccountHolder == null;
+
     }
 
     @Override
     public int hashCode() {
-        int result = countryCode != null ? countryCode.hashCode() : 0;
+        int result = super.hashCode();
+        result = 31 * result + (countryCode != null ? countryCode.hashCode() : 0);
         result = 31 * result + (iban != null ? iban.hashCode() : 0);
         result = 31 * result + (bic != null ? bic.hashCode() : 0);
         result = 31 * result + (sepaAccountHolder != null ? sepaAccountHolder.hashCode() : 0);

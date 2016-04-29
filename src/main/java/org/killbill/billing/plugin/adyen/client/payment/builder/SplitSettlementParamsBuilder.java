@@ -38,13 +38,6 @@ public class SplitSettlementParamsBuilder {
     private static final String SPLITSETTLEMENT = "splitsettlementdata";
     private static final Joiner JOINER = Joiner.on(":");
 
-    public void addTo(final PaymentRequest request, final SplitSettlementData splitSettlementData) {
-        if (request.getAdditionalData() == null) {
-            request.setAdditionalData(new AnyType2AnyTypeMap());
-        }
-        request.getAdditionalData().getEntry().addAll(createEntriesFrom(splitSettlementData));
-    }
-
     public Map<String, String> createSignedParamsFrom(final SplitSettlementData splitSettlementData,
                                                       final String merchantSignature,
                                                       final Signer signer,

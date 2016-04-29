@@ -1,7 +1,8 @@
 /*
- * Copyright 2015 Groupon, Inc
+ * Copyright 2014-2016 Groupon, Inc
+ * Copyright 2014-2016 The Billing Project, LLC
  *
- * Groupon licenses this file to you under the Apache License, version 2.0
+ * The Billing Project licenses this file to you under the Apache License, version 2.0
  * (the "License"); you may not use this file except in compliance with the
  * License.  You may obtain a copy of the License at:
  *
@@ -16,25 +17,16 @@
 
 package org.killbill.billing.plugin.adyen.client.payment.builder;
 
-
-import org.killbill.billing.plugin.adyen.client.model.RecurringType;
-import org.testng.annotations.DataProvider;
-
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
+import org.killbill.adyen.payment.AnyType2AnyTypeMap.Entry;
 
 public abstract class BaseTestPaymentRequestBuilder {
 
-    protected static final String DP_RECURRING_TYPES = "RecurringTypes";
-
-    @DataProvider(name = DP_RECURRING_TYPES)
-    public Iterator<Object[]> recurringTypesdataProvider() {
-        final List<Object[]> recurringTypes = new ArrayList<Object[]>(RecurringType.values().length);
-        for (final RecurringType recurringType : RecurringType.values()) {
-            recurringTypes.add(new Object[] {recurringType});
+    protected Object findValue(final Iterable<Entry> entries, final Object key) {
+        for (final Entry entry : entries) {
+            if (key.equals(entry.getKey())) {
+                return entry.getValue();
+            }
         }
-        return recurringTypes.iterator();
+        return null;
     }
-
 }

@@ -220,8 +220,8 @@ public class TestAdyenPaymentPluginApi extends TestWithEmbeddedDBBase {
     public void testAuthorizeAndMultipleCaptures() throws Exception {
         adyenPaymentPluginApi.addPaymentMethod(payment.getAccountId(), payment.getPaymentMethodId(), adyenPaymentMethodPluginCC(), true, propertiesWithCCInfo, context);
         final PaymentTransaction authorizationTransaction = buildPaymentTransaction(TransactionType.AUTHORIZE);
-        final PaymentTransaction captureTransaction1 = buildPaymentTransaction(TransactionType.CAPTURE);
-        final PaymentTransaction captureTransaction2 = buildPaymentTransaction(TransactionType.CAPTURE);
+        final PaymentTransaction captureTransaction1 = buildPaymentTransaction(TransactionType.CAPTURE, new BigDecimal("5"));
+        final PaymentTransaction captureTransaction2 = buildPaymentTransaction(TransactionType.CAPTURE, new BigDecimal("5"));
 
         final PaymentTransactionInfoPlugin authorizationInfoPlugin = adyenPaymentPluginApi.authorizePayment(payment.getAccountId(),
                                                                                                             payment.getId(),
