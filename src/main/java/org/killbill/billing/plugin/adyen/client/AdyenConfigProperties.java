@@ -54,12 +54,8 @@ public class AdyenConfigProperties {
     private final String recurringReceiveTimeout;
     private final String hppTarget;
     private final String allowChunking;
-    private final String threeDSTermUrl;
-    private final String hppTargetOverride;
     private final String hppVariantOverride;
     private final String acquirersList;
-    private final String defaultAcquirer;
-    private final String defaultCountryIsoCode;
     private final String paymentConnectionTimeout;
     private final String paymentReadTimeout;
 
@@ -72,12 +68,8 @@ public class AdyenConfigProperties {
         this.recurringUrl = properties.getProperty(PROPERTY_PREFIX + "recurringUrl");
         this.paymentWsdlUrl = properties.getProperty(PROPERTY_PREFIX + "paymentWsdlUrl");
         this.paymentUrl = properties.getProperty(PROPERTY_PREFIX + "paymentUrl");
-        this.threeDSTermUrl = properties.getProperty(PROPERTY_PREFIX + "threeDSTermUrl");
-        this.hppTargetOverride = properties.getProperty(PROPERTY_PREFIX + "hppTargetOverride");
         this.hppVariantOverride = properties.getProperty(PROPERTY_PREFIX + "hppVariantOverride");
         this.acquirersList = properties.getProperty(PROPERTY_PREFIX + "acquirersList");
-        this.defaultAcquirer = properties.getProperty(PROPERTY_PREFIX + "defaultAcquirer");
-        this.defaultCountryIsoCode = properties.getProperty(PROPERTY_PREFIX + "defaultCountryIsoCode");
 
         this.paymentConnectionTimeout = properties.getProperty(PROPERTY_PREFIX + "paymentConnectionTimeout", DEFAULT_CONNECTION_TIMEOUT);
         this.paymentReadTimeout = properties.getProperty(PROPERTY_PREFIX + "paymentReadTimeout", DEFAULT_READ_TIMEOUT);
@@ -207,24 +199,8 @@ public class AdyenConfigProperties {
         return hppTarget;
     }
 
-    public String getShipBeforeDatePattern() {
-        return "yyyy-MM-dd";
-    }
-
-    public String getSessionValidityDatePattern() {
-        return "yyyy-MM-dd'T'HH:mm:ssZZ";
-    }
-
     public Boolean getAllowChunking() {
         return Boolean.valueOf(allowChunking);
-    }
-
-    public String getThreeDSTermUrl() {
-        return threeDSTermUrl;
-    }
-
-    public String getHppTargetOverride() {
-        return hppTargetOverride;
     }
 
     public String getHppVariantOverride() {
@@ -233,14 +209,6 @@ public class AdyenConfigProperties {
 
     public String getAcquirersList() {
         return acquirersList;
-    }
-
-    public String getDefaultAcquirer() {
-        return defaultAcquirer;
-    }
-
-    public String getDefaultCountryIsoCode() {
-        return defaultCountryIsoCode;
     }
 
     private void refillMap(final Map<String, String> map, final String stringToSplit) {

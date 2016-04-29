@@ -172,25 +172,4 @@ public class SplitSettlementData {
             return result;
         }
     }
-
-    public static class Builder {
-
-        private final List<Item> items = new ArrayList<Item>();
-        private final int api;
-        private final String currencyCode;
-
-        private Builder(final int api, final String currencyCode) {
-            this.api = api;
-            this.currencyCode = currencyCode;
-        }
-
-        public Builder withItem(final Item item) {
-            items.add(item);
-            return this;
-        }
-
-        public SplitSettlementData build() {
-            return new SplitSettlementData(api, currencyCode, items);
-        }
-    }
 }
