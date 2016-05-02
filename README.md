@@ -31,8 +31,14 @@ The following properties are required:
 
 The following properties are optional:
 
-* `org.killbill.billing.plugin.adyen.paymentConnectionTimeout` : Connection time-out in milliseconds for calls to Adyen SOAP Payment Service
-* `org.killbill.billing.plugin.adyen.paymentReadTimeout` : Read time-out in milliseconds for calls to Adyen SOAP Payment Service
+* `org.killbill.billing.plugin.adyen.paymentConnectionTimeout`: Connection time-out in milliseconds for calls to Adyen SOAP Payment Service
+* `org.killbill.billing.plugin.adyen.paymentReadTimeout`: Read time-out in milliseconds for calls to Adyen SOAP Payment Service
+* `org.killbill.billing.plugin.adyen.recurringConnectionTimeout`: Connection time-out in milliseconds for calls to Adyen SOAP Recurring Service
+* `org.killbill.billing.plugin.adyen.recurringReadTimeout`: Read time-out in milliseconds for calls to Adyen SOAP Recurring Service
+* `org.killbill.billing.plugin.adyen.proxyServer`: Proxy server address
+* `org.killbill.billing.plugin.adyen.proxyPort`: Proxy server port
+* `org.killbill.billing.plugin.adyen.proxyType`: Proxy server type (HTTP or SOCKS)
+* `org.killbill.billing.plugin.adyen.trustAllCertificates`: Whether to disable SSL certificates validation
 
 Only needed for the Tests:
 

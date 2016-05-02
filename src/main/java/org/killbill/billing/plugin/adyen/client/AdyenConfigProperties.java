@@ -1,7 +1,8 @@
 /*
- * Copyright 2014-2015 Groupon, Inc
+ * Copyright 2014-2016 Groupon, Inc
+ * Copyright 2014-2016 The Billing Project, LLC
  *
- * Groupon licenses this file to you under the Apache License, version 2.0
+ * The Billing Project licenses this file to you under the Apache License, version 2.0
  * (the "License"); you may not use this file except in compliance with the
  * License.  You may obtain a copy of the License at:
  *
@@ -47,12 +48,14 @@ public class AdyenConfigProperties {
     private final String skins;
     private final String hmacSecrets;
     private final String paymentUrl;
-    private final String paymentWsdlUrl;
     private final String recurringUrl;
-    private final String recurringWsdlUrl;
     private final String recurringConnectionTimeout;
-    private final String recurringReceiveTimeout;
+    private final String recurringReadTimeout;
     private final String hppTarget;
+    private final String proxyServer;
+    private final String proxyPort;
+    private final String proxyType;
+    private final String trustAllCertificates;
     private final String allowChunking;
     private final String hppVariantOverride;
     private final String acquirersList;
@@ -60,19 +63,23 @@ public class AdyenConfigProperties {
     private final String paymentReadTimeout;
 
     public AdyenConfigProperties(final Properties properties) {
-        this.allowChunking = properties.getProperty(PROPERTY_PREFIX + "allowChunking");
-        this.hppTarget = properties.getProperty(PROPERTY_PREFIX + "hpp.target");
-        this.recurringReceiveTimeout = properties.getProperty(PROPERTY_PREFIX + "recurring.receiveTimeout");
-        this.recurringConnectionTimeout = properties.getProperty(PROPERTY_PREFIX + "recurring.connectionTimeout");
-        this.recurringWsdlUrl = properties.getProperty(PROPERTY_PREFIX + "recurringWsdlUrl");
-        this.recurringUrl = properties.getProperty(PROPERTY_PREFIX + "recurringUrl");
-        this.paymentWsdlUrl = properties.getProperty(PROPERTY_PREFIX + "paymentWsdlUrl");
-        this.paymentUrl = properties.getProperty(PROPERTY_PREFIX + "paymentUrl");
-        this.hppVariantOverride = properties.getProperty(PROPERTY_PREFIX + "hppVariantOverride");
-        this.acquirersList = properties.getProperty(PROPERTY_PREFIX + "acquirersList");
+        this.proxyServer = properties.getProperty(PROPERTY_PREFIX + "proxyServer");
+        this.proxyPort = properties.getProperty(PROPERTY_PREFIX + "proxyPort");
+        this.proxyType = properties.getProperty(PROPERTY_PREFIX + "proxyType");
+        this.trustAllCertificates = properties.getProperty(PROPERTY_PREFIX + "trustAllCertificates", "false");
+        this.allowChunking = properties.getProperty(PROPERTY_PREFIX + "allowChunking", "false");
 
+        this.paymentUrl = properties.getProperty(PROPERTY_PREFIX + "paymentUrl");
         this.paymentConnectionTimeout = properties.getProperty(PROPERTY_PREFIX + "paymentConnectionTimeout", DEFAULT_CONNECTION_TIMEOUT);
         this.paymentReadTimeout = properties.getProperty(PROPERTY_PREFIX + "paymentReadTimeout", DEFAULT_READ_TIMEOUT);
+
+        this.recurringUrl = properties.getProperty(PROPERTY_PREFIX + "recurringUrl");
+        this.recurringConnectionTimeout = properties.getProperty(PROPERTY_PREFIX + "recurringConnectionTimeout", DEFAULT_CONNECTION_TIMEOUT);
+        this.recurringReadTimeout = properties.getProperty(PROPERTY_PREFIX + "recurringReadTimeout", DEFAULT_READ_TIMEOUT);
+
+        this.hppTarget = properties.getProperty(PROPERTY_PREFIX + "hpp.target");
+        this.hppVariantOverride = properties.getProperty(PROPERTY_PREFIX + "hppVariantOverride");
+        this.acquirersList = properties.getProperty(PROPERTY_PREFIX + "acquirersList");
 
         this.hmacSecrets = properties.getProperty(PROPERTY_PREFIX + "hmac.secret");
         refillMap(secretMap, hmacSecrets);
@@ -169,38 +176,8 @@ public class AdyenConfigProperties {
         return secretMap.get(adjustCountryCode(countryIsoCode));
     }
 
-    public String getPaymentUrl() {
-        return paymentUrl;
-    }
-
-    @SuppressWarnings("unused")
-    public String getPaymentWsdlUrl() {
-        return paymentWsdlUrl;
-    }
-
-    public String getRecurringUrl() {
-        return recurringUrl;
-    }
-
-    @SuppressWarnings("unused")
-    public String getRecurringWsdlUrl() {
-        return recurringWsdlUrl;
-    }
-
-    public String getRecurringConnectionTimeout() {
-        return recurringConnectionTimeout;
-    }
-
-    public String getRecurringReceiveTimeout() {
-        return recurringReceiveTimeout;
-    }
-
     public String getHppTarget() {
         return hppTarget;
-    }
-
-    public Boolean getAllowChunking() {
-        return Boolean.valueOf(allowChunking);
     }
 
     public String getHppVariantOverride() {
@@ -220,11 +197,47 @@ public class AdyenConfigProperties {
         }
     }
 
+    public String getProxyServer() {
+        return proxyServer;
+    }
+
+    public Integer getProxyPort() {
+        return proxyPort == null ? null : Integer.valueOf(proxyPort);
+    }
+
+    public String getProxyType() {
+        return proxyType;
+    }
+
+    public Boolean getTrustAllCertificates() {
+        return Boolean.valueOf(trustAllCertificates);
+    }
+
+    public Boolean getAllowChunking() {
+        return Boolean.valueOf(allowChunking);
+    }
+
+    public String getPaymentUrl() {
+        return paymentUrl;
+    }
+
     public String getPaymentConnectionTimeout() {
         return paymentConnectionTimeout;
     }
 
     public String getPaymentReadTimeout() {
         return paymentReadTimeout;
+    }
+
+    public String getRecurringUrl() {
+        return recurringUrl;
+    }
+
+    public String getRecurringConnectionTimeout() {
+        return recurringConnectionTimeout;
+    }
+
+    public String getRecurringReadTimeout() {
+        return recurringReadTimeout;
     }
 }

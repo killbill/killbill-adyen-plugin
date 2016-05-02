@@ -1,7 +1,8 @@
 /*
- * Copyright 2015 Groupon, Inc
+ * Copyright 2014-2016 Groupon, Inc
+ * Copyright 2014-2016 The Billing Project, LLC
  *
- * Groupon licenses this file to you under the Apache License, version 2.0
+ * The Billing Project licenses this file to you under the Apache License, version 2.0
  * (the "License"); you may not use this file except in compliance with the
  * License.  You may obtain a copy of the License at:
  *
@@ -26,6 +27,9 @@ import org.killbill.adyen.recurring.RecurringDetailsRequest;
 import org.killbill.adyen.recurring.RecurringPortType;
 import org.killbill.adyen.recurring.ServiceException;
 import org.killbill.billing.plugin.adyen.client.AdyenConfigProperties;
+import org.killbill.billing.plugin.adyen.client.jaxws.HttpHeaderInterceptor;
+import org.killbill.billing.plugin.adyen.client.jaxws.LoggingInInterceptor;
+import org.killbill.billing.plugin.adyen.client.jaxws.LoggingOutInterceptor;
 
 import com.google.common.collect.ImmutableList;
 
@@ -33,8 +37,14 @@ public class AdyenRecurringClient {
 
     private final RecurringPortRegistry recurringPortRegistry;
 
-    public AdyenRecurringClient(final AdyenConfigProperties config) {
-        this.recurringPortRegistry = new AdyenRecurringPortRegistry(config);
+    public AdyenRecurringClient(final AdyenConfigProperties config,
+                                final LoggingInInterceptor loggingInInterceptor,
+                                final LoggingOutInterceptor loggingOutInterceptor,
+                                final HttpHeaderInterceptor httpHeaderInterceptor) {
+        this.recurringPortRegistry = new AdyenRecurringPortRegistry(config,
+                                                                    loggingInInterceptor,
+                                                                    loggingOutInterceptor,
+                                                                    httpHeaderInterceptor);
     }
 
     public List<RecurringDetail> getRecurringDetailList(final String countryCode,
@@ -62,5 +72,4 @@ public class AdyenRecurringClient {
         request.setContract("RECURRING,ONECLICK");
         recurringPortType.disable(request);
     }
-
 }

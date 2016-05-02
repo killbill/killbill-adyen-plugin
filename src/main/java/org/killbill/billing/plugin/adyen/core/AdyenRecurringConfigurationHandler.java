@@ -1,7 +1,8 @@
 /*
- * Copyright 2015 Groupon, Inc
+ * Copyright 2014-2016 Groupon, Inc
+ * Copyright 2014-2016 The Billing Project, LLC
  *
- * Groupon licenses this file to you under the Apache License, version 2.0
+ * The Billing Project licenses this file to you under the Apache License, version 2.0
  * (the "License"); you may not use this file except in compliance with the
  * License.  You may obtain a copy of the License at:
  *
@@ -19,6 +20,9 @@ package org.killbill.billing.plugin.adyen.core;
 import java.util.Properties;
 
 import org.killbill.billing.plugin.adyen.client.AdyenConfigProperties;
+import org.killbill.billing.plugin.adyen.client.jaxws.HttpHeaderInterceptor;
+import org.killbill.billing.plugin.adyen.client.jaxws.LoggingInInterceptor;
+import org.killbill.billing.plugin.adyen.client.jaxws.LoggingOutInterceptor;
 import org.killbill.billing.plugin.adyen.client.recurring.AdyenRecurringClient;
 import org.killbill.billing.plugin.api.notification.PluginTenantConfigurableConfigurationHandler;
 import org.killbill.killbill.osgi.libs.killbill.OSGIKillbillAPI;
@@ -34,7 +38,11 @@ public class AdyenRecurringConfigurationHandler extends PluginTenantConfigurable
 
     @Override
     protected AdyenRecurringClient createConfigurable(final Properties properties) {
+        final LoggingInInterceptor loggingInInterceptor = new LoggingInInterceptor();
+        final LoggingOutInterceptor loggingOutInterceptor = new LoggingOutInterceptor();
+        final HttpHeaderInterceptor httpHeaderInterceptor = new HttpHeaderInterceptor();
+
         final AdyenConfigProperties adyenConfigProperties = new AdyenConfigProperties(properties);
-        return new AdyenRecurringClient(adyenConfigProperties);
+        return new AdyenRecurringClient(adyenConfigProperties, loggingInInterceptor, loggingOutInterceptor, httpHeaderInterceptor);
     }
 }
