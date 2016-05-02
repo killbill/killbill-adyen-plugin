@@ -331,7 +331,7 @@ public class AdyenDao extends PluginPaymentDao<AdyenResponsesRecord, AdyenRespon
     }
 
     /**
-     * Update the PSP reference and additional data of the latest response row for a paymen transaction
+     * Update the PSP reference and additional data of the latest response row for a payment transaction
      *
      * @param kbPaymentTransactionId     Kill Bill payment transaction id
      * @param additionalPluginProperties Latest properties

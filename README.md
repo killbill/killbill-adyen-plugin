@@ -344,3 +344,6 @@ Plugin properties
 | contAuth                 | Continuous authentication enabled (boolean)   |
 | recurringDetailId        | ID of payment details stored at Adyen         |
 | recurringType            | Contract to be used for Recurring             |
+| createPendingPayment     | Whether to create a PENDING payment for HPP   |
+| authMode                 | Create an auth instead of purchase for HPP    |
+| paymentExternalKey       | HPP payment external key                      |

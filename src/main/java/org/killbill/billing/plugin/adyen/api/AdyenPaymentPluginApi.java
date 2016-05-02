@@ -142,6 +142,7 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
 
     // HPP
     public static final String PROPERTY_CREATE_PENDING_PAYMENT = "createPendingPayment";
+    public static final String PROPERTY_AUTH_MODE = "authMode";
     public static final String PROPERTY_PAYMENT_EXTERNAL_KEY = "paymentExternalKey";
     public static final String PROPERTY_RESULT_URL = "resultUrl";
     public static final String PROPERTY_SERVER_URL = "serverUrl";
@@ -370,33 +371,20 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
     @Override
     public PaymentTransactionInfoPlugin purchasePayment(final UUID kbAccountId, final UUID kbPaymentId, final UUID kbTransactionId, final UUID kbPaymentMethodId, final BigDecimal amount, final Currency currency, final Iterable<PluginProperty> properties, final CallContext context) throws PaymentPluginApiException {
         final AdyenResponsesRecord adyenResponsesRecord;
+        try {
+            adyenResponsesRecord = dao.updateResponse(kbTransactionId, properties, context.getTenantId());
+        } catch (final SQLException e) {
+            throw new PaymentPluginApiException("HPP notification came through, but we encountered a database error", e);
+        }
 
-        final boolean fromHPP = Boolean.valueOf(PluginProperties.findPluginPropertyValue(PROPERTY_FROM_HPP, properties));
-        if (!fromHPP) {
-            try {
-                adyenResponsesRecord = dao.updateResponse(kbTransactionId, properties, context.getTenantId());
-            } catch (final SQLException e) {
-                throw new PaymentPluginApiException("HPP notification came through, but we encountered a database error", e);
-            }
-
-            if (adyenResponsesRecord == null) {
-                // We don't have any record for that payment: we want to trigger an actual purchase (auto-capture) call
-                final String captureDelayHours = PluginProperties.getValue(PROPERTY_CAPTURE_DELAY_HOURS, "0", properties);
-                final Iterable<PluginProperty> overriddenProperties = PluginProperties.merge(properties, ImmutableList.<PluginProperty>of(new PluginProperty(PROPERTY_CAPTURE_DELAY_HOURS, captureDelayHours, false)));
-                return executeInitialTransaction(TransactionType.PURCHASE, kbAccountId, kbPaymentId, kbTransactionId, kbPaymentMethodId, amount, currency, overriddenProperties, context);
-            } else {
-                // We already have a record for that payment transaction and we just updated the response row with additional properties
-                // (the API can be called for instance after the user is redirected back from the HPP to store the PSP reference)
-            }
+        if (adyenResponsesRecord == null) {
+            // We don't have any record for that payment: we want to trigger an actual purchase (auto-capture) call
+            final String captureDelayHours = PluginProperties.getValue(PROPERTY_CAPTURE_DELAY_HOURS, "0", properties);
+            final Iterable<PluginProperty> overriddenProperties = PluginProperties.merge(properties, ImmutableList.<PluginProperty>of(new PluginProperty(PROPERTY_CAPTURE_DELAY_HOURS, captureDelayHours, false)));
+            return executeInitialTransaction(TransactionType.PURCHASE, kbAccountId, kbPaymentId, kbTransactionId, kbPaymentMethodId, amount, currency, overriddenProperties, context);
         } else {
-            // We are either processing a notification (see KillbillAdyenNotificationHandler) or creating a PENDING payment for HPP (see buildFormDescriptor)
-            final DateTime utcNow = clock.getUTCNow();
-            try {
-                //noinspection unchecked
-                adyenResponsesRecord = dao.addAdyenResponse(kbAccountId, kbPaymentId, kbTransactionId, TransactionType.PURCHASE, amount, currency, PluginProperties.toMap(properties), utcNow, context.getTenantId());
-            } catch (final SQLException e) {
-                throw new PaymentPluginApiException("HPP notification came through, but we encountered a database error", e);
-            }
+            // We already have a record for that payment transaction and we just updated the response row with additional properties
+            // (the API can be called for instance after the user is redirected back from the HPP to store the PSP reference)
         }
 
         return buildPaymentTransactionInfoPlugin(adyenResponsesRecord);
@@ -469,7 +457,8 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
         final boolean shouldCreatePendingPayment = Boolean.valueOf(PluginProperties.findPluginPropertyValue(PROPERTY_CREATE_PENDING_PAYMENT, mergedProperties));
         Payment pendingPayment = null;
         if (shouldCreatePendingPayment) {
-            pendingPayment = createPendingPayment(account, paymentData, context);
+            final boolean authMode = Boolean.valueOf(PluginProperties.findPluginPropertyValue(PROPERTY_AUTH_MODE, mergedProperties));
+            pendingPayment = createPendingPayment(authMode, account, paymentData, context);
         }
 
         try {
@@ -533,8 +522,10 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
                                              public PurchaseResult execute(final PaymentData paymentData, final UserData userData, final SplitSettlementData splitSettlementData) {
                                                  final AdyenPaymentServiceProviderPort adyenPort = adyenConfigurationHandler.getConfigurable(context.getTenantId());
                                                  if (hasPreviousAdyenRespondseRecord(kbPaymentId, kbTransactionId.toString(), context)) {
+                                                     // We are completing a 3D-S payment
                                                      return adyenPort.authorize3DSecure(paymentData, userData, splitSettlementData);
                                                  } else {
+                                                     // We are creating a new transaction (AUTHORIZE, PURCHASE or CREDIT)
                                                      if (transactionType == TransactionType.CREDIT) {
                                                          return adyenPort.credit(paymentData, userData, splitSettlementData);
                                                      } else {
@@ -563,6 +554,18 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
                                                                    final Currency currency,
                                                                    final Iterable<PluginProperty> properties,
                                                                    final TenantContext context) throws PaymentPluginApiException {
+        final boolean fromHPP = Boolean.valueOf(PluginProperties.findPluginPropertyValue(PROPERTY_FROM_HPP, properties));
+        if (fromHPP) {
+            // We are either processing a notification (see KillbillAdyenNotificationHandler) or creating a PENDING payment for HPP (see buildFormDescriptor)
+            final DateTime utcNow = clock.getUTCNow();
+            try {
+                final AdyenResponsesRecord adyenResponsesRecord = dao.addAdyenResponse(kbAccountId, kbPaymentId, kbTransactionId, transactionType, amount, currency, PluginProperties.toMap(properties), utcNow, context.getTenantId());
+                return buildPaymentTransactionInfoPlugin(adyenResponsesRecord);
+            } catch (final SQLException e) {
+                throw new PaymentPluginApiException("HPP payment came through, but we encountered a database error", e);
+            }
+        }
+
         final Account account = getAccount(kbAccountId, context);
 
         final AdyenPaymentMethodsRecord nonNullPaymentMethodsRecord = getAdyenPaymentMethodsRecord(kbPaymentMethodId, context);
@@ -689,7 +692,7 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
         return MoreObjects.firstNonNull(paymentMethodsRecord, emptyRecord(kbPaymentMethodId));
     }
 
-    private Payment createPendingPayment(final Account account, final PaymentData paymentData, final CallContext context) throws PaymentPluginApiException {
+    private Payment createPendingPayment(final boolean authMode, final Account account, final PaymentData paymentData, final CallContext context) throws PaymentPluginApiException {
         final UUID kbPaymentId = null;
         final String paymentTransactionExternalKey = paymentData.getPaymentTransactionExternalKey();
         //noinspection UnnecessaryLocalVariable
@@ -700,15 +703,27 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
 
         try {
             final UUID kbPaymentMethodId = getAdyenKbPaymentMethodId(account.getId(), context);
-            return killbillAPI.getPaymentApi().createPurchase(account,
-                                                              kbPaymentMethodId,
-                                                              kbPaymentId,
-                                                              paymentData.getAmount(),
-                                                              paymentData.getCurrency(),
-                                                              paymentExternalKey,
-                                                              paymentTransactionExternalKey,
-                                                              purchaseProperties,
-                                                              context);
+            if (authMode) {
+                return killbillAPI.getPaymentApi().createAuthorization(account,
+                                                                       kbPaymentMethodId,
+                                                                       kbPaymentId,
+                                                                       paymentData.getAmount(),
+                                                                       paymentData.getCurrency(),
+                                                                       paymentExternalKey,
+                                                                       paymentTransactionExternalKey,
+                                                                       purchaseProperties,
+                                                                       context);
+            } else {
+                return killbillAPI.getPaymentApi().createPurchase(account,
+                                                                  kbPaymentMethodId,
+                                                                  kbPaymentId,
+                                                                  paymentData.getAmount(),
+                                                                  paymentData.getCurrency(),
+                                                                  paymentExternalKey,
+                                                                  paymentTransactionExternalKey,
+                                                                  purchaseProperties,
+                                                                  context);
+            }
         } catch (final PaymentApiException e) {
             throw new PaymentPluginApiException("Failed to record purchase", e);
         }
