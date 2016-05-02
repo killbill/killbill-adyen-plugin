@@ -306,6 +306,23 @@ public class TestAdyenPaymentPluginApi extends TestWithEmbeddedDBBase {
         verifyPaymentTransactionInfoPlugin(refundTransaction, refundInfoPlugin);
     }
 
+    // Disabled by default since Card fund transfer (CFT) isn't enabled automatically on the sandbox
+    @Test(groups = "slow", enabled = false)
+    public void testCredit() throws Exception {
+        adyenPaymentPluginApi.addPaymentMethod(payment.getAccountId(), payment.getPaymentMethodId(), adyenPaymentMethodPluginCC(), true, propertiesWithCCInfo, context);
+        final PaymentTransaction creditTransaction = buildPaymentTransaction(TransactionType.CREDIT);
+
+        final PaymentTransactionInfoPlugin creditInfoPlugin = adyenPaymentPluginApi.creditPayment(payment.getAccountId(),
+                                                                                                  payment.getId(),
+                                                                                                  creditTransaction.getId(),
+                                                                                                  payment.getPaymentMethodId(),
+                                                                                                  creditTransaction.getAmount(),
+                                                                                                  creditTransaction.getCurrency(),
+                                                                                                  propertiesWithCCInfo,
+                                                                                                  context);
+        verifyPaymentTransactionInfoPlugin(creditTransaction, creditInfoPlugin);
+    }
+
     @Test(groups = "slow")
     public void testAuthorizeAndMultipleCapturesSepaDirectDebit() throws Exception {
         adyenPaymentPluginApi.addPaymentMethod(payment.getAccountId(), payment.getPaymentMethodId(), adyenPaymentMethodPluginSepaDirectDebit(), true, propertiesWithSepaInfo, context);

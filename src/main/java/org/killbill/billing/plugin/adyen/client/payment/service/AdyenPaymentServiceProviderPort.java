@@ -41,8 +41,6 @@ import org.killbill.billing.plugin.adyen.client.payment.builder.AdyenRequestFact
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.annotations.VisibleForTesting;
-
 public class AdyenPaymentServiceProviderPort extends BaseAdyenPaymentServiceProviderPort implements Closeable {
 
     private static final Logger logger = LoggerFactory.getLogger(AdyenPaymentServiceProviderPort.class);
@@ -64,18 +62,32 @@ public class AdyenPaymentServiceProviderPort extends BaseAdyenPaymentServiceProv
     public PurchaseResult authorise(final PaymentData paymentData,
                                     final UserData userData,
                                     final SplitSettlementData splitSettlementData) {
-        logOperation(logger, "authorize", paymentData, userData, null);
+        return authoriseOrCredit(true, paymentData, userData, splitSettlementData);
+    }
+
+    public PurchaseResult credit(final PaymentData paymentData,
+                                 final UserData userData,
+                                 final SplitSettlementData splitSettlementData) {
+        return authoriseOrCredit(false, paymentData, userData, splitSettlementData);
+    }
+
+    private PurchaseResult authoriseOrCredit(final boolean authorize,
+                                             final PaymentData paymentData,
+                                             final UserData userData,
+                                             final SplitSettlementData splitSettlementData) {
+        final String operation = authorize ? "authorize" : "credit";
+        logOperation(logger, operation, paymentData, userData, null);
 
         final PaymentInfo paymentInfo = paymentData.getPaymentInfo();
 
         final PaymentRequest request = adyenRequestFactory.createPaymentRequest(paymentData, userData, splitSettlementData);
-        return authorise(request, paymentInfo.getCountry(), paymentData);
-    }
 
-    @VisibleForTesting
-    PurchaseResult authorise(final PaymentRequest request, final String countryIsoCode, final PaymentData paymentData) {
-        final String operation = "authorize";
-        final AdyenCallResult<PaymentResult> adyenCallResult = adyenPaymentRequestSender.authorise(countryIsoCode, request);
+        final AdyenCallResult<PaymentResult> adyenCallResult;
+        if (authorize) {
+            adyenCallResult = adyenPaymentRequestSender.authorise(paymentInfo.getCountry(), request);
+        } else {
+            adyenCallResult = adyenPaymentRequestSender.refundWithData(paymentInfo.getCountry(), request);
+        }
 
         if (!adyenCallResult.receivedWellFormedResponse()) {
             return handleTechnicalFailureAtPurchase(operation, paymentData, adyenCallResult);
