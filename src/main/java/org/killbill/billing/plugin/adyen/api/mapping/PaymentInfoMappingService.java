@@ -84,6 +84,7 @@ public abstract class PaymentInfoMappingService {
                 if (ddBic != null) {
                     paymentInfo = SepaDirectDebitMappingService.toPaymentInfo(account, paymentMethodsRecord, properties);
                 } else {
+                    // Will be used as a fallback
                     paymentInfo = CardMappingService.toPaymentInfo(paymentMethodsRecord, properties);
                 }
             }

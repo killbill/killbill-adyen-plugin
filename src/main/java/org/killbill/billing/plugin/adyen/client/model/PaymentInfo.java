@@ -19,7 +19,7 @@ package org.killbill.billing.plugin.adyen.client.model;
 
 import java.util.Map;
 
-public abstract class PaymentInfo {
+public class PaymentInfo {
 
     private Integer captureDelayHours;
     private Integer installments;

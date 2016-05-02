@@ -25,13 +25,15 @@ import org.killbill.billing.plugin.adyen.client.model.PaymentInfo;
 
 import com.google.common.base.Strings;
 
-public abstract class PaymentInfoConverter<T extends PaymentInfo> {
+public class PaymentInfoConverter<T extends PaymentInfo> {
 
     /**
      * @param paymentInfo to convert
      * @return {@code true} if this converter is capable of handling the payment info
      */
-    public abstract boolean supportsPaymentInfo(PaymentInfo paymentInfo);
+    public boolean supportsPaymentInfo(final PaymentInfo paymentInfo) {
+        return true;
+    }
 
     /**
      * Convert a PaymentInfo Object into an Adyen PaymentRequest

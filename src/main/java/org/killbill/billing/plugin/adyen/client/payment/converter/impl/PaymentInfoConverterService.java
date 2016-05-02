@@ -33,7 +33,9 @@ public class PaymentInfoConverterService implements PaymentInfoConverterManageme
     public PaymentInfoConverterService() {
         this.paymentInfoConverters = ImmutableList.<PaymentInfoConverter<? extends PaymentInfo>>of(new CreditCardConverter(),
                                                                                                    new SepaDirectDebitConverter(),
-                                                                                                   new RecurringConverter());
+                                                                                                   new RecurringConverter(),
+                                                                                                   // Default fallback
+                                                                                                   new PaymentInfoConverter<PaymentInfo>());
     }
 
     @Override
@@ -43,6 +45,7 @@ public class PaymentInfoConverterService implements PaymentInfoConverterManageme
                 return pic.convertPaymentInfoToPaymentRequest(paymentInfo);
             }
         }
+        // Should never happen
         throw new IllegalArgumentException("No PaymentInfoConverter for " + paymentInfo + " found.");
     }
 }

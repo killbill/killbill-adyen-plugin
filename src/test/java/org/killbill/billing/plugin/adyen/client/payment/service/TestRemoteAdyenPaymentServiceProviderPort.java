@@ -20,8 +20,10 @@ package org.killbill.billing.plugin.adyen.client.payment.service;
 import java.math.BigDecimal;
 import java.util.UUID;
 
+import org.killbill.billing.catalog.api.Currency;
 import org.killbill.billing.plugin.adyen.TestRemoteBase;
 import org.killbill.billing.plugin.adyen.client.model.PaymentData;
+import org.killbill.billing.plugin.adyen.client.model.PaymentInfo;
 import org.killbill.billing.plugin.adyen.client.model.PaymentModificationResponse;
 import org.killbill.billing.plugin.adyen.client.model.PurchaseResult;
 import org.killbill.billing.plugin.adyen.client.model.SplitSettlementData;
@@ -157,6 +159,31 @@ public class TestRemoteAdyenPaymentServiceProviderPort extends TestRemoteBase {
         Assert.assertEquals(authorizeResult.getResultCode(), "Authorised");
         Assert.assertNotNull(authorizeResult.getAuthCode());
         Assert.assertNull(authorizeResult.getReason());
+    }
+
+    // Disabled by default since Boleto isn't enabled automatically on the sandbox
+    @Test(groups = "slow", enabled = false)
+    public void testBoleto() throws Exception {
+        final PaymentInfo boleto = new PaymentInfo();
+        boleto.setCountry("BR");
+        boleto.setSelectedBrand("boletobancario_santander");
+
+        final PaymentData<PaymentInfo> paymentData = new PaymentData<PaymentInfo>(new BigDecimal("1"), Currency.BRL, UUID.randomUUID().toString(), boleto);
+        final UserData userData = new UserData();
+        userData.setFirstName("José");
+        userData.setLastName("Silva");
+        final SplitSettlementData splitSettlementData = null;
+
+        final PurchaseResult authorizeResult = adyenPaymentServiceProviderPort.authorise(paymentData, userData, splitSettlementData);
+        Assert.assertNotNull(authorizeResult.getPspReference());
+        Assert.assertEquals(authorizeResult.getResultCode(), "Received");
+        Assert.assertNull(authorizeResult.getAuthCode());
+        Assert.assertNull(authorizeResult.getReason());
+        Assert.assertNotNull(authorizeResult.getAdditionalData().get("boletobancario.barCodeReference"));
+        Assert.assertNotNull(authorizeResult.getAdditionalData().get("boletobancario.data"));
+        Assert.assertNotNull(authorizeResult.getAdditionalData().get("boletobancario.dueDate"));
+        Assert.assertNotNull(authorizeResult.getAdditionalData().get("boletobancario.url"));
+        Assert.assertNotNull(authorizeResult.getAdditionalData().get("boletobancario.expirationDate"));
     }
 
     private Card getCreditCard() {
