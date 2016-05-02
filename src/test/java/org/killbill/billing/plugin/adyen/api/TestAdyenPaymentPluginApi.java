@@ -279,7 +279,7 @@ public class TestAdyenPaymentPluginApi extends TestWithEmbeddedDBBase {
         verifyPaymentTransactionInfoPlugin(voidTransaction, voidInfoPlugin);
     }
 
-    @Test(groups = "slow", enabled = false, description = "Purchase is not yet supported")
+    @Test(groups = "slow")
     public void testPurchaseAndRefund() throws Exception {
         adyenPaymentPluginApi.addPaymentMethod(payment.getAccountId(), payment.getPaymentMethodId(), adyenPaymentMethodPluginCC(), true, propertiesWithCCInfo, context);
         final PaymentTransaction purchaseTransaction = buildPaymentTransaction(TransactionType.PURCHASE);
@@ -816,11 +816,7 @@ public class TestAdyenPaymentPluginApi extends TestWithEmbeddedDBBase {
     private void verifyPaymentTransactionInfoPlugin(final PaymentTransaction paymentTransaction, final PaymentTransactionInfoPlugin paymentTransactionInfoPlugin, final boolean authorizedProcessed) {
         assertEquals(paymentTransactionInfoPlugin.getKbPaymentId(), payment.getId());
         assertEquals(paymentTransactionInfoPlugin.getKbTransactionPaymentId(), paymentTransaction.getId());
-        if (TransactionType.PURCHASE.equals(paymentTransaction.getTransactionType())) {
-            assertEquals(paymentTransactionInfoPlugin.getTransactionType(), TransactionType.CAPTURE);
-        } else {
-            assertEquals(paymentTransactionInfoPlugin.getTransactionType(), paymentTransaction.getTransactionType());
-        }
+        assertEquals(paymentTransactionInfoPlugin.getTransactionType(), paymentTransaction.getTransactionType());
         if (TransactionType.VOID.equals(paymentTransaction.getTransactionType())) {
             assertNull(paymentTransactionInfoPlugin.getAmount());
             assertNull(paymentTransactionInfoPlugin.getCurrency());
@@ -834,6 +830,7 @@ public class TestAdyenPaymentPluginApi extends TestWithEmbeddedDBBase {
         final List<String> expectedGatewayErrorCodes;
         final List<PaymentPluginStatus> expectedPaymentPluginStatus;
         switch (paymentTransaction.getTransactionType()) {
+            case PURCHASE:
             case AUTHORIZE:
                 expectedGatewayErrorCodes = authorizedProcessed
                                         ? ImmutableList.of("Authorised")
@@ -843,7 +840,6 @@ public class TestAdyenPaymentPluginApi extends TestWithEmbeddedDBBase {
                                               : ImmutableList.of(PaymentPluginStatus.PROCESSED, PaymentPluginStatus.PENDING);
                 break;
             case CAPTURE:
-            case PURCHASE:
                 expectedGatewayErrorCodes = ImmutableList.of("[capture-received]");
                 expectedPaymentPluginStatus = ImmutableList.of(PaymentPluginStatus.PENDING);
                 break;

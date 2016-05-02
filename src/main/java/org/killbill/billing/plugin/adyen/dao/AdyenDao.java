@@ -378,6 +378,28 @@ public class AdyenDao extends PluginPaymentDao<AdyenResponsesRecord, AdyenRespon
                        });
     }
 
+    // Assumes that the last auth was successful
+    @Override
+    public AdyenResponsesRecord getSuccessfulAuthorizationResponse(final UUID kbPaymentId, final UUID kbTenantId) throws SQLException {
+        return execute(dataSource.getConnection(),
+                       new WithConnectionCallback<AdyenResponsesRecord>() {
+                           @Override
+                           public AdyenResponsesRecord withConnection(final Connection conn) throws SQLException {
+                               return DSL.using(conn, dialect, settings)
+                                         .selectFrom(responsesTable)
+                                         .where(DSL.field(responsesTable.getName() + "." + KB_PAYMENT_ID).equal(kbPaymentId.toString()))
+                                         .and(
+                                                 DSL.field(responsesTable.getName() + "." + TRANSACTION_TYPE).equal(TransactionType.AUTHORIZE.toString())
+                                                    .or(DSL.field(responsesTable.getName() + "." + TRANSACTION_TYPE).equal(TransactionType.PURCHASE.toString()))
+                                             )
+                                         .and(DSL.field(responsesTable.getName() + "." + KB_TENANT_ID).equal(kbTenantId.toString()))
+                                         .orderBy(DSL.field(responsesTable.getName() + "." + RECORD_ID).desc())
+                                         .limit(1)
+                                         .fetchOne();
+                           }
+                       });
+    }
+
     public AdyenResponsesRecord getResponse(final String pspReference) throws SQLException {
         return execute(dataSource.getConnection(),
                        new WithConnectionCallback<AdyenResponsesRecord>() {

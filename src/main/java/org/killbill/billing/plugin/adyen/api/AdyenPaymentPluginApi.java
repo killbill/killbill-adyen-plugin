@@ -344,26 +344,7 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
 
     @Override
     public PaymentTransactionInfoPlugin authorizePayment(final UUID kbAccountId, final UUID kbPaymentId, final UUID kbTransactionId, final UUID kbPaymentMethodId, final BigDecimal amount, final Currency currency, final Iterable<PluginProperty> properties, final CallContext context) throws PaymentPluginApiException {
-        return executeInitialTransaction(TransactionType.AUTHORIZE,
-                                        new TransactionExecutor<PurchaseResult>() {
-                                            @Override
-                                            public PurchaseResult execute(final PaymentData paymentData, final UserData userData, final SplitSettlementData splitSettlementData) {
-                                                final AdyenPaymentServiceProviderPort adyenPort = adyenConfigurationHandler.getConfigurable(context.getTenantId());
-                                                if (hasPreviousAdyenRespondseRecord(kbPaymentId, kbTransactionId.toString(), context)) {
-                                                    return adyenPort.authorize3DSecure(paymentData, userData, splitSettlementData);
-                                                } else {
-                                                    return adyenPort.authorise(paymentData, userData, splitSettlementData);
-                                                }
-                                            }
-                                         },
-                                         kbAccountId,
-                                         kbPaymentId,
-                                         kbTransactionId,
-                                         kbPaymentMethodId,
-                                         amount,
-                                         currency,
-                                         properties,
-                                         context);
+        return authorizeOrPurchasePayment(TransactionType.AUTHORIZE, kbAccountId, kbPaymentId, kbTransactionId, kbPaymentMethodId, amount, currency, properties, context);
     }
 
     @Override
@@ -402,7 +383,7 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
                 // We don't have any record for that payment: we want to trigger an actual purchase (auto-capture) call
                 final String captureDelayHours = PluginProperties.getValue(PROPERTY_CAPTURE_DELAY_HOURS, "0", properties);
                 final Iterable<PluginProperty> overriddenProperties = PluginProperties.merge(properties, ImmutableList.<PluginProperty>of(new PluginProperty(PROPERTY_CAPTURE_DELAY_HOURS, captureDelayHours, false)));
-                return authorizePayment(kbAccountId, kbPaymentId, kbTransactionId, kbPaymentMethodId, amount, currency, overriddenProperties, context);
+                return authorizeOrPurchasePayment(TransactionType.PURCHASE, kbAccountId, kbPaymentId, kbTransactionId, kbPaymentMethodId, amount, currency, overriddenProperties, context);
             } else {
                 // We already have a record for that payment transaction and we just updated the response row with additional properties
                 // (the API can be called for instance after the user is redirected back from the HPP to store the PSP reference)
@@ -534,6 +515,29 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
         public T execute(final PaymentData paymentData, final String pspReference, final SplitSettlementData splitSettlementData) {
             throw new UnsupportedOperationException();
         }
+    }
+
+    private PaymentTransactionInfoPlugin authorizeOrPurchasePayment(final TransactionType transactionType, final UUID kbAccountId, final UUID kbPaymentId, final UUID kbTransactionId, final UUID kbPaymentMethodId, final BigDecimal amount, final Currency currency, final Iterable<PluginProperty> properties, final CallContext context) throws PaymentPluginApiException {
+        return executeInitialTransaction(transactionType,
+                                         new TransactionExecutor<PurchaseResult>() {
+                                             @Override
+                                             public PurchaseResult execute(final PaymentData paymentData, final UserData userData, final SplitSettlementData splitSettlementData) {
+                                                 final AdyenPaymentServiceProviderPort adyenPort = adyenConfigurationHandler.getConfigurable(context.getTenantId());
+                                                 if (hasPreviousAdyenRespondseRecord(kbPaymentId, kbTransactionId.toString(), context)) {
+                                                     return adyenPort.authorize3DSecure(paymentData, userData, splitSettlementData);
+                                                 } else {
+                                                     return adyenPort.authorise(paymentData, userData, splitSettlementData);
+                                                 }
+                                             }
+                                         },
+                                         kbAccountId,
+                                         kbPaymentId,
+                                         kbTransactionId,
+                                         kbPaymentMethodId,
+                                         amount,
+                                         currency,
+                                         properties,
+                                         context);
     }
 
     private PaymentTransactionInfoPlugin executeInitialTransaction(final TransactionType transactionType,
