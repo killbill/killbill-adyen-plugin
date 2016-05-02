@@ -239,22 +239,6 @@
                                     </extraargs>
                                 </wsdlOption>
                                 <wsdlOption>
-                                    <wsdl>${basedir}/src/main/resources/cxf/multiplus/PartnerTokenService-v1.wsdl</wsdl>
-                                    <wsdlLocation>classpath:cxf/multiplus/PartnerTokenService-v1.wsdl</wsdlLocation>
-                                    <bindingFiles>
-                                        <bindingFile>
-                                            ${basedir}/src/main/resources/cxf/multiplus/jaxbPartnerTokenService-v1.xjb
-                                        </bindingFile>
-                                        <bindingFile>
-                                            ${basedir}/src/main/resources/cxf/multiplus/jaxwsPartnerTokenService-v1.xjb
-                                        </bindingFile>
-                                    </bindingFiles>
-                                    <extraargs>
-                                        <!-- extraarg>-xjc-Xlocator,-mark-generated</extraarg-->
-                                        <extraarg>-xjc-extension</extraarg>
-                                    </extraargs>
-                                </wsdlOption>
-                                <wsdlOption>
                                     <wsdl>${basedir}/src/main/resources/cxf/Recurring.wsdl</wsdl>
                                     <wsdlLocation>classpath:cxf/Recurring.wsdl</wsdlLocation>
                                     <bindingFiles>
