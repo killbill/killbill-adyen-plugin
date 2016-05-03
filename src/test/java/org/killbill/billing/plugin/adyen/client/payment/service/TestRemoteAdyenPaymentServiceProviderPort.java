@@ -141,7 +141,8 @@ public class TestRemoteAdyenPaymentServiceProviderPort extends TestRemoteBase {
         assertFalse(voidResult.isTechnicallySuccessful());
     }
 
-    @Test(groups = "slow")
+    // Disabled by default since Apple Pay isn't enabled automatically on the sandbox
+    @Test(groups = "slow", enabled = false)
     public void testAutoCaptureWithApplePay() throws Exception {
         final Card creditCard = new Card();
         creditCard.setCountry(DEFAULT_COUNTRY);
