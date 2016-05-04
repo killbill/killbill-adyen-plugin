@@ -26,6 +26,7 @@ import org.killbill.billing.payment.api.Payment;
 import org.killbill.billing.payment.api.PaymentMethod;
 import org.killbill.billing.payment.api.PaymentTransaction;
 import org.killbill.billing.payment.api.PluginProperty;
+import org.killbill.billing.payment.api.TransactionStatus;
 import org.killbill.billing.payment.api.TransactionType;
 import org.killbill.billing.plugin.TestUtils;
 import org.killbill.billing.plugin.adyen.TestWithEmbeddedDBBase;
@@ -68,6 +69,9 @@ public class TestAdyenPaymentPluginApiBase extends TestWithEmbeddedDBBase {
         Mockito.when(killbillApi.getPaymentApi().createAuthorization(Mockito.<Account>any(), Mockito.<UUID>any(), Mockito.<UUID>any(), Mockito.<BigDecimal>any(), Mockito.<Currency>any(), Mockito.<String>any(), Mockito.<String>any(), Mockito.<Iterable<PluginProperty>>any(), Mockito.<CallContext>any())).then(new Answer<Payment>() {
             @Override
             public Payment answer(final InvocationOnMock invocation) throws Throwable {
+                Mockito.when(paymentTransaction.getTransactionType()).thenReturn(TransactionType.AUTHORIZE);
+                Mockito.when(paymentTransaction.getTransactionStatus()).thenReturn(TransactionStatus.PENDING);
+
                 adyenPaymentPluginApi.authorizePayment(payment.getAccountId(),
                                                        payment.getId(),
                                                        paymentTransaction.getId(),
@@ -82,6 +86,9 @@ public class TestAdyenPaymentPluginApiBase extends TestWithEmbeddedDBBase {
         Mockito.when(killbillApi.getPaymentApi().createPurchase(Mockito.<Account>any(), Mockito.<UUID>any(), Mockito.<UUID>any(), Mockito.<BigDecimal>any(), Mockito.<Currency>any(), Mockito.<String>any(), Mockito.<String>any(), Mockito.<Iterable<PluginProperty>>any(), Mockito.<CallContext>any())).then(new Answer<Payment>() {
             @Override
             public Payment answer(final InvocationOnMock invocation) throws Throwable {
+                Mockito.when(paymentTransaction.getTransactionType()).thenReturn(TransactionType.PURCHASE);
+                Mockito.when(paymentTransaction.getTransactionStatus()).thenReturn(TransactionStatus.PENDING);
+
                 adyenPaymentPluginApi.purchasePayment(payment.getAccountId(),
                                                       payment.getId(),
                                                       paymentTransaction.getId(),

@@ -256,30 +256,6 @@ public class TestAdyenNotificationService {
         final String response = notificationService.handleNotifications(notification);
         Assert.assertEquals(response, "<SOAP-ENV:Envelope xmlns:SOAP-ENV=\"http://schemas.xmlsoap.org/soap/envelope/\"><SOAP-ENV:Header/><SOAP-ENV:Body><sendNotificationResponse xmlns=\"http://notification.services.adyen.com\" xmlns:ns2=\"http://common.services.adyen.com\"><notificationResponse>[accepted]</notificationResponse></sendNotificationResponse></SOAP-ENV:Body></SOAP-ENV:Envelope>");
 
-        Assert.assertEquals(handler.getAuthorisationSuccessItems().size(), AUTHORISATION_NOTIFICATION.equals(notification) ? 1 : 0);
-        Assert.assertEquals(handler.getAuthorisationFailureItems().size(), 0);
-        Assert.assertEquals(handler.getCaptureSuccessItems().size(), 0);
-        Assert.assertEquals(handler.getCaptureFailureItems().size(), 0);
-        Assert.assertEquals(handler.getCaptureFailedItems().size(), 0);
-        Assert.assertEquals(handler.getCancellationSuccessItems().size(), 0);
-        Assert.assertEquals(handler.getCancellationFailureItems().size(), 0);
-        Assert.assertEquals(handler.getChargebackItems().size(), 0);
-        Assert.assertEquals(handler.getChargebackReversedItems().size(), CHARGEBACK_REVERSED_NOTIFICATION.equals(notification) ? 1 : 0);
-        Assert.assertEquals(handler.getRefundSuccessItems().size(), REFUND_NOTIFICATION.equals(notification) ? 1 : 0);
-        Assert.assertEquals(handler.getRefundFailureItems().size(), 0);
-        Assert.assertEquals(handler.getRefundedReversedItems().size(), 0);
-        Assert.assertEquals(handler.getRefundFailedItems().size(), 0);
-        Assert.assertEquals(handler.getNotificationOfChargebackItems().size(), NOTIFICATION_OF_CHARGEBACK_NOTIFICATION.equals(notification) ? 3 : 0);
-        Assert.assertEquals(handler.getCancelOrRefundSuccessItems().size(), 0);
-        Assert.assertEquals(handler.getNotificationOfFraudItems().size(), 0);
-        Assert.assertEquals(handler.getCancelOrRefundFailureItems().size(), 0);
-        Assert.assertEquals(handler.getDisputeItems().size(), 0);
-        Assert.assertEquals(handler.getRequestForInformationItems().size(), 0);
-        Assert.assertEquals(handler.getReportAvailableItems().size(), REPORT_AVAILABLE_NOTIFICATION.equals(notification) ? 1 : 0);
-        Assert.assertEquals(handler.getNotificationtestItems().size(), 0);
-        Assert.assertEquals(handler.getRecurringReceivedItems().size(), 0);
-        Assert.assertEquals(handler.getCancelReceivedItems().size(), 0);
-        Assert.assertEquals(handler.getRecurringDetailDisabledItems().size(), 0);
-        Assert.assertEquals(handler.getRecurringForUserDisabledItems().size(), 0);
+        Assert.assertEquals(handler.getItems().size(), NOTIFICATION_OF_CHARGEBACK_NOTIFICATION.equals(notification) ? 3 : 1);
     }
 }

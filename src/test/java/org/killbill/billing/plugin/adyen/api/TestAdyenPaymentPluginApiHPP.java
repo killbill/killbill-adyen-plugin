@@ -24,6 +24,7 @@ import java.util.Map;
 import javax.annotation.Nullable;
 
 import org.killbill.billing.payment.api.PluginProperty;
+import org.killbill.billing.payment.api.TransactionStatus;
 import org.killbill.billing.payment.api.TransactionType;
 import org.killbill.billing.payment.plugin.api.GatewayNotification;
 import org.killbill.billing.payment.plugin.api.HostedPaymentPageFormDescriptor;
@@ -31,6 +32,7 @@ import org.killbill.billing.payment.plugin.api.PaymentPluginApiException;
 import org.killbill.billing.payment.plugin.api.PaymentPluginStatus;
 import org.killbill.billing.payment.plugin.api.PaymentTransactionInfoPlugin;
 import org.killbill.billing.plugin.api.PluginProperties;
+import org.mockito.Mockito;
 import org.testng.annotations.Test;
 
 import com.google.common.collect.ImmutableList;
@@ -54,7 +56,7 @@ public class TestAdyenPaymentPluginApiHPP extends TestAdyenPaymentPluginApiBase 
 
         processHPPNotification();
 
-        verifyPayment(TransactionType.PURCHASE);
+        verifyPayment(TransactionType.AUTHORIZE);
     }
 
     @Test(groups = "slow")

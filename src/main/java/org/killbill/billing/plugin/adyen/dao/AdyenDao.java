@@ -48,6 +48,7 @@ import org.killbill.billing.plugin.dao.payment.PluginPaymentDao;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Functions;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableMap;
@@ -475,7 +476,8 @@ public class AdyenDao extends PluginPaymentDao<AdyenResponsesRecord, AdyenRespon
                 });
     }
 
-    public AdyenNotificationsRecord getNotification(final String pspReference) throws SQLException {
+    @VisibleForTesting
+    AdyenNotificationsRecord getNotification(final String pspReference) throws SQLException {
         return execute(dataSource.getConnection(),
                        new WithConnectionCallback<AdyenNotificationsRecord>() {
                            @Override

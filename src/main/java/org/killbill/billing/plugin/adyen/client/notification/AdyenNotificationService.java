@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Groupon, Inc
+ * Copyright 2014-2016 Groupon, Inc
  *
  * Groupon licenses this file to you under the Apache License, version 2.0
  * (the "License"); you may not use this file except in compliance with the
@@ -38,7 +38,6 @@ import org.killbill.adyen.notification.NotificationRequestItem;
 import org.killbill.adyen.notification.ObjectFactory;
 import org.killbill.adyen.notification.SendNotification;
 import org.killbill.adyen.notification.SendNotificationResponse;
-import org.killbill.billing.plugin.adyen.client.AdyenEventCode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.w3c.dom.Document;
@@ -46,7 +45,6 @@ import org.w3c.dom.Node;
 import org.xml.sax.SAXException;
 
 import com.google.common.base.Charsets;
-import com.google.common.base.MoreObjects;
 
 public class AdyenNotificationService {
 
@@ -65,26 +63,29 @@ public class AdyenNotificationService {
         return outputStream.toString();
     }
 
-    public ByteArrayOutputStream handleNotifications(final InputStream inputStream) {
-        String response;
+    private ByteArrayOutputStream handleNotifications(final InputStream inputStream) {
+        String response = "error";
+
+        SendNotification sendNotification = null;
         try {
-            final SendNotification sendNotification = parse(inputStream);
+            sendNotification = parse(inputStream);
+        } catch (final Exception e) {
+            logger.warn("Error parsing Adyen notification", e);
+        }
+
+        if (sendNotification != null) {
             final List<NotificationRequestItem> listOfNotifications = sendNotification.getNotification()
                                                                                       .getNotificationItems()
                                                                                       .getNotificationRequestItem();
 
-            for (final NotificationRequestItem item : listOfNotifications) {
-                handleNotification(item);
+            try {
+                for (final NotificationRequestItem item : listOfNotifications) {
+                    handleNotification(item);
+                }
+                response = "[accepted]";
+            } catch (final Exception e) {
+                logger.warn("Error handling Adyen notification {}", sendNotification, e);
             }
-
-            response = "[accepted]";
-        } catch (final Exception e) {
-            logger.warn("Error dealing with Adyen notification", e);
-            /**
-             * The Adyen server only knows the return string [accepted]. Therefore
-             * this method cannot return any other string to signal an error.
-             */
-            response = "error";
         }
 
         try {
@@ -96,112 +97,21 @@ public class AdyenNotificationService {
     }
 
     private void handleNotification(final NotificationRequestItem item) {
-        logNotification(item);
+        logger.info("Handling notification: eventCode='{}', pspReference='{}', originalReference='{}', success='{}', reason='{}', merchantReference='{}'",
+                    item.getEventCode(),
+                    item.getPspReference(),
+                    item.getOriginalReference(),
+                    item.isSuccess(),
+                    item.getReason(),
+                    item.getMerchantReference());
 
-        final AdyenEventCode eventCode = AdyenEventCode.fromString(item.getEventCode());
         final AdyenNotificationHandler adyenNotificationHandler = getAdyenNotificationHandler(item);
         if (adyenNotificationHandler == null) {
             logger.warn("No handler available - ignoring");
             return;
         }
 
-        switch (eventCode) {
-            case AUTHORISATION:
-                if (item.isSuccess()) {
-                    adyenNotificationHandler.authorisationSuccess(item);
-                } else {
-                    adyenNotificationHandler.authorisationFailure(item);
-                }
-                break;
-            case CAPTURE:
-                if (item.isSuccess()) {
-                    adyenNotificationHandler.captureSuccess(item);
-                } else {
-                    adyenNotificationHandler.captureFailure(item);
-                }
-                break;
-            case CAPTURE_FAILED:
-                adyenNotificationHandler.captureFailed(item);
-                break;
-            case CANCELLATION:
-                if (item.isSuccess()) {
-                    adyenNotificationHandler.cancellationSuccess(item);
-                } else {
-                    adyenNotificationHandler.cancellationFailure(item);
-                }
-                break;
-            case CHARGEBACK:
-                adyenNotificationHandler.chargeback(item);
-                break;
-            case CHARGEBACK_REVERSED:
-                adyenNotificationHandler.chargebackReversed(item);
-                break;
-            case DISPUTE:
-                adyenNotificationHandler.dispute(item);
-                break;
-            case CANCEL_OR_REFUND:
-                if (item.isSuccess()) {
-                    adyenNotificationHandler.cancelOrRefundSuccess(item);
-                } else {
-                    adyenNotificationHandler.cancelOrRefundFailure(item);
-                }
-                break;
-            case REFUND:
-                if (item.isSuccess()) {
-                    adyenNotificationHandler.refundSuccess(item);
-                } else {
-                    adyenNotificationHandler.refundFailure(item);
-                }
-                break;
-            case REFUNDED_REVERSED:
-                adyenNotificationHandler.refundedReversed(item);
-                break;
-            case REFUND_FAILED:
-                adyenNotificationHandler.refundFailed(item);
-                break;
-            case NOTIFICATION_OF_FRAUD:
-                adyenNotificationHandler.notificationOfFraud(item);
-                break;
-            case REQUEST_FOR_INFORMATION:
-                adyenNotificationHandler.requestForInformation(item);
-                break;
-            case NOTIFICATION_OF_CHARGEBACK:
-                adyenNotificationHandler.notificationOfChargeback(item);
-                break;
-            case REPORT_AVAILABLE:
-                adyenNotificationHandler.reportAvailable(item);
-                break;
-            case NOTIFICATIONTEST:
-                adyenNotificationHandler.notificationtest(item);
-                break;
-            case RECURRING_RECEIVED:
-                adyenNotificationHandler.recurringReceived(item);
-                break;
-            case CANCEL_RECEIVED:
-                adyenNotificationHandler.cancelReceived(item);
-                break;
-            case RECURRING_DETAIL_DISABLED:
-                adyenNotificationHandler.recurringDetailDisabled(item);
-                break;
-            case RECURRING_FOR_USER_DISABLED:
-                adyenNotificationHandler.recurringForUserDisabled(item);
-                break;
-            default:
-                logger.warn("Could not handle notification: Event code " + eventCode + " not implemented yet: " + item);
-                break;
-        }
-    }
-
-    private void logNotification(final NotificationRequestItem item) {
-        final String itemAsString = MoreObjects.toStringHelper(item)
-                                               .add("eventCode", item.getEventCode())
-                                               .add("pspReference", item.getPspReference())
-                                               .add("originalReference", item.getOriginalReference())
-                                               .add("success", item.isSuccess())
-                                               .add("reason", item.getReason())
-                                               .add("merchantReference", item.getMerchantReference())
-                                               .toString();
-        logger.info("Handling notification: " + itemAsString);
+        adyenNotificationHandler.handleNotification(item);
     }
 
     private AdyenNotificationHandler getAdyenNotificationHandler(final NotificationRequestItem notificationRequestItem) {
