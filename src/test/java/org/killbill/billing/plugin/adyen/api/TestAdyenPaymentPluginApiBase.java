@@ -48,6 +48,7 @@ import com.google.common.collect.ImmutableList;
 public class TestAdyenPaymentPluginApiBase extends TestWithEmbeddedDBBase {
 
     protected CallContext context;
+    protected Account account;
     protected Payment payment;
     protected PaymentTransaction paymentTransaction;
     protected PaymentMethod paymentMethod;
@@ -60,7 +61,7 @@ public class TestAdyenPaymentPluginApiBase extends TestWithEmbeddedDBBase {
         context = Mockito.mock(CallContext.class);
         Mockito.when(context.getTenantId()).thenReturn(UUID.randomUUID());
 
-        final Account account = TestUtils.buildAccount(DEFAULT_CURRENCY, DEFAULT_COUNTRY);
+        account = TestUtils.buildAccount(DEFAULT_CURRENCY, DEFAULT_COUNTRY);
         payment = TestUtils.buildPayment(account.getId(), account.getPaymentMethodId(), account.getCurrency());
         paymentTransaction = buildPaymentTransaction(TransactionType.PURCHASE);
         paymentMethod = TestUtils.buildPaymentMethod(account.getId(), account.getPaymentMethodId(), AdyenActivator.PLUGIN_NAME);

@@ -110,21 +110,21 @@ public class TestAdyenPaymentPluginApi extends TestAdyenPaymentPluginApiBase {
 
     @Test(groups = "slow")
     public void testPaymentMethodManagement() throws Exception {
-        assertEquals(adyenPaymentPluginApi.getPaymentMethods(payment.getAccountId(), false, ImmutableList.<PluginProperty>of(), context).size(), 0);
-        assertEquals(adyenPaymentPluginApi.getPaymentMethods(payment.getAccountId(), true, ImmutableList.<PluginProperty>of(), context).size(), 0);
+        assertEquals(adyenPaymentPluginApi.getPaymentMethods(account.getId(), false, ImmutableList.<PluginProperty>of(), context).size(), 0);
+        assertEquals(adyenPaymentPluginApi.getPaymentMethods(account.getId(), true, ImmutableList.<PluginProperty>of(), context).size(), 0);
 
         // The customerId passed during the addPaymentMethod call needs to match the one during the payment call
         final Iterable<PluginProperty> propertiesForAddPaymentMethod = toProperties(ImmutableMap.<String, String>builder()
                                                                                                 .putAll(propertiesForRecurring)
                                                                                                 .build());
-        adyenPaymentPluginApi.addPaymentMethod(payment.getAccountId(), payment.getPaymentMethodId(), adyenPaymentMethodPluginCC(), true, propertiesForAddPaymentMethod, context);
+        adyenPaymentPluginApi.addPaymentMethod(account.getId(), account.getPaymentMethodId(), adyenPaymentMethodPluginCC(), true, propertiesForAddPaymentMethod, context);
 
-        final List<PaymentMethodInfoPlugin> initialPaymentMethods = adyenPaymentPluginApi.getPaymentMethods(payment.getAccountId(), false, ImmutableList.<PluginProperty>of(), context);
+        final List<PaymentMethodInfoPlugin> initialPaymentMethods = adyenPaymentPluginApi.getPaymentMethods(account.getId(), false, ImmutableList.<PluginProperty>of(), context);
         assertEquals(initialPaymentMethods.size(), 1);
-        assertEquals(initialPaymentMethods.get(0).getAccountId(), payment.getAccountId());
-        assertEquals(initialPaymentMethods.get(0).getPaymentMethodId(), payment.getPaymentMethodId());
+        assertEquals(initialPaymentMethods.get(0).getAccountId(), account.getId());
+        assertEquals(initialPaymentMethods.get(0).getPaymentMethodId(), account.getPaymentMethodId());
         assertNull(initialPaymentMethods.get(0).getExternalPaymentMethodId());
-        assertEquals(adyenPaymentPluginApi.getPaymentMethods(payment.getAccountId(), true, ImmutableList.<PluginProperty>of(), context), initialPaymentMethods);
+        assertEquals(adyenPaymentPluginApi.getPaymentMethods(account.getId(), true, ImmutableList.<PluginProperty>of(), context), initialPaymentMethods);
 
         final Iterable<PluginProperty> propertiesWithCCForRecurring = toProperties(ImmutableMap.<String, String>builder()
                                                                                                .putAll(propertiesForRecurring)
@@ -137,10 +137,10 @@ public class TestAdyenPaymentPluginApi extends TestAdyenPaymentPluginApiBase {
                                                                                                .put(AdyenPaymentPluginApi.PROPERTY_RECURRING_TYPE, "RECURRING")
                                                                                                .build());
         final PaymentTransaction authorizationTransaction1 = buildPaymentTransaction(TransactionType.AUTHORIZE);
-        final PaymentTransactionInfoPlugin authorizationInfoPlugin1 = adyenPaymentPluginApi.authorizePayment(payment.getAccountId(),
+        final PaymentTransactionInfoPlugin authorizationInfoPlugin1 = adyenPaymentPluginApi.authorizePayment(account.getId(),
                                                                                                              payment.getId(),
                                                                                                              authorizationTransaction1.getId(),
-                                                                                                             payment.getPaymentMethodId(),
+                                                                                                             account.getPaymentMethodId(),
                                                                                                              authorizationTransaction1.getAmount(),
                                                                                                              authorizationTransaction1.getCurrency(),
                                                                                                              propertiesWithCCForRecurring,
@@ -151,63 +151,63 @@ public class TestAdyenPaymentPluginApi extends TestAdyenPaymentPluginApiBase {
         Thread.sleep(SLEEP_IN_MILLIS_FOR_RECURRING_DETAIL);
 
         // No change, unless refreshFromGateway is set
-        assertEquals(adyenPaymentPluginApi.getPaymentMethods(payment.getAccountId(), false, ImmutableList.<PluginProperty>of(), context), initialPaymentMethods);
-        final List<PaymentMethodInfoPlugin> subsequentPaymentMethods = adyenPaymentPluginApi.getPaymentMethods(payment.getAccountId(), true, ImmutableList.<PluginProperty>of(), context);
+        assertEquals(adyenPaymentPluginApi.getPaymentMethods(account.getId(), false, ImmutableList.<PluginProperty>of(), context), initialPaymentMethods);
+        final List<PaymentMethodInfoPlugin> subsequentPaymentMethods = adyenPaymentPluginApi.getPaymentMethods(account.getId(), true, ImmutableList.<PluginProperty>of(), context);
         assertEquals(subsequentPaymentMethods.size(), 1);
-        assertEquals(subsequentPaymentMethods.get(0).getAccountId(), payment.getAccountId());
-        assertEquals(subsequentPaymentMethods.get(0).getPaymentMethodId(), payment.getPaymentMethodId());
+        assertEquals(subsequentPaymentMethods.get(0).getAccountId(), account.getId());
+        assertEquals(subsequentPaymentMethods.get(0).getPaymentMethodId(), account.getPaymentMethodId());
         // This points to the recurringDetailReference
         assertNotNull(subsequentPaymentMethods.get(0).getExternalPaymentMethodId());
 
         // Verify the token can be used for recurring payments
         final PaymentTransaction authorizationTransaction2 = buildPaymentTransaction(TransactionType.AUTHORIZE);
-        final PaymentTransactionInfoPlugin authorizationInfoPlugin2 = adyenPaymentPluginApi.authorizePayment(payment.getAccountId(),
+        final PaymentTransactionInfoPlugin authorizationInfoPlugin2 = adyenPaymentPluginApi.authorizePayment(account.getId(),
                                                                                                              payment.getId(),
                                                                                                              authorizationTransaction2.getId(),
-                                                                                                             payment.getPaymentMethodId(),
+                                                                                                             account.getPaymentMethodId(),
                                                                                                              authorizationTransaction2.getAmount(),
                                                                                                              authorizationTransaction2.getCurrency(),
                                                                                                              ImmutableList.<PluginProperty>of(),
                                                                                                              context);
         verifyPaymentTransactionInfoPlugin(authorizationTransaction2, authorizationInfoPlugin2);
 
-        adyenPaymentPluginApi.deletePaymentMethod(payment.getAccountId(), payment.getPaymentMethodId(), ImmutableList.<PluginProperty>of(), context);
+        adyenPaymentPluginApi.deletePaymentMethod(account.getId(), account.getPaymentMethodId(), ImmutableList.<PluginProperty>of(), context);
 
-        assertEquals(adyenPaymentPluginApi.getPaymentMethods(payment.getAccountId(), false, ImmutableList.<PluginProperty>of(), context).size(), 0);
-        assertEquals(adyenPaymentPluginApi.getPaymentMethods(payment.getAccountId(), true, ImmutableList.<PluginProperty>of(), context).size(), 0);
+        assertEquals(adyenPaymentPluginApi.getPaymentMethods(account.getId(), false, ImmutableList.<PluginProperty>of(), context).size(), 0);
+        assertEquals(adyenPaymentPluginApi.getPaymentMethods(account.getId(), true, ImmutableList.<PluginProperty>of(), context).size(), 0);
     }
 
     @Test(groups = "slow")
     public void testAuthorizeAndMultipleCaptures() throws Exception {
-        adyenPaymentPluginApi.addPaymentMethod(payment.getAccountId(), payment.getPaymentMethodId(), adyenPaymentMethodPluginCC(), true, propertiesWithCCInfo, context);
+        adyenPaymentPluginApi.addPaymentMethod(account.getId(), account.getPaymentMethodId(), adyenPaymentMethodPluginCC(), true, propertiesWithCCInfo, context);
         final PaymentTransaction authorizationTransaction = buildPaymentTransaction(TransactionType.AUTHORIZE);
         final PaymentTransaction captureTransaction1 = buildPaymentTransaction(TransactionType.CAPTURE, new BigDecimal("5"));
         final PaymentTransaction captureTransaction2 = buildPaymentTransaction(TransactionType.CAPTURE, new BigDecimal("5"));
 
-        final PaymentTransactionInfoPlugin authorizationInfoPlugin = adyenPaymentPluginApi.authorizePayment(payment.getAccountId(),
+        final PaymentTransactionInfoPlugin authorizationInfoPlugin = adyenPaymentPluginApi.authorizePayment(account.getId(),
                                                                                                             payment.getId(),
                                                                                                             authorizationTransaction.getId(),
-                                                                                                            payment.getPaymentMethodId(),
+                                                                                                            account.getPaymentMethodId(),
                                                                                                             authorizationTransaction.getAmount(),
                                                                                                             authorizationTransaction.getCurrency(),
                                                                                                             propertiesWithCCInfo,
                                                                                                             context);
         verifyPaymentTransactionInfoPlugin(authorizationTransaction, authorizationInfoPlugin);
 
-        final PaymentTransactionInfoPlugin captureInfoPlugin1 = adyenPaymentPluginApi.capturePayment(payment.getAccountId(),
+        final PaymentTransactionInfoPlugin captureInfoPlugin1 = adyenPaymentPluginApi.capturePayment(account.getId(),
                                                                                                      payment.getId(),
                                                                                                      captureTransaction1.getId(),
-                                                                                                     payment.getPaymentMethodId(),
+                                                                                                     account.getPaymentMethodId(),
                                                                                                      captureTransaction1.getAmount(),
                                                                                                      captureTransaction1.getCurrency(),
                                                                                                      propertiesWithCCInfo,
                                                                                                      context);
         verifyPaymentTransactionInfoPlugin(captureTransaction1, captureInfoPlugin1);
 
-        final PaymentTransactionInfoPlugin captureInfoPlugin2 = adyenPaymentPluginApi.capturePayment(payment.getAccountId(),
+        final PaymentTransactionInfoPlugin captureInfoPlugin2 = adyenPaymentPluginApi.capturePayment(account.getId(),
                                                                                                      payment.getId(),
                                                                                                      captureTransaction2.getId(),
-                                                                                                     payment.getPaymentMethodId(),
+                                                                                                     account.getPaymentMethodId(),
                                                                                                      captureTransaction2.getAmount(),
                                                                                                      captureTransaction2.getCurrency(),
                                                                                                      propertiesWithCCInfo,
@@ -217,24 +217,24 @@ public class TestAdyenPaymentPluginApi extends TestAdyenPaymentPluginApiBase {
 
     @Test(groups = "slow")
     public void testAuthorizeAndVoid() throws Exception {
-        adyenPaymentPluginApi.addPaymentMethod(payment.getAccountId(), payment.getPaymentMethodId(), adyenPaymentMethodPluginCC(), true, propertiesWithCCInfo, context);
+        adyenPaymentPluginApi.addPaymentMethod(account.getId(), account.getPaymentMethodId(), adyenPaymentMethodPluginCC(), true, propertiesWithCCInfo, context);
         final PaymentTransaction authorizationTransaction = buildPaymentTransaction(TransactionType.AUTHORIZE);
         final PaymentTransaction voidTransaction = buildPaymentTransaction(TransactionType.VOID);
 
-        final PaymentTransactionInfoPlugin authorizationInfoPlugin = adyenPaymentPluginApi.authorizePayment(payment.getAccountId(),
+        final PaymentTransactionInfoPlugin authorizationInfoPlugin = adyenPaymentPluginApi.authorizePayment(account.getId(),
                                                                                                             payment.getId(),
                                                                                                             authorizationTransaction.getId(),
-                                                                                                            payment.getPaymentMethodId(),
+                                                                                                            account.getPaymentMethodId(),
                                                                                                             authorizationTransaction.getAmount(),
                                                                                                             authorizationTransaction.getCurrency(),
                                                                                                             propertiesWithCCInfo,
                                                                                                             context);
         verifyPaymentTransactionInfoPlugin(authorizationTransaction, authorizationInfoPlugin);
 
-        final PaymentTransactionInfoPlugin voidInfoPlugin = adyenPaymentPluginApi.voidPayment(payment.getAccountId(),
+        final PaymentTransactionInfoPlugin voidInfoPlugin = adyenPaymentPluginApi.voidPayment(account.getId(),
                                                                                               payment.getId(),
                                                                                               voidTransaction.getId(),
-                                                                                              payment.getPaymentMethodId(),
+                                                                                              account.getPaymentMethodId(),
                                                                                               propertiesWithCCInfo,
                                                                                               context);
         verifyPaymentTransactionInfoPlugin(voidTransaction, voidInfoPlugin);
@@ -242,24 +242,24 @@ public class TestAdyenPaymentPluginApi extends TestAdyenPaymentPluginApiBase {
 
     @Test(groups = "slow")
     public void testPurchaseAndRefund() throws Exception {
-        adyenPaymentPluginApi.addPaymentMethod(payment.getAccountId(), payment.getPaymentMethodId(), adyenPaymentMethodPluginCC(), true, propertiesWithCCInfo, context);
+        adyenPaymentPluginApi.addPaymentMethod(account.getId(), account.getPaymentMethodId(), adyenPaymentMethodPluginCC(), true, propertiesWithCCInfo, context);
         final PaymentTransaction purchaseTransaction = buildPaymentTransaction(TransactionType.PURCHASE);
         final PaymentTransaction refundTransaction = buildPaymentTransaction(TransactionType.REFUND);
 
-        final PaymentTransactionInfoPlugin authorizationInfoPlugin = adyenPaymentPluginApi.purchasePayment(payment.getAccountId(),
+        final PaymentTransactionInfoPlugin authorizationInfoPlugin = adyenPaymentPluginApi.purchasePayment(account.getId(),
                                                                                                            payment.getId(),
                                                                                                            purchaseTransaction.getId(),
-                                                                                                           payment.getPaymentMethodId(),
+                                                                                                           account.getPaymentMethodId(),
                                                                                                            purchaseTransaction.getAmount(),
                                                                                                            purchaseTransaction.getCurrency(),
                                                                                                            propertiesWithCCInfo,
                                                                                                            context);
         verifyPaymentTransactionInfoPlugin(purchaseTransaction, authorizationInfoPlugin);
 
-        final PaymentTransactionInfoPlugin refundInfoPlugin = adyenPaymentPluginApi.refundPayment(payment.getAccountId(),
+        final PaymentTransactionInfoPlugin refundInfoPlugin = adyenPaymentPluginApi.refundPayment(account.getId(),
                                                                                                   payment.getId(),
                                                                                                   refundTransaction.getId(),
-                                                                                                  payment.getPaymentMethodId(),
+                                                                                                  account.getPaymentMethodId(),
                                                                                                   refundTransaction.getAmount(),
                                                                                                   refundTransaction.getCurrency(),
                                                                                                   propertiesWithCCInfo,
@@ -270,13 +270,13 @@ public class TestAdyenPaymentPluginApi extends TestAdyenPaymentPluginApiBase {
     // Disabled by default since Card fund transfer (CFT) isn't enabled automatically on the sandbox
     @Test(groups = "slow", enabled = false)
     public void testCredit() throws Exception {
-        adyenPaymentPluginApi.addPaymentMethod(payment.getAccountId(), payment.getPaymentMethodId(), adyenPaymentMethodPluginCC(), true, propertiesWithCCInfo, context);
+        adyenPaymentPluginApi.addPaymentMethod(account.getId(), account.getPaymentMethodId(), adyenPaymentMethodPluginCC(), true, propertiesWithCCInfo, context);
         final PaymentTransaction creditTransaction = buildPaymentTransaction(TransactionType.CREDIT);
 
-        final PaymentTransactionInfoPlugin creditInfoPlugin = adyenPaymentPluginApi.creditPayment(payment.getAccountId(),
+        final PaymentTransactionInfoPlugin creditInfoPlugin = adyenPaymentPluginApi.creditPayment(account.getId(),
                                                                                                   payment.getId(),
                                                                                                   creditTransaction.getId(),
-                                                                                                  payment.getPaymentMethodId(),
+                                                                                                  account.getPaymentMethodId(),
                                                                                                   creditTransaction.getAmount(),
                                                                                                   creditTransaction.getCurrency(),
                                                                                                   propertiesWithCCInfo,
@@ -286,36 +286,36 @@ public class TestAdyenPaymentPluginApi extends TestAdyenPaymentPluginApiBase {
 
     @Test(groups = "slow")
     public void testAuthorizeAndMultipleCapturesSepaDirectDebit() throws Exception {
-        adyenPaymentPluginApi.addPaymentMethod(payment.getAccountId(), payment.getPaymentMethodId(), adyenPaymentMethodPluginSepaDirectDebit(), true, propertiesWithSepaInfo, context);
+        adyenPaymentPluginApi.addPaymentMethod(account.getId(), account.getPaymentMethodId(), adyenPaymentMethodPluginSepaDirectDebit(), true, propertiesWithSepaInfo, context);
 
         final PaymentTransaction authorizationTransaction = buildPaymentTransaction(TransactionType.AUTHORIZE);
         final PaymentTransaction captureTransaction1 = buildPaymentTransaction(TransactionType.CAPTURE);
         final PaymentTransaction captureTransaction2 = buildPaymentTransaction(TransactionType.CAPTURE);
 
-        final PaymentTransactionInfoPlugin authorizationInfoPlugin = adyenPaymentPluginApi.authorizePayment(payment.getAccountId(),
+        final PaymentTransactionInfoPlugin authorizationInfoPlugin = adyenPaymentPluginApi.authorizePayment(account.getId(),
                                                                                                             payment.getId(),
                                                                                                             authorizationTransaction.getId(),
-                                                                                                            payment.getPaymentMethodId(),
+                                                                                                            account.getPaymentMethodId(),
                                                                                                             authorizationTransaction.getAmount(),
                                                                                                             authorizationTransaction.getCurrency(),
                                                                                                             propertiesWithSepaInfo,
                                                                                                             context);
         verifyPaymentTransactionInfoPlugin(authorizationTransaction, authorizationInfoPlugin, false);
 
-        final PaymentTransactionInfoPlugin captureInfoPlugin1 = adyenPaymentPluginApi.capturePayment(payment.getAccountId(),
+        final PaymentTransactionInfoPlugin captureInfoPlugin1 = adyenPaymentPluginApi.capturePayment(account.getId(),
                                                                                                      payment.getId(),
                                                                                                      captureTransaction1.getId(),
-                                                                                                     payment.getPaymentMethodId(),
+                                                                                                     account.getPaymentMethodId(),
                                                                                                      captureTransaction1.getAmount(),
                                                                                                      captureTransaction1.getCurrency(),
                                                                                                      propertiesWithSepaInfo,
                                                                                                      context);
         verifyPaymentTransactionInfoPlugin(captureTransaction1, captureInfoPlugin1);
 
-        final PaymentTransactionInfoPlugin captureInfoPlugin2 = adyenPaymentPluginApi.capturePayment(payment.getAccountId(),
+        final PaymentTransactionInfoPlugin captureInfoPlugin2 = adyenPaymentPluginApi.capturePayment(account.getId(),
                                                                                                      payment.getId(),
                                                                                                      captureTransaction2.getId(),
-                                                                                                     payment.getPaymentMethodId(),
+                                                                                                     account.getPaymentMethodId(),
                                                                                                      captureTransaction2.getAmount(),
                                                                                                      captureTransaction2.getCurrency(),
                                                                                                      propertiesWithSepaInfo,
@@ -334,21 +334,21 @@ public class TestAdyenPaymentPluginApi extends TestAdyenPaymentPluginApiBase {
                                                                                                .put(AdyenPaymentPluginApi.PROPERTY_CC_VERIFICATION_VALUE, "1234")
                                                                                                .build());
 
-        adyenPaymentPluginApi.addPaymentMethod(payment.getAccountId(), payment.getPaymentMethodId(), adyenPaymentMethodPluginCC(), true, propertiesWithCCInfoWrongCVV, context);
+        adyenPaymentPluginApi.addPaymentMethod(account.getId(), account.getPaymentMethodId(), adyenPaymentMethodPluginCC(), true, propertiesWithCCInfoWrongCVV, context);
 
         final PaymentTransaction authorizationTransaction = buildPaymentTransaction(TransactionType.AUTHORIZE);
 
-        final PaymentTransactionInfoPlugin authorizationInfoPlugin = adyenPaymentPluginApi.authorizePayment(payment.getAccountId(),
+        final PaymentTransactionInfoPlugin authorizationInfoPlugin = adyenPaymentPluginApi.authorizePayment(account.getId(),
                                                                                                             payment.getId(),
                                                                                                             authorizationTransaction.getId(),
-                                                                                                            payment.getPaymentMethodId(),
+                                                                                                            account.getPaymentMethodId(),
                                                                                                             authorizationTransaction.getAmount(),
                                                                                                             authorizationTransaction.getCurrency(),
                                                                                                             propertiesWithCCInfoWrongCVV,
                                                                                                             context);
 
         assertEquals(authorizationInfoPlugin.getGatewayError(), "CVC Declined");
-        final List<PaymentTransactionInfoPlugin> fromDBList = adyenPaymentPluginApi.getPaymentInfo(payment.getAccountId(), payment.getId(), ImmutableList.<PluginProperty>of(), context);
+        final List<PaymentTransactionInfoPlugin> fromDBList = adyenPaymentPluginApi.getPaymentInfo(account.getId(), payment.getId(), ImmutableList.<PluginProperty>of(), context);
         assertFalse(fromDBList.isEmpty());
         assertEquals(fromDBList.get(0).getGatewayError(), "CVC Declined");
     }
@@ -366,15 +366,15 @@ public class TestAdyenPaymentPluginApi extends TestAdyenPaymentPluginApiBase {
                                                                                                .put(AdyenPaymentPluginApi.PROPERTY_RECURRING_TYPE, "RECURRING")
                                                                                                .build());
 
-        adyenPaymentPluginApi.addPaymentMethod(payment.getAccountId(), payment.getPaymentMethodId(), adyenPaymentMethodPluginCC(), true, propertiesWithCCForRecurring, context);
+        adyenPaymentPluginApi.addPaymentMethod(account.getId(), account.getPaymentMethodId(), adyenPaymentMethodPluginCC(), true, propertiesWithCCForRecurring, context);
 
         final PaymentTransaction authorizationTransaction1 = buildPaymentTransaction(TransactionType.AUTHORIZE);
         final PaymentTransaction authorizationTransaction2 = buildPaymentTransaction(TransactionType.AUTHORIZE);
 
-        final PaymentTransactionInfoPlugin authorizationInfoPlugin1 = adyenPaymentPluginApi.authorizePayment(payment.getAccountId(),
+        final PaymentTransactionInfoPlugin authorizationInfoPlugin1 = adyenPaymentPluginApi.authorizePayment(account.getId(),
                                                                                                              payment.getId(),
                                                                                                              authorizationTransaction1.getId(),
-                                                                                                             payment.getPaymentMethodId(),
+                                                                                                             account.getPaymentMethodId(),
                                                                                                              authorizationTransaction1.getAmount(),
                                                                                                              authorizationTransaction1.getCurrency(),
                                                                                                              propertiesWithCCForRecurring,
@@ -401,10 +401,10 @@ public class TestAdyenPaymentPluginApi extends TestAdyenPaymentPluginApiBase {
                                                                                                     .build());
 
         // TODO: Doing the second Auth with the same Mocks (Payment, killBillApi, ...) is a bit hacky, but the SOAP request to Adyen Test goes out properly nevertheless, so we kept it like this for now
-        final PaymentTransactionInfoPlugin authorizationInfoPlugin2 = adyenPaymentPluginApi.authorizePayment(payment.getAccountId(),
+        final PaymentTransactionInfoPlugin authorizationInfoPlugin2 = adyenPaymentPluginApi.authorizePayment(account.getId(),
                                                                                                              payment.getId(),
                                                                                                              authorizationTransaction2.getId(),
-                                                                                                             payment.getPaymentMethodId(),
+                                                                                                             account.getPaymentMethodId(),
                                                                                                              authorizationTransaction2.getAmount(),
                                                                                                              authorizationTransaction2.getCurrency(),
                                                                                                              propertiesWithRecurringDetailInfo,
@@ -426,15 +426,15 @@ public class TestAdyenPaymentPluginApi extends TestAdyenPaymentPluginApiBase {
                                                                                                .put(AdyenPaymentPluginApi.PROPERTY_RECURRING_TYPE, "ONECLICK")
                                                                                                .build());
 
-        adyenPaymentPluginApi.addPaymentMethod(payment.getAccountId(), payment.getPaymentMethodId(), adyenPaymentMethodPluginCC(), true, propertiesWithCCForRecurring, context);
+        adyenPaymentPluginApi.addPaymentMethod(account.getId(), account.getPaymentMethodId(), adyenPaymentMethodPluginCC(), true, propertiesWithCCForRecurring, context);
 
         final PaymentTransaction authorizationTransaction1 = buildPaymentTransaction(TransactionType.AUTHORIZE);
         final PaymentTransaction authorizationTransaction2 = buildPaymentTransaction(TransactionType.AUTHORIZE);
 
-        final PaymentTransactionInfoPlugin authorizationInfoPlugin1 = adyenPaymentPluginApi.authorizePayment(payment.getAccountId(),
+        final PaymentTransactionInfoPlugin authorizationInfoPlugin1 = adyenPaymentPluginApi.authorizePayment(account.getId(),
                                                                                                              payment.getId(),
                                                                                                              authorizationTransaction1.getId(),
-                                                                                                             payment.getPaymentMethodId(),
+                                                                                                             account.getPaymentMethodId(),
                                                                                                              authorizationTransaction1.getAmount(),
                                                                                                              authorizationTransaction1.getCurrency(),
                                                                                                              propertiesWithCCForRecurring,
@@ -462,10 +462,10 @@ public class TestAdyenPaymentPluginApi extends TestAdyenPaymentPluginApiBase {
                                                                                                     .build());
 
         // TODO: Doing the second Auth with the same Mocks (Payment, killBillApi, ...) is a bit hacky, but the SOAP request to Adyen Test goes out properly nevertheless, so we kept it like this for now
-        final PaymentTransactionInfoPlugin authorizationInfoPlugin2 = adyenPaymentPluginApi.authorizePayment(payment.getAccountId(),
+        final PaymentTransactionInfoPlugin authorizationInfoPlugin2 = adyenPaymentPluginApi.authorizePayment(account.getId(),
                                                                                                              payment.getId(),
                                                                                                              authorizationTransaction2.getId(),
-                                                                                                             payment.getPaymentMethodId(),
+                                                                                                             account.getPaymentMethodId(),
                                                                                                              authorizationTransaction2.getAmount(),
                                                                                                              authorizationTransaction2.getCurrency(),
                                                                                                              propertiesWithRecurringDetailInfo,
@@ -486,12 +486,12 @@ public class TestAdyenPaymentPluginApi extends TestAdyenPaymentPluginApiBase {
                                                                                        .put(AdyenPaymentPluginApi.PROPERTY_CONTINUOUS_AUTHENTICATION, "true").build());
         final PaymentTransaction authorizationTransaction = buildPaymentTransaction(TransactionType.AUTHORIZE);
 
-        adyenPaymentPluginApi.addPaymentMethod(payment.getAccountId(), payment.getPaymentMethodId(), adyenPaymentMethodPluginCC(), true, contAuthCcProperties, context);
+        adyenPaymentPluginApi.addPaymentMethod(account.getId(), account.getPaymentMethodId(), adyenPaymentMethodPluginCC(), true, contAuthCcProperties, context);
 
-        final PaymentTransactionInfoPlugin authorizationInfoPlugin = adyenPaymentPluginApi.authorizePayment(payment.getAccountId(),
+        final PaymentTransactionInfoPlugin authorizationInfoPlugin = adyenPaymentPluginApi.authorizePayment(account.getId(),
                                                                                                             payment.getId(),
                                                                                                             authorizationTransaction.getId(),
-                                                                                                            payment.getPaymentMethodId(),
+                                                                                                            account.getPaymentMethodId(),
                                                                                                             authorizationTransaction.getAmount(),
                                                                                                             authorizationTransaction.getCurrency(),
                                                                                                             contAuthCcProperties,
@@ -501,14 +501,14 @@ public class TestAdyenPaymentPluginApi extends TestAdyenPaymentPluginApiBase {
 
     @Test(groups = "slow")
     public void testAuthorizeAndComplete3DSecure() throws Exception {
-        adyenPaymentPluginApi.addPaymentMethod(payment.getAccountId(), payment.getPaymentMethodId(), adyenPaymentMethodPluginCC(), true, propertiesWith3DSInfo, context);
+        adyenPaymentPluginApi.addPaymentMethod(account.getId(), account.getPaymentMethodId(), adyenPaymentMethodPluginCC(), true, propertiesWith3DSInfo, context);
         final PaymentTransaction authorizationTransaction = buildPaymentTransaction(TransactionType.AUTHORIZE, new BigDecimal("1000"));
         final PaymentTransaction captureTransaction = buildPaymentTransaction(TransactionType.CAPTURE, new BigDecimal("1000"));
 
-        final PaymentTransactionInfoPlugin authorizationInfoPlugin1 = adyenPaymentPluginApi.authorizePayment(payment.getAccountId(),
+        final PaymentTransactionInfoPlugin authorizationInfoPlugin1 = adyenPaymentPluginApi.authorizePayment(account.getId(),
                                                                                                              payment.getId(),
                                                                                                              authorizationTransaction.getId(),
-                                                                                                             payment.getPaymentMethodId(),
+                                                                                                             account.getPaymentMethodId(),
                                                                                                              authorizationTransaction.getAmount(),
                                                                                                              authorizationTransaction.getCurrency(),
                                                                                                              propertiesWith3DSInfo,
@@ -557,10 +557,10 @@ public class TestAdyenPaymentPluginApi extends TestAdyenPaymentPluginApiBase {
 
         final List<PluginProperty> propertiesWithCompleteParams = PluginProperties.buildPluginProperties(redirectFormParams);
 
-        final PaymentTransactionInfoPlugin authorizationInfoPlugin2 = adyenPaymentPluginApi.authorizePayment(payment.getAccountId(),
+        final PaymentTransactionInfoPlugin authorizationInfoPlugin2 = adyenPaymentPluginApi.authorizePayment(account.getId(),
                                                                                                              payment.getId(),
                                                                                                              authorizationTransaction.getId(),
-                                                                                                             payment.getPaymentMethodId(),
+                                                                                                             account.getPaymentMethodId(),
                                                                                                              authorizationTransaction.getAmount(),
                                                                                                              authorizationTransaction.getCurrency(),
                                                                                                              propertiesWithCompleteParams,
@@ -569,10 +569,10 @@ public class TestAdyenPaymentPluginApi extends TestAdyenPaymentPluginApiBase {
         verifyPaymentTransactionInfoPlugin(authorizationTransaction, authorizationInfoPlugin2);
         assertEquals(authorizationInfoPlugin2.getFirstPaymentReferenceId(), authorizationInfoPlugin1.getFirstPaymentReferenceId());
 
-        final PaymentTransactionInfoPlugin captureInfoPlugin = adyenPaymentPluginApi.capturePayment(payment.getAccountId(),
+        final PaymentTransactionInfoPlugin captureInfoPlugin = adyenPaymentPluginApi.capturePayment(account.getId(),
                                                                                                     payment.getId(),
                                                                                                     captureTransaction.getId(),
-                                                                                                    payment.getPaymentMethodId(),
+                                                                                                    account.getPaymentMethodId(),
                                                                                                     captureTransaction.getAmount(),
                                                                                                     captureTransaction.getCurrency(),
                                                                                                     authorizationInfoPlugin2.getProperties(),
@@ -614,7 +614,7 @@ public class TestAdyenPaymentPluginApi extends TestAdyenPaymentPluginApiBase {
         verifyPaymentTransactionInfoPlugin(paymentTransaction, paymentTransactionInfoPlugin, true);
 
         // Verify we can fetch the details
-        final List<PaymentTransactionInfoPlugin> paymentTransactionInfoPlugins = adyenPaymentPluginApi.getPaymentInfo(payment.getAccountId(), paymentTransactionInfoPlugin.getKbPaymentId(), ImmutableList.<PluginProperty>of(), context);
+        final List<PaymentTransactionInfoPlugin> paymentTransactionInfoPlugins = adyenPaymentPluginApi.getPaymentInfo(account.getId(), paymentTransactionInfoPlugin.getKbPaymentId(), ImmutableList.<PluginProperty>of(), context);
         final PaymentTransactionInfoPlugin paymentTransactionInfoPluginFetched = Iterables.<PaymentTransactionInfoPlugin>find(Lists.<PaymentTransactionInfoPlugin>reverse(paymentTransactionInfoPlugins),
                                                                                                                               new Predicate<PaymentTransactionInfoPlugin>() {
                                                                                                                                   @Override
@@ -695,11 +695,11 @@ public class TestAdyenPaymentPluginApi extends TestAdyenPaymentPluginApiBase {
     }
 
     private PaymentMethodPlugin adyenPaymentMethodPluginCC() {
-        return adyenPaymentMethodPlugin(payment.getPaymentMethodId().toString(), null);
+        return adyenPaymentMethodPlugin(account.getPaymentMethodId().toString(), null);
     }
 
     private PaymentMethodPlugin adyenPaymentMethodPluginSepaDirectDebit() {
-        return adyenPaymentMethodPlugin(payment.getPaymentMethodId().toString(), "{"
+        return adyenPaymentMethodPlugin(account.getPaymentMethodId().toString(), "{"
                                                                                  + '"' + PROPERTY_DD_HOLDER_NAME + "\":\"" + DD_HOLDER_NAME + "\","
                                                                                  + '"' + PROPERTY_DD_ACCOUNT_NUMBER + "\":\"" + DD_IBAN + "\","
                                                                                  + '"' + PROPERTY_DD_BANK_IDENTIFIER_CODE + "\":\"" + DD_BIC + '"'
