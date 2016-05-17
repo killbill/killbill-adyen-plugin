@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2015 Groupon, Inc
+ * Copyright 2014-2016 Groupon, Inc
  *
  * Groupon licenses this file to you under the Apache License, version 2.0
  * (the "License"); you may not use this file except in compliance with the
@@ -96,7 +96,7 @@ public abstract class TestRemoteBase {
         adyenRecurringClient = new AdyenRecurringClient(adyenConfigProperties, loggingInInterceptor, loggingOutInterceptor, httpHeaderInterceptor);
 
         final Account account = TestUtils.buildAccount(Currency.BTC, "US");
-        final OSGIKillbillAPI killbillAPI = TestUtils.buildOSGIKillbillAPI(account, TestUtils.buildPayment(account.getId(), account.getPaymentMethodId(), account.getCurrency()), null);
+        final OSGIKillbillAPI killbillAPI = TestUtils.buildOSGIKillbillAPI(account);
         final OSGIKillbillLogService logService = TestUtils.buildLogService();
 
         adyenConfigurationHandler = new AdyenConfigurationHandler(AdyenActivator.PLUGIN_NAME, killbillAPI, logService);

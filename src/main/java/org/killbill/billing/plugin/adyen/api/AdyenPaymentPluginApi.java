@@ -322,6 +322,10 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
                     logService.log(LogService.LOG_ERROR, "Unable to retrieve adyen response", e);
                     continue;
                 }
+                if (formerResponse == null) {
+                    continue;
+                }
+
                 final Payment payment;
                 try {
                     payment = killbillAPI.getPaymentApi().getPayment(UUID.fromString(formerResponse.getKbPaymentId()), false, properties, context);

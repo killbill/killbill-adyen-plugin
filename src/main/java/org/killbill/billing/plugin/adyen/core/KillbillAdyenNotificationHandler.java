@@ -214,8 +214,11 @@ public class KillbillAdyenNotificationHandler implements AdyenNotificationHandle
                 // Update Kill Bill
                 if (TransactionStatus.PENDING.equals(paymentTransaction.getTransactionStatus())) {
                     return transitionPendingTransaction(account, kbPaymentTransactionId, paymentPluginStatus, context);
-                } else {
+                } else if (paymentTransaction.getPaymentInfoPlugin().getStatus() != paymentPluginStatus){
                     return fixPaymentTransactionState(payment, paymentTransaction, paymentPluginStatus, context);
+                } else {
+                    // Payment in Kill Bill has the latest state, nothing to do (we simply updated our plugin tables in case Adyen had extra information for us)
+                    return payment;
                 }
             } else if (expectedTransactionType == TransactionType.CHARGEBACK) {
                 final PaymentTransaction paymentTransaction = filterForTransaction(payment, TransactionType.CHARGEBACK);
@@ -272,7 +275,7 @@ public class KillbillAdyenNotificationHandler implements AdyenNotificationHandle
 
     private Payment getPayment(final UUID kbPaymentId, final TenantContext context) {
         try {
-            return osgiKillbillAPI.getPaymentApi().getPayment(kbPaymentId, false, ImmutableList.<PluginProperty>of(), context);
+            return osgiKillbillAPI.getPaymentApi().getPayment(kbPaymentId, true, ImmutableList.<PluginProperty>of(), context);
         } catch (final PaymentApiException e) {
             // Have Adyen retry
             throw new RuntimeException(String.format("Failed to retrieve kbPaymentId='%s'", kbPaymentId), e);

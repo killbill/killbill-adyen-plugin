@@ -20,19 +20,20 @@ package org.killbill.billing.plugin.adyen.api;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import javax.annotation.Nullable;
 
+import org.killbill.billing.payment.api.Payment;
+import org.killbill.billing.payment.api.PaymentApiException;
 import org.killbill.billing.payment.api.PluginProperty;
-import org.killbill.billing.payment.api.TransactionStatus;
 import org.killbill.billing.payment.api.TransactionType;
-import org.killbill.billing.payment.plugin.api.GatewayNotification;
 import org.killbill.billing.payment.plugin.api.HostedPaymentPageFormDescriptor;
 import org.killbill.billing.payment.plugin.api.PaymentPluginApiException;
 import org.killbill.billing.payment.plugin.api.PaymentPluginStatus;
 import org.killbill.billing.payment.plugin.api.PaymentTransactionInfoPlugin;
 import org.killbill.billing.plugin.api.PluginProperties;
-import org.mockito.Mockito;
+import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 import com.google.common.collect.ImmutableList;
@@ -48,7 +49,17 @@ import static org.testng.Assert.assertTrue;
 
 public class TestAdyenPaymentPluginApiHPP extends TestAdyenPaymentPluginApiBase {
 
-    private static final String PSP_REFERENCE = "4823660019473428";
+    private String paymentTransactionExternalKey;
+    private String pspReference;
+
+    @Override
+    @BeforeMethod(groups = "slow")
+    public void setUp() throws Exception {
+        super.setUp();
+
+        paymentTransactionExternalKey = UUID.randomUUID().toString();
+        pspReference = UUID.randomUUID().toString();
+    }
 
     @Test(groups = "slow")
     public void testHPPNoPendingPayment() throws Exception {
@@ -81,13 +92,13 @@ public class TestAdyenPaymentPluginApiHPP extends TestAdyenPaymentPluginApiBase 
         verifyPayment(TransactionType.AUTHORIZE);
     }
 
-    private void triggerBuildFormDescriptor(final Map<String, String> extraProperties, @Nullable final TransactionType transactionType) throws PaymentPluginApiException, SQLException {
-        assertNull(dao.getHppRequest(paymentTransaction.getExternalKey()));
-        assertTrue(dao.getResponses(payment.getId(), context.getTenantId()).isEmpty());
+    private void triggerBuildFormDescriptor(final Map<String, String> extraProperties, @Nullable final TransactionType transactionType) throws PaymentPluginApiException, SQLException, PaymentApiException {
+        assertNull(dao.getHppRequest(paymentTransactionExternalKey));
+        assertTrue(killbillApi.getPaymentApi().getAccountPayments(account.getId(), false, ImmutableList.<PluginProperty>of(), context).isEmpty());
 
         final Builder<String, String> propsBuilder = new Builder<String, String>();
         propsBuilder.put(AdyenPaymentPluginApi.PROPERTY_AMOUNT, "10");
-        propsBuilder.put(AdyenPaymentPluginApi.PROPERTY_PAYMENT_EXTERNAL_KEY, paymentTransaction.getExternalKey());
+        propsBuilder.put(AdyenPaymentPluginApi.PROPERTY_PAYMENT_EXTERNAL_KEY, paymentTransactionExternalKey);
         propsBuilder.put(AdyenPaymentPluginApi.PROPERTY_SERVER_URL, "http://killbill.io");
         propsBuilder.put(AdyenPaymentPluginApi.PROPERTY_CURRENCY, DEFAULT_CURRENCY.name());
         propsBuilder.put(AdyenPaymentPluginApi.PROPERTY_COUNTRY, DEFAULT_COUNTRY);
@@ -95,12 +106,12 @@ public class TestAdyenPaymentPluginApiHPP extends TestAdyenPaymentPluginApiBase 
         final Map<String, String> customFieldsMap = propsBuilder.build();
         final Iterable<PluginProperty> customFields = PluginProperties.buildPluginProperties(customFieldsMap);
 
-        final HostedPaymentPageFormDescriptor descriptor = adyenPaymentPluginApi.buildFormDescriptor(payment.getAccountId(), customFields, ImmutableList.<PluginProperty>of(), context);
-        assertEquals(descriptor.getKbAccountId(), payment.getAccountId());
+        final HostedPaymentPageFormDescriptor descriptor = adyenPaymentPluginApi.buildFormDescriptor(account.getId(), customFields, ImmutableList.<PluginProperty>of(), context);
+        assertEquals(descriptor.getKbAccountId(), account.getId());
         assertEquals(descriptor.getFormMethod(), "GET");
         assertNotNull(descriptor.getFormUrl());
         assertFalse(descriptor.getFormFields().isEmpty());
-        assertNotNull(dao.getHppRequest(paymentTransaction.getExternalKey()));
+        assertNotNull(dao.getHppRequest(paymentTransactionExternalKey));
 
         // For manual testing
         //System.out.println("Redirect to: " + descriptor.getFormUrl());
@@ -108,67 +119,36 @@ public class TestAdyenPaymentPluginApiHPP extends TestAdyenPaymentPluginApiBase 
 
         final Boolean withPendingPayment = Boolean.valueOf(customFieldsMap.get(PROPERTY_CREATE_PENDING_PAYMENT));
         if (withPendingPayment) {
+            final List<Payment> accountPayments = killbillApi.getPaymentApi().getAccountPayments(account.getId(), false, ImmutableList.<PluginProperty>of(), context);
+            assertEquals(accountPayments.size(), 1);
+            final Payment payment = accountPayments.get(0);
+
             assertEquals(dao.getResponses(payment.getId(), context.getTenantId()).size(), 1);
 
             final List<PaymentTransactionInfoPlugin> pendingPaymentTransactions = adyenPaymentPluginApi.getPaymentInfo(payment.getAccountId(), payment.getId(), ImmutableList.<PluginProperty>of(), context);
             assertEquals(pendingPaymentTransactions.size(), 1);
             assertEquals(pendingPaymentTransactions.get(0).getStatus(), PaymentPluginStatus.PENDING);
             assertEquals(pendingPaymentTransactions.get(0).getTransactionType(), transactionType);
-        } else {
-            assertTrue(dao.getResponses(payment.getId(), context.getTenantId()).isEmpty());
         }
     }
 
     private void processHPPNotification() throws PaymentPluginApiException {
-        final String notification = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
-                                    "<soap:Envelope xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\">\n" +
-                                    "  <soap:Body>\n" +
-                                    "    <ns1:sendNotification xmlns:ns1=\"http://notification.services.adyen.com\">\n" +
-                                    "      <ns1:notification>\n" +
-                                    "        <live xmlns=\"http://notification.services.adyen.com\">true</live>\n" +
-                                    "        <notificationItems xmlns=\"http://notification.services.adyen.com\">\n" +
-                                    "          <NotificationRequestItem>\n" +
-                                    "            <additionalData>\n" +
-                                    "              <entry>\n" +
-                                    "                <key xsi:type=\"xsd:string\">hmacSignature</key>\n" +
-                                    "                <value xsi:type=\"xsd:string\">XlhIGK7wKAFJ1D1aqceFwLkXSL1XXf1DWBVhUo17rqo=</value>\n" +
-                                    "              </entry>\n" +
-                                    "            </additionalData>\n" +
-                                    "            <amount>\n" +
-                                    "              <currency xmlns=\"http://common.services.adyen.com\">" + DEFAULT_CURRENCY.name() + "</currency>\n" +
-                                    "              <value xmlns=\"http://common.services.adyen.com\">10</value>\n" +
-                                    "            </amount>\n" +
-                                    "            <eventCode>AUTHORISATION</eventCode>\n" +
-                                    "            <eventDate>2013-04-15T06:59:22.278+02:00</eventDate>\n" +
-                                    "            <merchantAccountCode>TestMerchant</merchantAccountCode>\n" +
-                                    "            <merchantReference>" + paymentTransaction.getExternalKey() + "</merchantReference>\n" +
-                                    "            <operations>\n" +
-                                    "              <string>CANCEL</string>\n" +
-                                    "              <string>CAPTURE</string>\n" +
-                                    "              <string>REFUND</string>\n" +
-                                    "            </operations>\n" +
-                                    "            <originalReference xsi:nil=\"true\"/>\n" +
-                                    "            <paymentMethod>visa</paymentMethod>\n" +
-                                    "            <pspReference>" + PSP_REFERENCE + "</pspReference>\n" +
-                                    "            <reason>111647:7629:5/2014</reason>\n" +
-                                    "            <success>true</success>\n" +
-                                    "          </NotificationRequestItem>\n" +
-                                    "        </notificationItems>\n" +
-                                    "      </ns1:notification>\n" +
-                                    "    </ns1:sendNotification>\n" +
-                                    "  </soap:Body>\n" +
-                                    "</soap:Envelope>";
-        final GatewayNotification gatewayNotification = adyenPaymentPluginApi.processNotification(notification, ImmutableList.<PluginProperty>of(), context);
-        assertEquals(gatewayNotification.getEntity(), "<SOAP-ENV:Envelope xmlns:SOAP-ENV=\"http://schemas.xmlsoap.org/soap/envelope/\"><SOAP-ENV:Header/><SOAP-ENV:Body><sendNotificationResponse xmlns=\"http://notification.services.adyen.com\" xmlns:ns2=\"http://common.services.adyen.com\"><notificationResponse>[accepted]</notificationResponse></sendNotificationResponse></SOAP-ENV:Body></SOAP-ENV:Envelope>");
+        final String eventCode = "AUTHORISATION";
+        final boolean success = true;
+        processNotification(eventCode, success, paymentTransactionExternalKey, pspReference);
     }
 
-    private void verifyPayment(final TransactionType transactionType) throws SQLException, PaymentPluginApiException {
+    private void verifyPayment(final TransactionType transactionType) throws SQLException, PaymentPluginApiException, PaymentApiException {
+        final List<Payment> accountPayments = killbillApi.getPaymentApi().getAccountPayments(account.getId(), false, ImmutableList.<PluginProperty>of(), context);
+        assertEquals(accountPayments.size(), 1);
+        final Payment payment = accountPayments.get(0);
+
         assertEquals(dao.getResponses(payment.getId(), context.getTenantId()).size(), 1);
 
         final List<PaymentTransactionInfoPlugin> processedPaymentTransactions = adyenPaymentPluginApi.getPaymentInfo(payment.getAccountId(), payment.getId(), ImmutableList.<PluginProperty>of(), context);
         assertEquals(processedPaymentTransactions.size(), 1);
         assertEquals(processedPaymentTransactions.get(0).getTransactionType(), transactionType);
         assertEquals(processedPaymentTransactions.get(0).getStatus(), PaymentPluginStatus.PROCESSED);
-        assertEquals(processedPaymentTransactions.get(0).getFirstPaymentReferenceId(), PSP_REFERENCE);
+        assertEquals(processedPaymentTransactions.get(0).getFirstPaymentReferenceId(), pspReference);
     }
 }

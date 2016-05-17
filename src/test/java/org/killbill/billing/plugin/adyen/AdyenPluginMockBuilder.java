@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 Groupon, Inc
+ * Copyright 2015-2016 Groupon, Inc
  *
  * Groupon licenses this file to you under the Apache License, version 2.0
  * (the "License"); you may not use this file except in compliance with the
@@ -64,7 +64,7 @@ public class AdyenPluginMockBuilder {
     private static final String PROPERTIES_FILE_NAME = "adyen.properties";
     private final Properties adyenProperties;
     private Account account;
-    private Payment payment;
+    private OSGIKillbillAPI killbillAPI;
     private AdyenDao dao;
 
     private AdyenPluginMockBuilder() throws IOException, SQLException {
@@ -91,8 +91,8 @@ public class AdyenPluginMockBuilder {
         return this;
     }
 
-    public AdyenPluginMockBuilder withPayment(final Payment payment) {
-        this.payment = payment;
+    public AdyenPluginMockBuilder withOSGIKillbillAPI(final OSGIKillbillAPI killbillAPI) {
+        this.killbillAPI = killbillAPI;
         return this;
     }
 
@@ -114,7 +114,6 @@ public class AdyenPluginMockBuilder {
         final AdyenPaymentServiceProviderHostedPaymentPagePort adyenPaymentServiceProviderHostedPaymentPagePort = new AdyenPaymentServiceProviderHostedPaymentPagePort(adyenConfigProperties, adyenRequestFactory);
         final AdyenRecurringClient adyenRecurringClient = new AdyenRecurringClient(adyenConfigProperties, loggingInInterceptor, loggingOutInterceptor, httpHeaderInterceptor);
 
-        final OSGIKillbillAPI killbillAPI = TestUtils.buildOSGIKillbillAPI(account, TestUtils.buildPayment(account.getId(), account.getPaymentMethodId(), account.getCurrency()), null);
         final OSGIKillbillLogService logService = TestUtils.buildLogService();
 
         final AdyenConfigurationHandler adyenConfigurationHandler = new AdyenConfigurationHandler(AdyenActivator.PLUGIN_NAME, killbillAPI, logService);
@@ -128,11 +127,9 @@ public class AdyenPluginMockBuilder {
 
         final Clock clock = new DefaultClock();
 
-        final OSGIKillbillAPI killbillApi = TestUtils.buildOSGIKillbillAPI(account, payment, null);
-
         final OSGIConfigPropertiesService configPropertiesService = mock(OSGIConfigPropertiesService.class);
 
-        return new AdyenPaymentPluginApi(adyenConfigurationHandler, adyenHostedPaymentPageConfigurationHandler, adyenRecurringConfigurationHandler, killbillApi, configPropertiesService, logService, clock, dao);
+        return new AdyenPaymentPluginApi(adyenConfigurationHandler, adyenHostedPaymentPageConfigurationHandler, adyenRecurringConfigurationHandler, killbillAPI, configPropertiesService, logService, clock, dao);
     }
 
     public AdyenPluginMockBuilder withDatabaseAccess(final AdyenDao dao) {

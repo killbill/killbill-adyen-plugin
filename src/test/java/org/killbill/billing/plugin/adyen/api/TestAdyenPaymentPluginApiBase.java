@@ -17,42 +17,34 @@
 
 package org.killbill.billing.plugin.adyen.api;
 
-import java.math.BigDecimal;
 import java.util.UUID;
 
 import org.killbill.billing.account.api.Account;
-import org.killbill.billing.catalog.api.Currency;
-import org.killbill.billing.payment.api.Payment;
-import org.killbill.billing.payment.api.PaymentMethod;
-import org.killbill.billing.payment.api.PaymentTransaction;
 import org.killbill.billing.payment.api.PluginProperty;
-import org.killbill.billing.payment.api.TransactionStatus;
-import org.killbill.billing.payment.api.TransactionType;
+import org.killbill.billing.payment.plugin.api.GatewayNotification;
+import org.killbill.billing.payment.plugin.api.PaymentPluginApiException;
 import org.killbill.billing.plugin.TestUtils;
 import org.killbill.billing.plugin.adyen.TestWithEmbeddedDBBase;
 import org.killbill.billing.plugin.adyen.core.AdyenActivator;
 import org.killbill.billing.util.callcontext.CallContext;
-import org.killbill.billing.util.callcontext.TenantContext;
 import org.killbill.clock.Clock;
 import org.killbill.clock.DefaultClock;
 import org.killbill.killbill.osgi.libs.killbill.OSGIConfigPropertiesService;
 import org.killbill.killbill.osgi.libs.killbill.OSGIKillbillAPI;
 import org.killbill.killbill.osgi.libs.killbill.OSGIKillbillLogService;
 import org.mockito.Mockito;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
 import org.testng.annotations.BeforeMethod;
 
 import com.google.common.collect.ImmutableList;
+
+import static org.testng.Assert.assertEquals;
 
 public class TestAdyenPaymentPluginApiBase extends TestWithEmbeddedDBBase {
 
     protected CallContext context;
     protected Account account;
-    protected Payment payment;
-    protected PaymentTransaction paymentTransaction;
-    protected PaymentMethod paymentMethod;
     protected AdyenPaymentPluginApi adyenPaymentPluginApi;
+    protected OSGIKillbillAPI killbillApi;
 
     @BeforeMethod(groups = "slow")
     public void setUp() throws Exception {
@@ -62,59 +54,58 @@ public class TestAdyenPaymentPluginApiBase extends TestWithEmbeddedDBBase {
         Mockito.when(context.getTenantId()).thenReturn(UUID.randomUUID());
 
         account = TestUtils.buildAccount(DEFAULT_CURRENCY, DEFAULT_COUNTRY);
-        payment = TestUtils.buildPayment(account.getId(), account.getPaymentMethodId(), account.getCurrency());
-        paymentTransaction = buildPaymentTransaction(TransactionType.PURCHASE);
-        paymentMethod = TestUtils.buildPaymentMethod(account.getId(), account.getPaymentMethodId(), AdyenActivator.PLUGIN_NAME);
-        final OSGIKillbillAPI killbillApi = TestUtils.buildOSGIKillbillAPI(account, payment, paymentMethod);
-        Mockito.when(killbillApi.getPaymentApi().getAccountPaymentMethods(Mockito.eq(account.getId()), Mockito.anyBoolean(), Mockito.<Iterable<PluginProperty>>any(), Mockito.<TenantContext>any())).thenReturn(ImmutableList.<PaymentMethod>of(paymentMethod));
-        Mockito.when(killbillApi.getPaymentApi().createAuthorization(Mockito.<Account>any(), Mockito.<UUID>any(), Mockito.<UUID>any(), Mockito.<BigDecimal>any(), Mockito.<Currency>any(), Mockito.<String>any(), Mockito.<String>any(), Mockito.<Iterable<PluginProperty>>any(), Mockito.<CallContext>any())).then(new Answer<Payment>() {
-            @Override
-            public Payment answer(final InvocationOnMock invocation) throws Throwable {
-                Mockito.when(paymentTransaction.getTransactionType()).thenReturn(TransactionType.AUTHORIZE);
-                Mockito.when(paymentTransaction.getTransactionStatus()).thenReturn(TransactionStatus.PENDING);
+        killbillApi = TestUtils.buildOSGIKillbillAPI(account);
 
-                adyenPaymentPluginApi.authorizePayment(payment.getAccountId(),
-                                                       payment.getId(),
-                                                       paymentTransaction.getId(),
-                                                       payment.getPaymentMethodId(),
-                                                       paymentTransaction.getAmount(),
-                                                       paymentTransaction.getCurrency(),
-                                                       (Iterable<PluginProperty>) invocation.getArguments()[invocation.getArguments().length - 2],
-                                                       context);
-                return payment;
-            }
-        });
-        Mockito.when(killbillApi.getPaymentApi().createPurchase(Mockito.<Account>any(), Mockito.<UUID>any(), Mockito.<UUID>any(), Mockito.<BigDecimal>any(), Mockito.<Currency>any(), Mockito.<String>any(), Mockito.<String>any(), Mockito.<Iterable<PluginProperty>>any(), Mockito.<CallContext>any())).then(new Answer<Payment>() {
-            @Override
-            public Payment answer(final InvocationOnMock invocation) throws Throwable {
-                Mockito.when(paymentTransaction.getTransactionType()).thenReturn(TransactionType.PURCHASE);
-                Mockito.when(paymentTransaction.getTransactionStatus()).thenReturn(TransactionStatus.PENDING);
-
-                adyenPaymentPluginApi.purchasePayment(payment.getAccountId(),
-                                                      payment.getId(),
-                                                      paymentTransaction.getId(),
-                                                      payment.getPaymentMethodId(),
-                                                      paymentTransaction.getAmount(),
-                                                      paymentTransaction.getCurrency(),
-                                                      (Iterable<PluginProperty>) invocation.getArguments()[invocation.getArguments().length - 2],
-                                                      context);
-                return payment;
-            }
-        });
+        TestUtils.buildPaymentMethod(account.getId(), account.getPaymentMethodId(), AdyenActivator.PLUGIN_NAME, killbillApi);
 
         final OSGIKillbillLogService logService = TestUtils.buildLogService();
 
         final OSGIConfigPropertiesService configPropertiesService = Mockito.mock(OSGIConfigPropertiesService.class);
         adyenPaymentPluginApi = new AdyenPaymentPluginApi(adyenConfigurationHandler, adyenHostedPaymentPageConfigurationHandler, adyenRecurringConfigurationHandler, killbillApi, configPropertiesService, logService, clock, dao);
+
+        TestUtils.updateOSGIKillbillAPI(killbillApi, adyenPaymentPluginApi);
     }
 
-    protected PaymentTransaction buildPaymentTransaction(final TransactionType transactionType) {
-        return buildPaymentTransaction(transactionType, BigDecimal.TEN);
-    }
-
-    protected PaymentTransaction buildPaymentTransaction(final TransactionType transactionType, final BigDecimal amount) {
-        final PaymentTransaction paymentTransaction = TestUtils.buildPaymentTransaction(payment, transactionType, DEFAULT_CURRENCY);
-        Mockito.when(paymentTransaction.getAmount()).thenReturn(amount);
-        return paymentTransaction;
+    protected void processNotification(final String eventCode, final boolean success, final String merchantReference, final String pspReference) throws PaymentPluginApiException {
+        final String notification = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" +
+                                    "<soap:Envelope xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\">\n" +
+                                    "  <soap:Body>\n" +
+                                    "    <ns1:sendNotification xmlns:ns1=\"http://notification.services.adyen.com\">\n" +
+                                    "      <ns1:notification>\n" +
+                                    "        <live xmlns=\"http://notification.services.adyen.com\">true</live>\n" +
+                                    "        <notificationItems xmlns=\"http://notification.services.adyen.com\">\n" +
+                                    "          <NotificationRequestItem>\n" +
+                                    "            <additionalData>\n" +
+                                    "              <entry>\n" +
+                                    "                <key xsi:type=\"xsd:string\">hmacSignature</key>\n" +
+                                    "                <value xsi:type=\"xsd:string\">XlhIGK7wKAFJ1D1aqceFwLkXSL1XXf1DWBVhUo17rqo=</value>\n" +
+                                    "              </entry>\n" +
+                                    "            </additionalData>\n" +
+                                    "            <amount>\n" +
+                                    "              <currency xmlns=\"http://common.services.adyen.com\">" + DEFAULT_CURRENCY.name() + "</currency>\n" +
+                                    "              <value xmlns=\"http://common.services.adyen.com\">10</value>\n" +
+                                    "            </amount>\n" +
+                                    "            <eventCode>" + eventCode + "</eventCode>\n" +
+                                    "            <eventDate>2013-04-15T06:59:22.278+02:00</eventDate>\n" +
+                                    "            <merchantAccountCode>TestMerchant</merchantAccountCode>\n" +
+                                    "            <merchantReference>" + merchantReference + "</merchantReference>\n" +
+                                    "            <operations>\n" +
+                                    "              <string>CANCEL</string>\n" +
+                                    "              <string>CAPTURE</string>\n" +
+                                    "              <string>REFUND</string>\n" +
+                                    "            </operations>\n" +
+                                    "            <originalReference xsi:nil=\"true\"/>\n" +
+                                    "            <paymentMethod>visa</paymentMethod>\n" +
+                                    "            <pspReference>" + pspReference + "</pspReference>\n" +
+                                    "            <reason>111647:7629:5/2014</reason>\n" +
+                                    "            <success>" + success + "</success>\n" +
+                                    "          </NotificationRequestItem>\n" +
+                                    "        </notificationItems>\n" +
+                                    "      </ns1:notification>\n" +
+                                    "    </ns1:sendNotification>\n" +
+                                    "  </soap:Body>\n" +
+                                    "</soap:Envelope>";
+        final GatewayNotification gatewayNotification = adyenPaymentPluginApi.processNotification(notification, ImmutableList.<PluginProperty>of(), context);
+        assertEquals(gatewayNotification.getEntity(), "<SOAP-ENV:Envelope xmlns:SOAP-ENV=\"http://schemas.xmlsoap.org/soap/envelope/\"><SOAP-ENV:Header/><SOAP-ENV:Body><sendNotificationResponse xmlns=\"http://notification.services.adyen.com\" xmlns:ns2=\"http://common.services.adyen.com\"><notificationResponse>[accepted]</notificationResponse></sendNotificationResponse></SOAP-ENV:Body></SOAP-ENV:Envelope>");
     }
 }
