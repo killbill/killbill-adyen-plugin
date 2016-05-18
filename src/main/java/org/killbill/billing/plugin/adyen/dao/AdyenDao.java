@@ -22,6 +22,8 @@ import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -53,6 +55,7 @@ import com.google.common.base.Functions;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 
 import static org.killbill.billing.plugin.adyen.dao.gen.tables.AdyenHppRequests.ADYEN_HPP_REQUESTS;
 import static org.killbill.billing.plugin.adyen.dao.gen.tables.AdyenNotifications.ADYEN_NOTIFICATIONS;
@@ -133,6 +136,7 @@ public class AdyenDao extends PluginPaymentDao<AdyenResponsesRecord, AdyenRespon
                                          .selectFrom(ADYEN_HPP_REQUESTS)
                                          .where(ADYEN_HPP_REQUESTS.TRANSACTION_EXTERNAL_KEY.equal(merchantReference))
                                          .orderBy(ADYEN_HPP_REQUESTS.RECORD_ID.desc())
+                                         .limit(1)
                                          .fetchOne();
                            }
                        });
@@ -182,6 +186,7 @@ public class AdyenDao extends PluginPaymentDao<AdyenResponsesRecord, AdyenRespon
                                          .where(ADYEN_RESPONSES.KB_PAYMENT_TRANSACTION_ID.equal(kbPaymentTransactionId.toString()))
                                          .and(ADYEN_RESPONSES.KB_TENANT_ID.equal(kbTenantId.toString()))
                                          .orderBy(ADYEN_RESPONSES.RECORD_ID.desc())
+                                         .limit(1)
                                          .fetchOne();
                            }
                        });
@@ -352,6 +357,7 @@ public class AdyenDao extends PluginPaymentDao<AdyenResponsesRecord, AdyenRespon
                                                                         .where(ADYEN_RESPONSES.KB_PAYMENT_TRANSACTION_ID.equal(kbPaymentTransactionId.toString()))
                                                                         .and(ADYEN_RESPONSES.KB_TENANT_ID.equal(kbTenantId.toString()))
                                                                         .orderBy(ADYEN_RESPONSES.RECORD_ID.desc())
+                                                                        .limit(1)
                                                                         .fetchOne();
 
                                if (response == null) {
@@ -374,9 +380,24 @@ public class AdyenDao extends PluginPaymentDao<AdyenResponsesRecord, AdyenRespon
                                          .where(ADYEN_RESPONSES.KB_PAYMENT_TRANSACTION_ID.equal(kbPaymentTransactionId.toString()))
                                          .and(ADYEN_RESPONSES.KB_TENANT_ID.equal(kbTenantId.toString()))
                                          .orderBy(ADYEN_RESPONSES.RECORD_ID.desc())
+                                         .limit(1)
                                          .fetchOne();
                            }
                        });
+    }
+
+    @Override
+    public List<AdyenResponsesRecord> getResponses(final UUID kbPaymentId, final UUID kbTenantId) throws SQLException {
+        final List<AdyenResponsesRecord> responses = new LinkedList<AdyenResponsesRecord>();
+        for (final AdyenResponsesRecord adyenResponsesRecord : Lists.<AdyenResponsesRecord>reverse(super.getResponses(kbPaymentId, kbTenantId))) {
+            responses.add(adyenResponsesRecord);
+
+            // Keep only the completion row for 3D-S
+            if (TransactionType.AUTHORIZE.toString().equals(adyenResponsesRecord.getTransactionType())) {
+                break;
+            }
+        }
+        return Lists.<AdyenResponsesRecord>reverse(responses);
     }
 
     // Assumes that the last auth was successful
@@ -410,6 +431,8 @@ public class AdyenDao extends PluginPaymentDao<AdyenResponsesRecord, AdyenRespon
                                          .selectFrom(ADYEN_RESPONSES)
                                          .where(ADYEN_RESPONSES.PSP_REFERENCE.equal(pspReference))
                                          .orderBy(ADYEN_RESPONSES.RECORD_ID.desc())
+                                         // Can have multiple entries for 3D-S
+                                         .limit(1)
                                          .fetchOne();
                            }
                        });
@@ -486,6 +509,7 @@ public class AdyenDao extends PluginPaymentDao<AdyenResponsesRecord, AdyenRespon
                                          .selectFrom(ADYEN_NOTIFICATIONS)
                                          .where(ADYEN_NOTIFICATIONS.PSP_REFERENCE.equal(pspReference))
                                          .orderBy(ADYEN_NOTIFICATIONS.RECORD_ID.desc())
+                                         .limit(1)
                                          .fetchOne();
                            }
                        });

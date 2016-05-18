@@ -321,6 +321,16 @@ public class TestAdyenPaymentPluginApi extends TestAdyenPaymentPluginApiBase {
 
         assertEquals(authorizationInfoPlugin1.getGatewayErrorCode(), "RedirectShopper");
         assertEquals(authorizationInfoPlugin1.getStatus(), PaymentPluginStatus.PENDING);
+
+        // Verify GET path
+        final List<PaymentTransactionInfoPlugin> paymentTransactionInfoPluginsPreCompletion = adyenPaymentPluginApi.getPaymentInfo(account.getId(),
+                                                                                                                                   authorizationInfoPlugin1.getKbPaymentId(),
+                                                                                                                                   ImmutableList.<PluginProperty>of(),
+                                                                                                                                   context);
+        assertEquals(paymentTransactionInfoPluginsPreCompletion.size(), 1);
+        assertEquals(paymentTransactionInfoPluginsPreCompletion.get(0).getTransactionType(), TransactionType.AUTHORIZE);
+        assertEquals(paymentTransactionInfoPluginsPreCompletion.get(0).getStatus(), PaymentPluginStatus.PENDING);
+
         final URL issuerUrl = new URL(PluginProperties.findPluginPropertyValue("issuerUrl", authorizationInfoPlugin1.getProperties()));
         final String md = PluginProperties.findPluginPropertyValue("MD", authorizationInfoPlugin1.getProperties());
         final String paReq = PluginProperties.findPluginPropertyValue("PaReq", authorizationInfoPlugin1.getProperties());
@@ -374,6 +384,15 @@ public class TestAdyenPaymentPluginApi extends TestAdyenPaymentPluginApiBase {
         verifyPaymentTransactionInfoPlugin(payment, authorizationTransaction, authorizationInfoPlugin2);
         assertEquals(authorizationInfoPlugin2.getFirstPaymentReferenceId(), authorizationInfoPlugin1.getFirstPaymentReferenceId());
 
+        // Verify GET path
+        final List<PaymentTransactionInfoPlugin> paymentTransactionInfoPluginsPostCompletion = adyenPaymentPluginApi.getPaymentInfo(account.getId(),
+                                                                                                                                    authorizationInfoPlugin1.getKbPaymentId(),
+                                                                                                                                    ImmutableList.<PluginProperty>of(),
+                                                                                                                                    context);
+        assertEquals(paymentTransactionInfoPluginsPostCompletion.size(), 1);
+        assertEquals(paymentTransactionInfoPluginsPostCompletion.get(0).getTransactionType(), TransactionType.AUTHORIZE);
+        assertEquals(paymentTransactionInfoPluginsPostCompletion.get(0).getStatus(), PaymentPluginStatus.PROCESSED);
+
         final PaymentTransactionInfoPlugin captureInfoPlugin = adyenPaymentPluginApi.capturePayment(account.getId(),
                                                                                                     payment.getId(),
                                                                                                     captureTransaction.getId(),
@@ -385,6 +404,16 @@ public class TestAdyenPaymentPluginApi extends TestAdyenPaymentPluginApiBase {
 
         verifyPaymentTransactionInfoPlugin(payment, captureTransaction, captureInfoPlugin);
 
+        // Verify GET path
+        final List<PaymentTransactionInfoPlugin> paymentTransactionInfoPluginsPostCapture = adyenPaymentPluginApi.getPaymentInfo(account.getId(),
+                                                                                                                                 authorizationInfoPlugin1.getKbPaymentId(),
+                                                                                                                                 ImmutableList.<PluginProperty>of(),
+                                                                                                                                 context);
+        assertEquals(paymentTransactionInfoPluginsPostCapture.size(), 2);
+        assertEquals(paymentTransactionInfoPluginsPostCapture.get(0).getTransactionType(), TransactionType.AUTHORIZE);
+        assertEquals(paymentTransactionInfoPluginsPostCapture.get(0).getStatus(), PaymentPluginStatus.PROCESSED);
+        assertEquals(paymentTransactionInfoPluginsPostCapture.get(1).getTransactionType(), TransactionType.CAPTURE);
+        assertEquals(paymentTransactionInfoPluginsPostCapture.get(1).getStatus(), PaymentPluginStatus.PENDING);
     }
 
     private Map<String, String> extractForm(final String html) {
