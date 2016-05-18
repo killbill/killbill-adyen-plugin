@@ -78,14 +78,21 @@ public class AdyenNotificationService {
                                                                                       .getNotificationItems()
                                                                                       .getNotificationRequestItem();
 
-            try {
-                for (final NotificationRequestItem item : listOfNotifications) {
+            for (final NotificationRequestItem item : listOfNotifications) {
+                try {
                     handleNotification(item);
+                } catch (final Exception e) {
+                    logger.warn("Error handling notification: eventCode='{}', pspReference='{}', originalReference='{}', success='{}', reason='{}', merchantReference='{}'",
+                                item.getEventCode(),
+                                item.getPspReference(),
+                                item.getOriginalReference(),
+                                item.isSuccess(),
+                                item.getReason(),
+                                item.getMerchantReference(),
+                                e);
                 }
-                response = "[accepted]";
-            } catch (final Exception e) {
-                logger.warn("Error handling Adyen notification {}", sendNotification, e);
             }
+            response = "[accepted]";
         }
 
         try {
