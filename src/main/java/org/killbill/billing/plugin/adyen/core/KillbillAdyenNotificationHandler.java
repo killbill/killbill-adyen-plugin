@@ -169,17 +169,18 @@ public class KillbillAdyenNotificationHandler implements AdyenNotificationHandle
             // be further investigated. Most of the times it will for example need to be retried to make it work.
             // REFUNDED_REVERSED means we received back the funds from the bank. This can happen if the card is closed.
             paymentPluginStatus = PaymentPluginStatus.ERROR;
-        } else if ("NOTIFICATION_OF_CHARGEBACK".equals(notification.getEventCode())) {
-            // Whenever a real dispute case is opened this is the first notification in the process which you will receive.
-            // This is the start point to look into the dispute and upload defence material.
-            paymentPluginStatus = PaymentPluginStatus.PENDING;
+        // TODO Chargebacks are always created in Kill Bill with PaymentPluginStatus.PROCESSED today
+        //} else if ("NOTIFICATION_OF_CHARGEBACK".equals(notification.getEventCode())) {
+        //    // Whenever a real dispute case is opened this is the first notification in the process which you will receive.
+        //    // This is the start point to look into the dispute and upload defence material.
+        //    paymentPluginStatus = PaymentPluginStatus.PENDING;
         } else if ("CHARGEBACK".equals(notification.getEventCode())) {
             // Whenever the funds are really deducted we send out the chargeback notification.
             paymentPluginStatus = PaymentPluginStatus.PROCESSED;
-        } else if ("CHARGEBACK_REVERSED".equals(notification.getEventCode())) {
-            // When you win the case and the funds are returned to your account we send out the chargeback_reversed notification.
-            // See https://github.com/killbill/killbill/issues/477
-            paymentPluginStatus = PaymentPluginStatus.ERROR;
+        // TODO See above and https://github.com/killbill/killbill/issues/477
+        //} else if ("CHARGEBACK_REVERSED".equals(notification.getEventCode())) {
+        //    // When you win the case and the funds are returned to your account we send out the chargeback_reversed notification.
+        //    paymentPluginStatus = PaymentPluginStatus.ERROR;
         } else {
             paymentPluginStatus = PaymentPluginStatus.UNDEFINED;
         }
@@ -205,8 +206,9 @@ public class KillbillAdyenNotificationHandler implements AdyenNotificationHandle
             Preconditions.checkArgument(payment.getAccountId().equals(kbAccountId), String.format("kbAccountId='%s' doesn't match payment#accountId='%s'", kbAccountId, payment.getAccountId()));
             final Account account = getAccount(kbAccountId, context);
 
+            PaymentTransaction paymentTransaction = null;
             if (kbPaymentTransactionId != null) {
-                final PaymentTransaction paymentTransaction = filterForTransaction(payment, kbPaymentTransactionId);
+                paymentTransaction = filterForTransaction(payment, kbPaymentTransactionId);
                 Preconditions.checkNotNull(paymentTransaction, String.format("kbPaymentTransactionId='%s' not found for kbPaymentId='%s'", kbPaymentTransactionId, kbPaymentId));
                 if (expectedTransactionType != null) {
                     Preconditions.checkArgument(paymentTransaction.getTransactionType() == expectedTransactionType, String.format("transactionType='%s' doesn't match expectedTransactionType='%s'", paymentTransaction.getTransactionType(), expectedTransactionType));
@@ -214,28 +216,20 @@ public class KillbillAdyenNotificationHandler implements AdyenNotificationHandle
 
                 // Update the plugin tables
                 updateResponse(notification, kbPaymentTransactionId, isHPP, paymentPluginStatus, kbTenantId);
+            }
 
-                // Update Kill Bill
-                if (PaymentPluginStatus.UNDEFINED.equals(paymentPluginStatus)) {
-                    // We cannot do anything
-                    return payment;
-                } else if (TransactionStatus.PENDING.equals(paymentTransaction.getTransactionStatus())) {
-                    return transitionPendingTransaction(account, kbPaymentTransactionId, paymentPluginStatus, context);
-                } else if (paymentTransaction.getPaymentInfoPlugin().getStatus() != paymentPluginStatus){
-                    return fixPaymentTransactionState(payment, paymentTransaction, paymentPluginStatus, context);
-                } else {
-                    // Payment in Kill Bill has the latest state, nothing to do (we simply updated our plugin tables in case Adyen had extra information for us)
-                    return payment;
-                }
-            } else if (expectedTransactionType == TransactionType.CHARGEBACK) {
-                final PaymentTransaction paymentTransaction = filterForTransaction(payment, TransactionType.CHARGEBACK);
-                if (paymentTransaction == null) {
-                    return createChargeback(account, kbPaymentId, notification, context);
-                } else {
-                    return fixPaymentTransactionState(payment, paymentTransaction, paymentPluginStatus, context);
-                }
+            // Update Kill Bill
+            if (PaymentPluginStatus.UNDEFINED.equals(paymentPluginStatus)) {
+                // We cannot do anything
+                return payment;
+            } else if (paymentTransaction != null && TransactionStatus.PENDING.equals(paymentTransaction.getTransactionStatus())) {
+                return transitionPendingTransaction(account, kbPaymentTransactionId, paymentPluginStatus, context);
+            } else if (paymentTransaction != null && paymentTransaction.getPaymentInfoPlugin().getStatus() != paymentPluginStatus) {
+                return fixPaymentTransactionState(payment, paymentTransaction, paymentPluginStatus, context);
+            } else if (paymentTransaction == null && expectedTransactionType == TransactionType.CHARGEBACK) {
+                return createChargeback(account, kbPaymentId, notification, context);
             } else {
-                // Known payment, but new transaction, and this is not a chargeback -- nothing to do
+                // Payment in Kill Bill has the latest state, nothing to do (we simply updated our plugin tables in case Adyen had extra information for us)
                 return payment;
             }
         } else if (isHPP) {
@@ -301,7 +295,7 @@ public class KillbillAdyenNotificationHandler implements AdyenNotificationHandle
     private Payment fixPaymentTransactionState(final Payment payment, final PaymentTransaction paymentTransaction, final PaymentPluginStatus paymentPluginStatus, final CallContext context) {
         final String currentPaymentStateName = String.format("%s_%s", paymentTransaction.getTransactionType() == TransactionType.AUTHORIZE ? "AUTH" : paymentTransaction.getTransactionType(), paymentPluginStatus == PaymentPluginStatus.PROCESSED ? "SUCCESS" : "FAILED");
 
-        throw new UnsupportedOperationException("TODO AdminPaymentApi isn't exposed to OSGI plugins yet");
+        throw new UnsupportedOperationException(String.format("TODO AdminPaymentApi isn't exposed to OSGI plugins yet, cannot transition paymentTransactionExternalKey='%s', oldPaymentPluginStatus='%s', newPaymentPluginStatus='%s'", paymentTransaction.getExternalKey(), paymentTransaction.getPaymentInfoPlugin().getStatus(), paymentPluginStatus));
         /*
         try {
             osgiKillbillAPI.getAdminPaymentApi().fixPaymentTransactionState(payment, paymentTransaction, paymentPluginStatus, null, currentPaymentStateName, ImmutableList.<PluginProperty> of(), context);
@@ -450,15 +444,6 @@ public class KillbillAdyenNotificationHandler implements AdyenNotificationHandle
     private PaymentTransaction filterForTransaction(final Payment payment, final UUID kbTransactionId) {
         for (final PaymentTransaction paymentTransaction : payment.getTransactions()) {
             if (paymentTransaction.getId().equals(kbTransactionId)) {
-                return paymentTransaction;
-            }
-        }
-        return null;
-    }
-
-    private PaymentTransaction filterForTransaction(final Payment payment, final TransactionType transactionType) {
-        for (final PaymentTransaction paymentTransaction : payment.getTransactions()) {
-            if (paymentTransaction.getTransactionType().equals(transactionType)) {
                 return paymentTransaction;
             }
         }
