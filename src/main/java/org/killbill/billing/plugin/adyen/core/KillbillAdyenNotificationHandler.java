@@ -318,8 +318,8 @@ public class KillbillAdyenNotificationHandler implements AdyenNotificationHandle
         final UUID kbPaymentId = null;
         final BigDecimal amount = notification.getAmount();
         final Currency currency = Currency.valueOf(notification.getCurrency());
-        final String paymentExternalKey = notification.getMerchantReference();
-        final String paymentTransactionExternalKey = notification.getMerchantReference();
+        final String paymentExternalKey = notification.getPspReference();
+        final String paymentTransactionExternalKey = notification.getPspReference();
         final Iterable<PluginProperty> purchaseProperties = toPluginProperties(notification, isHPP, paymentPluginStatus);
 
         try {
@@ -341,7 +341,7 @@ public class KillbillAdyenNotificationHandler implements AdyenNotificationHandle
     private Payment createChargeback(final Account account, final UUID kbPaymentId, final NotificationItem notification, final CallContext context) {
         final BigDecimal amount = notification.getAmount();
         final Currency currency = Currency.valueOf(notification.getCurrency());
-        final String paymentTransactionExternalKey = notification.getMerchantReference();
+        final String paymentTransactionExternalKey = notification.getPspReference();
 
         try {
             return osgiKillbillAPI.getPaymentApi().createChargeback(account,
