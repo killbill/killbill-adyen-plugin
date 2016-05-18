@@ -151,7 +151,7 @@ public class KillbillAdyenNotificationHandler implements AdyenNotificationHandle
                                    @Nullable final UUID kbTenantId) {
         final TransactionType transactionType = EVENT_CODES_TO_TRANSACTION_TYPE.get(notification.getEventCode());
 
-        PaymentPluginStatus paymentPluginStatus = null;
+        final PaymentPluginStatus paymentPluginStatus;
         if (ImmutableList.<String>of("AUTHORISATION",
                                      "CANCELLATION",
                                      "REFUND",
@@ -161,7 +161,9 @@ public class KillbillAdyenNotificationHandler implements AdyenNotificationHandle
             paymentPluginStatus = notification.getSuccess() != null && notification.getSuccess() ? PaymentPluginStatus.PROCESSED : PaymentPluginStatus.ERROR;
         } else if (ImmutableList.<String>of("CAPTURE_FAILED",
                                             "REFUND_FAILED",
-                                            "REFUNDED_REVERSED").contains(notification.getEventCode())) {
+                                            "REFUNDED_REVERSED",
+                                            "OFFER_CLOSED",
+                                            "EXPIRE").contains(notification.getEventCode())) {
             // Whenever a capture or refund actually failed after it was processed by the third party, CAPTURE_FAILED
             // or REFUND_FAILED will be returned. It basically means that there was a technical issue which will need to
             // be further investigated. Most of the times it will for example need to be retried to make it work.
@@ -178,6 +180,8 @@ public class KillbillAdyenNotificationHandler implements AdyenNotificationHandle
             // When you win the case and the funds are returned to your account we send out the chargeback_reversed notification.
             // See https://github.com/killbill/killbill/issues/477
             paymentPluginStatus = PaymentPluginStatus.ERROR;
+        } else {
+            paymentPluginStatus = PaymentPluginStatus.UNDEFINED;
         }
 
         return updateKillbill(notification, kbAccountId, kbPaymentId, kbPaymentTransactionId, isHPP, paymentPluginStatus, transactionType, utcNow, kbTenantId);
@@ -212,7 +216,10 @@ public class KillbillAdyenNotificationHandler implements AdyenNotificationHandle
                 updateResponse(notification, kbPaymentTransactionId, isHPP, paymentPluginStatus, kbTenantId);
 
                 // Update Kill Bill
-                if (TransactionStatus.PENDING.equals(paymentTransaction.getTransactionStatus())) {
+                if (PaymentPluginStatus.UNDEFINED.equals(paymentPluginStatus)) {
+                    // We cannot do anything
+                    return payment;
+                } else if (TransactionStatus.PENDING.equals(paymentTransaction.getTransactionStatus())) {
                     return transitionPendingTransaction(account, kbPaymentTransactionId, paymentPluginStatus, context);
                 } else if (paymentTransaction.getPaymentInfoPlugin().getStatus() != paymentPluginStatus){
                     return fixPaymentTransactionState(payment, paymentTransaction, paymentPluginStatus, context);
