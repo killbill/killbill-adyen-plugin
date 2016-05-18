@@ -52,6 +52,7 @@ import org.killbill.killbill.osgi.libs.killbill.OSGIKillbillAPI;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
+import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
@@ -312,8 +313,8 @@ public class KillbillAdyenNotificationHandler implements AdyenNotificationHandle
         final UUID kbPaymentId = null;
         final BigDecimal amount = notification.getAmount();
         final Currency currency = Currency.valueOf(notification.getCurrency());
-        final String paymentExternalKey = notification.getPspReference();
-        final String paymentTransactionExternalKey = notification.getPspReference();
+        final String paymentExternalKey = Strings.emptyToNull(notification.getMerchantReference());
+        final String paymentTransactionExternalKey = Strings.emptyToNull(notification.getMerchantReference());
         final Iterable<PluginProperty> purchaseProperties = toPluginProperties(notification, isHPP, paymentPluginStatus);
 
         try {
@@ -335,7 +336,7 @@ public class KillbillAdyenNotificationHandler implements AdyenNotificationHandle
     private Payment createChargeback(final Account account, final UUID kbPaymentId, final NotificationItem notification, final CallContext context) {
         final BigDecimal amount = notification.getAmount();
         final Currency currency = Currency.valueOf(notification.getCurrency());
-        final String paymentTransactionExternalKey = notification.getPspReference();
+        final String paymentTransactionExternalKey = Strings.emptyToNull(notification.getMerchantReference());
 
         try {
             return osgiKillbillAPI.getPaymentApi().createChargeback(account,
