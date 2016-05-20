@@ -47,7 +47,7 @@ public class TestRemoteAdyenPaymentServiceProviderHostedPaymentPagePort extends 
         final UserData userData = new UserData();
         userData.setShopperLocale(new Locale("en", DEFAULT_COUNTRY));
 
-        final Map<String, String> formParameter = adyenPaymentServiceProviderHostedPaymentPagePort.getFormParameter(paymentData, userData, null);
+        final Map<String, String> formParameter = adyenPaymentServiceProviderHostedPaymentPagePort.getFormParameter(merchantAccount, paymentData, userData, null);
         final String formUrl = adyenConfigProperties.getHppTarget();
 
         Assert.assertNotNull(formParameter.get("merchantReference"));

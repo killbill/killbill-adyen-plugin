@@ -45,7 +45,7 @@ public class TestRemoteAdyenPaymentServiceProviderPort extends TestRemoteBase {
         final UserData userData = new UserData();
         final SplitSettlementData splitSettlementData = null;
 
-        final PurchaseResult authorizeResult = adyenPaymentServiceProviderPort.authorise(paymentData, userData, splitSettlementData);
+        final PurchaseResult authorizeResult = adyenPaymentServiceProviderPort.authorise(merchantAccount, paymentData, userData, splitSettlementData);
         // Adyen's unique reference that is associated with the payment
         Assert.assertNotNull(authorizeResult.getPspReference());
         // Result of the payment. The possible values are Authorised, Refused, Error or Received (as with a Dutch Direct Debit)
@@ -60,13 +60,13 @@ public class TestRemoteAdyenPaymentServiceProviderPort extends TestRemoteBase {
 
         // First capture
         final PaymentData paymentData1 = new PaymentData<Card>(captureAmount, DEFAULT_CURRENCY, UUID.randomUUID().toString(), getCreditCard());
-        final PaymentModificationResponse capture1Result = adyenPaymentServiceProviderPort.capture(paymentData1, pspReference, splitSettlementData);
+        final PaymentModificationResponse capture1Result = adyenPaymentServiceProviderPort.capture(merchantAccount, paymentData1, pspReference, splitSettlementData);
         Assert.assertNotNull(capture1Result.getPspReference());
         Assert.assertEquals(capture1Result.getResponse(), "[capture-received]");
 
         // Second capture
         final PaymentData paymentData2 = new PaymentData<Card>(captureAmount, DEFAULT_CURRENCY, UUID.randomUUID().toString(), getCreditCard());
-        final PaymentModificationResponse capture2Result = adyenPaymentServiceProviderPort.capture(paymentData2, pspReference, splitSettlementData);
+        final PaymentModificationResponse capture2Result = adyenPaymentServiceProviderPort.capture(merchantAccount, paymentData2, pspReference, splitSettlementData);
         Assert.assertNotNull(capture2Result.getPspReference());
         Assert.assertEquals(capture2Result.getResponse(), "[capture-received]");
     }
@@ -77,7 +77,7 @@ public class TestRemoteAdyenPaymentServiceProviderPort extends TestRemoteBase {
         final UserData userData = new UserData();
         final SplitSettlementData splitSettlementData = null;
 
-        final PurchaseResult authorizeResult = adyenPaymentServiceProviderPort.authorise(paymentData, userData, splitSettlementData);
+        final PurchaseResult authorizeResult = adyenPaymentServiceProviderPort.authorise(merchantAccount, paymentData, userData, splitSettlementData);
         Assert.assertNotNull(authorizeResult.getPspReference());
         Assert.assertEquals(authorizeResult.getResultCode(), "Authorised");
         Assert.assertNotNull(authorizeResult.getAuthCode());
@@ -86,7 +86,7 @@ public class TestRemoteAdyenPaymentServiceProviderPort extends TestRemoteBase {
         final String pspReference = authorizeResult.getPspReference();
 
         final PaymentData paymentData1 = new PaymentData<Card>(null, null, UUID.randomUUID().toString(), getCreditCard());
-        final PaymentModificationResponse voidResult = adyenPaymentServiceProviderPort.cancel(paymentData1, pspReference, splitSettlementData);
+        final PaymentModificationResponse voidResult = adyenPaymentServiceProviderPort.cancel(merchantAccount, paymentData1, pspReference, splitSettlementData);
         Assert.assertNotNull(voidResult.getPspReference());
         Assert.assertEquals(voidResult.getResponse(), "[cancel-received]");
     }
@@ -97,7 +97,7 @@ public class TestRemoteAdyenPaymentServiceProviderPort extends TestRemoteBase {
         final UserData userData = new UserData();
         final SplitSettlementData splitSettlementData = null;
 
-        final PurchaseResult authorizeResult = adyenPaymentServiceProviderPort.authorise(paymentData, userData, splitSettlementData);
+        final PurchaseResult authorizeResult = adyenPaymentServiceProviderPort.authorise(merchantAccount, paymentData, userData, splitSettlementData);
         Assert.assertNotNull(authorizeResult.getPspReference());
         Assert.assertEquals(authorizeResult.getResultCode(), "Authorised");
         Assert.assertNotNull(authorizeResult.getAuthCode());
@@ -108,7 +108,7 @@ public class TestRemoteAdyenPaymentServiceProviderPort extends TestRemoteBase {
         final String capturePspReference = authorizeResult.getPspReference();
 
         final PaymentData paymentData1 = new PaymentData<Card>(captureAmount, DEFAULT_CURRENCY, UUID.randomUUID().toString(), getCreditCard());
-        final PaymentModificationResponse captureResult = adyenPaymentServiceProviderPort.capture(paymentData1, capturePspReference, splitSettlementData);
+        final PaymentModificationResponse captureResult = adyenPaymentServiceProviderPort.capture(merchantAccount, paymentData1, capturePspReference, splitSettlementData);
         Assert.assertNotNull(captureResult.getPspReference());
         Assert.assertEquals(captureResult.getResponse(), "[capture-received]");
 
@@ -117,7 +117,7 @@ public class TestRemoteAdyenPaymentServiceProviderPort extends TestRemoteBase {
         final String refundPspReference = captureResult.getPspReference();
 
         final PaymentData paymentData2 = new PaymentData<Card>(refundAmount, DEFAULT_CURRENCY, UUID.randomUUID().toString(), getCreditCard());
-        final PaymentModificationResponse refundResult = adyenPaymentServiceProviderPort.refund(paymentData2, refundPspReference, splitSettlementData);
+        final PaymentModificationResponse refundResult = adyenPaymentServiceProviderPort.refund(merchantAccount, paymentData2, refundPspReference, splitSettlementData);
         Assert.assertNotNull(refundResult.getPspReference());
         Assert.assertEquals(refundResult.getResponse(), "[refund-received]");
     }
@@ -128,7 +128,7 @@ public class TestRemoteAdyenPaymentServiceProviderPort extends TestRemoteBase {
         final UserData userData = new UserData();
         final SplitSettlementData splitSettlementData = null;
 
-        final PurchaseResult authorizeResult = adyenPaymentServiceProviderPort.authorise(paymentData, userData, splitSettlementData);
+        final PurchaseResult authorizeResult = adyenPaymentServiceProviderPort.authorise(merchantAccount, paymentData, userData, splitSettlementData);
         Assert.assertNotNull(authorizeResult.getPspReference());
         Assert.assertEquals(authorizeResult.getResultCode(), "Authorised");
         Assert.assertNotNull(authorizeResult.getAuthCode());
@@ -137,7 +137,7 @@ public class TestRemoteAdyenPaymentServiceProviderPort extends TestRemoteBase {
         final String pspReference = UUID.randomUUID().toString();
 
         final PaymentData paymentData1 = new PaymentData<Card>(null, null, UUID.randomUUID().toString(), getCreditCard());
-        final PaymentModificationResponse voidResult = adyenPaymentServiceProviderPort.cancel(paymentData1, pspReference, splitSettlementData);
+        final PaymentModificationResponse voidResult = adyenPaymentServiceProviderPort.cancel(merchantAccount, paymentData1, pspReference, splitSettlementData);
         assertFalse(voidResult.isTechnicallySuccessful());
     }
 
@@ -155,7 +155,7 @@ public class TestRemoteAdyenPaymentServiceProviderPort extends TestRemoteBase {
         final UserData userData = new UserData();
         final SplitSettlementData splitSettlementData = null;
 
-        final PurchaseResult authorizeResult = adyenPaymentServiceProviderPort.authorise(paymentData, userData, splitSettlementData);
+        final PurchaseResult authorizeResult = adyenPaymentServiceProviderPort.authorise(merchantAccount, paymentData, userData, splitSettlementData);
         Assert.assertNotNull(authorizeResult.getPspReference());
         Assert.assertEquals(authorizeResult.getResultCode(), "Authorised");
         Assert.assertNotNull(authorizeResult.getAuthCode());
@@ -175,7 +175,7 @@ public class TestRemoteAdyenPaymentServiceProviderPort extends TestRemoteBase {
         userData.setLastName("Silva");
         final SplitSettlementData splitSettlementData = null;
 
-        final PurchaseResult authorizeResult = adyenPaymentServiceProviderPort.authorise(paymentData, userData, splitSettlementData);
+        final PurchaseResult authorizeResult = adyenPaymentServiceProviderPort.authorise(merchantAccount, paymentData, userData, splitSettlementData);
         Assert.assertNotNull(authorizeResult.getPspReference());
         Assert.assertEquals(authorizeResult.getResultCode(), "Received");
         Assert.assertNull(authorizeResult.getAuthCode());

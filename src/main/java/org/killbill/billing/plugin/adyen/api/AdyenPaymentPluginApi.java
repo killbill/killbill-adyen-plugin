@@ -95,6 +95,7 @@ import static org.killbill.billing.plugin.adyen.api.mapping.UserDataMappingServi
 public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponsesRecord, AdyenResponses, AdyenPaymentMethodsRecord, AdyenPaymentMethods> {
 
     // Shared properties
+    public static final String PROPERTY_PAYMENT_PROCESSOR_ACCOUNT_ID = "paymentProcessorAccountId";
     public static final String PROPERTY_ACQUIRER = "acquirer";
     public static final String PROPERTY_ACQUIRER_MID = "acquirerMID";
     public static final String PROPERTY_INSTALLMENTS = "installments";
@@ -238,9 +239,7 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
             final Account account = getAccount(kbAccountId, context);
             final String pluginPropertyCountry = PluginProperties.findPluginPropertyValue(PROPERTY_COUNTRY, properties);
             final String countryCode = pluginPropertyCountry == null ? account.getCountry() : pluginPropertyCountry;
-            // A bit of a hack - it would be nice to be able to isolate AdyenConfigProperties
-            final AdyenConfigProperties adyenConfigProperties = adyenHppConfigurationHandler.getConfigurable(context.getTenantId()).getAdyenConfigProperties();
-            final String merchantAccount = adyenConfigProperties.getMerchantAccount(countryCode);
+            final String merchantAccount = getMerchantAccount(countryCode, properties, context);
 
             final Map additionalData = AdyenDao.fromAdditionalData(adyenPaymentMethodsRecord.getAdditionalData());
             Object customerId = additionalData.get(PROPERTY_CUSTOMER_ID);
@@ -283,9 +282,7 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
         final Account account = getAccount(kbAccountId, context);
         final String pluginPropertyCountry = PluginProperties.findPluginPropertyValue(PROPERTY_COUNTRY, properties);
         final String countryCode = pluginPropertyCountry == null ? account.getCountry() : pluginPropertyCountry;
-        // A bit of a hack - it would be nice to be able to isolate AdyenConfigProperties
-        final AdyenConfigProperties adyenConfigProperties = adyenHppConfigurationHandler.getConfigurable(context.getTenantId()).getAdyenConfigProperties();
-        final String merchantAccount = adyenConfigProperties.getMerchantAccount(countryCode);
+        final String merchantAccount = getMerchantAccount(countryCode, properties, context);
 
         for (final AdyenPaymentMethodsRecord record : Lists.<AdyenPaymentMethodsRecord>reverse(existingPaymentMethods)) {
             if (record.getToken() != null) {
@@ -357,9 +354,9 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
         return executeFollowUpTransaction(TransactionType.CAPTURE,
                                           new TransactionExecutor<PaymentModificationResponse>() {
                                               @Override
-                                              public PaymentModificationResponse execute(final PaymentData paymentData, final String pspReference, final SplitSettlementData splitSettlementData) {
+                                              public PaymentModificationResponse execute(final String merchantAccount, final PaymentData paymentData, final String pspReference, final SplitSettlementData splitSettlementData) {
                                                   final AdyenPaymentServiceProviderPort port = adyenConfigurationHandler.getConfigurable(context.getTenantId());
-                                                  return port.capture(paymentData, pspReference, splitSettlementData);
+                                                  return port.capture(merchantAccount, paymentData, pspReference, splitSettlementData);
                                               }
                                           },
                                           kbAccountId,
@@ -399,9 +396,9 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
         return executeFollowUpTransaction(TransactionType.VOID,
                                           new TransactionExecutor<PaymentModificationResponse>() {
                                               @Override
-                                              public PaymentModificationResponse execute(final PaymentData paymentData, final String pspReference, final SplitSettlementData splitSettlementData) {
+                                              public PaymentModificationResponse execute(final String merchantAccount, final PaymentData paymentData, final String pspReference, final SplitSettlementData splitSettlementData) {
                                                   final AdyenPaymentServiceProviderPort port = adyenConfigurationHandler.getConfigurable(context.getTenantId());
-                                                  return port.cancel(paymentData, pspReference, splitSettlementData);
+                                                  return port.cancel(merchantAccount, paymentData, pspReference, splitSettlementData);
                                               }
                                           },
                                           kbAccountId,
@@ -425,9 +422,9 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
         return executeFollowUpTransaction(TransactionType.REFUND,
                                           new TransactionExecutor<PaymentModificationResponse>() {
                                               @Override
-                                              public PaymentModificationResponse execute(final PaymentData paymentData, final String pspReference, final SplitSettlementData splitSettlementData) {
+                                              public PaymentModificationResponse execute(final String merchantAccount, final PaymentData paymentData, final String pspReference, final SplitSettlementData splitSettlementData) {
                                                   final AdyenPaymentServiceProviderPort providerPort = adyenConfigurationHandler.getConfigurable(context.getTenantId());
-                                                  return providerPort.refund(paymentData, pspReference, splitSettlementData);
+                                                  return providerPort.refund(merchantAccount, paymentData, pspReference, splitSettlementData);
                                               }
                                           },
                                           kbAccountId,
@@ -481,11 +478,12 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
 
         final AdyenPaymentServiceProviderHostedPaymentPagePort hostedPaymentPagePort = adyenHppConfigurationHandler.getConfigurable(context.getTenantId());
 
+        final String merchantAccount = getMerchantAccount(paymentData, properties, context);
         final SplitSettlementData splitSettlementData = null;
 
         final Map<String, String> formParameter;
         try {
-            formParameter = hostedPaymentPagePort.getFormParameter(paymentData, userData, splitSettlementData);
+            formParameter = hostedPaymentPagePort.getFormParameter(merchantAccount, paymentData, userData, splitSettlementData);
         } catch (final SignatureGenerationException e) {
             throw new PaymentPluginApiException("Unable to generate signature", e);
         }
@@ -502,11 +500,11 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
 
     private abstract static class TransactionExecutor<T> {
 
-        public T execute(final PaymentData paymentData, final UserData userData, final SplitSettlementData splitSettlementData) {
+        public T execute(final String merchantAccount, final PaymentData paymentData, final UserData userData, final SplitSettlementData splitSettlementData) {
             throw new UnsupportedOperationException();
         }
 
-        public T execute(final PaymentData paymentData, final String pspReference, final SplitSettlementData splitSettlementData) {
+        public T execute(final String merchantAccount, final PaymentData paymentData, final String pspReference, final SplitSettlementData splitSettlementData) {
             throw new UnsupportedOperationException();
         }
     }
@@ -523,17 +521,17 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
         return executeInitialTransaction(transactionType,
                                          new TransactionExecutor<PurchaseResult>() {
                                              @Override
-                                             public PurchaseResult execute(final PaymentData paymentData, final UserData userData, final SplitSettlementData splitSettlementData) {
+                                             public PurchaseResult execute(final String merchantAccount, final PaymentData paymentData, final UserData userData, final SplitSettlementData splitSettlementData) {
                                                  final AdyenPaymentServiceProviderPort adyenPort = adyenConfigurationHandler.getConfigurable(context.getTenantId());
                                                  if (hasPreviousAdyenRespondseRecord(kbPaymentId, kbTransactionId.toString(), context)) {
                                                      // We are completing a 3D-S payment
-                                                     return adyenPort.authorize3DSecure(paymentData, userData, splitSettlementData);
+                                                     return adyenPort.authorize3DSecure(merchantAccount, paymentData, userData, splitSettlementData);
                                                  } else {
                                                      // We are creating a new transaction (AUTHORIZE, PURCHASE or CREDIT)
                                                      if (transactionType == TransactionType.CREDIT) {
-                                                         return adyenPort.credit(paymentData, userData, splitSettlementData);
+                                                         return adyenPort.credit(merchantAccount, paymentData, userData, splitSettlementData);
                                                      } else {
-                                                         return adyenPort.authorise(paymentData, userData, splitSettlementData);
+                                                         return adyenPort.authorise(merchantAccount, paymentData, userData, splitSettlementData);
                                                      }
                                                  }
                                              }
@@ -582,7 +580,9 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
         final SplitSettlementData splitSettlementData = null;
         final DateTime utcNow = clock.getUTCNow();
 
-        final PurchaseResult response = transactionExecutor.execute(paymentData, userData, splitSettlementData);
+        final String merchantAccount = getMerchantAccount(paymentData, properties, context);
+
+        final PurchaseResult response = transactionExecutor.execute(merchantAccount, paymentData, userData, splitSettlementData);
         try {
             dao.addResponse(kbAccountId, kbPaymentId, kbTransactionId, transactionType, amount, currency, response, utcNow, context.getTenantId());
             return new AdyenPaymentTransactionInfoPlugin(kbPaymentId, kbTransactionId, transactionType, amount, currency, utcNow, response);
@@ -619,7 +619,9 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
         final SplitSettlementData splitSettlementData = null;
         final DateTime utcNow = clock.getUTCNow();
 
-        final PaymentModificationResponse response = transactionExecutor.execute(paymentData, pspReference, splitSettlementData);
+        final String merchantAccount = getMerchantAccount(paymentData, properties, context);
+
+        final PaymentModificationResponse response = transactionExecutor.execute(merchantAccount, paymentData, pspReference, splitSettlementData);
         final Optional<PaymentServiceProviderResult> paymentServiceProviderResult;
         if (response.isTechnicallySuccessful()) {
             paymentServiceProviderResult = Optional.of(PaymentServiceProviderResult.RECEIVED);
@@ -753,5 +755,21 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
             logService.log(LogService.LOG_ERROR, "Failed to get previous AdyenResponsesRecord", e);
             return false;
         }
+    }
+
+    private String getMerchantAccount(final PaymentData paymentData, final Iterable<PluginProperty> properties, final TenantContext context) {
+        final String countryIsoCode = paymentData.getPaymentInfo().getCountry();
+        return getMerchantAccount(countryIsoCode, properties, context);
+    }
+
+    private String getMerchantAccount(final String countryCode, final Iterable<PluginProperty> properties, final TenantContext context) {
+        final String pluginPropertyMerchantAccount = PluginProperties.findPluginPropertyValue(PROPERTY_PAYMENT_PROCESSOR_ACCOUNT_ID, properties);
+        if (pluginPropertyMerchantAccount != null) {
+            return pluginPropertyMerchantAccount;
+        }
+
+        // A bit of a hack - it would be nice to be able to isolate AdyenConfigProperties
+        final AdyenConfigProperties adyenConfigProperties = adyenHppConfigurationHandler.getConfigurable(context.getTenantId()).getAdyenConfigProperties();
+        return adyenConfigProperties.getMerchantAccount(countryCode);
     }
 }

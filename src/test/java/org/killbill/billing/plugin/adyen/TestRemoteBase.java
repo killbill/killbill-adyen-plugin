@@ -75,6 +75,8 @@ public abstract class TestRemoteBase {
     protected AdyenPaymentServiceProviderHostedPaymentPagePort adyenPaymentServiceProviderHostedPaymentPagePort;
     protected AdyenRecurringClient adyenRecurringClient;
 
+    protected String merchantAccount;
+
     @BeforeClass(groups = "slow")
     public void setUpBeforeClass() throws Exception {
         adyenConfigProperties = getAdyenConfigProperties();
@@ -107,6 +109,8 @@ public abstract class TestRemoteBase {
 
         adyenRecurringConfigurationHandler = new AdyenRecurringConfigurationHandler(AdyenActivator.PLUGIN_NAME, killbillAPI, logService);
         adyenRecurringConfigurationHandler.setDefaultConfigurable(adyenRecurringClient);
+
+        merchantAccount = adyenConfigProperties.getMerchantAccount(DEFAULT_COUNTRY);
     }
 
     private AdyenConfigProperties getAdyenConfigProperties() throws IOException {

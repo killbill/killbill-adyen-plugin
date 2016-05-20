@@ -32,9 +32,6 @@ import org.killbill.billing.plugin.adyen.client.payment.converter.PaymentInfoCon
 import org.killbill.billing.plugin.adyen.client.payment.exception.SignatureGenerationException;
 import org.killbill.billing.plugin.adyen.client.payment.service.Signer;
 
-import com.google.common.base.Preconditions;
-import com.google.common.base.Strings;
-
 public class AdyenRequestFactory {
 
     private final PaymentInfoConverterManagement paymentInfoConverterManagement;
@@ -49,28 +46,22 @@ public class AdyenRequestFactory {
         this.signer = signer;
     }
 
-    public PaymentRequest createPaymentRequest(final PaymentData paymentData, final UserData userData, @Nullable final SplitSettlementData splitSettlementData) {
-        final String merchantAccount = getMerchantAccount(paymentData);
+    public PaymentRequest createPaymentRequest(final String merchantAccount, final PaymentData paymentData, final UserData userData, @Nullable final SplitSettlementData splitSettlementData) {
         final PaymentRequestBuilder paymentRequestBuilder = new PaymentRequestBuilder(merchantAccount, paymentData, userData, splitSettlementData, paymentInfoConverterManagement);
         return paymentRequestBuilder.build();
     }
 
-    public PaymentRequest3D paymentRequest3d(final PaymentData paymentData, final UserData userData, @Nullable final SplitSettlementData splitSettlementData) {
-        final String merchantAccount = getMerchantAccount(paymentData);
+    public PaymentRequest3D paymentRequest3d(final String merchantAccount, final PaymentData paymentData, final UserData userData, @Nullable final SplitSettlementData splitSettlementData) {
         final PaymentRequest3DBuilder paymentRequest3DBuilder = new PaymentRequest3DBuilder(merchantAccount, paymentData, userData, splitSettlementData);
         return paymentRequest3DBuilder.build();
     }
 
-    public ModificationRequest createModificationRequest(final PaymentData paymentData, final String pspReference, @Nullable final SplitSettlementData splitSettlementData) {
-        final String merchantAccount = getMerchantAccount(paymentData);
+    public ModificationRequest createModificationRequest(final String merchantAccount, final PaymentData paymentData, final String pspReference, @Nullable final SplitSettlementData splitSettlementData) {
         final ModificationRequestBuilder modificationRequestBuilder = new ModificationRequestBuilder(merchantAccount, paymentData, pspReference, splitSettlementData);
         return modificationRequestBuilder.build();
     }
 
-    public Map<String, String> createHppRequest(final PaymentData paymentData,
-                                                final UserData userData,
-                                                @Nullable final SplitSettlementData splitSettlementData) throws SignatureGenerationException {
-        final String merchantAccount = getMerchantAccount(paymentData);
+    public Map<String, String> createHppRequest(final String merchantAccount, final PaymentData paymentData, final UserData userData, @Nullable final SplitSettlementData splitSettlementData) throws SignatureGenerationException {
         final HPPRequestBuilder builder = new HPPRequestBuilder(merchantAccount,
                                                                 paymentData,
                                                                 userData,
@@ -78,12 +69,5 @@ public class AdyenRequestFactory {
                                                                 adyenConfigProperties.getHmacSecret(paymentData.getPaymentInfo().getCountry()),
                                                                 signer);
         return builder.build();
-    }
-
-    private String getMerchantAccount(final PaymentData paymentData) {
-        final String countryIsoCode = paymentData.getPaymentInfo().getCountry();
-        final String merchantAccount = adyenConfigProperties.getMerchantAccount(countryIsoCode);
-        Preconditions.checkState(!Strings.isNullOrEmpty(merchantAccount), "Missing merchantAccount for country " + countryIsoCode);
-        return merchantAccount;
     }
 }

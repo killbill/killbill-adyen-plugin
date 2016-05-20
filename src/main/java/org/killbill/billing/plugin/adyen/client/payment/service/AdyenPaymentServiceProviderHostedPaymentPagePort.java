@@ -53,9 +53,9 @@ public class AdyenPaymentServiceProviderHostedPaymentPagePort extends BaseAdyenP
         // No-op for now
     }
 
-    public Map<String, String> getFormParameter(final PaymentData paymentData, final UserData userData, final SplitSettlementData splitSettlementData) throws SignatureGenerationException {
+    public Map<String, String> getFormParameter(final String merchantAccount, final PaymentData paymentData, final UserData userData, final SplitSettlementData splitSettlementData) throws SignatureGenerationException {
         logOperation(logger, "createHppRequest", paymentData, userData, null);
-        return adyenRequestFactory.createHppRequest(paymentData, userData, splitSettlementData);
+        return adyenRequestFactory.createHppRequest(merchantAccount, paymentData, userData, splitSettlementData);
     }
 
     // Used to verify completion

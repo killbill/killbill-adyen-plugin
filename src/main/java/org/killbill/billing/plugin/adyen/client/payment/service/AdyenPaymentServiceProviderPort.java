@@ -59,19 +59,22 @@ public class AdyenPaymentServiceProviderPort extends BaseAdyenPaymentServiceProv
         adyenPaymentRequestSender.close();
     }
 
-    public PurchaseResult authorise(final PaymentData paymentData,
+    public PurchaseResult authorise(final String merchantAccount,
+                                    final PaymentData paymentData,
                                     final UserData userData,
                                     final SplitSettlementData splitSettlementData) {
-        return authoriseOrCredit(true, paymentData, userData, splitSettlementData);
+        return authoriseOrCredit(true, merchantAccount, paymentData, userData, splitSettlementData);
     }
 
-    public PurchaseResult credit(final PaymentData paymentData,
+    public PurchaseResult credit(final String merchantAccount,
+                                 final PaymentData paymentData,
                                  final UserData userData,
                                  final SplitSettlementData splitSettlementData) {
-        return authoriseOrCredit(false, paymentData, userData, splitSettlementData);
+        return authoriseOrCredit(false, merchantAccount, paymentData, userData, splitSettlementData);
     }
 
     private PurchaseResult authoriseOrCredit(final boolean authorize,
+                                             final String merchantAccount,
                                              final PaymentData paymentData,
                                              final UserData userData,
                                              final SplitSettlementData splitSettlementData) {
@@ -80,7 +83,7 @@ public class AdyenPaymentServiceProviderPort extends BaseAdyenPaymentServiceProv
 
         final PaymentInfo paymentInfo = paymentData.getPaymentInfo();
 
-        final PaymentRequest request = adyenRequestFactory.createPaymentRequest(paymentData, userData, splitSettlementData);
+        final PaymentRequest request = adyenRequestFactory.createPaymentRequest(merchantAccount, paymentData, userData, splitSettlementData);
 
         final AdyenCallResult<PaymentResult> adyenCallResult;
         if (authorize) {
@@ -135,13 +138,15 @@ public class AdyenPaymentServiceProviderPort extends BaseAdyenPaymentServiceProv
         return new PurchaseResult(paymentData.getPaymentTransactionExternalKey(), adyenCallResult);
     }
 
-    public PurchaseResult authorize3DSecure(final PaymentData paymentData,
+    public PurchaseResult authorize3DSecure(final String merchantAccount,
+                                            final PaymentData paymentData,
                                             final UserData userData,
                                             final SplitSettlementData splitSettlementData) {
         final String operation = "authorize3DSecure";
         logOperation(logger, operation, paymentData, userData, null);
 
-        final PaymentRequest3D request = adyenRequestFactory.paymentRequest3d(paymentData,
+        final PaymentRequest3D request = adyenRequestFactory.paymentRequest3d(merchantAccount,
+                                                                              paymentData,
                                                                               userData,
                                                                               splitSettlementData);
         final AdyenCallResult<PaymentResult> adyenCallResult = adyenPaymentRequestSender.authorise3D(paymentData.getPaymentInfo().getCountry(), request);
@@ -181,7 +186,8 @@ public class AdyenPaymentServiceProviderPort extends BaseAdyenPaymentServiceProv
         return purchaseResult;
     }
 
-    public PaymentModificationResponse refund(final PaymentData paymentData,
+    public PaymentModificationResponse refund(final String merchantAccount,
+                                              final PaymentData paymentData,
                                               final String pspReference,
                                               final SplitSettlementData splitSettlementData) {
         return modify("refund",
@@ -191,12 +197,14 @@ public class AdyenPaymentServiceProviderPort extends BaseAdyenPaymentServiceProv
                               return adyenPaymentRequestSender.refund(country, modificationRequest);
                           }
                       },
+                      merchantAccount,
                       paymentData,
                       pspReference,
                       splitSettlementData);
     }
 
-    public PaymentModificationResponse cancel(final PaymentData paymentData,
+    public PaymentModificationResponse cancel(final String merchantAccount,
+                                              final PaymentData paymentData,
                                               final String pspReference,
                                               final SplitSettlementData splitSettlementData) {
         return modify("cancel",
@@ -206,12 +214,14 @@ public class AdyenPaymentServiceProviderPort extends BaseAdyenPaymentServiceProv
                               return adyenPaymentRequestSender.cancel(country, modificationRequest);
                           }
                       },
+                      merchantAccount,
                       paymentData,
                       pspReference,
                       splitSettlementData);
     }
 
-    public PaymentModificationResponse capture(final PaymentData paymentData,
+    public PaymentModificationResponse capture(final String merchantAccount,
+                                               final PaymentData paymentData,
                                                final String pspReference,
                                                final SplitSettlementData splitSettlementData) {
         return modify("capture",
@@ -221,6 +231,7 @@ public class AdyenPaymentServiceProviderPort extends BaseAdyenPaymentServiceProv
                               return adyenPaymentRequestSender.capture(country, modificationRequest);
                           }
                       },
+                      merchantAccount,
                       paymentData,
                       pspReference,
                       splitSettlementData);
@@ -228,12 +239,13 @@ public class AdyenPaymentServiceProviderPort extends BaseAdyenPaymentServiceProv
 
     private PaymentModificationResponse modify(final String operation,
                                                final ModificationExecutor modificationExecutor,
+                                               final String merchantAccount,
                                                final PaymentData paymentData,
                                                final String pspReference,
                                                final SplitSettlementData splitSettlementData) {
         logOperation(logger, operation, paymentData, null, pspReference);
 
-        final ModificationRequest modificationRequest = adyenRequestFactory.createModificationRequest(paymentData, pspReference, splitSettlementData);
+        final ModificationRequest modificationRequest = adyenRequestFactory.createModificationRequest(merchantAccount, paymentData, pspReference, splitSettlementData);
         final AdyenCallResult<ModificationResult> adyenCallResult = modificationExecutor.execute(paymentData.getPaymentInfo().getCountry(), modificationRequest);
 
         if (!adyenCallResult.receivedWellFormedResponse()) {
