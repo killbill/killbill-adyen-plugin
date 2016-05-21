@@ -19,14 +19,14 @@ package org.killbill.billing.plugin.adyen.core;
 
 import java.util.Properties;
 
+import org.killbill.billing.osgi.libs.killbill.OSGIKillbillAPI;
+import org.killbill.billing.osgi.libs.killbill.OSGIKillbillLogService;
 import org.killbill.billing.plugin.adyen.client.AdyenConfigProperties;
 import org.killbill.billing.plugin.adyen.client.jaxws.HttpHeaderInterceptor;
 import org.killbill.billing.plugin.adyen.client.jaxws.LoggingInInterceptor;
 import org.killbill.billing.plugin.adyen.client.jaxws.LoggingOutInterceptor;
 import org.killbill.billing.plugin.adyen.client.recurring.AdyenRecurringClient;
 import org.killbill.billing.plugin.api.notification.PluginTenantConfigurableConfigurationHandler;
-import org.killbill.killbill.osgi.libs.killbill.OSGIKillbillAPI;
-import org.killbill.killbill.osgi.libs.killbill.OSGIKillbillLogService;
 
 public class AdyenRecurringConfigurationHandler extends PluginTenantConfigurableConfigurationHandler<AdyenRecurringClient> {
 

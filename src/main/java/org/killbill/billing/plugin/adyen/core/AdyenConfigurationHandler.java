@@ -19,6 +19,8 @@ package org.killbill.billing.plugin.adyen.core;
 
 import java.util.Properties;
 
+import org.killbill.billing.osgi.libs.killbill.OSGIKillbillAPI;
+import org.killbill.billing.osgi.libs.killbill.OSGIKillbillLogService;
 import org.killbill.billing.plugin.adyen.client.AdyenConfigProperties;
 import org.killbill.billing.plugin.adyen.client.AdyenPaymentPortRegistry;
 import org.killbill.billing.plugin.adyen.client.PaymentPortRegistry;
@@ -32,8 +34,6 @@ import org.killbill.billing.plugin.adyen.client.payment.service.AdyenPaymentRequ
 import org.killbill.billing.plugin.adyen.client.payment.service.AdyenPaymentServiceProviderPort;
 import org.killbill.billing.plugin.adyen.client.payment.service.Signer;
 import org.killbill.billing.plugin.api.notification.PluginTenantConfigurableConfigurationHandler;
-import org.killbill.killbill.osgi.libs.killbill.OSGIKillbillAPI;
-import org.killbill.killbill.osgi.libs.killbill.OSGIKillbillLogService;
 
 public class AdyenConfigurationHandler extends PluginTenantConfigurableConfigurationHandler<AdyenPaymentServiceProviderPort> {
 

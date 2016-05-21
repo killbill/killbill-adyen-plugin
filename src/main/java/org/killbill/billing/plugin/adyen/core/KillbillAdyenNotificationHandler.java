@@ -29,6 +29,7 @@ import org.killbill.adyen.notification.NotificationRequestItem;
 import org.killbill.billing.account.api.Account;
 import org.killbill.billing.account.api.AccountApiException;
 import org.killbill.billing.catalog.api.Currency;
+import org.killbill.billing.osgi.libs.killbill.OSGIKillbillAPI;
 import org.killbill.billing.payment.api.Payment;
 import org.killbill.billing.payment.api.PaymentApiException;
 import org.killbill.billing.payment.api.PaymentMethod;
@@ -48,7 +49,8 @@ import org.killbill.billing.plugin.api.PluginProperties;
 import org.killbill.billing.util.callcontext.CallContext;
 import org.killbill.billing.util.callcontext.TenantContext;
 import org.killbill.clock.Clock;
-import org.killbill.killbill.osgi.libs.killbill.OSGIKillbillAPI;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
@@ -58,6 +60,8 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 
 public class KillbillAdyenNotificationHandler implements AdyenNotificationHandler {
+
+    private static final Logger logger = LoggerFactory.getLogger(KillbillAdyenNotificationHandler.class);
 
     // Note that AUTHORISATION maps to either AUTHORIZE or PURCHASE
     private static final Map<String, TransactionType> EVENT_CODES_TO_TRANSACTION_TYPE = ImmutableMap.<String, TransactionType>builder().put("CANCELLATION", TransactionType.VOID)
@@ -296,16 +300,34 @@ public class KillbillAdyenNotificationHandler implements AdyenNotificationHandle
     private Payment fixPaymentTransactionState(final Payment payment, final PaymentTransaction paymentTransaction, final PaymentPluginStatus paymentPluginStatus, final CallContext context) {
         final String currentPaymentStateName = String.format("%s_%s", paymentTransaction.getTransactionType() == TransactionType.AUTHORIZE ? "AUTH" : paymentTransaction.getTransactionType(), paymentPluginStatus == PaymentPluginStatus.PROCESSED ? "SUCCESS" : "FAILED");
 
-        throw new UnsupportedOperationException(String.format("TODO AdminPaymentApi isn't exposed to OSGI plugins yet, cannot transition paymentTransactionExternalKey='%s', oldPaymentPluginStatus='%s', newPaymentPluginStatus='%s'", paymentTransaction.getExternalKey(), paymentTransaction.getPaymentInfoPlugin().getStatus(), paymentPluginStatus));
-        /*
+        final TransactionStatus transactionStatus;
+        switch (paymentPluginStatus) {
+            case PROCESSED:
+                transactionStatus = TransactionStatus.SUCCESS;
+                break;
+            case PENDING:
+                transactionStatus = TransactionStatus.PENDING;
+                break;
+            case ERROR:
+                transactionStatus = TransactionStatus.PAYMENT_FAILURE;
+                break;
+            case CANCELED:
+                transactionStatus = TransactionStatus.PLUGIN_FAILURE;
+                break;
+            default:
+                transactionStatus = TransactionStatus.UNKNOWN;
+                break;
+        }
+
+        logger.warn("Forcing transition paymentTransactionExternalKey='{}', oldPaymentPluginStatus='{}', newPaymentPluginStatus='{}'", paymentTransaction.getExternalKey(), paymentTransaction.getPaymentInfoPlugin().getStatus(), paymentPluginStatus);
+
         try {
-            osgiKillbillAPI.getAdminPaymentApi().fixPaymentTransactionState(payment, paymentTransaction, paymentPluginStatus, null, currentPaymentStateName, ImmutableList.<PluginProperty> of(), context);
+            osgiKillbillAPI.getAdminPaymentApi().fixPaymentTransactionState(payment, paymentTransaction, transactionStatus, null, currentPaymentStateName, ImmutableList.<PluginProperty>of(), context);
             return getPayment(payment.getId(), context);
         } catch (final PaymentApiException e) {
             // Have Adyen retry
             throw new RuntimeException(String.format("Failed to fix transaction kbPaymentTransactionId='%s'", paymentTransaction.getId()), e);
         }
-        */
     }
 
     private Payment createPayment(final Account account, final NotificationItem notification, final boolean isHPP, final PaymentPluginStatus paymentPluginStatus, final CallContext context) {

@@ -21,7 +21,9 @@ import java.sql.SQLException;
 import java.util.Properties;
 
 import org.killbill.billing.account.api.Account;
-import org.killbill.billing.payment.api.Payment;
+import org.killbill.billing.osgi.libs.killbill.OSGIConfigPropertiesService;
+import org.killbill.billing.osgi.libs.killbill.OSGIKillbillAPI;
+import org.killbill.billing.osgi.libs.killbill.OSGIKillbillLogService;
 import org.killbill.billing.plugin.TestUtils;
 import org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi;
 import org.killbill.billing.plugin.adyen.client.AdyenConfigProperties;
@@ -45,9 +47,6 @@ import org.killbill.billing.plugin.adyen.core.AdyenRecurringConfigurationHandler
 import org.killbill.billing.plugin.adyen.dao.AdyenDao;
 import org.killbill.clock.Clock;
 import org.killbill.clock.DefaultClock;
-import org.killbill.killbill.osgi.libs.killbill.OSGIConfigPropertiesService;
-import org.killbill.killbill.osgi.libs.killbill.OSGIKillbillAPI;
-import org.killbill.killbill.osgi.libs.killbill.OSGIKillbillLogService;
 
 import static org.mockito.Mockito.mock;
 
