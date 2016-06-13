@@ -1,3 +1,9 @@
+0.3.2
+    Adyen client refactoring
+    Fix HPP completion flow with pending payment
+    Fix rounding of Money amounts
+    Improve logging
+
 0.3.1
     MaestroUK support
     Chargeback notifications support
