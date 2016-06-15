@@ -17,7 +17,10 @@
 
 package org.killbill.billing.plugin.adyen.api.mapping;
 
+import javax.annotation.Nullable;
+
 import org.joda.time.DateTime;
+import org.killbill.billing.account.api.AccountData;
 import org.killbill.billing.payment.api.PluginProperty;
 import org.killbill.billing.plugin.adyen.client.AdyenConfigProperties;
 import org.killbill.billing.plugin.adyen.client.model.PaymentInfo;
@@ -39,17 +42,22 @@ import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.PROPER
 import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.PROPERTY_SESSION_VALIDITY;
 import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.PROPERTY_SHIP_BEFORE_DATE;
 import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.PROPERTY_SKIN_CODE;
+import static org.killbill.billing.plugin.api.payment.PluginPaymentPluginApi.PROPERTY_COUNTRY;
 
 public abstract class WebPaymentFrontendMappingService {
 
-    public static PaymentInfo toPaymentInfo(final AdyenConfigProperties configuration, final Clock clock, final Iterable<PluginProperty> properties) {
+    public static PaymentInfo toPaymentInfo(@Nullable final AccountData account, final AdyenConfigProperties configuration, final Clock clock, final Iterable<PluginProperty> properties) {
         final WebPaymentFrontend paymentInfo = new WebPaymentFrontend();
 
         final String propertyShipBeforeDate = PluginProperties.findPluginPropertyValue(PROPERTY_SHIP_BEFORE_DATE, properties);
         final DateTime shipBeforeDateTime = propertyShipBeforeDate == null ? clock.getUTCNow().plusHours(1) : new DateTime(propertyShipBeforeDate);
         paymentInfo.setShipBeforeDate(shipBeforeDateTime.toString("yyyy-MM-dd"));
 
-        final String skinCode = PluginProperties.getValue(PROPERTY_SKIN_CODE, configuration.getSkin(paymentInfo.getCountry()), properties);
+        String countryCode = PluginProperties.getValue(PROPERTY_COUNTRY, null, properties);
+        if (countryCode == null && account != null) {
+            countryCode = account.getCountry();
+        }
+        final String skinCode = PluginProperties.getValue(PROPERTY_SKIN_CODE, configuration.getSkin(countryCode), properties);
         paymentInfo.setSkinCode(skinCode);
 
         final String orderData = PluginProperties.findPluginPropertyValue(PROPERTY_ORDER_DATA, properties);

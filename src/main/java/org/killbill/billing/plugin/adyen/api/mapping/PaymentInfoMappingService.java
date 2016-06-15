@@ -74,7 +74,7 @@ public abstract class PaymentInfoMappingService {
         final PaymentInfo paymentInfo;
 
         if (paymentMethodsRecord == null) {
-            paymentInfo = WebPaymentFrontendMappingService.toPaymentInfo(configuration, clock, properties);
+            paymentInfo = WebPaymentFrontendMappingService.toPaymentInfo(account, configuration, clock, properties);
         } else {
             final String recurringDetailReference = PluginProperties.getValue(PROPERTY_RECURRING_DETAIL_ID, paymentMethodsRecord.getToken(), properties);
             if (recurringDetailReference != null) {
