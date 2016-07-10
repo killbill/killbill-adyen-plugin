@@ -601,6 +601,18 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
                                                                     @Nullable final Currency currency,
                                                                     final Iterable<PluginProperty> properties,
                                                                     final TenantContext context) throws PaymentPluginApiException {
+        final boolean fromHPP = Boolean.valueOf(PluginProperties.findPluginPropertyValue(PROPERTY_FROM_HPP, properties));
+        if (fromHPP) {
+            // We are processing a notification (see KillbillAdyenNotificationHandler)
+            final DateTime utcNow = clock.getUTCNow();
+            try {
+                final AdyenResponsesRecord adyenResponsesRecord = dao.addAdyenResponse(kbAccountId, kbPaymentId, kbTransactionId, transactionType, amount, currency, PluginProperties.toMap(properties), utcNow, context.getTenantId());
+                return buildPaymentTransactionInfoPlugin(adyenResponsesRecord);
+            } catch (final SQLException e) {
+                throw new PaymentPluginApiException("HPP payment came through, but we encountered a database error", e);
+            }
+        }
+
         final Account account = getAccount(kbAccountId, context);
 
         final String pspReference;
