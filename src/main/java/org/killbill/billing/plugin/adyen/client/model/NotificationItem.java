@@ -20,6 +20,8 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 
+import org.joda.money.CurrencyUnit;
+import org.joda.money.Money;
 import org.joda.time.DateTime;
 import org.killbill.adyen.common.Amount;
 import org.killbill.adyen.notification.NotificationRequestItem;
@@ -43,8 +45,14 @@ public class NotificationItem {
     public NotificationItem(final NotificationRequestItem notificationRequestItem) {
         this.additionalData = null;
         final Amount itemAmount = notificationRequestItem.getAmount();
-        this.amount = (itemAmount == null ? null : new BigDecimal(itemAmount.getValue()));
         this.currency = (itemAmount == null ? null : itemAmount.getCurrency());
+        if (this.currency != null && itemAmount.getValue() != null) {
+            // The amount is in minor units
+            final CurrencyUnit currencyUnit = CurrencyUnit.of(this.currency);
+            this.amount = Money.ofMinor(currencyUnit, itemAmount.getValue()).getAmount();
+        } else {
+            this.amount = null;
+        }
         this.eventCode = notificationRequestItem.getEventCode();
         this.eventDate = notificationRequestItem.getEventDate() == null ? null : new DateTime(notificationRequestItem.getEventDate().toGregorianCalendar().getTime());
         this.merchantAccountCode = notificationRequestItem.getMerchantAccountCode();

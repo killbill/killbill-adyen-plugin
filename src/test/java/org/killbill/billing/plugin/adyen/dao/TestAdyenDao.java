@@ -102,7 +102,7 @@ public class TestAdyenDao extends TestWithEmbeddedDBBase {
     public void testInsertNotification() throws SQLException, IOException {
         final NotificationRequestItem notificationRequestItem = new NotificationRequestItem();
         final Amount amount = new Amount();
-        amount.setValue(12L);
+        amount.setValue(1200L);
         amount.setCurrency("EUR");
         notificationRequestItem.setAmount(amount);
         notificationRequestItem.setEventCode(UUID.randomUUID().toString());
