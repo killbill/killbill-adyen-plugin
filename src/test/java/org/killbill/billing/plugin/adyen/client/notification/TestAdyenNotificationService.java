@@ -16,11 +16,19 @@
 
 package org.killbill.billing.plugin.adyen.client.notification;
 
+import java.math.BigDecimal;
+import java.util.List;
+import java.util.Map;
+
+import org.killbill.adyen.notification.NotificationRequestItem;
+import org.killbill.billing.catalog.api.Currency;
+import org.killbill.billing.plugin.adyen.client.model.NotificationItem;
 import org.testng.Assert;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 
 public class TestAdyenNotificationService {
 
@@ -229,33 +237,55 @@ public class TestAdyenNotificationService {
 
     @Test(groups = "fast")
     public void testHandleAuthorizationNotification() throws Exception {
-        handleAndVerifyHandler(AUTHORISATION_NOTIFICATION);
+        handleAndVerifyHandler(AUTHORISATION_NOTIFICATION,
+                               ImmutableMap.<Short, BigDecimal>of((short) 0, new BigDecimal("29.95")),
+                               ImmutableMap.<Short, Currency>of((short) 0, Currency.EUR));
     }
 
     @Test(groups = "fast")
     public void testHandleRefundNotification() throws Exception {
-        handleAndVerifyHandler(REFUND_NOTIFICATION);
+        handleAndVerifyHandler(REFUND_NOTIFICATION,
+                               ImmutableMap.<Short, BigDecimal>of((short) 0, new BigDecimal("1.00")),
+                               ImmutableMap.<Short, Currency>of((short) 0, Currency.EUR));
     }
 
     @Test(groups = "fast")
     public void testHandleChargebackNotification() throws Exception {
-        handleAndVerifyHandler(NOTIFICATION_OF_CHARGEBACK_NOTIFICATION);
+        handleAndVerifyHandler(NOTIFICATION_OF_CHARGEBACK_NOTIFICATION,
+                               ImmutableMap.<Short, BigDecimal>of((short) 0, new BigDecimal("3.04"),
+                                                                  (short) 1, new BigDecimal("4.75"),
+                                                                  (short) 2, new BigDecimal("13.90")),
+                               ImmutableMap.<Short, Currency>of((short) 0, Currency.EUR,
+                                                                (short) 1, Currency.EUR,
+                                                                (short) 2, Currency.EUR));
     }
 
     @Test(groups = "fast")
     public void testHandleChargebackReversedNotification() throws Exception {
-        handleAndVerifyHandler(CHARGEBACK_REVERSED_NOTIFICATION);
+        handleAndVerifyHandler(CHARGEBACK_REVERSED_NOTIFICATION,
+                               ImmutableMap.<Short, BigDecimal>of((short) 0, new BigDecimal("4.09")),
+                               ImmutableMap.<Short, Currency>of((short) 0, Currency.EUR));
     }
 
     @Test(groups = "fast")
     public void testHandleReportAvailableNotification() throws Exception {
-        handleAndVerifyHandler(REPORT_AVAILABLE_NOTIFICATION);
+        handleAndVerifyHandler(REPORT_AVAILABLE_NOTIFICATION,
+                               ImmutableMap.<Short, BigDecimal>of((short) 0, BigDecimal.ZERO),
+                               ImmutableMap.<Short, Currency>of((short) 0, Currency.EUR));
     }
 
-    private void handleAndVerifyHandler(final String notification) {
+    private void handleAndVerifyHandler(final String notification, final Map<Short, BigDecimal> amounts, final Map<Short, Currency> currencies) {
         final String response = notificationService.handleNotifications(notification);
         Assert.assertEquals(response, "<SOAP-ENV:Envelope xmlns:SOAP-ENV=\"http://schemas.xmlsoap.org/soap/envelope/\"><SOAP-ENV:Header/><SOAP-ENV:Body><sendNotificationResponse xmlns=\"http://notification.services.adyen.com\" xmlns:ns2=\"http://common.services.adyen.com\"><notificationResponse>[accepted]</notificationResponse></sendNotificationResponse></SOAP-ENV:Body></SOAP-ENV:Envelope>");
 
         Assert.assertEquals(handler.getItems().size(), NOTIFICATION_OF_CHARGEBACK_NOTIFICATION.equals(notification) ? 3 : 1);
+
+        final List<NotificationRequestItem> items = handler.getItems();
+        for (short i = 0; i < items.size(); i++) {
+            final NotificationRequestItem notificationRequestItem = items.get(i);
+            final NotificationItem notificationItem = new NotificationItem(notificationRequestItem);
+            Assert.assertEquals(notificationItem.getAmount().compareTo(amounts.get(i)), 0);
+            Assert.assertEquals(notificationItem.getCurrency(), currencies.get(i).name());
+        }
     }
 }

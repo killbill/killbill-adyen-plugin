@@ -16,7 +16,6 @@
 
 package org.killbill.billing.plugin.adyen.client.notification;
 
-import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -24,7 +23,7 @@ import org.killbill.adyen.notification.NotificationRequestItem;
 
 public class AdyenNotificationHandlerTest implements AdyenNotificationHandler {
 
-    private final Collection<NotificationRequestItem> items = new LinkedList<NotificationRequestItem>();
+    private final List<NotificationRequestItem> items = new LinkedList<NotificationRequestItem>();
 
     @Override
     public boolean canHandleNotification(final NotificationRequestItem item) {
@@ -36,7 +35,7 @@ public class AdyenNotificationHandlerTest implements AdyenNotificationHandler {
         items.add(item);
     }
 
-    public Collection<NotificationRequestItem> getItems() {
+    public List<NotificationRequestItem> getItems() {
         return items;
     }
 }
