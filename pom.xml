@@ -422,6 +422,7 @@
                             javax.xml.transform.sax;
                             javax.xml.transform.dom;
                             javax.xml.transform.stream;
+                            javax.xml.validation;
                             javax.xml.xpath;
                             javax.naming.directory;
                             javax.naming.event;
