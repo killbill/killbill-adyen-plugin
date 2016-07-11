@@ -45,7 +45,7 @@ public class AdyenHostedPaymentPageConfigurationHandler extends PluginTenantConf
     private AdyenPaymentServiceProviderHostedPaymentPagePort initializeHppAdyenClient(final AdyenConfigProperties adyenConfigProperties) {
         final PaymentInfoConverterManagement paymentInfoConverterManagement = new PaymentInfoConverterService();
 
-        final Signer signer = new Signer(adyenConfigProperties);
+        final Signer signer = new Signer();
         final AdyenRequestFactory adyenRequestFactory = new AdyenRequestFactory(paymentInfoConverterManagement, adyenConfigProperties, signer);
 
         return new AdyenPaymentServiceProviderHostedPaymentPagePort(adyenConfigProperties, adyenRequestFactory);

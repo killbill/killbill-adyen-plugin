@@ -25,7 +25,6 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 
 import org.killbill.adyen.payment.AnyType2AnyTypeMap;
-import org.killbill.adyen.payment.PaymentRequest;
 import org.killbill.billing.plugin.adyen.client.model.SplitSettlementData;
 import org.killbill.billing.plugin.adyen.client.payment.exception.SignatureGenerationException;
 import org.killbill.billing.plugin.adyen.client.payment.service.Signer;
@@ -41,14 +40,15 @@ public class SplitSettlementParamsBuilder {
     public Map<String, String> createSignedParamsFrom(final SplitSettlementData splitSettlementData,
                                                       final String merchantSignature,
                                                       final Signer signer,
-                                                      final String secret) throws SignatureGenerationException {
+                                                      final String secret,
+                                                      final String algorithm) throws SignatureGenerationException {
         final Map<String, String> params = toMap(createEntriesFrom(splitSettlementData));
 
         final SortedMap<String, String> sortedParams = new TreeMap<String, String>(params);
         sortedParams.put("merchantSig", merchantSignature);
         final String concatenatedKeys = JOINER.join(sortedParams.keySet());
         final String concatenatedValues = JOINER.join(sortedParams.values());
-        final String signature = signer.getBase64EncodedSignature(secret, concatenatedKeys + "|" + concatenatedValues);
+        final String signature = signer.signData(secret, algorithm, concatenatedKeys + "|" + concatenatedValues);
 
         params.put(SPLITSETTLEMENT + ".sig", signature);
 

@@ -60,6 +60,8 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 
+import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.PROPERTY_AUTH_MODE;
+
 public class KillbillAdyenNotificationHandler implements AdyenNotificationHandler {
 
     private static final Logger logger = LoggerFactory.getLogger(KillbillAdyenNotificationHandler.class);
@@ -100,6 +102,7 @@ public class KillbillAdyenNotificationHandler implements AdyenNotificationHandle
         UUID kbPaymentTransactionId = null;
         UUID kbTenantId = null;
         TransactionType transactionType = null;
+        boolean authMode = true;
         boolean isHpp = false;
         try {
             // Check if we have a record for that pspReference (PENDING auth, capture, refund, etc.)
@@ -130,13 +133,18 @@ public class KillbillAdyenNotificationHandler implements AdyenNotificationHandle
                         if (hppRequest.getKbPaymentTransactionId() != null) {
                             kbPaymentTransactionId = UUID.fromString(hppRequest.getKbPaymentTransactionId());
                         }
+
+                        final Map additionalData = AdyenDao.fromAdditionalData(hppRequest.getAdditionalData());
+                        final Object authModeProperty = MoreObjects.firstNonNull(additionalData.get(PROPERTY_AUTH_MODE), true);
+                        authMode = Boolean.valueOf(authModeProperty.toString());
+
                         isHpp = true;
                     }
                     // Otherwise, it could be a generic notification (like REPORT_AVAILABLE)
                 }
             }
 
-            final Payment payment = updateKillbill(notification, kbAccountId, kbPaymentId, kbPaymentTransactionId, isHpp, utcNow, kbTenantId);
+            final Payment payment = updateKillbill(notification, kbAccountId, kbPaymentId, kbPaymentTransactionId, isHpp, authMode, utcNow, kbTenantId);
             if (payment != null) {
                 kbPaymentId = payment.getId();
                 kbPaymentTransactionId = payment.getTransactions().iterator().next().getId();
@@ -153,6 +161,7 @@ public class KillbillAdyenNotificationHandler implements AdyenNotificationHandle
                                    @Nullable final UUID kbPaymentId,
                                    @Nullable final UUID kbPaymentTransactionId,
                                    final boolean isHPP,
+                                   final boolean authMode,
                                    final DateTime utcNow,
                                    @Nullable final UUID kbTenantId) {
         final TransactionType transactionType = EVENT_CODES_TO_TRANSACTION_TYPE.get(notification.getEventCode());
@@ -191,7 +200,7 @@ public class KillbillAdyenNotificationHandler implements AdyenNotificationHandle
             paymentPluginStatus = PaymentPluginStatus.UNDEFINED;
         }
 
-        return updateKillbill(notification, kbAccountId, kbPaymentId, kbPaymentTransactionId, isHPP, paymentPluginStatus, transactionType, utcNow, kbTenantId);
+        return updateKillbill(notification, kbAccountId, kbPaymentId, kbPaymentTransactionId, isHPP, authMode, paymentPluginStatus, transactionType, utcNow, kbTenantId);
     }
 
     private Payment updateKillbill(final NotificationItem notification,
@@ -199,6 +208,7 @@ public class KillbillAdyenNotificationHandler implements AdyenNotificationHandle
                                    @Nullable final UUID kbPaymentId,
                                    @Nullable final UUID kbPaymentTransactionId,
                                    final boolean isHPP,
+                                   final boolean authMode,
                                    final PaymentPluginStatus paymentPluginStatus,
                                    @Nullable final TransactionType expectedTransactionType,
                                    final DateTime utcNow,
@@ -238,7 +248,7 @@ public class KillbillAdyenNotificationHandler implements AdyenNotificationHandle
                 return createChargeback(account, kbPaymentId, notification, context);
             } else if (paymentTransaction == null) {
                 // HPP not associated with a pending payment
-                return createPayment(account, payment, notification, isHPP, expectedTransactionType, paymentPluginStatus, context);
+                return createPayment(account, payment, notification, authMode, expectedTransactionType, paymentPluginStatus, context);
             } else {
                 // Payment in Kill Bill has the latest state, nothing to do (we simply updated our plugin tables in case Adyen had extra information for us)
                 return payment;
@@ -251,7 +261,7 @@ public class KillbillAdyenNotificationHandler implements AdyenNotificationHandle
             final Account account = getAccount(kbAccountId, context);
 
             // HPP not associated with a pending payment
-            return createPayment(account, null, notification, isHPP, expectedTransactionType, paymentPluginStatus, context);
+            return createPayment(account, null, notification, authMode, expectedTransactionType, paymentPluginStatus, context);
         } else {
             // API payment unknown to Kill Bill, does it belong to a different system?
             // Note that we could decide to record a new payment here, this would be useful to migrate data for instance
@@ -336,16 +346,21 @@ public class KillbillAdyenNotificationHandler implements AdyenNotificationHandle
         }
     }
 
-    private Payment createPayment(final Account account, @Nullable final Payment payment, final NotificationItem notification, final boolean isHPP, final TransactionType expectedTransactionType, final PaymentPluginStatus paymentPluginStatus, final CallContext context) {
+    private Payment createPayment(final Account account, @Nullable final Payment payment, final NotificationItem notification, final boolean authMode, final TransactionType expectedTransactionType, final PaymentPluginStatus paymentPluginStatus, final CallContext context) {
         final UUID kbPaymentMethodId = payment != null ? payment.getPaymentMethodId() : getAdyenKbPaymentMethodId(account.getId(), context);
         final UUID kbPaymentId = payment != null ? payment.getId() : null;
         final BigDecimal amount = notification.getAmount();
         final Currency currency = notification.getCurrency() != null ? Currency.valueOf(notification.getCurrency()) : null;
         final String paymentExternalKey = payment != null ? payment.getExternalKey() : Strings.emptyToNull(notification.getMerchantReference());
         final String paymentTransactionExternalKey = payment != null ? notification.getPspReference() : Strings.emptyToNull(notification.getMerchantReference());
-        final Iterable<PluginProperty> pluginProperties = toPluginProperties(notification, isHPP, paymentPluginStatus);
+        final Iterable<PluginProperty> pluginProperties = toPluginProperties(notification, true, paymentPluginStatus);
 
-        final TransactionType transactionType = MoreObjects.firstNonNull(expectedTransactionType, TransactionType.AUTHORIZE);
+        TransactionType transactionType = MoreObjects.firstNonNull(expectedTransactionType, TransactionType.AUTHORIZE);
+        if (transactionType == TransactionType.AUTHORIZE && !authMode) {
+            // Auto-capture mode configured in Adyen
+            transactionType = TransactionType.PURCHASE;
+        }
+
         try {
             switch (transactionType) {
                 case AUTHORIZE:

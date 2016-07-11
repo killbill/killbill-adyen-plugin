@@ -77,20 +77,21 @@ public class TestHPPRequestBuilder extends BaseTestPaymentRequestBuilder {
                                                                                                                            new SplitSettlementData.Item(750, "deal2", "travelId", "travel")));
 
         final Signer signer = Mockito.mock(Signer.class);
-        Mockito.when(signer.computeSignature(Mockito.anyLong(),
-                                             Mockito.anyString(),
-                                             Mockito.anyString(),
-                                             Mockito.anyString(),
-                                             Mockito.anyString(),
-                                             Mockito.anyString(),
-                                             Mockito.anyString(),
-                                             Mockito.anyString(),
-                                             Mockito.anyString(),
-                                             Mockito.anyString(),
-                                             Mockito.anyString(),
-                                             Mockito.anyString())).thenReturn(MERCHANT_SIG);
+        Mockito.when(signer.signFormParameters(Mockito.anyLong(),
+                                               Mockito.anyString(),
+                                               Mockito.anyString(),
+                                               Mockito.anyString(),
+                                               Mockito.anyString(),
+                                               Mockito.anyString(),
+                                               Mockito.anyString(),
+                                               Mockito.anyString(),
+                                               Mockito.anyString(),
+                                               Mockito.anyString(),
+                                               Mockito.anyString(),
+                                               Mockito.anyString(),
+                                               Mockito.anyString())).thenReturn(MERCHANT_SIG);
 
-        final Map<String, String> params = new HPPRequestBuilder(merchantAccount, paymentData, userData, splitSettlementData, UUID.randomUUID().toString(), signer).build();
+        final Map<String, String> params = new HPPRequestBuilder(merchantAccount, paymentData, userData, splitSettlementData, UUID.randomUUID().toString(), UUID.randomUUID().toString(), signer).build();
 
         Assert.assertFalse(params.isEmpty(), "HPP Params map should not be empty");
         Assert.assertEquals(params.get("countryCode"), COUNTRY_CODE, "Wrong value for 'countryCode'");

@@ -100,7 +100,7 @@ public class AdyenPluginMockBuilder {
 
         final PaymentInfoConverterManagement paymentInfoConverterManagement = new PaymentInfoConverterService();
 
-        final Signer signer = new Signer(adyenConfigProperties);
+        final Signer signer = new Signer();
         final AdyenRequestFactory adyenRequestFactory = new AdyenRequestFactory(paymentInfoConverterManagement, adyenConfigProperties, signer);
 
         final LoggingInInterceptor loggingInInterceptor = new LoggingInInterceptor();
