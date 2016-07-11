@@ -33,6 +33,8 @@ public class AdyenConfigProperties {
 
     private static final Locale LOCALE_EN_UK = new Locale("en", "UK");
 
+    public static final String DEFAULT_HMAC_ALGORITHM = "HmacSHA256";
+
     private static final String DEFAULT_CONNECTION_TIMEOUT = "30000";
     private static final String DEFAULT_READ_TIMEOUT = "60000";
 
@@ -41,12 +43,14 @@ public class AdyenConfigProperties {
     private final Map<String, String> passwordMap = new ConcurrentHashMap<String, String>();
     private final Map<String, String> skinMap = new ConcurrentHashMap<String, String>();
     private final Map<String, String> secretMap = new ConcurrentHashMap<String, String>();
+    private final Map<String, String> hmacAlgorithmMap = new ConcurrentHashMap<String, String>();
 
     private final String merchantAccounts;
     private final String userNames;
     private final String passwords;
     private final String skins;
     private final String hmacSecrets;
+    private final String hmacAlgorithms;
     private final String paymentUrl;
     private final String recurringUrl;
     private final String recurringConnectionTimeout;
@@ -83,6 +87,14 @@ public class AdyenConfigProperties {
 
         this.hmacSecrets = properties.getProperty(PROPERTY_PREFIX + "hmac.secret");
         refillMap(secretMap, hmacSecrets);
+
+        final String hmacAlgorithm = properties.getProperty(PROPERTY_PREFIX + "hmac.algorithm");
+        if (hmacAlgorithm != null) {
+            this.hmacAlgorithms = hmacAlgorithm;
+        } else {
+            this.hmacAlgorithms = DEFAULT_HMAC_ALGORITHM;
+        }
+        refillMap(hmacAlgorithmMap, hmacAlgorithms);
 
         this.passwords = properties.getProperty(PROPERTY_PREFIX + "password");
         refillMap(passwordMap, passwords);
@@ -174,6 +186,14 @@ public class AdyenConfigProperties {
         }
 
         return secretMap.get(adjustCountryCode(countryIsoCode));
+    }
+
+    public String getHmacAlgorithm(final String countryIsoCode) {
+        if (countryIsoCode == null || hmacAlgorithmMap.isEmpty()) {
+            return hmacAlgorithms;
+        }
+
+        return hmacAlgorithmMap.get(adjustCountryCode(countryIsoCode));
     }
 
     public String getHppTarget() {

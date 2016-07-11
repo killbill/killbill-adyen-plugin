@@ -36,27 +36,22 @@ import com.google.common.io.BaseEncoding;
 public class Signer {
 
     private static final Logger logger = LoggerFactory.getLogger(Signer.class);
-    private static final String HMAC_ALGORITHM = "HmacSHA1";
+
     private static final BaseEncoding BASE_64_ENCODING = BaseEncoding.base64();
 
-    private final AdyenConfigProperties adyenConfigProperties;
-
-    public Signer(final AdyenConfigProperties adyenConfigProperties) {
-        this.adyenConfigProperties = adyenConfigProperties;
-    }
-
-    public String computeSignature(final Long amount,
-                                   final String currency,
-                                   final String shipBeforeDate,
-                                   final String reference,
-                                   final String skin,
-                                   final String merchantAccount,
-                                   final String email,
-                                   final String customerId,
-                                   final String contract,
-                                   final String allowedMethods,
-                                   final String sessionValidity,
-                                   final String hmacSecret) {
+    public String signFormParameters(final Long amount,
+                                     final String currency,
+                                     final String shipBeforeDate,
+                                     final String reference,
+                                     final String skin,
+                                     final String merchantAccount,
+                                     final String email,
+                                     final String customerId,
+                                     final String contract,
+                                     final String allowedMethods,
+                                     final String sessionValidity,
+                                     final String hmacSecret,
+                                     final String hmacAlgorithm) {
         try {
             final StringBuilder signingString = new StringBuilder();
             signingString.append(amount);
@@ -79,20 +74,19 @@ public class Signer {
             if (allowedMethods != null) {
                 signingString.append(allowedMethods);
             }
-            return getBase64EncodedSignature(hmacSecret, signingString.toString());
+            return signData(hmacSecret, hmacAlgorithm, signingString.toString());
         } catch (final SignatureGenerationException e) {
             logger.warn("Could not build hpp signature", e);
             return "";
         }
     }
 
-    public String getBase64EncodedSignature(final String secret, final String signingData) throws SignatureGenerationException {
-        final SecretKey key = getMacKey(secret);
+    public String signData(final String secret, final String algorithm, final String signingData) throws SignatureGenerationException {
         try {
+            final SecretKey key = createSecretKey(secret, algorithm);
             final Mac mac = Mac.getInstance(key.getAlgorithm());
-            mac.init(getMacKey(secret));
-            final byte[] digest = mac.doFinal(signingData.getBytes("UTF8"));
-            return BASE_64_ENCODING.encode(digest);
+            mac.init(key);
+            return BASE_64_ENCODING.encode(mac.doFinal(signingData.getBytes("UTF8")));
         } catch (final NoSuchAlgorithmException nsae) {
             throw new SignatureGenerationException("Error while signature generation.", nsae);
         } catch (final IllegalStateException ise) {
@@ -104,37 +98,21 @@ public class Signer {
         }
     }
 
-    private SecretKey getMacKey(final String secret) {
-        try {
-            return new SecretKeySpec(secret.getBytes("ASCII"), HMAC_ALGORITHM);
-        } catch (final UnsupportedEncodingException e) {
-            return null;
-        }
-    }
-
-    public boolean verifyBase64EncodedSignature(final String countryCode, final String sig, final String signedData)
+    public boolean verifySignature(final String secret, final String algorithm, final String data, final String signature)
             throws SignatureVerificationException {
-        return !(countryCode == null || sig == null || signedData == null) && sig.equals(computeSign(countryCode, signedData));
+        try {
+            if (data != null && signature != null) {
+                final String expectedSignature = signData(secret, algorithm, data);
+                return signature.equals(expectedSignature);
+            }
+
+            return false;
+        } catch (SignatureGenerationException e) {
+            throw new SignatureVerificationException("Error while signature verification.", e.getCause());
+        }
     }
 
-    public String computeSign(final String countryCode, final String signedData) throws SignatureVerificationException {
-        final String secret = adyenConfigProperties.getHmacSecret(countryCode);
-        final SecretKey key = getMacKey(secret);
-        final String sign;
-        try {
-            final Mac mac = Mac.getInstance(key.getAlgorithm());
-            mac.init(getMacKey(secret));
-            final byte[] digest = mac.doFinal(signedData.getBytes("UTF8"));
-            sign = BASE_64_ENCODING.encode(digest);
-        } catch (final NoSuchAlgorithmException nsae) {
-            throw new SignatureVerificationException("Error while signature verififcation.", nsae);
-        } catch (final IllegalStateException ise) {
-            throw new SignatureVerificationException("Error while signature verififcation.", ise);
-        } catch (final UnsupportedEncodingException uee) {
-            throw new SignatureVerificationException("Error while signature verififcation.", uee);
-        } catch (final InvalidKeyException ike) {
-            throw new SignatureVerificationException("Error while signature verififcation.", ike);
-        }
-        return sign;
+    private SecretKey createSecretKey(final String secret, final String algorithm) throws UnsupportedEncodingException {
+        return new SecretKeySpec(secret.getBytes("UTF-8"), algorithm);
     }
 }

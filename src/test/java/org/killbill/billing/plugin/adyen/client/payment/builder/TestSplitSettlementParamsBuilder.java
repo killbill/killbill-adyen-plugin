@@ -22,6 +22,7 @@ import java.util.Map;
 
 import org.killbill.adyen.payment.AnyType2AnyTypeMap;
 import org.killbill.adyen.payment.AnyType2AnyTypeMap.Entry;
+import org.killbill.billing.plugin.adyen.client.AdyenConfigProperties;
 import org.killbill.billing.plugin.adyen.client.model.SplitSettlementData;
 import org.killbill.billing.plugin.adyen.client.payment.exception.SignatureGenerationException;
 import org.killbill.billing.plugin.adyen.client.payment.service.Signer;
@@ -40,12 +41,13 @@ public class TestSplitSettlementParamsBuilder {
                                                                                                                            new SplitSettlementData.Item(750, "deal1", "voucherId2", "voucher"),
                                                                                                                            new SplitSettlementData.Item(750, "deal2", "travelId", "travel")));
         final String merchantSignature = "A8fZw3UV2aLfWtr8mrqy8+wtVXs=";
-        final Signer signer = new Signer(null);
+        final Signer signer = new Signer();
         final String secret = "Hello kitty";
+        final String algorithm = AdyenConfigProperties.DEFAULT_HMAC_ALGORITHM;
 
-        final Map<String, String> signedParams = new SplitSettlementParamsBuilder().createSignedParamsFrom(splitSettlementData, merchantSignature, signer, secret);
+        final Map<String, String> signedParams = new SplitSettlementParamsBuilder().createSignedParamsFrom(splitSettlementData, merchantSignature, signer, secret, algorithm);
 
-        Assert.assertEquals("oOSX6E1YPUas6wvlrwdZUZcWObU=", signedParams.get("splitsettlementdata.sig"));
+        Assert.assertEquals("fTERx5eYhC8UWEJplsh+H89/DPsLC9ZXNLKo0fCluLg=", signedParams.get("splitsettlementdata.sig"));
     }
 
     @Test(groups = "fast")

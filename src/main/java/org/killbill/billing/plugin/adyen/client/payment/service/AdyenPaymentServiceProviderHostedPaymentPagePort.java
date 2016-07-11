@@ -64,9 +64,6 @@ public class AdyenPaymentServiceProviderHostedPaymentPagePort extends BaseAdyenP
         final String pspReference = requestParameterMap.get("pspReference");
         final String merchantReference = requestParameterMap.get("merchantReference");
         final String skinCode = requestParameterMap.get("skinCode");
-        final String merchantSig = requestParameterMap.get("merchantSig");
-        final String paymentMethod = requestParameterMap.get("paymentMethod");
-        final String shopperLocale = requestParameterMap.get("shopperLocale");
         final String merchantReturnData = requestParameterMap.get("merchantReturnData");
 
         final StringBuilder signingData = new StringBuilder();
@@ -86,8 +83,11 @@ public class AdyenPaymentServiceProviderHostedPaymentPagePort extends BaseAdyenP
             signingData.append(merchantReturnData);
         }
 
+        final String merchantSig = requestParameterMap.get("merchantSig");
+        final String secret = adyenConfigProperties.getHmacSecret(countryIsoCode);
+        final String algorithm = adyenConfigProperties.getHmacAlgorithm(countryIsoCode);
         try {
-            return new Signer(adyenConfigProperties).verifyBase64EncodedSignature(countryIsoCode, merchantSig, signingData.toString());
+            return new Signer().verifySignature(secret, algorithm, signingData.toString(), merchantSig);
         } catch (final SignatureVerificationException e) {
             logger.warn("Could not verify signature", e);
             return false;
