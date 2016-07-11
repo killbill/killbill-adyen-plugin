@@ -42,6 +42,7 @@ public class HPPRequestBuilder extends RequestBuilder<Map<String, String>> {
     private final UserData userData;
     private final SplitSettlementData splitSettlementData;
     private final String hmacSecret;
+    private final String hmacAlgorithm;
     private final Signer signer;
 
     public HPPRequestBuilder(final String merchantAccount,
@@ -49,6 +50,7 @@ public class HPPRequestBuilder extends RequestBuilder<Map<String, String>> {
                              final UserData userData,
                              @Nullable final SplitSettlementData splitSettlementData,
                              final String hmacSecret,
+                             final String hmacAlgorithm,
                              final Signer signer) {
         super(new TreeMap<String, String>());
         this.merchantAccount = merchantAccount;
@@ -56,6 +58,7 @@ public class HPPRequestBuilder extends RequestBuilder<Map<String, String>> {
         this.userData = userData;
         this.splitSettlementData = splitSettlementData;
         this.hmacSecret = hmacSecret;
+        this.hmacAlgorithm = hmacAlgorithm;
         this.signer = signer;
     }
 
@@ -70,18 +73,19 @@ public class HPPRequestBuilder extends RequestBuilder<Map<String, String>> {
         request.put("currencyCode", currency);
 
         final WebPaymentFrontend paymentInfo = (WebPaymentFrontend) paymentData.getPaymentInfo();
-        final String merchantSignature = signer.computeSignature(amount,
-                                                                 currency,
-                                                                 paymentInfo.getShipBeforeDate(),
-                                                                 paymentData.getPaymentTransactionExternalKey(),
-                                                                 paymentInfo.getSkinCode(),
-                                                                 merchantAccount,
-                                                                 userData.getShopperEmail(),
-                                                                 userData.getShopperReference(),
-                                                                 paymentInfo.getContract(),
-                                                                 paymentInfo.getAllowedMethods(),
-                                                                 paymentInfo.getSessionValidity(),
-                                                                 hmacSecret);
+        final String merchantSignature = signer.signFormParameters(amount,
+                                                                   currency,
+                                                                   paymentInfo.getShipBeforeDate(),
+                                                                   paymentData.getPaymentTransactionExternalKey(),
+                                                                   paymentInfo.getSkinCode(),
+                                                                   merchantAccount,
+                                                                   userData.getShopperEmail(),
+                                                                   userData.getShopperReference(),
+                                                                   paymentInfo.getContract(),
+                                                                   paymentInfo.getAllowedMethods(),
+                                                                   paymentInfo.getSessionValidity(),
+                                                                   hmacSecret,
+                                                                   hmacAlgorithm);
         request.put("merchantSig", merchantSignature);
 
         setShopperData();
@@ -135,7 +139,8 @@ public class HPPRequestBuilder extends RequestBuilder<Map<String, String>> {
             final Map<String, String> entries = new SplitSettlementParamsBuilder().createSignedParamsFrom(splitSettlementData,
                                                                                                           merchantSignature,
                                                                                                           signer,
-                                                                                                          hmacSecret);
+                                                                                                          hmacSecret,
+                                                                                                          hmacAlgorithm);
             request.putAll(entries);
         }
     }
