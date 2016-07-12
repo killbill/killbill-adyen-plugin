@@ -200,7 +200,7 @@ public class TestAdyenPaymentPluginHttpErrors {
     @Test(groups = "slow")
     public void testAuthorizeWithInvalidValues() throws Exception {
         final String expectedGatewayError = "validation Expiry month should be between 1 and 12 inclusive Card";
-        final String expectedGatewayErrorCode = "org.apache.cxf.binding.soap.SoapFault";
+        final String expectedGatewayErrorCode = "o.a.cxf.binding.soap.SoapFault";
         final Account account = defaultAccount();
         final OSGIKillbillAPI killbillAPI = TestUtils.buildOSGIKillbillAPI(account);
         final Payment payment = killBillPayment(account, killbillAPI);
@@ -461,13 +461,13 @@ public class TestAdyenPaymentPluginHttpErrors {
         });
         assertEquals(result.getStatus(), PaymentPluginStatus.UNDEFINED);
         assertEquals(result.getGatewayError(), "HTTP response '404: Not Found' when communicating with " + wireMockUri(ADYEN_PATH));
-        assertEquals(result.getGatewayErrorCode(), "org.apache.cxf.transport.http.HTTPException");
+        assertEquals(result.getGatewayErrorCode(), "o.a.c.t.http.HTTPException");
 
         final List<PaymentTransactionInfoPlugin> results = pluginApi.getPaymentInfo(account.getId(), payment.getId(), ImmutableList.<PluginProperty>of(), callContext);
         assertEquals(results.size(), 1);
         assertEquals(results.get(0).getStatus(), PaymentPluginStatus.UNDEFINED);
         assertEquals(results.get(0).getGatewayError(), "HTTP response '404: Not Found' when communicating with " + wireMockUri(ADYEN_PATH));
-        assertEquals(results.get(0).getGatewayErrorCode(), "org.apache.cxf.transport.http.HTTPException");
+        assertEquals(results.get(0).getGatewayErrorCode(), "o.a.c.t.http.HTTPException");
     }
 
     @Test(groups = "slow")
@@ -499,14 +499,14 @@ public class TestAdyenPaymentPluginHttpErrors {
         assertEquals(result.getStatus(), PaymentPluginStatus.UNDEFINED);
         assertEquals(result.getGatewayError(), "Unexpected EOF in prolog\n" +
                                                " at [row,col {unknown-source}]: [1,0]");
-        assertEquals(result.getGatewayErrorCode(), "com.ctc.wstx.exc.WstxEOFException");
+        assertEquals(result.getGatewayErrorCode(), "c.ctc.wstx.exc.WstxEOFException");
 
         final List<PaymentTransactionInfoPlugin> results = pluginApi.getPaymentInfo(account.getId(), payment.getId(), ImmutableList.<PluginProperty>of(), callContext);
         assertEquals(results.size(), 1);
         assertEquals(results.get(0).getStatus(), PaymentPluginStatus.UNDEFINED);
         assertEquals(results.get(0).getGatewayError(), "Unexpected EOF in prolog\n" +
                                                        " at [row,col {unknown-source}]: [1,0]");
-        assertEquals(results.get(0).getGatewayErrorCode(), "com.ctc.wstx.exc.WstxEOFException");
+        assertEquals(results.get(0).getGatewayErrorCode(), "c.ctc.wstx.exc.WstxEOFException");
     }
 
     @Test(groups = "slow")
@@ -537,13 +537,13 @@ public class TestAdyenPaymentPluginHttpErrors {
         });
         assertEquals(result.getStatus(), PaymentPluginStatus.UNDEFINED);
         assertEquals(result.getGatewayError(), "HTTP response '503: Service Unavailable' when communicating with " + wireMockUri(ADYEN_PATH));
-        assertEquals(result.getGatewayErrorCode(), "org.apache.cxf.transport.http.HTTPException");
+        assertEquals(result.getGatewayErrorCode(), "o.a.c.t.http.HTTPException");
 
         final List<PaymentTransactionInfoPlugin> results = pluginApi.getPaymentInfo(account.getId(), payment.getId(), ImmutableList.<PluginProperty>of(), callContext);
         assertEquals(results.size(), 1);
         assertEquals(results.get(0).getStatus(), PaymentPluginStatus.UNDEFINED);
         assertEquals(results.get(0).getGatewayError(), "HTTP response '503: Service Unavailable' when communicating with " + wireMockUri(ADYEN_PATH));
-        assertEquals(results.get(0).getGatewayErrorCode(), "org.apache.cxf.transport.http.HTTPException");
+        assertEquals(results.get(0).getGatewayErrorCode(), "o.a.c.t.http.HTTPException");
     }
 
     @DataProvider(name = "invalidCreditCardData")

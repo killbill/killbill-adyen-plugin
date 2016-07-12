@@ -17,6 +17,7 @@
 package org.killbill.billing.plugin.adyen.api;
 
 import java.math.BigDecimal;
+import java.util.Map;
 import java.util.UUID;
 
 import javax.annotation.Nullable;
@@ -42,6 +43,8 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 public class AdyenPaymentTransactionInfoPlugin extends PluginPaymentTransactionInfoPlugin {
 
+    private static final int ERROR_CODE_MAX_LENGTH = 32;
+
     public AdyenPaymentTransactionInfoPlugin(final UUID kbPaymentId,
                                              final UUID kbTransactionPaymentPaymentId,
                                              final TransactionType transactionType,
@@ -56,7 +59,7 @@ public class AdyenPaymentTransactionInfoPlugin extends PluginPaymentTransactionI
               currency,
               getPaymentPluginStatus(purchaseResult.getAdyenCallErrorStatus(), purchaseResult.getResult()),
               getGatewayError(purchaseResult),
-              getGatewayErrorCode(purchaseResult),
+              truncate(getGatewayErrorCode(purchaseResult)),
               purchaseResult.getPspReference(),
               purchaseResult.getAuthCode(),
               utcNow,
@@ -79,7 +82,7 @@ public class AdyenPaymentTransactionInfoPlugin extends PluginPaymentTransactionI
               currency,
               getPaymentPluginStatus(paymentModificationResponse.getAdyenCallErrorStatus(), pspResult),
               getGatewayError(paymentModificationResponse),
-              getGatewayErrorCode(paymentModificationResponse),
+              truncate(getGatewayErrorCode(paymentModificationResponse)),
               paymentModificationResponse.getPspReference(),
               null,
               utcNow,
@@ -95,7 +98,7 @@ public class AdyenPaymentTransactionInfoPlugin extends PluginPaymentTransactionI
               Strings.isNullOrEmpty(record.getCurrency()) ? null : Currency.valueOf(record.getCurrency()),
               getPaymentPluginStatus(record),
               getGatewayError(record),
-              getGatewayErrorCode(record),
+              truncate(getGatewayErrorCode(record)),
               record.getPspReference(),
               record.getAuthCode(),
               new DateTime(record.getCreatedDate(), DateTimeZone.UTC),
@@ -126,11 +129,11 @@ public class AdyenPaymentTransactionInfoPlugin extends PluginPaymentTransactionI
     }
 
     private static String getGatewayErrorCode(final PurchaseResult purchaseResult) {
-        return purchaseResult.getResultCode() != null ? purchaseResult.getResultCode() : purchaseResult.getAdditionalData().get(PurchaseResult.EXCEPTION_CLASS);
+        return purchaseResult.getResultCode() != null ? purchaseResult.getResultCode() : getExceptionClass(purchaseResult.getAdditionalData());
     }
 
     private static String getGatewayErrorCode(final PaymentModificationResponse paymentModificationResponse) {
-        return paymentModificationResponse.getResponse() != null ? paymentModificationResponse.getResponse() : toString(paymentModificationResponse.getAdditionalData().get(PurchaseResult.EXCEPTION_CLASS));
+        return paymentModificationResponse.getResponse() != null ? paymentModificationResponse.getResponse() : getExceptionClass(paymentModificationResponse.getAdditionalData());
     }
 
     private static String getGatewayErrorCode(final AdyenResponsesRecord record) {
@@ -140,7 +143,7 @@ public class AdyenPaymentTransactionInfoPlugin extends PluginPaymentTransactionI
             // PaymentModificationResponse
             return record.getPspResult();
         } else {
-            return toString(AdyenDao.fromAdditionalData(record.getAdditionalData()).get(PurchaseResult.EXCEPTION_CLASS));
+            return getExceptionClass(AdyenDao.fromAdditionalData(record.getAdditionalData()));
         }
     }
 
@@ -211,5 +214,87 @@ public class AdyenPaymentTransactionInfoPlugin extends PluginPaymentTransactionI
 
     private static String toString(final Object obj) {
         return obj == null ? null : obj.toString();
+    }
+
+    private static String truncate(@Nullable final String string) {
+        if (string == null) {
+            return null;
+        } else if (string.length() <= ERROR_CODE_MAX_LENGTH) {
+            return string;
+        } else {
+            return string.substring(0, ERROR_CODE_MAX_LENGTH);
+        }
+    }
+
+    private static String getExceptionClass(final Map additionalData) {
+        final String fqClassName = toString(additionalData.get(PurchaseResult.EXCEPTION_CLASS));
+        if (fqClassName == null || fqClassName.length() <= ERROR_CODE_MAX_LENGTH) {
+            return fqClassName;
+        } else {
+            // Truncate the class name (thank you Logback! See TargetLengthBasedClassNameAbbreviator)
+            return abbreviate(fqClassName, ERROR_CODE_MAX_LENGTH);
+        }
+    }
+
+    private static String abbreviate(final String fqClassName, final int targetLength) {
+        final StringBuilder buf = new StringBuilder(targetLength);
+        final int[] dotIndexesArray = new int[16];
+        final int[] lengthArray = new int[17];
+
+        final int dotCount = computeDotIndexes(fqClassName, dotIndexesArray);
+        if (dotCount == 0) {
+            return fqClassName;
+        }
+
+        computeLengthArray(fqClassName, dotIndexesArray, lengthArray, dotCount);
+        for (int i = 0; i <= dotCount; i++) {
+            if (i == 0) {
+                buf.append(fqClassName.substring(0, lengthArray[i] - 1));
+            } else {
+                buf.append(fqClassName.substring(dotIndexesArray[i - 1], dotIndexesArray[i - 1] + lengthArray[i]));
+            }
+        }
+
+        return buf.toString();
+    }
+
+    private static int computeDotIndexes(final String className, final int[] dotArray) {
+        int dotCount = 0;
+        int k = 0;
+        while (true) {
+            k = className.indexOf(".", k);
+            if (k != -1 && dotCount < dotArray.length) {
+                dotArray[dotCount] = k;
+                dotCount++;
+                k++;
+            } else {
+                break;
+            }
+        }
+        return dotCount;
+    }
+
+    private static void computeLengthArray(final String className, final int[] dotArray, final int[] lengthArray, final int dotCount) {
+        int toTrim = className.length() - 32;
+
+        int len;
+        for (int i = 0; i < dotCount; i++) {
+            int previousDotPosition = -1;
+            if (i > 0) {
+                previousDotPosition = dotArray[i - 1];
+            }
+            final int available = dotArray[i] - previousDotPosition - 1;
+
+            if (toTrim > 0) {
+                len = (available < 1) ? available : 1;
+            } else {
+                len = available;
+            }
+            toTrim -= (available - len);
+            lengthArray[i] = len + 1;
+        }
+
+        final int lastDotIndex = dotCount - 1;
+        lengthArray[dotCount] = className.length() - dotArray[lastDotIndex];
     }
 }
