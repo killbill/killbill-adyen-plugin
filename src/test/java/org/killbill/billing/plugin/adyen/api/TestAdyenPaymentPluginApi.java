@@ -154,6 +154,11 @@ public class TestAdyenPaymentPluginApi extends TestAdyenPaymentPluginApiBase {
         doCapture(payment2, BigDecimal.TEN);
         doRefund(payment2, BigDecimal.TEN);
 
+        // Verify the token can be used for another recurring payment
+        final Payment payment3 = doAuthorize(BigDecimal.ONE, ImmutableList.<PluginProperty>of());
+        doCapture(payment3, BigDecimal.ONE);
+        doRefund(payment3, BigDecimal.ONE);
+
         adyenPaymentPluginApi.deletePaymentMethod(account.getId(), account.getPaymentMethodId(), ImmutableList.<PluginProperty>of(), context);
 
         assertEquals(adyenPaymentPluginApi.getPaymentMethods(account.getId(), false, ImmutableList.<PluginProperty>of(), context).size(), 0);
