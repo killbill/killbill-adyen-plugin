@@ -149,51 +149,69 @@ public class AdyenConfigProperties {
     }
 
     public String getMerchantAccount(final String countryIsoCode) {
-        if (countryIsoCode == null || merchantAccountMap.isEmpty()) {
+        if (merchantAccountMap.isEmpty()) {
             return merchantAccounts;
+        } else if (countryIsoCode == null) {
+            // In case no country is specified, but the user configured the merchant accounts per country, take the first one
+            return merchantAccountMap.values().iterator().next();
+        } else {
+            return merchantAccountMap.get(adjustCountryCode(countryIsoCode));
         }
-
-        return merchantAccountMap.get(adjustCountryCode(countryIsoCode));
     }
 
     public String getPassword(final String countryIsoCode) {
-        if (countryIsoCode == null || passwordMap.isEmpty()) {
+        if (passwordMap.isEmpty()) {
             return passwords;
+        } else if (countryIsoCode == null) {
+            // In case no country is specified, but the user configured the passwords per country, take the first one
+            return passwordMap.values().iterator().next();
+        } else {
+            return passwordMap.get(adjustCountryCode(countryIsoCode));
         }
-
-        return passwordMap.get(adjustCountryCode(countryIsoCode));
     }
 
     public String getUserName(final String countryIsoCode) {
-        if (countryIsoCode == null || userMap.isEmpty()) {
+        if (userMap.isEmpty()) {
             return userNames;
+        } else if (countryIsoCode == null) {
+            // In case no country is specified, but the user configured the usernames per country, take the first one
+            return userMap.values().iterator().next();
+        } else {
+            return userMap.get(adjustCountryCode(countryIsoCode));
         }
-
-        return userMap.get(adjustCountryCode(countryIsoCode));
     }
 
     public String getSkin(final String countryIsoCode) {
-        if (countryIsoCode == null || skinMap.isEmpty()) {
+        if (skinMap.isEmpty()) {
             return skins;
+        } else if (countryIsoCode == null) {
+            // In case no country is specified, but the user configured the skins per country, take the first one
+            return skinMap.values().iterator().next();
+        } else {
+            return skinMap.get(adjustCountryCode(countryIsoCode));
         }
-
-        return skinMap.get(adjustCountryCode(countryIsoCode));
     }
 
     public String getHmacSecret(final String countryIsoCode) {
-        if (countryIsoCode == null || secretMap.isEmpty()) {
+        if (secretMap.isEmpty()) {
             return hmacSecrets;
+        } else if (countryIsoCode == null) {
+            // In case no country is specified, but the user configured the HMAC secrets per country, take the first one
+            return secretMap.values().iterator().next();
+        } else {
+            return secretMap.get(adjustCountryCode(countryIsoCode));
         }
-
-        return secretMap.get(adjustCountryCode(countryIsoCode));
     }
 
     public String getHmacAlgorithm(final String countryIsoCode) {
-        if (countryIsoCode == null || hmacAlgorithmMap.isEmpty()) {
+        if (hmacAlgorithmMap.isEmpty()) {
             return hmacAlgorithms;
+        } else if (countryIsoCode == null) {
+            // In case no country is specified, but the user configured the HMAC algorithms per country, take the first one
+            return hmacAlgorithmMap.values().iterator().next();
+        } else {
+            return hmacAlgorithmMap.get(adjustCountryCode(countryIsoCode));
         }
-
-        return hmacAlgorithmMap.get(adjustCountryCode(countryIsoCode));
     }
 
     public String getHppTarget() {
