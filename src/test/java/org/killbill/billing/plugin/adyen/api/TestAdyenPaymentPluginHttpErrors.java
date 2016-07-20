@@ -86,6 +86,7 @@ import static org.testng.Assert.assertNull;
 public class TestAdyenPaymentPluginHttpErrors {
 
     private static final int OK = 200;
+    private static final int UNAUTHORIZED = 401;
     private static final int NOT_FOUND = 404;
     private static final int MOVED = 301;
     private static final int SERVICE_UNAVAILABLE = 503;
@@ -432,6 +433,41 @@ public class TestAdyenPaymentPluginHttpErrors {
         assertEquals(results.get(0).getStatus(), PaymentPluginStatus.UNDEFINED);
         assertEquals(results.get(0).getGatewayError(), "Premature EOF");
         assertEquals(results.get(0).getGatewayErrorCode(), "java.io.IOException");
+    }
+
+    @Test(groups = "slow")
+    public void testAuthorizeAdyenRespondWith401() throws Exception {
+        final Account account = defaultAccount();
+        final OSGIKillbillAPI killbillAPI = TestUtils.buildOSGIKillbillAPI(account);
+        final Payment payment = killBillPayment(account, killbillAPI);
+        final AdyenCallContext callContext = newCallContext();
+
+        final AdyenPaymentPluginApi pluginApi = AdyenPluginMockBuilder.newPlugin()
+                                                                      .withAdyenProperty("org.killbill.billing.plugin.adyen.paymentUrl", wireMockUri(ADYEN_PATH))
+                                                                      .withAccount(account)
+                                                                      .withOSGIKillbillAPI(killbillAPI)
+                                                                      .withDatabaseAccess(dao)
+                                                                      .build();
+
+        final PaymentTransactionInfoPlugin result = doWithWireMock(new WithWireMock<PaymentTransactionInfoPlugin>() {
+            @Override
+            public PaymentTransactionInfoPlugin execute(final WireMockServer server) throws Exception {
+                stubFor(post(urlEqualTo(ADYEN_PATH)).willReturn(
+                        aResponse()
+                                .withStatus(UNAUTHORIZED)));
+
+                return authorizeCall(account, payment, callContext, pluginApi, creditCardPaymentProperties());
+            }
+        });
+        assertEquals(result.getStatus(), PaymentPluginStatus.CANCELED);
+        assertEquals(result.getGatewayError(), "HTTP response '401: Unauthorized' when communicating with " + wireMockUri(ADYEN_PATH));
+        assertEquals(result.getGatewayErrorCode(), "o.a.c.t.http.HTTPException");
+
+        final List<PaymentTransactionInfoPlugin> results = pluginApi.getPaymentInfo(account.getId(), payment.getId(), ImmutableList.<PluginProperty>of(), callContext);
+        assertEquals(results.size(), 1);
+        assertEquals(results.get(0).getStatus(), PaymentPluginStatus.CANCELED);
+        assertEquals(results.get(0).getGatewayError(), "HTTP response '401: Unauthorized' when communicating with " + wireMockUri(ADYEN_PATH));
+        assertEquals(results.get(0).getGatewayErrorCode(), "o.a.c.t.http.HTTPException");
     }
 
     @Test(groups = "slow")

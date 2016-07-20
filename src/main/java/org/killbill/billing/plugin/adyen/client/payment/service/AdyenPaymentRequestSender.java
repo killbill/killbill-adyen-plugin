@@ -156,8 +156,12 @@ public class AdyenPaymentRequestSender implements Closeable {
         } else if (rootCause instanceof UnknownHostException) {
             return new UnSuccessfulAdyenCall<T>(REQUEST_NOT_SEND, rootCause);
         } else if (rootCause instanceof HTTPException) {
-            // e.g. different response code or strange response
-            return new UnSuccessfulAdyenCall<T>(RESPONSE_INVALID, rootCause);
+            if (((HTTPException) rootCause).getResponseCode() == 401) {
+                return new UnSuccessfulAdyenCall<T>(REQUEST_NOT_SEND, rootCause);
+            } else {
+                // e.g. different response code or strange response
+                return new UnSuccessfulAdyenCall<T>(RESPONSE_INVALID, rootCause);
+            }
         } else if (rootCause instanceof SOAPFaultException) {
             return new UnSuccessfulAdyenCall<T>(RESPONSE_INVALID, rootCause);
         } else if (rootCause instanceof IOException) {
