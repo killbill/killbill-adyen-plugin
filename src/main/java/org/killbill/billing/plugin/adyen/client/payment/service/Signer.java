@@ -20,17 +20,21 @@ package org.killbill.billing.plugin.adyen.client.payment.service;
 import java.io.UnsupportedEncodingException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
+import java.util.Map;
+import java.util.TreeMap;
 
 import javax.crypto.Mac;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 
-import org.killbill.billing.plugin.adyen.client.AdyenConfigProperties;
 import org.killbill.billing.plugin.adyen.client.payment.exception.SignatureGenerationException;
 import org.killbill.billing.plugin.adyen.client.payment.exception.SignatureVerificationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Function;
+import com.google.common.base.Joiner;
+import com.google.common.collect.Iterables;
 import com.google.common.io.BaseEncoding;
 
 public class Signer {
@@ -38,7 +42,36 @@ public class Signer {
     private static final Logger logger = LoggerFactory.getLogger(Signer.class);
 
     private static final BaseEncoding BASE_64_ENCODING = BaseEncoding.base64();
+    private static final Joiner JOINER = Joiner.on(":");
+    private static final Function<String, String> ESCAPER = new Function<String, String>() {
+        @Override
+        public String apply(final String input) {
+            if (input == null) {
+                return "";
+            } else {
+                return input.replace("\\", "\\\\").replace(":", "\\:");
+            }
+        }
+    };
 
+    // SHA256
+    public String signFormParameters(final Map<String, String> paramsAnyOrder, final String hmacSecret, final String hmacAlgorithm) {
+        final Map<String, String> params = new TreeMap<String, String>(paramsAnyOrder);
+
+        final StringBuilder signingString = new StringBuilder(JOINER.join(Iterables.<String, String>transform(params.keySet(), ESCAPER)))
+                .append(":")
+                .append(JOINER.join(Iterables.<String, String>transform(params.values(), ESCAPER)));
+
+        try {
+            return signData(hmacSecret, hmacAlgorithm, signingString.toString());
+        } catch (final SignatureGenerationException e) {
+            logger.warn("Could not build hpp signature", e);
+            return "";
+        }
+    }
+
+    // SHA1 only
+    @Deprecated
     public String signFormParameters(final Long amount,
                                      final String currency,
                                      final String shipBeforeDate,
@@ -113,6 +146,12 @@ public class Signer {
     }
 
     private SecretKey createSecretKey(final String secret, final String algorithm) throws UnsupportedEncodingException {
-        return new SecretKeySpec(secret.getBytes("UTF-8"), algorithm);
+        byte[] secretBytes;
+        try {
+            secretBytes = BaseEncoding.base16().decode(secret);
+        } catch (final IllegalArgumentException e) {
+            secretBytes = secret.getBytes("UTF-8");
+        }
+        return new SecretKeySpec(secretBytes, algorithm);
     }
 }

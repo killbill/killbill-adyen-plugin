@@ -90,6 +90,9 @@ public class TestHPPRequestBuilder extends BaseTestPaymentRequestBuilder {
                                                Mockito.anyString(),
                                                Mockito.anyString(),
                                                Mockito.anyString())).thenReturn(MERCHANT_SIG);
+        Mockito.when(signer.signFormParameters(Mockito.<String, String>anyMap(),
+                                               Mockito.anyString(),
+                                               Mockito.anyString())).thenReturn(MERCHANT_SIG);
 
         final Map<String, String> params = new HPPRequestBuilder(merchantAccount, paymentData, userData, splitSettlementData, UUID.randomUUID().toString(), UUID.randomUUID().toString(), signer).build();
 

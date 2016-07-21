@@ -73,27 +73,8 @@ public class HPPRequestBuilder extends RequestBuilder<Map<String, String>> {
         request.put("currencyCode", currency);
 
         final WebPaymentFrontend paymentInfo = (WebPaymentFrontend) paymentData.getPaymentInfo();
-        final String merchantSignature = signer.signFormParameters(amount,
-                                                                   currency,
-                                                                   paymentInfo.getShipBeforeDate(),
-                                                                   paymentData.getPaymentTransactionExternalKey(),
-                                                                   paymentInfo.getSkinCode(),
-                                                                   merchantAccount,
-                                                                   userData.getShopperEmail(),
-                                                                   userData.getShopperReference(),
-                                                                   paymentInfo.getContract(),
-                                                                   paymentInfo.getAllowedMethods(),
-                                                                   paymentInfo.getSessionValidity(),
-                                                                   hmacSecret,
-                                                                   hmacAlgorithm);
-        request.put("merchantSig", merchantSignature);
 
         setShopperData();
-        try {
-            setSplitSettlementData(merchantSignature);
-        } catch (final SignatureGenerationException e) {
-            throw new RuntimeException(e);
-        }
 
         Locale shopperLocale = AdyenConfigProperties.gbToUK(userData.getShopperLocale());
         if ("paypal".equalsIgnoreCase(paymentInfo.getBrandCode()) &&
@@ -101,7 +82,9 @@ public class HPPRequestBuilder extends RequestBuilder<Map<String, String>> {
             PayPalCountryCodes.isNotPayPalLocale(userData.getShopperLocale())) {
             shopperLocale = Locale.US;
         }
-        request.put("shopperLocale", shopperLocale.toString());
+        if (shopperLocale != null) {
+            request.put("shopperLocale", shopperLocale.toString());
+        }
         request.put("countryCode", paymentInfo.getCountry());
         request.put("shipBeforeDate", paymentInfo.getShipBeforeDate());
         request.put("skinCode", paymentInfo.getSkinCode());
@@ -112,7 +95,37 @@ public class HPPRequestBuilder extends RequestBuilder<Map<String, String>> {
 
         request.put("recurringContract", paymentInfo.getContract());
 
-        return Maps.filterValues(request, Predicates.notNull());
+        final Map<String, String> nonNullValues = Maps.<String, String>filterValues(request, Predicates.<String>notNull());
+
+        final String merchantSignature;
+        if ("HmacSHA1".equals(hmacAlgorithm)) {
+            merchantSignature = signer.signFormParameters(amount,
+                                                          currency,
+                                                          paymentInfo.getShipBeforeDate(),
+                                                          paymentData.getPaymentTransactionExternalKey(),
+                                                          paymentInfo.getSkinCode(),
+                                                          merchantAccount,
+                                                          userData.getShopperEmail(),
+                                                          userData.getShopperReference(),
+                                                          paymentInfo.getContract(),
+                                                          paymentInfo.getAllowedMethods(),
+                                                          paymentInfo.getSessionValidity(),
+                                                          hmacSecret,
+                                                          hmacAlgorithm);
+        } else {
+            merchantSignature = signer.signFormParameters(nonNullValues,
+                                                          hmacSecret,
+                                                          hmacAlgorithm);
+        }
+        request.put("merchantSig", merchantSignature);
+
+        try {
+            setSplitSettlementData(merchantSignature);
+        } catch (final SignatureGenerationException e) {
+            throw new RuntimeException(e);
+        }
+
+        return nonNullValues;
     }
 
     private void setShopperData() {
