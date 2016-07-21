@@ -24,7 +24,7 @@ import org.killbill.billing.plugin.api.PluginProperties;
 
 import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.PROPERTY_CC_ENCRYPTED_JSON;
 import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.PROPERTY_CC_ISSUER_COUNTRY;
-import static org.killbill.billing.plugin.adyen.api.mapping.PaymentInfoMappingService.decode;
+import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.decode;
 import static org.killbill.billing.plugin.api.payment.PluginPaymentPluginApi.PROPERTY_CC_EXPIRATION_MONTH;
 import static org.killbill.billing.plugin.api.payment.PluginPaymentPluginApi.PROPERTY_CC_EXPIRATION_YEAR;
 import static org.killbill.billing.plugin.api.payment.PluginPaymentPluginApi.PROPERTY_CC_FIRST_NAME;

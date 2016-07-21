@@ -65,6 +65,16 @@ public class PurchaseResult extends FrontendForm {
                                              EXCEPTION_MESSAGE, adyenCallResult.getExceptionMessage().isPresent() ? adyenCallResult.getExceptionMessage().get() : UNKNOWN));
     }
 
+    public PurchaseResult(final HppCompletedResult hppCompletedResult) {
+        this(hppCompletedResult.getPspResult(),
+             null,
+             hppCompletedResult.getPspReference(),
+             null,
+             null,
+             hppCompletedResult.getMerchantReference(),
+             hppCompletedResult.getAdditionalData());
+    }
+
     public PurchaseResult(final PaymentServiceProviderResult result,
                           final String authCode,
                           final String pspReference,

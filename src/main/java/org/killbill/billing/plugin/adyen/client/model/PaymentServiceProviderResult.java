@@ -1,7 +1,8 @@
 /*
- * Copyright 2014 Groupon, Inc
+ * Copyright 2014-2016 Groupon, Inc
+ * Copyright 2014-2016 The Billing Project, LLC
  *
- * Groupon licenses this file to you under the Apache License, version 2.0
+ * The Billing Project licenses this file to you under the Apache License, version 2.0
  * (the "License"); you may not use this file except in compliance with the
  * License.  You may obtain a copy of the License at:
  *
@@ -16,7 +17,6 @@
 
 package org.killbill.billing.plugin.adyen.client.model;
 
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -62,7 +62,8 @@ public enum PaymentServiceProviderResult {
         if (result != null) {
             return result;
         } else {
-            throw new IllegalArgumentException("Unknown PaymentResultType id: " + id);
+            // For HPP completion flow (see https://docs.adyen.com/developers/hpp-manual#hpppaymentresponse)
+            return PaymentServiceProviderResult.valueOf(id);
         }
     }
 
@@ -72,6 +73,7 @@ public enum PaymentServiceProviderResult {
 
     @Override
     public String toString() {
-        return Arrays.toString(this.responses);
+        // Note! Needs to be compatible with getPaymentResultForId
+        return this.responses[0];
     }
 }

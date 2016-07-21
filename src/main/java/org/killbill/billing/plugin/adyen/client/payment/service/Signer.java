@@ -28,13 +28,14 @@ import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 
 import org.killbill.billing.plugin.adyen.client.payment.exception.SignatureGenerationException;
-import org.killbill.billing.plugin.adyen.client.payment.exception.SignatureVerificationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
+import com.google.common.base.Predicates;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Maps;
 import com.google.common.io.BaseEncoding;
 
 public class Signer {
@@ -56,7 +57,7 @@ public class Signer {
 
     // SHA256
     public String signFormParameters(final Map<String, String> paramsAnyOrder, final String hmacSecret, final String hmacAlgorithm) {
-        final Map<String, String> params = new TreeMap<String, String>(paramsAnyOrder);
+        final Map<String, String> params = new TreeMap<String, String>(Maps.<String, String>filterValues(paramsAnyOrder, Predicates.<String>notNull()));
 
         final StringBuilder signingString = new StringBuilder(JOINER.join(Iterables.<String, String>transform(params.keySet(), ESCAPER)))
                 .append(":")
@@ -114,6 +115,39 @@ public class Signer {
         }
     }
 
+    // SHA1 only
+    @Deprecated
+    public String signFormParameters(final String authResult,
+                                     final String pspReference,
+                                     final String merchantReference,
+                                     final String skinCode,
+                                     final String merchantReturnData,
+                                     final String hmacSecret,
+                                     final String hmacAlgorithm) {
+        try {
+            final StringBuilder signingString = new StringBuilder();
+            if (authResult != null) {
+                signingString.append(authResult);
+            }
+            if (pspReference != null) {
+                signingString.append(pspReference);
+            }
+            if (merchantReference != null) {
+                signingString.append(merchantReference);
+            }
+            if (skinCode != null) {
+                signingString.append(skinCode);
+            }
+            if (merchantReturnData != null) {
+                signingString.append(merchantReturnData);
+            }
+            return signData(hmacSecret, hmacAlgorithm, signingString.toString());
+        } catch (final SignatureGenerationException e) {
+            logger.warn("Could not build hpp signature", e);
+            return "";
+        }
+    }
+
     public String signData(final String secret, final String algorithm, final String signingData) throws SignatureGenerationException {
         try {
             final SecretKey key = createSecretKey(secret, algorithm);
@@ -128,20 +162,6 @@ public class Signer {
             throw new SignatureGenerationException("Error while signature generation.", uee);
         } catch (final InvalidKeyException ike) {
             throw new SignatureGenerationException("Error while signature generation.", ike);
-        }
-    }
-
-    public boolean verifySignature(final String secret, final String algorithm, final String data, final String signature)
-            throws SignatureVerificationException {
-        try {
-            if (data != null && signature != null) {
-                final String expectedSignature = signData(secret, algorithm, data);
-                return signature.equals(expectedSignature);
-            }
-
-            return false;
-        } catch (SignatureGenerationException e) {
-            throw new SignatureVerificationException("Error while signature verification.", e.getCause());
         }
     }
 

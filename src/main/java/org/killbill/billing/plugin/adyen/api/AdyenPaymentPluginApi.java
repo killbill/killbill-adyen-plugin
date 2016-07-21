@@ -17,7 +17,9 @@
 
 package org.killbill.billing.plugin.adyen.api;
 
+import java.io.UnsupportedEncodingException;
 import java.math.BigDecimal;
+import java.net.URLDecoder;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Map;
@@ -50,6 +52,7 @@ import org.killbill.billing.payment.plugin.api.PaymentPluginStatus;
 import org.killbill.billing.payment.plugin.api.PaymentTransactionInfoPlugin;
 import org.killbill.billing.plugin.adyen.api.mapping.PaymentInfoMappingService;
 import org.killbill.billing.plugin.adyen.client.AdyenConfigProperties;
+import org.killbill.billing.plugin.adyen.client.model.HppCompletedResult;
 import org.killbill.billing.plugin.adyen.client.model.PaymentData;
 import org.killbill.billing.plugin.adyen.client.model.PaymentInfo;
 import org.killbill.billing.plugin.adyen.client.model.PaymentModificationResponse;
@@ -80,6 +83,7 @@ import org.killbill.billing.util.callcontext.TenantContext;
 import org.killbill.clock.Clock;
 import org.osgi.service.log.LogService;
 
+import com.google.common.base.Function;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Optional;
 import com.google.common.base.Preconditions;
@@ -89,6 +93,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 
 import static org.killbill.billing.plugin.adyen.api.mapping.UserDataMappingService.toUserData;
 
@@ -354,9 +359,9 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
             throw new PaymentPluginApiException("HPP notification came through, but we encountered a database error", e);
         }
 
-        final boolean isHPP = adyenResponsesRecord != null && Boolean.valueOf(MoreObjects.firstNonNull(AdyenDao.fromAdditionalData(adyenResponsesRecord.getAdditionalData()).get(PROPERTY_FROM_HPP), false).toString());
-        if (!isHPP) {
-            // We don't have any record for that payment: we want to trigger an actual authorization call
+        final boolean isHPPCompletion = adyenResponsesRecord != null && Boolean.valueOf(MoreObjects.firstNonNull(AdyenDao.fromAdditionalData(adyenResponsesRecord.getAdditionalData()).get(PROPERTY_FROM_HPP), false).toString());
+        if (!isHPPCompletion) {
+            // We don't have any record for that payment: we want to trigger an actual authorization call (or complete a 3D-S authorization)
             return executeInitialTransaction(TransactionType.AUTHORIZE, kbAccountId, kbPaymentId, kbTransactionId, kbPaymentMethodId, amount, currency, properties, context);
         } else {
             // We already have a record for that payment transaction and we just updated the response row with additional properties
@@ -575,14 +580,8 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
                                                                    final TenantContext context) throws PaymentPluginApiException {
         final boolean fromHPP = Boolean.valueOf(PluginProperties.findPluginPropertyValue(PROPERTY_FROM_HPP, properties));
         if (fromHPP) {
-            // We are either processing a notification (see KillbillAdyenNotificationHandler) or creating a PENDING payment for HPP (see buildFormDescriptor)
-            final DateTime utcNow = clock.getUTCNow();
-            try {
-                final AdyenResponsesRecord adyenResponsesRecord = dao.addAdyenResponse(kbAccountId, kbPaymentId, kbTransactionId, transactionType, amount, currency, PluginProperties.toMap(properties), utcNow, context.getTenantId());
-                return buildPaymentTransactionInfoPlugin(adyenResponsesRecord);
-            } catch (final SQLException e) {
-                throw new PaymentPluginApiException("HPP payment came through, but we encountered a database error", e);
-            }
+            // We are either processing a notification (see KillbillAdyenNotificationHandler), creating a PENDING payment for HPP (see buildFormDescriptor) or recording a payment post HPP redirect
+            return getPaymentTransactionInfoPluginForHPP(transactionType, kbAccountId, kbPaymentId, kbTransactionId, amount, currency, properties, context);
         }
 
         final Account account = getAccount(kbAccountId, context);
@@ -621,13 +620,7 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
         final boolean fromHPP = Boolean.valueOf(PluginProperties.findPluginPropertyValue(PROPERTY_FROM_HPP, properties));
         if (fromHPP) {
             // We are processing a notification (see KillbillAdyenNotificationHandler)
-            final DateTime utcNow = clock.getUTCNow();
-            try {
-                final AdyenResponsesRecord adyenResponsesRecord = dao.addAdyenResponse(kbAccountId, kbPaymentId, kbTransactionId, transactionType, amount, currency, PluginProperties.toMap(properties), utcNow, context.getTenantId());
-                return buildPaymentTransactionInfoPlugin(adyenResponsesRecord);
-            } catch (final SQLException e) {
-                throw new PaymentPluginApiException("HPP payment came through, but we encountered a database error", e);
-            }
+            return getPaymentTransactionInfoPluginForHPP(transactionType, kbAccountId, kbPaymentId, kbTransactionId, amount, currency, properties, context);
         }
 
         final Account account = getAccount(kbAccountId, context);
@@ -663,6 +656,29 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
             return new AdyenPaymentTransactionInfoPlugin(kbPaymentId, kbTransactionId, transactionType, amount, currency, paymentServiceProviderResult, utcNow, response);
         } catch (final SQLException e) {
             throw new PaymentPluginApiException("Payment went through, but we encountered a database error. Payment details: " + (response.toString()), e);
+        }
+    }
+
+    private PaymentTransactionInfoPlugin getPaymentTransactionInfoPluginForHPP(final TransactionType transactionType, final UUID kbAccountId, final UUID kbPaymentId, final UUID kbTransactionId, final BigDecimal amount, final Currency currency, final Iterable<PluginProperty> properties, final TenantContext context) throws PaymentPluginApiException {
+        final String pluginPropertyCountry = PluginProperties.findPluginPropertyValue(PROPERTY_COUNTRY, properties);
+
+        final AdyenPaymentServiceProviderHostedPaymentPagePort hostedPaymentPagePort = adyenHppConfigurationHandler.getConfigurable(context.getTenantId());
+        final Map<String, String> requestParameterMap = Maps.transformValues(PluginProperties.toStringMap(properties), new Function<String, String>() {
+            @Override
+            public String apply(final String input) {
+                // Adyen will encode parameters like merchantSig
+                return decode(input);
+            }
+        });
+        final HppCompletedResult hppCompletedResult = hostedPaymentPagePort.parseAndVerifyRequestIntegrity(requestParameterMap, pluginPropertyCountry);
+        final PurchaseResult purchaseResult = new PurchaseResult(hppCompletedResult);
+
+        final DateTime utcNow = clock.getUTCNow();
+        try {
+            final AdyenResponsesRecord adyenResponsesRecord = dao.addResponse(kbAccountId, kbPaymentId, kbTransactionId, transactionType, amount, currency, purchaseResult, utcNow, context.getTenantId());
+            return buildPaymentTransactionInfoPlugin(adyenResponsesRecord);
+        } catch (final SQLException e) {
+            throw new PaymentPluginApiException("HPP payment came through, but we encountered a database error", e);
         }
     }
 
@@ -800,5 +816,13 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
         // A bit of a hack - it would be nice to be able to isolate AdyenConfigProperties
         final AdyenConfigProperties adyenConfigProperties = adyenHppConfigurationHandler.getConfigurable(context.getTenantId()).getAdyenConfigProperties();
         return adyenConfigProperties.getMerchantAccount(countryCode);
+    }
+
+    public static String decode(final String value) {
+        try {
+            return URLDecoder.decode(value, "UTF-8");
+        } catch (final UnsupportedEncodingException e) {
+            return value;
+        }
     }
 }

@@ -19,6 +19,7 @@ package org.killbill.billing.plugin.adyen.client.payment.service;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.Map;
 
 import org.killbill.billing.plugin.adyen.client.AdyenConfigProperties;
@@ -29,11 +30,8 @@ import org.killbill.billing.plugin.adyen.client.model.SplitSettlementData;
 import org.killbill.billing.plugin.adyen.client.model.UserData;
 import org.killbill.billing.plugin.adyen.client.payment.builder.AdyenRequestFactory;
 import org.killbill.billing.plugin.adyen.client.payment.exception.SignatureGenerationException;
-import org.killbill.billing.plugin.adyen.client.payment.exception.SignatureVerificationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.base.Strings;
 
 public class AdyenPaymentServiceProviderHostedPaymentPagePort extends BaseAdyenPaymentServiceProviderPort implements Closeable {
 
@@ -59,64 +57,58 @@ public class AdyenPaymentServiceProviderHostedPaymentPagePort extends BaseAdyenP
     }
 
     // Used to verify completion
-    public Boolean verifyRequestIntegrity(final Map<String, String> requestParameterMap, final String countryIsoCode) {
-        final String authResult = requestParameterMap.get("authResult");
-        final String pspReference = requestParameterMap.get("pspReference");
-        final String merchantReference = requestParameterMap.get("merchantReference");
-        final String skinCode = requestParameterMap.get("skinCode");
-        final String merchantReturnData = requestParameterMap.get("merchantReturnData");
-
-        final StringBuilder signingData = new StringBuilder();
-        if (authResult != null) {
-            signingData.append(authResult);
-        }
-        if (pspReference != null) {
-            signingData.append(pspReference);
-        }
-        if (merchantReference != null) {
-            signingData.append(merchantReference);
-        }
-        if (skinCode != null) {
-            signingData.append(skinCode);
-        }
-        if (merchantReturnData != null) {
-            signingData.append(merchantReturnData);
-        }
-
+    public HppCompletedResult parseAndVerifyRequestIntegrity(final Map<String, String> requestParameterMap, final String countryIsoCode) {
+        final HppCompletedResult hppCompletedResult = new HppCompletedResult(requestParameterMap);
         final String merchantSig = requestParameterMap.get("merchantSig");
-        final String secret = adyenConfigProperties.getHmacSecret(countryIsoCode);
-        final String algorithm = adyenConfigProperties.getHmacAlgorithm(countryIsoCode);
-        try {
-            return new Signer().verifySignature(secret, algorithm, signingData.toString(), merchantSig);
-        } catch (final SignatureVerificationException e) {
-            logger.warn("Could not verify signature", e);
-            return false;
+        // Note! It's the caller responsibility to verify a merchantSig is passed to enable request tampering verification
+        if (merchantSig == null) {
+            return hppCompletedResult;
+        }
+
+        final String hmacSecret = adyenConfigProperties.getHmacSecret(countryIsoCode);
+        final String hmacAlgorithm = adyenConfigProperties.getHmacAlgorithm(countryIsoCode);
+        final Signer signer = new Signer();
+        final String expectedMerchantSignature;
+        if ("HmacSHA1".equals(hmacAlgorithm)) {
+            expectedMerchantSignature = signer.signFormParameters(hppCompletedResult.getAuthResult(),
+                                                                  hppCompletedResult.getPspReference(),
+                                                                  hppCompletedResult.getMerchantReference(),
+                                                                  hppCompletedResult.getSkinCode(),
+                                                                  hppCompletedResult.getMerchantReturnData(),
+                                                                  hmacSecret,
+                                                                  hmacAlgorithm);
+        } else {
+            final Map<String, String> params = new HashMap<String, String>();
+            params.put("pspReference", hppCompletedResult.getPspReference());
+            params.put("authResult", hppCompletedResult.getAuthResult());
+            params.put("merchantReference", hppCompletedResult.getMerchantReference());
+            params.put("skinCode", hppCompletedResult.getSkinCode());
+            params.put("paymentMethod", hppCompletedResult.getPaymentMethod());
+            params.put("shopperLocale", hppCompletedResult.getShopperLocale());
+            params.put("merchantReturnData", hppCompletedResult.getMerchantReturnData());
+            expectedMerchantSignature = signer.signFormParameters(params,
+                                                                  hmacSecret,
+                                                                  hmacAlgorithm);
+        }
+
+        if (merchantSig.equals(expectedMerchantSignature)) {
+            return hppCompletedResult;
+        } else {
+            logger.warn("Signature mismatch: expectedMerchantSignature='{}', requestParameterMap='{}'", expectedMerchantSignature, requestParameterMap);
+            return new HppCompletedResult(hppCompletedResult.getPspReference(),
+                                          hppCompletedResult.getAuthResult(),
+                                          PaymentServiceProviderResult.CANCELLED,
+                                          hppCompletedResult.getMerchantReference(),
+                                          hppCompletedResult.getSkinCode(),
+                                          hppCompletedResult.getMerchantSig(),
+                                          hppCompletedResult.getPaymentMethod(),
+                                          hppCompletedResult.getShopperLocale(),
+                                          hppCompletedResult.getMerchantReturnData(),
+                                          requestParameterMap);
         }
     }
 
     public AdyenConfigProperties getAdyenConfigProperties() {
         return adyenConfigProperties;
-    }
-
-    public HppCompletedResult parsePSPResponse(final Map<String, String[]> requestParameterMap) {
-        final String pspReference = getPspReference(requestParameterMap);
-        final PaymentServiceProviderResult pspResult;
-        if (requestParameterMap.get("authResult") != null && requestParameterMap.get("authResult")[0] != null) {
-            pspResult = PaymentServiceProviderResult.getPaymentResultForId(requestParameterMap.get("authResult")[0]);
-        } else {
-            pspResult = PaymentServiceProviderResult.ERROR;
-        }
-        return new HppCompletedResult(pspReference, pspResult, null);
-    }
-
-    private String getPspReference(final Map<String, String[]> requestParameterMap) {
-        if (requestParameterMap.get("pspReference") == null) {
-            return null;
-        }
-        final String pspReference = requestParameterMap.get("pspReference")[0];
-        if (Strings.isNullOrEmpty(pspReference) || pspReference.equals("\"\"")) {
-            return null;
-        }
-        return pspReference;
     }
 }

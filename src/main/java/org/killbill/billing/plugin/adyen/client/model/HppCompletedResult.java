@@ -1,7 +1,8 @@
 /*
- * Copyright 2014 Groupon, Inc
+ * Copyright 2014-2016 Groupon, Inc
+ * Copyright 2014-2016 The Billing Project, LLC
  *
- * Groupon licenses this file to you under the Apache License, version 2.0
+ * The Billing Project licenses this file to you under the Apache License, version 2.0
  * (the "License"); you may not use this file except in compliance with the
  * License.  You may obtain a copy of the License at:
  *
@@ -16,42 +17,111 @@
 
 package org.killbill.billing.plugin.adyen.client.model;
 
-import javax.annotation.Nullable;
+import java.util.Map;
 
-import com.google.common.base.Preconditions;
+import com.google.common.base.Strings;
 
 public class HppCompletedResult {
 
     private final String pspReference;
-    private final PaymentServiceProviderResult result;
-    private final String reason;
+    private final String authResult;
+    private final PaymentServiceProviderResult pspResult;
+    private final String merchantReference;
+    private final String skinCode;
+    private final String merchantSig;
+    private final String paymentMethod;
+    private final String shopperLocale;
+    private final String merchantReturnData;
+    private final Map<String, String> additionalData;
+
+    public HppCompletedResult(final Map<String, String> requestParameterMap) {
+        this(requestParameterMap.get("pspReference"),
+             requestParameterMap.get("authResult"),
+             requestParameterMap.get("authResult") != null ? PaymentServiceProviderResult.getPaymentResultForId(requestParameterMap.get("authResult")) : PaymentServiceProviderResult.ERROR,
+             requestParameterMap.get("merchantReference"),
+             requestParameterMap.get("skinCode"),
+             requestParameterMap.get("merchantSig"),
+             requestParameterMap.get("paymentMethod"),
+             requestParameterMap.get("shopperLocale"),
+             requestParameterMap.get("merchantReturnData"),
+             requestParameterMap);
+    }
 
     public HppCompletedResult(final String pspReference,
-                              final PaymentServiceProviderResult result,
-                              @Nullable final String reason) {
-        this.pspReference = pspReference;
-        this.result = Preconditions.checkNotNull(result);
-        this.reason = reason;
+                              final String authResult,
+                              final PaymentServiceProviderResult pspResult,
+                              final String merchantReference,
+                              final String skinCode,
+                              final String merchantSig,
+                              final String paymentMethod,
+                              final String shopperLocale,
+                              final String merchantReturnData,
+                              final Map<String, String> additionalData) {
+        this.pspReference = Strings.isNullOrEmpty(pspReference) || pspReference.equals("\"\"") ? null : pspReference;
+        this.authResult = authResult;
+        this.pspResult = pspResult;
+        this.merchantReference = merchantReference;
+        this.skinCode = skinCode;
+        this.merchantSig = merchantSig;
+        this.paymentMethod = paymentMethod;
+        this.shopperLocale = shopperLocale;
+        this.merchantReturnData = merchantReturnData;
+        this.additionalData = additionalData;
     }
 
     public String getPspReference() {
         return pspReference;
     }
 
-    public PaymentServiceProviderResult getResult() {
-        return result;
+    public String getAuthResult() {
+        return authResult;
     }
 
-    public String getReason() {
-        return reason;
+    public PaymentServiceProviderResult getPspResult() {
+        return pspResult;
+    }
+
+    public String getMerchantReference() {
+        return merchantReference;
+    }
+
+    public String getSkinCode() {
+        return skinCode;
+    }
+
+    public String getMerchantSig() {
+        return merchantSig;
+    }
+
+    public String getPaymentMethod() {
+        return paymentMethod;
+    }
+
+    public String getShopperLocale() {
+        return shopperLocale;
+    }
+
+    public String getMerchantReturnData() {
+        return merchantReturnData;
+    }
+
+    public Map<String, String> getAdditionalData() {
+        return additionalData;
     }
 
     @Override
     public String toString() {
         final StringBuilder sb = new StringBuilder("HppCompletedResult{");
         sb.append("pspReference='").append(pspReference).append('\'');
-        sb.append(", result=").append(result);
-        sb.append(", reason='").append(reason).append('\'');
+        sb.append(", authResult='").append(authResult).append('\'');
+        sb.append(", pspResult=").append(pspResult);
+        sb.append(", merchantReference='").append(merchantReference).append('\'');
+        sb.append(", skinCode='").append(skinCode).append('\'');
+        sb.append(", merchantSig='").append(merchantSig).append('\'');
+        sb.append(", paymentMethod='").append(paymentMethod).append('\'');
+        sb.append(", shopperLocale='").append(shopperLocale).append('\'');
+        sb.append(", merchantReturnData='").append(merchantReturnData).append('\'');
+        sb.append(", additionalData=").append(additionalData);
         sb.append('}');
         return sb.toString();
     }
@@ -70,21 +140,46 @@ public class HppCompletedResult {
         if (pspReference != null ? !pspReference.equals(that.pspReference) : that.pspReference != null) {
             return false;
         }
-        if (reason != null ? !reason.equals(that.reason) : that.reason != null) {
+        if (authResult != null ? !authResult.equals(that.authResult) : that.authResult != null) {
             return false;
         }
-        if (result != that.result) {
+        if (pspResult != that.pspResult) {
             return false;
         }
+        if (merchantReference != null ? !merchantReference.equals(that.merchantReference) : that.merchantReference != null) {
+            return false;
+        }
+        if (skinCode != null ? !skinCode.equals(that.skinCode) : that.skinCode != null) {
+            return false;
+        }
+        if (merchantSig != null ? !merchantSig.equals(that.merchantSig) : that.merchantSig != null) {
+            return false;
+        }
+        if (paymentMethod != null ? !paymentMethod.equals(that.paymentMethod) : that.paymentMethod != null) {
+            return false;
+        }
+        if (shopperLocale != null ? !shopperLocale.equals(that.shopperLocale) : that.shopperLocale != null) {
+            return false;
+        }
+        if (merchantReturnData != null ? !merchantReturnData.equals(that.merchantReturnData) : that.merchantReturnData != null) {
+            return false;
+        }
+        return additionalData != null ? additionalData.equals(that.additionalData) : that.additionalData == null;
 
-        return true;
     }
 
     @Override
     public int hashCode() {
-        int result1 = pspReference != null ? pspReference.hashCode() : 0;
-        result1 = 31 * result1 + (result != null ? result.hashCode() : 0);
-        result1 = 31 * result1 + (reason != null ? reason.hashCode() : 0);
-        return result1;
+        int result = pspReference != null ? pspReference.hashCode() : 0;
+        result = 31 * result + (authResult != null ? authResult.hashCode() : 0);
+        result = 31 * result + (pspResult != null ? pspResult.hashCode() : 0);
+        result = 31 * result + (merchantReference != null ? merchantReference.hashCode() : 0);
+        result = 31 * result + (skinCode != null ? skinCode.hashCode() : 0);
+        result = 31 * result + (merchantSig != null ? merchantSig.hashCode() : 0);
+        result = 31 * result + (paymentMethod != null ? paymentMethod.hashCode() : 0);
+        result = 31 * result + (shopperLocale != null ? shopperLocale.hashCode() : 0);
+        result = 31 * result + (merchantReturnData != null ? merchantReturnData.hashCode() : 0);
+        result = 31 * result + (additionalData != null ? additionalData.hashCode() : 0);
+        return result;
     }
 }

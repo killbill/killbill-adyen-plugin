@@ -204,9 +204,10 @@ public class AdyenPaymentTransactionInfoPlugin extends PluginPaymentTransactionI
             case AUTHORISED:
                 return PaymentPluginStatus.PROCESSED;
             case REFUSED:
-            case ERROR:
-            case CANCELLED:
                 return PaymentPluginStatus.ERROR;
+            case CANCELLED:
+                return PaymentPluginStatus.CANCELED;
+            case ERROR:
             default:
                 return PaymentPluginStatus.UNDEFINED;
         }

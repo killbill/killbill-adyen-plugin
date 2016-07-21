@@ -17,8 +17,6 @@
 
 package org.killbill.billing.plugin.adyen.api.mapping;
 
-import java.io.UnsupportedEncodingException;
-import java.net.URLDecoder;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -60,6 +58,7 @@ import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.PROPER
 import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.PROPERTY_TERM_URL;
 import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.PROPERTY_THREE_D_THRESHOLD;
 import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.PROPERTY_USER_AGENT;
+import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.decode;
 import static org.killbill.billing.plugin.api.payment.PluginPaymentPluginApi.PROPERTY_ADDRESS1;
 import static org.killbill.billing.plugin.api.payment.PluginPaymentPluginApi.PROPERTY_ADDRESS2;
 import static org.killbill.billing.plugin.api.payment.PluginPaymentPluginApi.PROPERTY_CC_TYPE;
@@ -241,14 +240,6 @@ public abstract class PaymentInfoMappingService {
         // It can also be set to specific values for DineroMail or to force recurring ELV contracts to be handled as SEPA
         final String selectedBrand = PluginProperties.findPluginPropertyValue(PROPERTY_CC_TYPE, properties);
         paymentInfo.setSelectedBrand(selectedBrand);
-    }
-
-    static String decode(final String value) {
-        try {
-            return URLDecoder.decode(value, "UTF-8");
-        } catch (final UnsupportedEncodingException e) {
-            return value;
-        }
     }
 
     private static void setAcquirer(final AdyenConfigProperties configuration, final PaymentInfo paymentInfo, final Iterable<PluginProperty> properties) {

@@ -95,8 +95,6 @@ public class HPPRequestBuilder extends RequestBuilder<Map<String, String>> {
 
         request.put("recurringContract", paymentInfo.getContract());
 
-        final Map<String, String> nonNullValues = Maps.<String, String>filterValues(request, Predicates.<String>notNull());
-
         final String merchantSignature;
         if ("HmacSHA1".equals(hmacAlgorithm)) {
             merchantSignature = signer.signFormParameters(amount,
@@ -113,7 +111,7 @@ public class HPPRequestBuilder extends RequestBuilder<Map<String, String>> {
                                                           hmacSecret,
                                                           hmacAlgorithm);
         } else {
-            merchantSignature = signer.signFormParameters(nonNullValues,
+            merchantSignature = signer.signFormParameters(request,
                                                           hmacSecret,
                                                           hmacAlgorithm);
         }
@@ -125,7 +123,7 @@ public class HPPRequestBuilder extends RequestBuilder<Map<String, String>> {
             throw new RuntimeException(e);
         }
 
-        return nonNullValues;
+        return Maps.<String, String>filterValues(request, Predicates.<String>notNull());
     }
 
     private void setShopperData() {

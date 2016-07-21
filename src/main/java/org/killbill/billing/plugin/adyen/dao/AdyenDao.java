@@ -48,7 +48,6 @@ import org.killbill.billing.plugin.adyen.dao.gen.tables.records.AdyenResponsesRe
 import org.killbill.billing.plugin.api.PluginProperties;
 import org.killbill.billing.plugin.dao.payment.PluginPaymentDao;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Functions;
@@ -99,7 +98,7 @@ public class AdyenDao extends PluginPaymentDao<AdyenResponsesRecord, AdyenRespon
                               final Map additionalDataMap,
                               final DateTime utcNow,
                               final UUID kbTenantId) throws SQLException {
-        final String additionalData = getAdditionalData(additionalDataMap);
+        final String additionalData = asString(additionalDataMap);
 
         execute(dataSource.getConnection(),
                 new WithConnectionCallback<Void>() {
@@ -144,15 +143,18 @@ public class AdyenDao extends PluginPaymentDao<AdyenResponsesRecord, AdyenRespon
 
     // Responses
 
-    public AdyenResponsesRecord addAdyenResponse(final UUID kbAccountId,
-                                                 final UUID kbPaymentId,
-                                                 final UUID kbPaymentTransactionId,
-                                                 final TransactionType transactionType,
-                                                 final BigDecimal amount,
-                                                 final Currency currency,
-                                                 final Map additionalData,
-                                                 final DateTime utcNow,
-                                                 final UUID kbTenantId) throws SQLException {
+    public AdyenResponsesRecord addResponse(final UUID kbAccountId,
+                                            final UUID kbPaymentId,
+                                            final UUID kbPaymentTransactionId,
+                                            final TransactionType transactionType,
+                                            final BigDecimal amount,
+                                            final Currency currency,
+                                            final PurchaseResult result,
+                                            final DateTime utcNow,
+                                            final UUID kbTenantId) throws SQLException {
+        final String dccAmountValue = getProperty(AdyenPaymentPluginApi.PROPERTY_DCC_AMOUNT_VALUE, result);
+        final String additionalData = getAdditionalData(result);
+
         return execute(dataSource.getConnection(),
                        new WithConnectionCallback<AdyenResponsesRecord>() {
                            @Override
@@ -165,7 +167,21 @@ public class AdyenDao extends PluginPaymentDao<AdyenResponsesRecord, AdyenRespon
                                               ADYEN_RESPONSES.TRANSACTION_TYPE,
                                               ADYEN_RESPONSES.AMOUNT,
                                               ADYEN_RESPONSES.CURRENCY,
+                                              ADYEN_RESPONSES.PSP_RESULT,
                                               ADYEN_RESPONSES.PSP_REFERENCE,
+                                              ADYEN_RESPONSES.AUTH_CODE,
+                                              ADYEN_RESPONSES.RESULT_CODE,
+                                              ADYEN_RESPONSES.REFUSAL_REASON,
+                                              ADYEN_RESPONSES.REFERENCE,
+                                              ADYEN_RESPONSES.PSP_ERROR_CODES,
+                                              ADYEN_RESPONSES.PAYMENT_INTERNAL_REF,
+                                              ADYEN_RESPONSES.FORM_URL,
+                                              ADYEN_RESPONSES.DCC_AMOUNT,
+                                              ADYEN_RESPONSES.DCC_CURRENCY,
+                                              ADYEN_RESPONSES.DCC_SIGNATURE,
+                                              ADYEN_RESPONSES.ISSUER_URL,
+                                              ADYEN_RESPONSES.MD,
+                                              ADYEN_RESPONSES.PA_REQUEST,
                                               ADYEN_RESPONSES.ADDITIONAL_DATA,
                                               ADYEN_RESPONSES.CREATED_DATE,
                                               ADYEN_RESPONSES.KB_TENANT_ID)
@@ -174,9 +190,23 @@ public class AdyenDao extends PluginPaymentDao<AdyenResponsesRecord, AdyenRespon
                                           kbPaymentTransactionId.toString(),
                                           transactionType.toString(),
                                           amount,
-                                          currency == null ? null : currency.name(),
-                                          getProperty(AdyenPaymentPluginApi.PROPERTY_PSP_REFERENCE, additionalData),
-                                          asString(additionalData),
+                                          currency,
+                                          result.getResult().isPresent() ? result.getResult().get().toString() : null,
+                                          result.getPspReference(),
+                                          result.getAuthCode(),
+                                          result.getResultCode(),
+                                          result.getReason(),
+                                          result.getReference(),
+                                          null,
+                                          result.getPaymentTransactionExternalKey(),
+                                          result.getFormUrl(),
+                                          dccAmountValue == null ? null : new BigDecimal(dccAmountValue),
+                                          getProperty(AdyenPaymentPluginApi.PROPERTY_DCC_AMOUNT_CURRENCY, result),
+                                          getProperty(AdyenPaymentPluginApi.PROPERTY_DCC_SIGNATURE, result),
+                                          getProperty(AdyenPaymentPluginApi.PROPERTY_ISSUER_URL, result),
+                                          getProperty(AdyenPaymentPluginApi.PROPERTY_MD, result),
+                                          getProperty(AdyenPaymentPluginApi.PROPERTY_PA_REQ, result),
+                                          additionalData,
                                           toTimestamp(utcNow),
                                           kbTenantId.toString())
                                   .execute();
@@ -190,78 +220,6 @@ public class AdyenDao extends PluginPaymentDao<AdyenResponsesRecord, AdyenRespon
                                          .fetchOne();
                            }
                        });
-    }
-
-    public void addResponse(final UUID kbAccountId,
-                            final UUID kbPaymentId,
-                            final UUID kbPaymentTransactionId,
-                            final TransactionType transactionType,
-                            final BigDecimal amount,
-                            final Currency currency,
-                            final PurchaseResult result,
-                            final DateTime utcNow,
-                            final UUID kbTenantId) throws SQLException {
-        final String dccAmountValue = getProperty(AdyenPaymentPluginApi.PROPERTY_DCC_AMOUNT_VALUE, result);
-        final String additionalData = getAdditionalData(result);
-
-        execute(dataSource.getConnection(),
-                new WithConnectionCallback<Void>() {
-                    @Override
-                    public Void withConnection(final Connection conn) throws SQLException {
-                        DSL.using(conn, dialect, settings)
-                           .insertInto(ADYEN_RESPONSES,
-                                       ADYEN_RESPONSES.KB_ACCOUNT_ID,
-                                       ADYEN_RESPONSES.KB_PAYMENT_ID,
-                                       ADYEN_RESPONSES.KB_PAYMENT_TRANSACTION_ID,
-                                       ADYEN_RESPONSES.TRANSACTION_TYPE,
-                                       ADYEN_RESPONSES.AMOUNT,
-                                       ADYEN_RESPONSES.CURRENCY,
-                                       ADYEN_RESPONSES.PSP_RESULT,
-                                       ADYEN_RESPONSES.PSP_REFERENCE,
-                                       ADYEN_RESPONSES.AUTH_CODE,
-                                       ADYEN_RESPONSES.RESULT_CODE,
-                                       ADYEN_RESPONSES.REFUSAL_REASON,
-                                       ADYEN_RESPONSES.REFERENCE,
-                                       ADYEN_RESPONSES.PSP_ERROR_CODES,
-                                       ADYEN_RESPONSES.PAYMENT_INTERNAL_REF,
-                                       ADYEN_RESPONSES.FORM_URL,
-                                       ADYEN_RESPONSES.DCC_AMOUNT,
-                                       ADYEN_RESPONSES.DCC_CURRENCY,
-                                       ADYEN_RESPONSES.DCC_SIGNATURE,
-                                       ADYEN_RESPONSES.ISSUER_URL,
-                                       ADYEN_RESPONSES.MD,
-                                       ADYEN_RESPONSES.PA_REQUEST,
-                                       ADYEN_RESPONSES.ADDITIONAL_DATA,
-                                       ADYEN_RESPONSES.CREATED_DATE,
-                                       ADYEN_RESPONSES.KB_TENANT_ID)
-                           .values(kbAccountId.toString(),
-                                   kbPaymentId.toString(),
-                                   kbPaymentTransactionId.toString(),
-                                   transactionType.toString(),
-                                   amount,
-                                   currency,
-                                   result.getResult().isPresent() ? result.getResult().get().toString() : null,
-                                   result.getPspReference(),
-                                   result.getAuthCode(),
-                                   result.getResultCode(),
-                                   result.getReason(),
-                                   result.getReference(),
-                                   null,
-                                   result.getPaymentTransactionExternalKey(),
-                                   result.getFormUrl(),
-                                   dccAmountValue == null ? null : new BigDecimal(dccAmountValue),
-                                   getProperty(AdyenPaymentPluginApi.PROPERTY_DCC_AMOUNT_CURRENCY, result),
-                                   getProperty(AdyenPaymentPluginApi.PROPERTY_DCC_SIGNATURE, result),
-                                   getProperty(AdyenPaymentPluginApi.PROPERTY_ISSUER_URL, result),
-                                   getProperty(AdyenPaymentPluginApi.PROPERTY_MD, result),
-                                   getProperty(AdyenPaymentPluginApi.PROPERTY_PA_REQ, result),
-                                   additionalData,
-                                   toTimestamp(utcNow),
-                                   kbTenantId.toString())
-                           .execute();
-                        return null;
-                    }
-                });
     }
 
     public void addResponse(final UUID kbAccountId,
@@ -366,7 +324,7 @@ public class AdyenDao extends PluginPaymentDao<AdyenResponsesRecord, AdyenRespon
 
                                final Map originalData = new HashMap(fromAdditionalData(response.getAdditionalData()));
                                originalData.putAll(additionalProperties);
-                               final String mergedAdditionalData = getAdditionalData(originalData);
+                               final String mergedAdditionalData = asString(originalData);
 
                                DSL.using(conn, dialect, settings)
                                   .update(ADYEN_RESPONSES)
@@ -447,7 +405,7 @@ public class AdyenDao extends PluginPaymentDao<AdyenResponsesRecord, AdyenRespon
                                 final NotificationItem notification,
                                 final DateTime utcNow,
                                 @Nullable final UUID kbTenantId) throws SQLException {
-        final String additionalData = getAdditionalData(notification.getAdditionalData());
+        final String additionalData = asString(notification.getAdditionalData());
 
         execute(dataSource.getConnection(),
                 new WithConnectionCallback<Void>() {
@@ -542,24 +500,12 @@ public class AdyenDao extends PluginPaymentDao<AdyenResponsesRecord, AdyenRespon
         if (additionalDataMap.isEmpty()) {
             return null;
         } else {
-            return getAdditionalData(additionalDataMap);
+            return asString(additionalDataMap);
         }
     }
 
     private String getAdditionalData(final PaymentModificationResponse response) throws SQLException {
-        return getAdditionalData(response.getAdditionalData());
-    }
-
-    private String getAdditionalData(final Map additionalData) throws SQLException {
-        if (additionalData == null || additionalData.isEmpty()) {
-            return null;
-        }
-
-        try {
-            return objectMapper.writeValueAsString(additionalData);
-        } catch (final JsonProcessingException e) {
-            throw new SQLException(e);
-        }
+        return asString(response.getAdditionalData());
     }
 
     public static Map fromAdditionalData(final String additionalData) {
