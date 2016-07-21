@@ -62,10 +62,18 @@ public class CreditCardConverter extends PaymentInfoConverter<Card> {
 
         // Apple Pay
         if (paymentInfo.getToken() != null) {
-            final AnyType2AnyTypeMap.Entry issuerCountry = new AnyType2AnyTypeMap.Entry();
-            issuerCountry.setKey("payment.token");
-            issuerCountry.setValue(paymentInfo.getToken());
-            paymentRequest.getAdditionalData().getEntry().add(issuerCountry);
+            final AnyType2AnyTypeMap.Entry paymentToken = new AnyType2AnyTypeMap.Entry();
+            paymentToken.setKey("payment.token");
+            paymentToken.setValue(paymentInfo.getToken());
+            paymentRequest.getAdditionalData().getEntry().add(paymentToken);
+        }
+
+        // Easy encryption
+        if (paymentInfo.getEncryptedJson() != null) {
+            final AnyType2AnyTypeMap.Entry cardEncryptedJson = new AnyType2AnyTypeMap.Entry();
+            cardEncryptedJson.setKey("card.encrypted.json");
+            cardEncryptedJson.setValue(paymentInfo.getEncryptedJson());
+            paymentRequest.getAdditionalData().getEntry().add(cardEncryptedJson);
         }
     }
 }

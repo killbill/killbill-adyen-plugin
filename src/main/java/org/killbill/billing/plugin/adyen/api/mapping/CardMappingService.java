@@ -22,7 +22,9 @@ import org.killbill.billing.plugin.adyen.client.model.paymentinfo.Card;
 import org.killbill.billing.plugin.adyen.dao.gen.tables.records.AdyenPaymentMethodsRecord;
 import org.killbill.billing.plugin.api.PluginProperties;
 
+import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.PROPERTY_CC_ENCRYPTED_JSON;
 import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.PROPERTY_CC_ISSUER_COUNTRY;
+import static org.killbill.billing.plugin.adyen.api.mapping.PaymentInfoMappingService.decode;
 import static org.killbill.billing.plugin.api.payment.PluginPaymentPluginApi.PROPERTY_CC_EXPIRATION_MONTH;
 import static org.killbill.billing.plugin.api.payment.PluginPaymentPluginApi.PROPERTY_CC_EXPIRATION_YEAR;
 import static org.killbill.billing.plugin.api.payment.PluginPaymentPluginApi.PROPERTY_CC_FIRST_NAME;
@@ -62,6 +64,11 @@ public abstract class CardMappingService {
 
         final String token = PluginProperties.findPluginPropertyValue(PROPERTY_TOKEN, properties);
         card.setToken(token);
+
+        final String encryptedJson = PluginProperties.findPluginPropertyValue(PROPERTY_CC_ENCRYPTED_JSON, properties);
+        if (encryptedJson != null) {
+            card.setEncryptedJson(decode(encryptedJson));
+        }
 
         return card;
     }

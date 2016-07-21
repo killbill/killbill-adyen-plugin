@@ -322,6 +322,7 @@ Plugin properties
 | ccStartMonth             | Credit card start month                       |
 | ccStartYear              | Credit card start year                        |
 | ccVerificationValue      | CVC/CVV/CVN                                   |
+| encryptedJson            | Encrypted JSON (EE)                           |
 | dccAmount                | Payable amount                                |
 | dccCurrency              | The three-character ISO currency code         |
 | ddNumber                 | Direct Debit card number                      |

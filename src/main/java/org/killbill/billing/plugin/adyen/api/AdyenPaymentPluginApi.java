@@ -127,6 +127,7 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
 
     // Credit cards
     public static final String PROPERTY_CC_ISSUER_COUNTRY = "issuerCountry";
+    public static final String PROPERTY_CC_ENCRYPTED_JSON = "encryptedJson";
 
     // SEPA
     public static final String PROPERTY_DD_HOLDER_NAME = "ddHolderName";

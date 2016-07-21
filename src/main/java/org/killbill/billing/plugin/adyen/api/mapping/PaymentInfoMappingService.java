@@ -243,7 +243,7 @@ public abstract class PaymentInfoMappingService {
         paymentInfo.setSelectedBrand(selectedBrand);
     }
 
-    private static String decode(final String value) {
+    static String decode(final String value) {
         try {
             return URLDecoder.decode(value, "UTF-8");
         } catch (final UnsupportedEncodingException e) {
