@@ -297,7 +297,7 @@ public class KillbillAdyenNotificationHandler implements AdyenNotificationHandle
 
     private Payment getPayment(final UUID kbPaymentId, final TenantContext context) {
         try {
-            return osgiKillbillAPI.getPaymentApi().getPayment(kbPaymentId, true, ImmutableList.<PluginProperty>of(), context);
+            return osgiKillbillAPI.getPaymentApi().getPayment(kbPaymentId, true, false, ImmutableList.<PluginProperty>of(), context);
         } catch (final PaymentApiException e) {
             // Have Adyen retry
             throw new RuntimeException(String.format("Failed to retrieve kbPaymentId='%s'", kbPaymentId), e);

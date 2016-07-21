@@ -326,7 +326,7 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
 
                 final Payment payment;
                 try {
-                    payment = killbillAPI.getPaymentApi().getPayment(UUID.fromString(formerResponse.getKbPaymentId()), false, properties, context);
+                    payment = killbillAPI.getPaymentApi().getPayment(UUID.fromString(formerResponse.getKbPaymentId()), false, false, properties, context);
                 } catch (final PaymentApiException e) {
                     logService.log(LogService.LOG_ERROR, "Unable to retrieve Payment for externalKey " + recurringDetail.getFirstPspReference(), e);
                     continue;
@@ -670,7 +670,7 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
     private PaymentData buildPaymentData(final AccountData account, final UUID kbPaymentId, final UUID kbTransactionId, final AdyenPaymentMethodsRecord paymentMethodsRecord, final BigDecimal amount, final Currency currency, final Iterable<PluginProperty> properties, final TenantContext context) throws PaymentPluginApiException {
         final Payment payment;
         try {
-            payment = killbillAPI.getPaymentApi().getPayment(kbPaymentId, false, properties, context);
+            payment = killbillAPI.getPaymentApi().getPayment(kbPaymentId, false, false, properties, context);
         } catch (final PaymentApiException e) {
             throw new PaymentPluginApiException(String.format("Unable to retrieve kbPaymentId='%s'", kbPaymentId), e);
         }

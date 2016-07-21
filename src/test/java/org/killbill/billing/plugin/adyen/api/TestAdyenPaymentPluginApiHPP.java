@@ -94,7 +94,7 @@ public class TestAdyenPaymentPluginApiHPP extends TestAdyenPaymentPluginApiBase 
 
     private void triggerBuildFormDescriptor(final Map<String, String> extraProperties, @Nullable final TransactionType transactionType) throws PaymentPluginApiException, SQLException, PaymentApiException {
         assertNull(dao.getHppRequest(paymentTransactionExternalKey));
-        assertTrue(killbillApi.getPaymentApi().getAccountPayments(account.getId(), false, ImmutableList.<PluginProperty>of(), context).isEmpty());
+        assertTrue(killbillApi.getPaymentApi().getAccountPayments(account.getId(), false, false, ImmutableList.<PluginProperty>of(), context).isEmpty());
 
         final Builder<String, String> propsBuilder = new Builder<String, String>();
         propsBuilder.put(AdyenPaymentPluginApi.PROPERTY_AMOUNT, "10");
@@ -119,7 +119,7 @@ public class TestAdyenPaymentPluginApiHPP extends TestAdyenPaymentPluginApiBase 
 
         final Boolean withPendingPayment = Boolean.valueOf(customFieldsMap.get(PROPERTY_CREATE_PENDING_PAYMENT));
         if (withPendingPayment) {
-            final List<Payment> accountPayments = killbillApi.getPaymentApi().getAccountPayments(account.getId(), false, ImmutableList.<PluginProperty>of(), context);
+            final List<Payment> accountPayments = killbillApi.getPaymentApi().getAccountPayments(account.getId(), false, false, ImmutableList.<PluginProperty>of(), context);
             assertEquals(accountPayments.size(), 1);
             final Payment payment = accountPayments.get(0);
 
@@ -139,7 +139,7 @@ public class TestAdyenPaymentPluginApiHPP extends TestAdyenPaymentPluginApiBase 
     }
 
     private void verifyPayment(final TransactionType transactionType) throws SQLException, PaymentPluginApiException, PaymentApiException {
-        final List<Payment> accountPayments = killbillApi.getPaymentApi().getAccountPayments(account.getId(), false, ImmutableList.<PluginProperty>of(), context);
+        final List<Payment> accountPayments = killbillApi.getPaymentApi().getAccountPayments(account.getId(), false, false, ImmutableList.<PluginProperty>of(), context);
         assertEquals(accountPayments.size(), 1);
         final Payment payment = accountPayments.get(0);
 
