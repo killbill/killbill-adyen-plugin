@@ -84,6 +84,8 @@ To avoid runtime errors (such as `ClassCastException`), starting Kill Bill with 
 Usage
 -----
 
+A full end-to-end integration demo is also available [here](https://github.com/killbill/killbill-adyen-demo).
+
 ### Credit cards
 
 Add a payment method:
