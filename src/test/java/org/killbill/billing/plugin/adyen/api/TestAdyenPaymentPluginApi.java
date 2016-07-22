@@ -425,6 +425,27 @@ public class TestAdyenPaymentPluginApi extends TestAdyenPaymentPluginApiBase {
         assertEquals(paymentTransactionInfoPluginsPostCapture.get(1).getStatus(), PaymentPluginStatus.PENDING);
     }
 
+    @Test(groups = "slow")
+    public void testAuthorizeAndCaptureWithSplitSettlements() throws Exception {
+        adyenPaymentPluginApi.addPaymentMethod(account.getId(), account.getPaymentMethodId(), adyenEmptyPaymentMethodPlugin(), true, propertiesWithCCInfo, context);
+
+        final ImmutableMap.Builder<String, String> builder = new ImmutableMap.Builder<String, String>();
+        builder.put(AdyenPaymentPluginApi.PROPERTY_CC_VERIFICATION_VALUE, CC_VERIFICATION_VALUE);
+        builder.put(String.format("%s.1.amount", AdyenPaymentPluginApi.SPLIT_SETTLEMENT_DATA_ITEM), "3");
+        builder.put(String.format("%s.1.group", AdyenPaymentPluginApi.SPLIT_SETTLEMENT_DATA_ITEM), "MENSWEAR");
+        builder.put(String.format("%s.1.reference", AdyenPaymentPluginApi.SPLIT_SETTLEMENT_DATA_ITEM), UUID.randomUUID().toString());
+        builder.put(String.format("%s.1.type", AdyenPaymentPluginApi.SPLIT_SETTLEMENT_DATA_ITEM), "FOOTWEAR");
+        builder.put(String.format("%s.2.amount", AdyenPaymentPluginApi.SPLIT_SETTLEMENT_DATA_ITEM), "7");
+        builder.put(String.format("%s.2.group", AdyenPaymentPluginApi.SPLIT_SETTLEMENT_DATA_ITEM), "STREETWEAR");
+        builder.put(String.format("%s.2.reference", AdyenPaymentPluginApi.SPLIT_SETTLEMENT_DATA_ITEM), UUID.randomUUID().toString());
+        builder.put(String.format("%s.2.type", AdyenPaymentPluginApi.SPLIT_SETTLEMENT_DATA_ITEM), "HEADWEAR");
+        final Map<String, String> pluginPropertiesMap = builder.build();
+
+        final List<PluginProperty> pluginProperties = PluginProperties.buildPluginProperties(pluginPropertiesMap);
+        final Payment payment = doAuthorize(BigDecimal.TEN, pluginProperties);
+        doCapture(payment, BigDecimal.TEN);
+    }
+
     private Map<String, String> extractForm(final String html) {
         final Map<String, String> fields = new HashMap<String, String>();
         final Document doc = Jsoup.parse(html);

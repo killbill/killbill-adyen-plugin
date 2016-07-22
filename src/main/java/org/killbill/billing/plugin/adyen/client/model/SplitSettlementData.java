@@ -102,8 +102,8 @@ public class SplitSettlementData {
         private final String reference;
         private final String type;
 
-        public Item(final long amount, final String group, final String reference, final String type) {
-            this.amount = amount;
+        public Item(final long amountInMinorUnits, final String group, final String reference, final String type) {
+            this.amount = amountInMinorUnits;
             this.group = group;
             this.reference = reference;
             this.type = type;

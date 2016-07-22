@@ -21,6 +21,8 @@ import java.io.UnsupportedEncodingException;
 import java.math.BigDecimal;
 import java.net.URLDecoder;
 import java.sql.SQLException;
+import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -59,6 +61,7 @@ import org.killbill.billing.plugin.adyen.client.model.PaymentModificationRespons
 import org.killbill.billing.plugin.adyen.client.model.PaymentServiceProviderResult;
 import org.killbill.billing.plugin.adyen.client.model.PurchaseResult;
 import org.killbill.billing.plugin.adyen.client.model.SplitSettlementData;
+import org.killbill.billing.plugin.adyen.client.model.SplitSettlementData.Item;
 import org.killbill.billing.plugin.adyen.client.model.UserData;
 import org.killbill.billing.plugin.adyen.client.model.paymentinfo.WebPaymentFrontend;
 import org.killbill.billing.plugin.adyen.client.notification.AdyenNotificationHandler;
@@ -79,6 +82,7 @@ import org.killbill.billing.plugin.adyen.dao.gen.tables.records.AdyenPaymentMeth
 import org.killbill.billing.plugin.adyen.dao.gen.tables.records.AdyenResponsesRecord;
 import org.killbill.billing.plugin.api.PluginProperties;
 import org.killbill.billing.plugin.api.payment.PluginPaymentPluginApi;
+import org.killbill.billing.plugin.util.KillBillMoney;
 import org.killbill.billing.util.callcontext.CallContext;
 import org.killbill.billing.util.callcontext.TenantContext;
 import org.killbill.clock.Clock;
@@ -105,6 +109,7 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
     public static final String PROPERTY_ACQUIRER = "acquirer";
     public static final String PROPERTY_ACQUIRER_MID = "acquirerMID";
     public static final String PROPERTY_INSTALLMENTS = "installments";
+    public static final String SPLIT_SETTLEMENT_DATA_ITEM = "splitSettlementDataItem";
     public static final String PROPERTY_RECURRING_TYPE = "recurringType";
     public static final String PROPERTY_CAPTURE_DELAY_HOURS = "captureDelayHours";
     /**
@@ -505,7 +510,7 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
         final AdyenPaymentServiceProviderHostedPaymentPagePort hostedPaymentPagePort = adyenHppConfigurationHandler.getConfigurable(context.getTenantId());
 
         final String merchantAccount = getMerchantAccount(paymentData, properties, context);
-        final SplitSettlementData splitSettlementData = null;
+        final SplitSettlementData splitSettlementData = buildSplitSettlementData(currency, properties);
 
         final Map formParameter;
         try {
@@ -613,7 +618,7 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
         final Iterable<PluginProperty> mergedProperties = PluginProperties.merge(additionalPropertiesFromRecord, properties);
         final PaymentData paymentData = buildPaymentData(account, kbPaymentId, kbTransactionId, nonNullPaymentMethodsRecord, amount, currency, mergedProperties, context);
         final UserData userData = toUserData(account, mergedProperties);
-        final SplitSettlementData splitSettlementData = null;
+        final SplitSettlementData splitSettlementData = buildSplitSettlementData(currency, properties);
         final DateTime utcNow = clock.getUTCNow();
 
         final String merchantAccount = getMerchantAccount(paymentData, properties, context);
@@ -658,7 +663,7 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
 
         final AdyenPaymentMethodsRecord nonNullPaymentMethodsRecord = getAdyenPaymentMethodsRecord(kbPaymentMethodId, context);
         final PaymentData paymentData = buildPaymentData(account, kbPaymentId, kbTransactionId, nonNullPaymentMethodsRecord, amount, currency, properties, context);
-        final SplitSettlementData splitSettlementData = null;
+        final SplitSettlementData splitSettlementData = buildSplitSettlementData(currency, properties);
         final DateTime utcNow = clock.getUTCNow();
 
         final String merchantAccount = getMerchantAccount(paymentData, properties, context);
@@ -676,6 +681,48 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
             return new AdyenPaymentTransactionInfoPlugin(kbPaymentId, kbTransactionId, transactionType, amount, currency, paymentServiceProviderResult, utcNow, response);
         } catch (final SQLException e) {
             throw new PaymentPluginApiException("Payment went through, but we encountered a database error. Payment details: " + (response.toString()), e);
+        }
+    }
+
+    private SplitSettlementData buildSplitSettlementData(final Currency currency, final Iterable<PluginProperty> pluginProperties) {
+        final Map<Short, Long> amounts = new HashMap<Short, Long>();
+        final Map<Short, String> groups = new HashMap<Short, String>();
+        final Map<Short, String> references = new HashMap<Short, String>();
+        final Map<Short, String> types = new HashMap<Short, String>();
+        for (final PluginProperty pluginProperty : pluginProperties) {
+            if (pluginProperty.getKey().startsWith(SPLIT_SETTLEMENT_DATA_ITEM) && pluginProperty.getValue() != null) {
+                final String[] parts = pluginProperty.getKey().split("\\.");
+                final Short itemNb = Short.parseShort(parts[1]);
+                final String suffix = parts[2];
+
+                final String value = pluginProperty.getValue().toString();
+                if ("amount".equals(suffix)) {
+                    amounts.put(itemNb, Long.valueOf(value));
+                } else if ("group".equals(suffix)) {
+                    groups.put(itemNb, value);
+                } else if ("reference".equals(suffix)) {
+                    references.put(itemNb, value);
+                } else if ("type".equals(suffix)) {
+                    types.put(itemNb, value);
+                }
+            }
+        }
+
+        final List<Item> items = new LinkedList<Item>();
+        for (final Short itemNb : amounts.keySet()) {
+            final String type = types.get(itemNb);
+            if (type != null) {
+                items.add(new SplitSettlementData.Item(KillBillMoney.toMinorUnits(currency.toString(), BigDecimal.valueOf(amounts.get(itemNb))),
+                                                       MoreObjects.firstNonNull(groups.get(itemNb), type),
+                                                       MoreObjects.firstNonNull(references.get(itemNb), type),
+                                                       type));
+            }
+        }
+
+        if (items.isEmpty()) {
+            return null;
+        } else {
+            return new SplitSettlementData(1, currency.toString(), items);
         }
     }
 
