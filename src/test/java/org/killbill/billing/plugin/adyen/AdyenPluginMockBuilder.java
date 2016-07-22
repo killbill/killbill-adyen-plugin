@@ -110,7 +110,7 @@ public class AdyenPluginMockBuilder {
         final AdyenPaymentRequestSender adyenPaymentRequestSender = new AdyenPaymentRequestSender(adyenPaymentPortRegistry);
 
         final AdyenPaymentServiceProviderPort adyenPaymentServiceProviderPort = new AdyenPaymentServiceProviderPort(adyenRequestFactory, adyenPaymentRequestSender);
-        final AdyenPaymentServiceProviderHostedPaymentPagePort adyenPaymentServiceProviderHostedPaymentPagePort = new AdyenPaymentServiceProviderHostedPaymentPagePort(adyenConfigProperties, adyenRequestFactory);
+        final AdyenPaymentServiceProviderHostedPaymentPagePort adyenPaymentServiceProviderHostedPaymentPagePort = new AdyenPaymentServiceProviderHostedPaymentPagePort(adyenConfigProperties, adyenRequestFactory, null);
         final AdyenRecurringClient adyenRecurringClient = new AdyenRecurringClient(adyenConfigProperties, loggingInInterceptor, loggingOutInterceptor, httpHeaderInterceptor);
 
         final OSGIKillbillLogService logService = TestUtils.buildLogService();

@@ -60,6 +60,7 @@ import org.killbill.billing.plugin.adyen.client.model.PaymentServiceProviderResu
 import org.killbill.billing.plugin.adyen.client.model.PurchaseResult;
 import org.killbill.billing.plugin.adyen.client.model.SplitSettlementData;
 import org.killbill.billing.plugin.adyen.client.model.UserData;
+import org.killbill.billing.plugin.adyen.client.model.paymentinfo.WebPaymentFrontend;
 import org.killbill.billing.plugin.adyen.client.notification.AdyenNotificationHandler;
 import org.killbill.billing.plugin.adyen.client.notification.AdyenNotificationService;
 import org.killbill.billing.plugin.adyen.client.payment.exception.SignatureGenerationException;
@@ -164,6 +165,7 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
     public static final String PROPERTY_ISSUER_ID = "issuerId";
     public static final String PROPERTY_OFFER_EMAIL = "offerEmail";
     public static final String PROPERTY_HPP_TARGET = "hppTarget";
+    public static final String PROPERTY_LOOKUP_DIRECTORY = "lookupDirectory";
 
     // Internals
     public static final String PROPERTY_ADDITIONAL_DATA = "additionalData";
@@ -473,6 +475,7 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
         final BigDecimal amount = new BigDecimal(amountString);
         final String currencyString = PluginProperties.findPluginPropertyValue(PROPERTY_CURRENCY, properties);
         final Currency currency = currencyString == null ? account.getCurrency() : Currency.valueOf(currencyString);
+        Preconditions.checkState(currency != null, "currency not specified");
 
         final PaymentData paymentData = buildPaymentData(account, amount, currency, mergedProperties, context);
         final UserData userData = toUserData(account, mergedProperties);
@@ -484,13 +487,14 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
             pendingPayment = createPendingPayment(authMode, account, paymentData, context);
         }
 
+        final String merchantReference = pendingPayment == null ? paymentData.getPaymentTransactionExternalKey() : pendingPayment.getTransactions().get(0).getExternalKey();
         try {
             // Need to store on disk the mapping payment <-> user because Adyen's notification won't provide the latter
             //noinspection unchecked
             dao.addHppRequest(kbAccountId,
                               pendingPayment == null ? null : pendingPayment.getId(),
                               pendingPayment == null ? null : pendingPayment.getTransactions().get(0).getId(),
-                              pendingPayment == null ? paymentData.getPaymentTransactionExternalKey() : pendingPayment.getTransactions().get(0).getExternalKey(),
+                              merchantReference,
                               PluginProperties.toMap(mergedProperties),
                               clock.getUTCNow(),
                               context.getTenantId());
@@ -503,14 +507,30 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
         final String merchantAccount = getMerchantAccount(paymentData, properties, context);
         final SplitSettlementData splitSettlementData = null;
 
-        final Map<String, String> formParameter;
+        final Map formParameter;
         try {
             formParameter = hostedPaymentPagePort.getFormParameter(merchantAccount, paymentData, userData, splitSettlementData);
         } catch (final SignatureGenerationException e) {
             throw new PaymentPluginApiException("Unable to generate signature", e);
         }
 
-        final String hppTarget = PluginProperties.getValue(PROPERTY_HPP_TARGET, hostedPaymentPagePort.getAdyenConfigProperties().getHppTarget(), properties);
+        // Safe cast
+        final WebPaymentFrontend webPaymentFrontend = (WebPaymentFrontend) paymentData.getPaymentInfo();
+
+        final boolean withDirectory = Boolean.valueOf(PluginProperties.findPluginPropertyValue(PROPERTY_LOOKUP_DIRECTORY, mergedProperties));
+        if (withDirectory) {
+            final Map directory = hostedPaymentPagePort.getDirectory(merchantAccount,
+                                                                     amount,
+                                                                     currency,
+                                                                     merchantReference,
+                                                                     webPaymentFrontend.getSkinCode(),
+                                                                     webPaymentFrontend.getSessionValidity(),
+                                                                     paymentData.getPaymentInfo().getCountry());
+            formParameter.put("directory", MoreObjects.firstNonNull(directory, ImmutableMap.of()));
+        }
+
+        final String target = webPaymentFrontend.getBrandCode() != null ? hostedPaymentPagePort.getAdyenConfigProperties().getHppSkipDetailsTarget() : hostedPaymentPagePort.getAdyenConfigProperties().getHppTarget();
+        final String hppTarget = PluginProperties.getValue(PROPERTY_HPP_TARGET, target, properties);
         return new AdyenHostedPaymentPageFormDescriptor(kbAccountId, hppTarget, PluginProperties.buildPluginProperties(formParameter));
     }
 

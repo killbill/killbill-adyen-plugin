@@ -16,6 +16,7 @@
 
 package org.killbill.billing.plugin.adyen.core;
 
+import java.security.GeneralSecurityException;
 import java.util.Properties;
 
 import org.killbill.billing.osgi.libs.killbill.OSGIKillbillAPI;
@@ -25,10 +26,15 @@ import org.killbill.billing.plugin.adyen.client.payment.builder.AdyenRequestFact
 import org.killbill.billing.plugin.adyen.client.payment.converter.PaymentInfoConverterManagement;
 import org.killbill.billing.plugin.adyen.client.payment.converter.impl.PaymentInfoConverterService;
 import org.killbill.billing.plugin.adyen.client.payment.service.AdyenPaymentServiceProviderHostedPaymentPagePort;
+import org.killbill.billing.plugin.adyen.client.payment.service.DirectoryClient;
 import org.killbill.billing.plugin.adyen.client.payment.service.Signer;
 import org.killbill.billing.plugin.api.notification.PluginTenantConfigurableConfigurationHandler;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class AdyenHostedPaymentPageConfigurationHandler extends PluginTenantConfigurableConfigurationHandler<AdyenPaymentServiceProviderHostedPaymentPagePort> {
+
+    private static final Logger logger = LoggerFactory.getLogger(AdyenHostedPaymentPageConfigurationHandler.class);
 
     public AdyenHostedPaymentPageConfigurationHandler(final String pluginName,
                                                       final OSGIKillbillAPI osgiKillbillAPI,
@@ -48,7 +54,18 @@ public class AdyenHostedPaymentPageConfigurationHandler extends PluginTenantConf
         final Signer signer = new Signer();
         final AdyenRequestFactory adyenRequestFactory = new AdyenRequestFactory(paymentInfoConverterManagement, adyenConfigProperties, signer);
 
-        return new AdyenPaymentServiceProviderHostedPaymentPagePort(adyenConfigProperties, adyenRequestFactory);
+        DirectoryClient directoryClient = null;
+        if (adyenConfigProperties.getDirectoryUrl() != null) {
+            try {
+                directoryClient = new DirectoryClient(adyenConfigProperties.getDirectoryUrl(),
+                                                      adyenConfigProperties.getProxyServer(),
+                                                      adyenConfigProperties.getProxyPort(),
+                                                      !adyenConfigProperties.getTrustAllCertificates());
+            } catch (final GeneralSecurityException e) {
+                logger.warn("Unable to configure the directory client", e);
+            }
+        }
+        return new AdyenPaymentServiceProviderHostedPaymentPagePort(adyenConfigProperties, adyenRequestFactory, directoryClient);
     }
 }
 

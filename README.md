@@ -57,6 +57,7 @@ To configure Hosted Payment Pages (HPP):
 * `org.killbill.billing.plugin.adyen.hpp.target`: host payment page url (e.g. https://test.adyen.com/hpp/pay.shtml)
 * `org.killbill.billing.plugin.adyen.hmac.secret`: your hmac secret(s)
 * `org.killbill.billing.plugin.adyen.skin`: you skin code(s)
+* `org.killbill.billing.plugin.adyen.directoryUrl`: directory lookup url (e.g. https://test.adyen.com/hpp/directory.shtml)
 
 The format for secrets and skins is the same as above if you support multiple countries.
 
@@ -351,3 +352,4 @@ Plugin properties
 | createPendingPayment     | Whether to create a PENDING payment for HPP   |
 | authMode                 | Create an auth instead of purchase for HPP    |
 | paymentExternalKey       | HPP payment external key                      |
+| lookupDirectory          | If true, query the directory (HPP flow)       |

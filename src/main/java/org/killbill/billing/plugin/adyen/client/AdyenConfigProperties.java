@@ -53,9 +53,11 @@ public class AdyenConfigProperties {
     private final String hmacAlgorithms;
     private final String paymentUrl;
     private final String recurringUrl;
+    private final String directoryUrl;
     private final String recurringConnectionTimeout;
     private final String recurringReadTimeout;
     private final String hppTarget;
+    private final String hppSkipDetailsTarget;
     private final String proxyServer;
     private final String proxyPort;
     private final String proxyType;
@@ -81,7 +83,10 @@ public class AdyenConfigProperties {
         this.recurringConnectionTimeout = properties.getProperty(PROPERTY_PREFIX + "recurringConnectionTimeout", DEFAULT_CONNECTION_TIMEOUT);
         this.recurringReadTimeout = properties.getProperty(PROPERTY_PREFIX + "recurringReadTimeout", DEFAULT_READ_TIMEOUT);
 
+        this.directoryUrl = properties.getProperty(PROPERTY_PREFIX + "directoryUrl");
+
         this.hppTarget = properties.getProperty(PROPERTY_PREFIX + "hpp.target");
+        this.hppSkipDetailsTarget = this.hppTarget != null ? this.hppTarget.replace(this.hppTarget.substring(this.hppTarget.lastIndexOf('/') + 1), "skipDetails.shtml") : null;
         this.hppVariantOverride = properties.getProperty(PROPERTY_PREFIX + "hppVariantOverride");
         this.acquirersList = properties.getProperty(PROPERTY_PREFIX + "acquirersList");
 
@@ -218,6 +223,10 @@ public class AdyenConfigProperties {
         return hppTarget;
     }
 
+    public String getHppSkipDetailsTarget() {
+        return hppSkipDetailsTarget;
+    }
+
     public String getHppVariantOverride() {
         return hppVariantOverride;
     }
@@ -269,6 +278,10 @@ public class AdyenConfigProperties {
 
     public String getRecurringUrl() {
         return recurringUrl;
+    }
+
+    public String getDirectoryUrl() {
+        return directoryUrl;
     }
 
     public String getRecurringConnectionTimeout() {

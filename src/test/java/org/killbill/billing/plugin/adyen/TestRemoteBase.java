@@ -36,6 +36,7 @@ import org.killbill.billing.plugin.adyen.client.payment.converter.impl.PaymentIn
 import org.killbill.billing.plugin.adyen.client.payment.service.AdyenPaymentRequestSender;
 import org.killbill.billing.plugin.adyen.client.payment.service.AdyenPaymentServiceProviderHostedPaymentPagePort;
 import org.killbill.billing.plugin.adyen.client.payment.service.AdyenPaymentServiceProviderPort;
+import org.killbill.billing.plugin.adyen.client.payment.service.DirectoryClient;
 import org.killbill.billing.plugin.adyen.client.payment.service.Signer;
 import org.killbill.billing.plugin.adyen.client.recurring.AdyenRecurringClient;
 import org.killbill.billing.plugin.adyen.core.AdyenActivator;
@@ -93,7 +94,11 @@ public abstract class TestRemoteBase {
         final AdyenPaymentRequestSender adyenPaymentRequestSender = new AdyenPaymentRequestSender(adyenPaymentPortRegistry);
 
         adyenPaymentServiceProviderPort = new AdyenPaymentServiceProviderPort(adyenRequestFactory, adyenPaymentRequestSender);
-        adyenPaymentServiceProviderHostedPaymentPagePort = new AdyenPaymentServiceProviderHostedPaymentPagePort(adyenConfigProperties, adyenRequestFactory);
+        final DirectoryClient directoryClient = new DirectoryClient(adyenConfigProperties.getDirectoryUrl(),
+                                                                    adyenConfigProperties.getProxyServer(),
+                                                                    adyenConfigProperties.getProxyPort(),
+                                                                    !adyenConfigProperties.getTrustAllCertificates());
+        adyenPaymentServiceProviderHostedPaymentPagePort = new AdyenPaymentServiceProviderHostedPaymentPagePort(adyenConfigProperties, adyenRequestFactory, directoryClient);
 
         adyenRecurringClient = new AdyenRecurringClient(adyenConfigProperties, loggingInInterceptor, loggingOutInterceptor, httpHeaderInterceptor);
 

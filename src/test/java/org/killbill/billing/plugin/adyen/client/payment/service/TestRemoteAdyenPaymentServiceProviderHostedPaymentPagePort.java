@@ -22,6 +22,8 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 
+import org.joda.time.DateTime;
+import org.joda.time.DateTimeZone;
 import org.killbill.billing.catalog.api.Currency;
 import org.killbill.billing.plugin.adyen.TestRemoteBase;
 import org.killbill.billing.plugin.adyen.client.model.PaymentData;
@@ -63,5 +65,18 @@ public class TestRemoteAdyenPaymentServiceProviderHostedPaymentPagePort extends 
         final String fullQueryString = QueryComputer.URL_ENCODING_ENABLED_QUERY_COMPUTER.computeFullQueryString(null, formParameter);
         System.out.println("Redirect to " + formUrl + "?" + fullQueryString);
         System.out.flush();
+    }
+
+    @Test(groups = "slow")
+    public void testDirectory() throws Exception {
+        final Map directory = adyenPaymentServiceProviderHostedPaymentPagePort.getDirectory(merchantAccount,
+                                                                                            new BigDecimal("1.99"),
+                                                                                            Currency.EUR,
+                                                                                            "SKINTEST-1435226439255",
+                                                                                            adyenConfigProperties.getSkin(DEFAULT_COUNTRY),
+                                                                                            new DateTime(DateTimeZone.UTC).plusDays(1).toString(),
+                                                                                            DEFAULT_COUNTRY);
+        Assert.assertNotNull(directory);
+        Assert.assertNotNull(directory.get("paymentMethods"));
     }
 }

@@ -37,7 +37,7 @@ public class TestAdyenPaymentServiceProviderHostedPaymentPagePort {
     public void setUp() throws Exception {
         final AdyenConfigProperties adyenConfigProperties = Mockito.mock(AdyenConfigProperties.class);
         final AdyenRequestFactory adyenRequestFactory = Mockito.mock(AdyenRequestFactory.class);
-        adyenPaymentServiceProviderHostedPaymentPagePort = new AdyenPaymentServiceProviderHostedPaymentPagePort(adyenConfigProperties, adyenRequestFactory);
+        adyenPaymentServiceProviderHostedPaymentPagePort = new AdyenPaymentServiceProviderHostedPaymentPagePort(adyenConfigProperties, adyenRequestFactory, null);
     }
 
     @Test(groups = "fast")

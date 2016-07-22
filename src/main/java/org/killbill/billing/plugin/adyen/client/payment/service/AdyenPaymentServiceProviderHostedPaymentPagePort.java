@@ -19,9 +19,14 @@ package org.killbill.billing.plugin.adyen.client.payment.service;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.TreeMap;
 
+import javax.annotation.Nullable;
+
+import org.killbill.billing.catalog.api.Currency;
 import org.killbill.billing.plugin.adyen.client.AdyenConfigProperties;
 import org.killbill.billing.plugin.adyen.client.model.HppCompletedResult;
 import org.killbill.billing.plugin.adyen.client.model.PaymentData;
@@ -33,27 +38,66 @@ import org.killbill.billing.plugin.adyen.client.payment.exception.SignatureGener
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static org.killbill.billing.plugin.util.KillBillMoney.toMinorUnits;
+
 public class AdyenPaymentServiceProviderHostedPaymentPagePort extends BaseAdyenPaymentServiceProviderPort implements Closeable {
 
     private static final Logger logger = LoggerFactory.getLogger(AdyenPaymentServiceProviderHostedPaymentPagePort.class);
 
     private final AdyenConfigProperties adyenConfigProperties;
     private final AdyenRequestFactory adyenRequestFactory;
+    private final DirectoryClient directoryClient;
 
     public AdyenPaymentServiceProviderHostedPaymentPagePort(final AdyenConfigProperties adyenConfigProperties,
-                                                            final AdyenRequestFactory adyenRequestFactory) {
+                                                            final AdyenRequestFactory adyenRequestFactory,
+                                                            @Nullable final DirectoryClient directoryClient) {
         this.adyenConfigProperties = adyenConfigProperties;
         this.adyenRequestFactory = adyenRequestFactory;
+        this.directoryClient = directoryClient;
     }
 
     @Override
     public void close() throws IOException {
-        // No-op for now
+        if (directoryClient != null) {
+            directoryClient.close();
+        }
     }
 
     public Map<String, String> getFormParameter(final String merchantAccount, final PaymentData paymentData, final UserData userData, final SplitSettlementData splitSettlementData) throws SignatureGenerationException {
         logOperation(logger, "createHppRequest", paymentData, userData, null);
         return adyenRequestFactory.createHppRequest(merchantAccount, paymentData, userData, splitSettlementData);
+    }
+
+    public Map getDirectory(final String merchantAccount,
+                            final BigDecimal amount,
+                            final Currency currency,
+                            final String merchantReference,
+                            final String skinCode,
+                            final String sessionValidity,
+                            @Nullable final String countryIsoCode) {
+        if (directoryClient == null) {
+            return null;
+        }
+
+        final Map<String, String> params = new TreeMap<String, String>();
+        // Mandatory
+        params.put("merchantAccount", merchantAccount);
+        params.put("currencyCode", currency.toString());
+        params.put("paymentAmount", String.valueOf(toMinorUnits(currency.toString(), amount)));
+        params.put("merchantReference", merchantReference);
+        params.put("skinCode", skinCode);
+        params.put("sessionValidity", sessionValidity);
+        // Optional
+        if (countryIsoCode != null) {
+            params.put("countryCode", countryIsoCode);
+        }
+
+        final Signer signer = new Signer();
+        final String hmacSecret = adyenConfigProperties.getHmacSecret(countryIsoCode);
+        final String hmacAlgorithm = adyenConfigProperties.getHmacAlgorithm(countryIsoCode);
+        params.put("merchantSig", signer.signFormParameters(params, hmacSecret, hmacAlgorithm));
+
+        return directoryClient.getDirectory(params);
     }
 
     // Used to verify completion
