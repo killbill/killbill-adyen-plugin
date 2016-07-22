@@ -77,12 +77,12 @@ public class HPPRequestBuilder extends RequestBuilder<Map<String, String>> {
         setShopperData();
 
         Locale shopperLocale = AdyenConfigProperties.gbToUK(userData.getShopperLocale());
-        if ("paypal".equalsIgnoreCase(paymentInfo.getBrandCode()) &&
-            PayPalCountryCodes.isNotPayPalIsoCode(shopperLocale.getCountry()) &&
-            PayPalCountryCodes.isNotPayPalLocale(userData.getShopperLocale())) {
-            shopperLocale = Locale.US;
-        }
         if (shopperLocale != null) {
+            if ("paypal".equalsIgnoreCase(paymentInfo.getBrandCode()) &&
+                PayPalCountryCodes.isNotPayPalIsoCode(shopperLocale.getCountry()) &&
+                PayPalCountryCodes.isNotPayPalLocale(userData.getShopperLocale())) {
+                shopperLocale = Locale.US;
+            }
             request.put("shopperLocale", shopperLocale.toString());
         }
         request.put("countryCode", paymentInfo.getCountry());
