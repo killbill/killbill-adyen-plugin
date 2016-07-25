@@ -17,33 +17,29 @@
 
 package org.killbill.billing.plugin.adyen.client;
 
-import java.util.Locale;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Properties;
-import java.util.concurrent.ConcurrentHashMap;
 
+import com.google.common.base.MoreObjects;
 import com.google.common.base.Strings;
 
 public class AdyenConfigProperties {
 
-    private static final String PROPERTY_PREFIX = "org.killbill.billing.plugin.adyen.";
-
-    private static final String ENTRY_DELIMITER = "|";
-    private static final String KEY_VALUE_DELIMITER = "#";
-
-    private static final Locale LOCALE_EN_UK = new Locale("en", "UK");
-
     public static final String DEFAULT_HMAC_ALGORITHM = "HmacSHA256";
 
+    private static final String PROPERTY_PREFIX = "org.killbill.billing.plugin.adyen.";
+    private static final String ENTRY_DELIMITER = "|";
+    private static final String KEY_VALUE_DELIMITER = "#";
     private static final String DEFAULT_CONNECTION_TIMEOUT = "30000";
     private static final String DEFAULT_READ_TIMEOUT = "60000";
 
-    private final Map<String, String> merchantAccountMap = new ConcurrentHashMap<String, String>();
-    private final Map<String, String> userMap = new ConcurrentHashMap<String, String>();
-    private final Map<String, String> passwordMap = new ConcurrentHashMap<String, String>();
-    private final Map<String, String> skinMap = new ConcurrentHashMap<String, String>();
-    private final Map<String, String> secretMap = new ConcurrentHashMap<String, String>();
-    private final Map<String, String> hmacAlgorithmMap = new ConcurrentHashMap<String, String>();
+    private final Map<String, String> countryToMerchantAccountMap = new LinkedHashMap<String, String>();
+    private final Map<String, String> merchantAccountToUsernameMap = new LinkedHashMap<String, String>();
+    private final Map<String, String> usernameToPasswordMap = new LinkedHashMap<String, String>();
+    private final Map<String, String> merchantAccountToSkinMap = new LinkedHashMap<String, String>();
+    private final Map<String, String> skinToSecretMap = new LinkedHashMap<String, String>();
+    private final Map<String, String> skinToSecretAlgorithmMap = new LinkedHashMap<String, String>();
 
     private final String merchantAccounts;
     private final String userNames;
@@ -90,132 +86,108 @@ public class AdyenConfigProperties {
         this.hppVariantOverride = properties.getProperty(PROPERTY_PREFIX + "hppVariantOverride");
         this.acquirersList = properties.getProperty(PROPERTY_PREFIX + "acquirersList");
 
-        this.hmacSecrets = properties.getProperty(PROPERTY_PREFIX + "hmac.secret");
-        refillMap(secretMap, hmacSecrets);
-
-        final String hmacAlgorithm = properties.getProperty(PROPERTY_PREFIX + "hmac.algorithm");
-        if (hmacAlgorithm != null) {
-            this.hmacAlgorithms = hmacAlgorithm;
-        } else {
-            this.hmacAlgorithms = DEFAULT_HMAC_ALGORITHM;
-        }
-        refillMap(hmacAlgorithmMap, hmacAlgorithms);
-
-        this.passwords = properties.getProperty(PROPERTY_PREFIX + "password");
-        refillMap(passwordMap, passwords);
+        this.merchantAccounts = properties.getProperty(PROPERTY_PREFIX + "merchantAccount");
+        refillMap(countryToMerchantAccountMap, merchantAccounts);
 
         this.userNames = properties.getProperty(PROPERTY_PREFIX + "username");
-        refillMap(userMap, userNames);
+        final Map<String, String> countryOrMerchantAccountToUsernameMap = new LinkedHashMap<String, String>();
+        refillMap(countryOrMerchantAccountToUsernameMap, userNames);
+        for (final String countryOrMerchantAccount : countryOrMerchantAccountToUsernameMap.keySet()) {
+            final String merchantAccountOrNull = countryToMerchantAccountMap.get(countryOrMerchantAccount);
+            final String merchantAccount = MoreObjects.firstNonNull(merchantAccountOrNull, countryOrMerchantAccount);
+            final String username = countryOrMerchantAccountToUsernameMap.get(countryOrMerchantAccount);
+            merchantAccountToUsernameMap.put(merchantAccount, username);
+        }
+
+        this.passwords = properties.getProperty(PROPERTY_PREFIX + "password");
+        final Map<String, String> countryOrUsernameToPasswordMap = new LinkedHashMap<String, String>();
+        refillMap(countryOrUsernameToPasswordMap, passwords);
+        for (final String countryOrUsername : countryOrUsernameToPasswordMap.keySet()) {
+            final String merchantAccountOrNull = countryToMerchantAccountMap.get(countryOrUsername);
+            final String userName = merchantAccountOrNull != null ? merchantAccountToUsernameMap.get(merchantAccountOrNull) : countryOrUsername;
+            final String password = countryOrUsernameToPasswordMap.get(countryOrUsername);
+            usernameToPasswordMap.put(userName, password);
+        }
 
         this.skins = properties.getProperty(PROPERTY_PREFIX + "skin");
-        refillMap(skinMap, skins);
-
-        this.merchantAccounts = properties.getProperty(PROPERTY_PREFIX + "merchantAccount");
-        merchantAccountMap.clear();
-        if (merchantAccounts != null && merchantAccounts.contains(ENTRY_DELIMITER)) {
-            for (final String account : merchantAccounts.split("\\" + ENTRY_DELIMITER)) {
-                final String countryIsoCode = account.split(KEY_VALUE_DELIMITER)[0];
-                final String merchantAccount = account.split(KEY_VALUE_DELIMITER)[1];
-                merchantAccountMap.put(countryIsoCode, merchantAccount);
-            }
+        final Map<String, String> countryOrMerchantAccountToSkinMap = new LinkedHashMap<String, String>();
+        refillMap(countryOrMerchantAccountToSkinMap, skins);
+        for (final String countryOrMerchantAccount : countryOrMerchantAccountToSkinMap.keySet()) {
+            final String merchantAccountOrNull = countryToMerchantAccountMap.get(countryOrMerchantAccount);
+            final String merchantAccount = MoreObjects.firstNonNull(merchantAccountOrNull, countryOrMerchantAccount);
+            final String skin = countryOrMerchantAccountToSkinMap.get(countryOrMerchantAccount);
+            merchantAccountToSkinMap.put(merchantAccount, skin);
         }
-    }
 
-    /**
-     * Translates "GB" to "UK".
-     *
-     * @param countryIsoCode country iso code
-     * @return same as input, except for when the input is GB, then UK is returned
-     */
-    public static String gbToUK(final String countryIsoCode) {
-        if (Strings.isNullOrEmpty(countryIsoCode)) {
-            return null;
+        this.hmacSecrets = properties.getProperty(PROPERTY_PREFIX + "hmac.secret");
+        final Map<String, String> countryOrSkinToSecretMap = new LinkedHashMap<String, String>();
+        refillMap(countryOrSkinToSecretMap, hmacSecrets);
+        for (final String countryOrSkin : countryOrSkinToSecretMap.keySet()) {
+            final String merchantAccountOrNull = countryToMerchantAccountMap.get(countryOrSkin);
+            final String skin = merchantAccountOrNull != null ? merchantAccountToSkinMap.get(merchantAccountOrNull) : countryOrSkin;
+            final String secret = countryOrSkinToSecretMap.get(countryOrSkin);
+            skinToSecretMap.put(skin, secret);
         }
-        return "GB".equalsIgnoreCase(countryIsoCode) ? "UK" : countryIsoCode;
-    }
 
-    public static String adjustCountryCode(final String countryIsoCode) {
-        final String countryCodeUpperCase = countryIsoCode.toUpperCase();
-        return gbToUK(countryCodeUpperCase);
-    }
-
-    /**
-     * Translates "en_GB" to "en_UK".
-     *
-     * @param locale locale
-     * @return same as input, except for when the input is en_GB, then en_UK is returned
-     */
-    public static Locale gbToUK(final Locale locale) {
-        if (locale == null) {
-            return null;
+        this.hmacAlgorithms = properties.getProperty(PROPERTY_PREFIX + "hmac.algorithm", DEFAULT_HMAC_ALGORITHM);
+        final Map<String, String> countryOrSkinToSecretAlgorithmMap = new LinkedHashMap<String, String>();
+        refillMap(countryOrSkinToSecretAlgorithmMap, hmacAlgorithms);
+        for (final String countryOrSkin : countryOrSkinToSecretAlgorithmMap.keySet()) {
+            final String merchantAccountOrNull = countryToMerchantAccountMap.get(countryOrSkin);
+            final String skin = merchantAccountOrNull != null ? merchantAccountToSkinMap.get(merchantAccountOrNull) : countryOrSkin;
+            final String secretAlgorithm = countryOrSkinToSecretAlgorithmMap.get(countryOrSkin);
+            skinToSecretAlgorithmMap.put(skin, secretAlgorithm);
         }
-        // NOTE: Locale.UK is defined as "en_GB".
-        return locale.equals(Locale.UK) ? LOCALE_EN_UK : locale;
     }
 
     public String getMerchantAccount(final String countryIsoCode) {
-        if (merchantAccountMap.isEmpty()) {
+        if (countryToMerchantAccountMap.isEmpty()) {
             return merchantAccounts;
         } else if (countryIsoCode == null) {
             // In case no country is specified, but the user configured the merchant accounts per country, take the first one
-            return merchantAccountMap.values().iterator().next();
+            return countryToMerchantAccountMap.values().iterator().next();
         } else {
-            return merchantAccountMap.get(adjustCountryCode(countryIsoCode));
+            return countryToMerchantAccountMap.get(adjustCountryCode(countryIsoCode));
         }
     }
 
-    public String getPassword(final String countryIsoCode) {
-        if (passwordMap.isEmpty()) {
-            return passwords;
-        } else if (countryIsoCode == null) {
-            // In case no country is specified, but the user configured the passwords per country, take the first one
-            return passwordMap.values().iterator().next();
-        } else {
-            return passwordMap.get(adjustCountryCode(countryIsoCode));
-        }
-    }
-
-    public String getUserName(final String countryIsoCode) {
-        if (userMap.isEmpty()) {
+    public String getUserName(final String merchantAccount) {
+        if (merchantAccountToUsernameMap.isEmpty()) {
             return userNames;
-        } else if (countryIsoCode == null) {
-            // In case no country is specified, but the user configured the usernames per country, take the first one
-            return userMap.values().iterator().next();
         } else {
-            return userMap.get(adjustCountryCode(countryIsoCode));
+            return merchantAccountToUsernameMap.get(merchantAccount);
         }
     }
 
-    public String getSkin(final String countryIsoCode) {
-        if (skinMap.isEmpty()) {
+    public String getPassword(final String userName) {
+        if (usernameToPasswordMap.isEmpty()) {
+            return passwords;
+        } else {
+            return usernameToPasswordMap.get(userName);
+        }
+    }
+
+    public String getSkin(final String merchantAccount) {
+        if (merchantAccountToSkinMap.isEmpty()) {
             return skins;
-        } else if (countryIsoCode == null) {
-            // In case no country is specified, but the user configured the skins per country, take the first one
-            return skinMap.values().iterator().next();
         } else {
-            return skinMap.get(adjustCountryCode(countryIsoCode));
+            return merchantAccountToSkinMap.get(merchantAccount);
         }
     }
 
-    public String getHmacSecret(final String countryIsoCode) {
-        if (secretMap.isEmpty()) {
+    public String getHmacSecret(final String skin) {
+        if (skinToSecretMap.isEmpty()) {
             return hmacSecrets;
-        } else if (countryIsoCode == null) {
-            // In case no country is specified, but the user configured the HMAC secrets per country, take the first one
-            return secretMap.values().iterator().next();
         } else {
-            return secretMap.get(adjustCountryCode(countryIsoCode));
+            return skinToSecretMap.get(skin);
         }
     }
 
-    public String getHmacAlgorithm(final String countryIsoCode) {
-        if (hmacAlgorithmMap.isEmpty()) {
+    public String getHmacAlgorithm(final String skin) {
+        if (skinToSecretAlgorithmMap.isEmpty()) {
             return hmacAlgorithms;
-        } else if (countryIsoCode == null) {
-            // In case no country is specified, but the user configured the HMAC algorithms per country, take the first one
-            return hmacAlgorithmMap.values().iterator().next();
         } else {
-            return hmacAlgorithmMap.get(adjustCountryCode(countryIsoCode));
+            return skinToSecretAlgorithmMap.get(skin);
         }
     }
 
@@ -233,15 +205,6 @@ public class AdyenConfigProperties {
 
     public String getAcquirersList() {
         return acquirersList;
-    }
-
-    private void refillMap(final Map<String, String> map, final String stringToSplit) {
-        map.clear();
-        if (!Strings.isNullOrEmpty(stringToSplit) && stringToSplit.contains(ENTRY_DELIMITER)) {
-            for (final String entry : stringToSplit.split("\\" + ENTRY_DELIMITER)) {
-                map.put(entry.split("#")[0], entry.split(KEY_VALUE_DELIMITER)[1]);
-            }
-        }
     }
 
     public String getProxyServer() {
@@ -290,5 +253,22 @@ public class AdyenConfigProperties {
 
     public String getRecurringReadTimeout() {
         return recurringReadTimeout;
+    }
+
+    private static String adjustCountryCode(final String countryIsoCode) {
+        if (Strings.isNullOrEmpty(countryIsoCode)) {
+            return null;
+        }
+        final String countryCodeUpperCase = countryIsoCode.toUpperCase();
+        return "GB".equalsIgnoreCase(countryCodeUpperCase) ? "UK" : countryCodeUpperCase;
+    }
+
+    private synchronized void refillMap(final Map<String, String> map, final String stringToSplit) {
+        map.clear();
+        if (!Strings.isNullOrEmpty(stringToSplit) && stringToSplit.contains(ENTRY_DELIMITER)) {
+            for (final String entry : stringToSplit.split("\\" + ENTRY_DELIMITER)) {
+                map.put(entry.split(KEY_VALUE_DELIMITER)[0], entry.split(KEY_VALUE_DELIMITER)[1]);
+            }
+        }
     }
 }

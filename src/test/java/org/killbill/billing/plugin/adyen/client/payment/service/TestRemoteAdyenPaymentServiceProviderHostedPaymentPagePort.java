@@ -39,7 +39,7 @@ public class TestRemoteAdyenPaymentServiceProviderHostedPaymentPagePort extends 
     public void testRedirectHPP() throws Exception {
         final WebPaymentFrontend paymentInfo = new WebPaymentFrontend();
         paymentInfo.setCountry(DEFAULT_COUNTRY);
-        paymentInfo.setSkinCode(adyenConfigProperties.getSkin(paymentInfo.getCountry()));
+        paymentInfo.setSkinCode(adyenConfigProperties.getSkin(merchantAccount));
         paymentInfo.setShipBeforeDate("2019-01-01");
         paymentInfo.setSessionValidity("2019-01-01T12:12:12Z");
         paymentInfo.setTermUrl("http://killbill.io?q=test+adyen+redirect+success");
@@ -73,7 +73,7 @@ public class TestRemoteAdyenPaymentServiceProviderHostedPaymentPagePort extends 
                                                                                             new BigDecimal("1.99"),
                                                                                             Currency.EUR,
                                                                                             "SKINTEST-1435226439255",
-                                                                                            adyenConfigProperties.getSkin(DEFAULT_COUNTRY),
+                                                                                            adyenConfigProperties.getSkin(merchantAccount),
                                                                                             new DateTime(DateTimeZone.UTC).plusDays(1).toString(),
                                                                                             DEFAULT_COUNTRY);
         Assert.assertNotNull(directory);

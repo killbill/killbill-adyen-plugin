@@ -50,7 +50,14 @@ The format for the merchant account(s), username(s) and password(s) is `XX#YY|XX
 * `XX` is the country code (DE, FR, etc.)
 * `YY` is the value (merchant account, username of the form `ws@Company.[YourCompanyAccount]` or password)
 
-If you have a single country, omit the country code part.
+Notes:
+
+* If you have a single country, omit the country code part
+* If you have several merchant accounts per country, you can also specify:
+  * `XX#YY` in the username property where `XX` is the merchant account
+  * `XX#YY` in the password property where `XX` is the username
+  * `XX#YY` in the skin property where `XX` is the merchant account
+  * `XX#YY` in the hmac secret property where `XX` is the skin name
 
 To configure Hosted Payment Pages (HPP):
 

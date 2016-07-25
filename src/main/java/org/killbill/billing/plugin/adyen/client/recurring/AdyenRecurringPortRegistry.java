@@ -37,8 +37,8 @@ public class AdyenRecurringPortRegistry extends AdyenPaymentPortRegistry impleme
     }
 
     @Override
-    public RecurringPortType getRecurringPort(final String countryIsoCode) {
-        return createService(countryIsoCode,
+    public RecurringPortType getRecurringPort(final String merchantAccount) {
+        return createService(merchantAccount,
                              RECURRING_SERVICE_SUFFIX,
                              RecurringPortType.class,
                              Recurring.SERVICE,

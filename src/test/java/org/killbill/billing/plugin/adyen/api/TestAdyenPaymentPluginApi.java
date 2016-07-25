@@ -247,8 +247,7 @@ public class TestAdyenPaymentPluginApi extends TestAdyenPaymentPluginApiBase {
         // Sleep a few seconds to give Adyen's Test System time to process and create the RecurringDetails
         Thread.sleep(SLEEP_IN_MILLIS_FOR_RECURRING_DETAIL);
 
-        final List<RecurringDetail> recurringDetailList = adyenRecurringClient.getRecurringDetailList(DEFAULT_COUNTRY,
-                                                                                                      propertiesForRecurring.get(AdyenPaymentPluginApi.PROPERTY_CUSTOMER_ID),
+        final List<RecurringDetail> recurringDetailList = adyenRecurringClient.getRecurringDetailList(propertiesForRecurring.get(AdyenPaymentPluginApi.PROPERTY_CUSTOMER_ID),
                                                                                                       adyenConfigProperties.getMerchantAccount(DEFAULT_COUNTRY),
                                                                                                       "RECURRING");
         if (recurringDetailList.isEmpty()) {
@@ -282,8 +281,7 @@ public class TestAdyenPaymentPluginApi extends TestAdyenPaymentPluginApiBase {
         // Sleep a few seconds to give Adyen's Test System time to process and create the RecurringDetails
         Thread.sleep(SLEEP_IN_MILLIS_FOR_RECURRING_DETAIL);
 
-        final List<RecurringDetail> recurringDetailList = adyenRecurringClient.getRecurringDetailList(DEFAULT_COUNTRY,
-                                                                                                      propertiesForRecurring.get(AdyenPaymentPluginApi.PROPERTY_CUSTOMER_ID),
+        final List<RecurringDetail> recurringDetailList = adyenRecurringClient.getRecurringDetailList(propertiesForRecurring.get(AdyenPaymentPluginApi.PROPERTY_CUSTOMER_ID),
                                                                                                       adyenConfigProperties.getMerchantAccount(DEFAULT_COUNTRY),
                                                                                                       "ONECLICK");
         if (recurringDetailList.isEmpty()) {

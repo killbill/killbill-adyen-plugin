@@ -93,15 +93,15 @@ public class AdyenPaymentServiceProviderHostedPaymentPagePort extends BaseAdyenP
         }
 
         final Signer signer = new Signer();
-        final String hmacSecret = adyenConfigProperties.getHmacSecret(countryIsoCode);
-        final String hmacAlgorithm = adyenConfigProperties.getHmacAlgorithm(countryIsoCode);
+        final String hmacSecret = adyenConfigProperties.getHmacSecret(skinCode);
+        final String hmacAlgorithm = adyenConfigProperties.getHmacAlgorithm(skinCode);
         params.put("merchantSig", signer.signFormParameters(params, hmacSecret, hmacAlgorithm));
 
         return directoryClient.getDirectory(params);
     }
 
     // Used to verify completion
-    public HppCompletedResult parseAndVerifyRequestIntegrity(final Map<String, String> requestParameterMap, final String countryIsoCode) {
+    public HppCompletedResult parseAndVerifyRequestIntegrity(final Map<String, String> requestParameterMap) {
         final HppCompletedResult hppCompletedResult = new HppCompletedResult(requestParameterMap);
         final String merchantSig = requestParameterMap.get("merchantSig");
         // Note! It's the caller responsibility to verify a merchantSig is passed to enable request tampering verification
@@ -109,8 +109,8 @@ public class AdyenPaymentServiceProviderHostedPaymentPagePort extends BaseAdyenP
             return hppCompletedResult;
         }
 
-        final String hmacSecret = adyenConfigProperties.getHmacSecret(countryIsoCode);
-        final String hmacAlgorithm = adyenConfigProperties.getHmacAlgorithm(countryIsoCode);
+        final String hmacSecret = adyenConfigProperties.getHmacSecret(hppCompletedResult.getSkinCode());
+        final String hmacAlgorithm = adyenConfigProperties.getHmacAlgorithm(hppCompletedResult.getSkinCode());
         final Signer signer = new Signer();
         final String expectedMerchantSignature;
         if ("HmacSHA1".equals(hmacAlgorithm)) {

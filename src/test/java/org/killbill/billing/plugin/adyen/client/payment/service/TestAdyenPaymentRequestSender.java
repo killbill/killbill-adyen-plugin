@@ -1,7 +1,8 @@
 /*
- * Copyright 2014 Groupon, Inc
+ * Copyright 2014-2016 Groupon, Inc
+ * Copyright 2014-2016 The Billing Project, LLC
  *
- * Groupon licenses this file to you under the Apache License, version 2.0
+ * The Billing Project licenses this file to you under the Apache License, version 2.0
  * (the "License"); you may not use this file except in compliance with the
  * License.  You may obtain a copy of the License at:
  *
@@ -42,7 +43,7 @@ public class TestAdyenPaymentRequestSender {
 
         final ModificationRequest modificationRequest = new ModificationRequest();
         Mockito.when(paymentPort.cancel(modificationRequest)).thenAnswer(new ThrowExceptionForNTimesBeforeReturningResult(numberOfAttempts - 1, new WebServiceException()));
-        final AdyenCallResult<ModificationResult> result = adyenPaymentRequestSender.cancel("any", modificationRequest);
+        final AdyenCallResult<ModificationResult> result = adyenPaymentRequestSender.cancel("merchantAccount", modificationRequest);
 
         Mockito.verify(paymentPort, Mockito.atLeast(numberOfAttempts)).cancel(modificationRequest);
         Assert.assertNotNull(result);
@@ -57,7 +58,7 @@ public class TestAdyenPaymentRequestSender {
 
         final ModificationRequest modificationRequest = new ModificationRequest();
         Mockito.when(paymentPort.cancel(modificationRequest)).thenAnswer(new ThrowExceptionForNTimesBeforeReturningResult(numberOfAttempts - 1, new WebServiceException()));
-        final AdyenCallResult<ModificationResult> result = adyenPaymentRequestSender.cancel("any", modificationRequest);
+        final AdyenCallResult<ModificationResult> result = adyenPaymentRequestSender.cancel("merchantAccount", modificationRequest);
 
         Mockito.verify(paymentPort, Mockito.atLeastOnce()).cancel(modificationRequest);
         Assert.assertNotNull(result);
@@ -72,7 +73,7 @@ public class TestAdyenPaymentRequestSender {
 
         final ModificationRequest modificationRequest = new ModificationRequest();
         Mockito.when(paymentPort.cancel(modificationRequest)).thenAnswer(new ThrowExceptionForNTimesBeforeReturningResult(numberOfAttempts - 1, new ServiceException()));
-        adyenPaymentRequestSender.cancel("any", modificationRequest);
+        adyenPaymentRequestSender.cancel("merchantAccount", modificationRequest);
     }
 
     @Test(groups = "fast", enabled = false)
@@ -84,7 +85,7 @@ public class TestAdyenPaymentRequestSender {
 
         final ModificationRequest modificationRequest = new ModificationRequest();
         Mockito.when(paymentPort.cancelOrRefund(modificationRequest)).thenAnswer(new ThrowExceptionForNTimesBeforeReturningResult(numberOfAttempts - 1, new WebServiceException()));
-        final AdyenCallResult<ModificationResult> result = adyenPaymentRequestSender.cancelOrRefund("any", modificationRequest);
+        final AdyenCallResult<ModificationResult> result = adyenPaymentRequestSender.cancelOrRefund("merchantAccount", modificationRequest);
 
         Mockito.verify(paymentPort, Mockito.atLeast(numberOfAttempts)).cancelOrRefund(modificationRequest);
         Assert.assertNotNull(result);
@@ -99,7 +100,7 @@ public class TestAdyenPaymentRequestSender {
 
         final ModificationRequest modificationRequest = new ModificationRequest();
         Mockito.when(paymentPort.capture(modificationRequest)).thenAnswer(new ThrowExceptionForNTimesBeforeReturningResult(numberOfAttempts - 1, new WebServiceException()));
-        final AdyenCallResult<ModificationResult> result = adyenPaymentRequestSender.capture("any", modificationRequest);
+        final AdyenCallResult<ModificationResult> result = adyenPaymentRequestSender.capture("merchantAccount", modificationRequest);
 
         Mockito.verify(paymentPort, Mockito.atLeast(numberOfAttempts)).capture(modificationRequest);
         Assert.assertNotNull(result);
@@ -114,7 +115,7 @@ public class TestAdyenPaymentRequestSender {
 
         final ModificationRequest modificationRequest = new ModificationRequest();
         Mockito.when(paymentPort.refund(modificationRequest)).thenAnswer(new ThrowExceptionForNTimesBeforeReturningResult(numberOfAttempts - 1, new WebServiceException()));
-        final AdyenCallResult<ModificationResult> result = adyenPaymentRequestSender.refund("any", modificationRequest);
+        final AdyenCallResult<ModificationResult> result = adyenPaymentRequestSender.refund("merchantAccount", modificationRequest);
 
         Mockito.verify(paymentPort, Mockito.atLeast(numberOfAttempts)).refund(modificationRequest);
         Assert.assertNotNull(result);

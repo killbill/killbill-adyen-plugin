@@ -47,11 +47,10 @@ public class AdyenRecurringClient {
                                                                     httpHeaderInterceptor);
     }
 
-    public List<RecurringDetail> getRecurringDetailList(final String countryCode,
-                                                        final String shopperRef,
+    public List<RecurringDetail> getRecurringDetailList(final String shopperRef,
                                                         final String merchantAccount,
                                                         final String contract) throws ServiceException {
-        final RecurringPortType recurringPortType = recurringPortRegistry.getRecurringPort(countryCode);
+        final RecurringPortType recurringPortType = recurringPortRegistry.getRecurringPort(merchantAccount);
         final RecurringDetailsRequest request = new RecurringDetailsRequest();
         final Recurring recurring = new Recurring();
         request.setShopperReference(shopperRef);
@@ -62,10 +61,9 @@ public class AdyenRecurringClient {
         return details == null ? ImmutableList.<RecurringDetail>of() : details.getRecurringDetail();
     }
 
-    public void revokeRecurringDetails(final String countryCode,
-                                       final String shopperRef,
+    public void revokeRecurringDetails(final String shopperRef,
                                        final String merchantAccount) throws ServiceException {
-        final RecurringPortType recurringPortType = recurringPortRegistry.getRecurringPort(countryCode);
+        final RecurringPortType recurringPortType = recurringPortRegistry.getRecurringPort(merchantAccount);
         final DisableRequest request = new DisableRequest();
         request.setShopperReference(shopperRef);
         request.setMerchantAccount(merchantAccount);

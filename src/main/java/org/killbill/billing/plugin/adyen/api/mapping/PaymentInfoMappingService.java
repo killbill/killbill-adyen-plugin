@@ -63,17 +63,22 @@ import static org.killbill.billing.plugin.api.payment.PluginPaymentPluginApi.PRO
 import static org.killbill.billing.plugin.api.payment.PluginPaymentPluginApi.PROPERTY_ADDRESS2;
 import static org.killbill.billing.plugin.api.payment.PluginPaymentPluginApi.PROPERTY_CC_TYPE;
 import static org.killbill.billing.plugin.api.payment.PluginPaymentPluginApi.PROPERTY_CITY;
-import static org.killbill.billing.plugin.api.payment.PluginPaymentPluginApi.PROPERTY_COUNTRY;
 import static org.killbill.billing.plugin.api.payment.PluginPaymentPluginApi.PROPERTY_STATE;
 import static org.killbill.billing.plugin.api.payment.PluginPaymentPluginApi.PROPERTY_ZIP;
 
 public abstract class PaymentInfoMappingService {
 
-    public static PaymentInfo toPaymentInfo(final AdyenConfigProperties configuration, final Clock clock, @Nullable final AccountData account, @Nullable final AdyenPaymentMethodsRecord paymentMethodsRecord, final Iterable<PluginProperty> properties) {
+    public static PaymentInfo toPaymentInfo(final String merchantAccount,
+                                            @Nullable final String countryCode,
+                                            final AdyenConfigProperties configuration,
+                                            final Clock clock,
+                                            @Nullable final AccountData account,
+                                            @Nullable final AdyenPaymentMethodsRecord paymentMethodsRecord,
+                                            final Iterable<PluginProperty> properties) {
         final PaymentInfo paymentInfo;
 
         if (paymentMethodsRecord == null) {
-            paymentInfo = WebPaymentFrontendMappingService.toPaymentInfo(account, configuration, clock, properties);
+            paymentInfo = WebPaymentFrontendMappingService.toPaymentInfo(merchantAccount, configuration, clock, properties);
         } else {
             final String recurringDetailReference = PluginProperties.getValue(PROPERTY_RECURRING_DETAIL_ID, paymentMethodsRecord.getToken(), properties);
             if (recurringDetailReference != null) {
@@ -90,7 +95,7 @@ public abstract class PaymentInfoMappingService {
         }
 
         set3DSecureFields(paymentInfo, properties);
-        setBillingAddress(account, paymentInfo, paymentMethodsRecord, properties);
+        setBillingAddress(countryCode, account, paymentInfo, paymentMethodsRecord, properties);
         setCaptureDelayHours(paymentInfo, properties);
         setContractAndContinuousAuthentication(paymentInfo, properties);
         setInstallments(paymentInfo, properties);
@@ -151,7 +156,7 @@ public abstract class PaymentInfoMappingService {
         paymentInfo.setTermUrl(termUrl);
     }
 
-    private static void setBillingAddress(@Nullable final AccountData account, final PaymentInfo paymentInfo, @Nullable final AdyenPaymentMethodsRecord paymentMethodsRecord, final Iterable<PluginProperty> properties) {
+    private static void setBillingAddress(@Nullable final String countryCode, @Nullable final AccountData account, final PaymentInfo paymentInfo, @Nullable final AdyenPaymentMethodsRecord paymentMethodsRecord, final Iterable<PluginProperty> properties) {
         String street = PluginProperties.getValue(PROPERTY_ADDRESS1, paymentMethodsRecord == null ? null : paymentMethodsRecord.getAddress1(), properties);
         if (street == null && account != null) {
             street = account.getAddress1();
@@ -182,11 +187,7 @@ public abstract class PaymentInfoMappingService {
         }
         paymentInfo.setStateOrProvince(stateOrProvince);
 
-        String country = PluginProperties.getValue(PROPERTY_COUNTRY, paymentMethodsRecord == null ? null : paymentMethodsRecord.getCountry(), properties);
-        if (country == null && account != null) {
-            country = account.getCountry();
-        }
-        paymentInfo.setCountry(country);
+        paymentInfo.setCountry(countryCode);
     }
 
     private static void setCaptureDelayHours(final PaymentInfo paymentInfo, final Iterable<PluginProperty> mergedProperties) {

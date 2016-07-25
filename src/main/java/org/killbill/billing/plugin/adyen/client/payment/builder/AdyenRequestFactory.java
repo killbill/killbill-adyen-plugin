@@ -62,14 +62,11 @@ public class AdyenRequestFactory {
     }
 
     public Map<String, String> createHppRequest(final String merchantAccount, final PaymentData paymentData, final UserData userData, @Nullable final SplitSettlementData splitSettlementData) throws SignatureGenerationException {
-        final String hmacSecret = adyenConfigProperties.getHmacSecret(paymentData.getPaymentInfo().getCountry());
-        final String hmacAlgorithm = adyenConfigProperties.getHmacAlgorithm(paymentData.getPaymentInfo().getCountry());
         final HPPRequestBuilder builder = new HPPRequestBuilder(merchantAccount,
                                                                 paymentData,
                                                                 userData,
                                                                 splitSettlementData,
-                                                                hmacSecret,
-                                                                hmacAlgorithm,
+                                                                adyenConfigProperties,
                                                                 signer);
         return builder.build();
     }

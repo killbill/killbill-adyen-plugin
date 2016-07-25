@@ -20,10 +20,12 @@ package org.killbill.billing.plugin.adyen.client.payment.builder;
 import java.math.BigDecimal;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Properties;
 import java.util.UUID;
 
 import org.joda.time.DateTime;
 import org.killbill.billing.catalog.api.Currency;
+import org.killbill.billing.plugin.adyen.client.AdyenConfigProperties;
 import org.killbill.billing.plugin.adyen.client.model.PaymentData;
 import org.killbill.billing.plugin.adyen.client.model.SplitSettlementData;
 import org.killbill.billing.plugin.adyen.client.model.UserData;
@@ -94,7 +96,7 @@ public class TestHPPRequestBuilder extends BaseTestPaymentRequestBuilder {
                                                Mockito.anyString(),
                                                Mockito.anyString())).thenReturn(MERCHANT_SIG);
 
-        final Map<String, String> params = new HPPRequestBuilder(merchantAccount, paymentData, userData, splitSettlementData, UUID.randomUUID().toString(), UUID.randomUUID().toString(), signer).build();
+        final Map<String, String> params = new HPPRequestBuilder(merchantAccount, paymentData, userData, splitSettlementData, new AdyenConfigProperties(new Properties()), signer).build();
 
         Assert.assertFalse(params.isEmpty(), "HPP Params map should not be empty");
         Assert.assertEquals(params.get("countryCode"), COUNTRY_CODE, "Wrong value for 'countryCode'");

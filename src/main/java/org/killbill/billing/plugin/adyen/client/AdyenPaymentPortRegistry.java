@@ -82,8 +82,8 @@ public class AdyenPaymentPortRegistry implements PaymentPortRegistry {
     }
 
     @Override
-    public PaymentPortType getPaymentPort(final String countryIsoCode) {
-        return createService(countryIsoCode,
+    public PaymentPortType getPaymentPort(final String merchantAccount) {
+        return createService(merchantAccount,
                              PAYMENT_SERVICE_SUFFIX,
                              PaymentPortType.class,
                              Payment.SERVICE,
@@ -93,45 +93,48 @@ public class AdyenPaymentPortRegistry implements PaymentPortRegistry {
                              config.getPaymentReadTimeout());
     }
 
-    protected <T> T createService(final String countryIsoCode, final String suffix,
+    protected <T> T createService(final String merchantAccount,
+                                  final String suffix,
                                   final Class<T> clazz,
                                   final QName serviceName,
                                   final QName portName,
                                   final String address,
                                   final String connectionTimeout,
                                   final String readTimeout) {
-        if (!this.services.containsKey(countryIsoCode + suffix)) {
+        final String key = merchantAccount + suffix;
+        if (!this.services.containsKey(key)) {
             synchronized (this) {
-                if (!this.services.containsKey(countryIsoCode + suffix)) {
-                    final T service = createService(countryIsoCode,
+                if (!this.services.containsKey(key)) {
+                    final T service = createService(merchantAccount,
                                                     clazz,
                                                     serviceName,
                                                     portName,
                                                     address,
                                                     connectionTimeout,
                                                     readTimeout);
-                    this.services.put(countryIsoCode + suffix, service);
+                    this.services.put(key, service);
                 }
             }
         }
-        return (T) this.services.get(countryIsoCode + suffix);
+        return (T) this.services.get(key);
     }
 
-    private <T> T createService(final String countryIsoCode,
+    private <T> T createService(final String merchantAccount,
                                 final Class<T> clazz,
                                 final QName service,
                                 final QName portName,
                                 final String address,
                                 final String connectionTimeout,
                                 final String readTimeout) {
-        final String countryCode = AdyenConfigProperties.gbToUK(countryIsoCode);
+        final String userName = config.getUserName(merchantAccount);
+        final String password = config.getPassword(userName);
 
         return createService(clazz,
                              service,
                              portName,
                              address,
-                             config.getUserName(countryCode),
-                             config.getPassword(countryCode),
+                             userName,
+                             password,
                              connectionTimeout,
                              readTimeout);
     }

@@ -37,28 +37,27 @@ import com.google.common.collect.Maps;
 
 public class HPPRequestBuilder extends RequestBuilder<Map<String, String>> {
 
+    private static final Locale LOCALE_EN_UK = new Locale("en", "UK");
+
     private final String merchantAccount;
     private final PaymentData paymentData;
     private final UserData userData;
     private final SplitSettlementData splitSettlementData;
-    private final String hmacSecret;
-    private final String hmacAlgorithm;
+    private final AdyenConfigProperties adyenConfigProperties;
     private final Signer signer;
 
     public HPPRequestBuilder(final String merchantAccount,
                              final PaymentData paymentData,
                              final UserData userData,
                              @Nullable final SplitSettlementData splitSettlementData,
-                             final String hmacSecret,
-                             final String hmacAlgorithm,
+                             final AdyenConfigProperties adyenConfigProperties,
                              final Signer signer) {
         super(new TreeMap<String, String>());
         this.merchantAccount = merchantAccount;
         this.paymentData = paymentData;
         this.userData = userData;
         this.splitSettlementData = splitSettlementData;
-        this.hmacSecret = hmacSecret;
-        this.hmacAlgorithm = hmacAlgorithm;
+        this.adyenConfigProperties = adyenConfigProperties;
         this.signer = signer;
     }
 
@@ -76,7 +75,8 @@ public class HPPRequestBuilder extends RequestBuilder<Map<String, String>> {
 
         setShopperData();
 
-        Locale shopperLocale = AdyenConfigProperties.gbToUK(userData.getShopperLocale());
+        // NOTE: Locale.UK is defined as "en_GB".
+        Locale shopperLocale = Locale.UK.equals(userData.getShopperLocale()) ? LOCALE_EN_UK : userData.getShopperLocale();
         if (shopperLocale != null) {
             if ("paypal".equalsIgnoreCase(paymentInfo.getBrandCode()) &&
                 PayPalCountryCodes.isNotPayPalIsoCode(shopperLocale.getCountry()) &&
@@ -94,6 +94,9 @@ public class HPPRequestBuilder extends RequestBuilder<Map<String, String>> {
         request.put("allowedMethods", paymentInfo.getAllowedMethods());
 
         request.put("recurringContract", paymentInfo.getContract());
+
+        final String hmacSecret = adyenConfigProperties.getHmacSecret(paymentInfo.getSkinCode());
+        final String hmacAlgorithm = adyenConfigProperties.getHmacAlgorithm(paymentInfo.getSkinCode());
 
         final String merchantSignature;
         if ("HmacSHA1".equals(hmacAlgorithm)) {
@@ -118,7 +121,7 @@ public class HPPRequestBuilder extends RequestBuilder<Map<String, String>> {
         request.put("merchantSig", merchantSignature);
 
         try {
-            setSplitSettlementData(merchantSignature);
+            setSplitSettlementData(merchantSignature, hmacSecret, hmacAlgorithm);
         } catch (final SignatureGenerationException e) {
             throw new RuntimeException(e);
         }
@@ -145,7 +148,7 @@ public class HPPRequestBuilder extends RequestBuilder<Map<String, String>> {
         request.put("shopperReference", userData.getShopperReference());
     }
 
-    private void setSplitSettlementData(final String merchantSignature) throws SignatureGenerationException {
+    private void setSplitSettlementData(final String merchantSignature, final String hmacSecret, final String hmacAlgorithm) throws SignatureGenerationException {
         if (splitSettlementData != null) {
             final Map<String, String> entries = new SplitSettlementParamsBuilder().createSignedParamsFrom(splitSettlementData,
                                                                                                           merchantSignature,

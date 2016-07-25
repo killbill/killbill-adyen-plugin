@@ -58,8 +58,8 @@ public class AdyenPaymentRequestSender implements Closeable {
         this.adyenPaymentPortRegistry = adyenPaymentPortRegistry;
     }
 
-    public AdyenCallResult<PaymentResult> authorise(final String countryIsoCode, final PaymentRequest request) {
-        return callAdyen(countryIsoCode, new AdyenCall<PaymentPortType, PaymentResult>() {
+    public AdyenCallResult<PaymentResult> authorise(final String merchantAccount, final PaymentRequest request) {
+        return callAdyen(merchantAccount, new AdyenCall<PaymentPortType, PaymentResult>() {
             @Override
             public PaymentResult apply(final PaymentPortType paymentPort) throws ServiceException {
                 return paymentPort.authorise(request);
@@ -67,8 +67,8 @@ public class AdyenPaymentRequestSender implements Closeable {
         });
     }
 
-    public AdyenCallResult<PaymentResult> authorise3D(final String countryIsoCode, final PaymentRequest3D request) {
-        return callAdyen(countryIsoCode, new AdyenCall<PaymentPortType, PaymentResult>() {
+    public AdyenCallResult<PaymentResult> authorise3D(final String merchantAccount, final PaymentRequest3D request) {
+        return callAdyen(merchantAccount, new AdyenCall<PaymentPortType, PaymentResult>() {
             @Override
             public PaymentResult apply(final PaymentPortType paymentPort) throws ServiceException {
                 return paymentPort.authorise3D(request);
@@ -76,8 +76,8 @@ public class AdyenPaymentRequestSender implements Closeable {
         });
     }
 
-    public AdyenCallResult<PaymentResult> refundWithData(final String countryIsoCode, final PaymentRequest request) {
-        return callAdyen(countryIsoCode, new AdyenCall<PaymentPortType, PaymentResult>() {
+    public AdyenCallResult<PaymentResult> refundWithData(final String merchantAccount, final PaymentRequest request) {
+        return callAdyen(merchantAccount, new AdyenCall<PaymentPortType, PaymentResult>() {
             @Override
             public PaymentResult apply(final PaymentPortType paymentPort) throws ServiceException {
                 return paymentPort.refundWithData(request);
@@ -85,8 +85,8 @@ public class AdyenPaymentRequestSender implements Closeable {
         });
     }
 
-    public AdyenCallResult<ModificationResult> refund(final String countryIsoCode, final ModificationRequest modificationRequest) {
-        return callAdyen(countryIsoCode, new AdyenCall<PaymentPortType, ModificationResult>() {
+    public AdyenCallResult<ModificationResult> refund(final String merchantAccount, final ModificationRequest modificationRequest) {
+        return callAdyen(merchantAccount, new AdyenCall<PaymentPortType, ModificationResult>() {
             @Override
             public ModificationResult apply(final PaymentPortType paymentPort) throws ServiceException {
                 return paymentPort.refund(modificationRequest);
@@ -94,8 +94,8 @@ public class AdyenPaymentRequestSender implements Closeable {
         });
     }
 
-    public AdyenCallResult<ModificationResult> cancel(final String countryIsoCode, final ModificationRequest modificationRequest) {
-        return callAdyen(countryIsoCode, new AdyenCall<PaymentPortType, ModificationResult>() {
+    public AdyenCallResult<ModificationResult> cancel(final String merchantAccount, final ModificationRequest modificationRequest) {
+        return callAdyen(merchantAccount, new AdyenCall<PaymentPortType, ModificationResult>() {
             @Override
             public ModificationResult apply(final PaymentPortType paymentPort) throws ServiceException {
                 return paymentPort.cancel(modificationRequest);
@@ -103,8 +103,8 @@ public class AdyenPaymentRequestSender implements Closeable {
         });
     }
 
-    public AdyenCallResult<ModificationResult> cancelOrRefund(final String countryIsoCode, final ModificationRequest modificationRequest) {
-        return callAdyen(countryIsoCode, new AdyenCall<PaymentPortType, ModificationResult>() {
+    public AdyenCallResult<ModificationResult> cancelOrRefund(final String merchantAccount, final ModificationRequest modificationRequest) {
+        return callAdyen(merchantAccount, new AdyenCall<PaymentPortType, ModificationResult>() {
             @Override
             public ModificationResult apply(final PaymentPortType paymentPort) throws ServiceException {
                 return paymentPort.cancelOrRefund(modificationRequest);
@@ -112,8 +112,8 @@ public class AdyenPaymentRequestSender implements Closeable {
         });
     }
 
-    public AdyenCallResult<ModificationResult> capture(final String countryIsoCode, final ModificationRequest modificationRequest) {
-        return callAdyen(countryIsoCode, new AdyenCall<PaymentPortType, ModificationResult>() {
+    public AdyenCallResult<ModificationResult> capture(final String merchantAccount, final ModificationRequest modificationRequest) {
+        return callAdyen(merchantAccount, new AdyenCall<PaymentPortType, ModificationResult>() {
             @Override
             public ModificationResult apply(final PaymentPortType paymentPort) throws ServiceException {
                 return paymentPort.capture(modificationRequest);
@@ -121,9 +121,9 @@ public class AdyenPaymentRequestSender implements Closeable {
         });
     }
 
-    private <T> AdyenCallResult<T> callAdyen(final String countryIsoCode, final AdyenCall<PaymentPortType, T> adyenCall) {
+    private <T> AdyenCallResult<T> callAdyen(final String merchantAccount, final AdyenCall<PaymentPortType, T> adyenCall) {
         try {
-            final PaymentPortType paymentPort = adyenPaymentPortRegistry.getPaymentPort(countryIsoCode);
+            final PaymentPortType paymentPort = adyenPaymentPortRegistry.getPaymentPort(merchantAccount);
             final T result = adyenCall.apply(paymentPort);
             return new SuccessfulAdyenCall<T>(result);
         } catch (final Exception e) {
