@@ -706,7 +706,7 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
 
                 final String value = pluginProperty.getValue().toString();
                 if ("amount".equals(suffix)) {
-                    amounts.put(itemNb, Long.valueOf(value));
+                    amounts.put(itemNb, new BigDecimal(value).longValue());
                 } else if ("group".equals(suffix)) {
                     groups.put(itemNb, value);
                 } else if ("reference".equals(suffix)) {

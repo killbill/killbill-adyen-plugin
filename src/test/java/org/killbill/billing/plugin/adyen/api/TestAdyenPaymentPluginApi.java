@@ -429,7 +429,7 @@ public class TestAdyenPaymentPluginApi extends TestAdyenPaymentPluginApiBase {
 
         final ImmutableMap.Builder<String, String> builder = new ImmutableMap.Builder<String, String>();
         builder.put(AdyenPaymentPluginApi.PROPERTY_CC_VERIFICATION_VALUE, CC_VERIFICATION_VALUE);
-        builder.put(String.format("%s.1.amount", AdyenPaymentPluginApi.SPLIT_SETTLEMENT_DATA_ITEM), "3");
+        builder.put(String.format("%s.1.amount", AdyenPaymentPluginApi.SPLIT_SETTLEMENT_DATA_ITEM), "3.00");
         builder.put(String.format("%s.1.group", AdyenPaymentPluginApi.SPLIT_SETTLEMENT_DATA_ITEM), "MENSWEAR");
         builder.put(String.format("%s.1.reference", AdyenPaymentPluginApi.SPLIT_SETTLEMENT_DATA_ITEM), UUID.randomUUID().toString());
         builder.put(String.format("%s.1.type", AdyenPaymentPluginApi.SPLIT_SETTLEMENT_DATA_ITEM), "FOOTWEAR");
