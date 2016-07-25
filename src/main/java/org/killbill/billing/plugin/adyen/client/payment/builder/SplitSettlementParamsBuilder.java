@@ -25,6 +25,7 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 
 import org.killbill.adyen.payment.AnyType2AnyTypeMap;
+import org.killbill.adyen.payment.AnyType2AnyTypeMap.Entry;
 import org.killbill.billing.plugin.adyen.client.model.SplitSettlementData;
 import org.killbill.billing.plugin.adyen.client.payment.exception.SignatureGenerationException;
 import org.killbill.billing.plugin.adyen.client.payment.service.Signer;
@@ -71,7 +72,7 @@ public class SplitSettlementParamsBuilder {
         return entries;
     }
 
-    private List<AnyType2AnyTypeMap.Entry> itemEntries(final int idx, final SplitSettlementData.Item item, final String currencyCode) {
+    private Collection<Entry> itemEntries(final int idx, final SplitSettlementData.Item item, final String currencyCode) {
         final String prefix = SPLITSETTLEMENT + ".item" + idx + ".";
         return ImmutableList.<AnyType2AnyTypeMap.Entry>of(stringEntry(prefix + "amount", item.getAmount()),
                                                           stringEntry(prefix + "currencyCode", currencyCode),
@@ -87,7 +88,7 @@ public class SplitSettlementParamsBuilder {
         return entry;
     }
 
-    private Map<String, String> toMap(final Collection<AnyType2AnyTypeMap.Entry> entries) {
+    private Map<String, String> toMap(final Iterable<Entry> entries) {
         final Map<String, String> map = new HashMap<String, String>();
         for (final AnyType2AnyTypeMap.Entry entry : entries) {
             map.put(String.valueOf(entry.getKey()), String.valueOf(entry.getValue()));
