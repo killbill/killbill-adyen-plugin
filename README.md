@@ -274,10 +274,6 @@ curl -v \
            "value": "DE"
          },
          {
-           "key": "paymentProviderType",
-           "value": "CREDITCARD"
-         },
-         {
            "key": "serverUrl",
            "value": "http://killbill.io"
          },
