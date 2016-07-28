@@ -45,13 +45,15 @@ public class SplitSettlementParamsBuilder {
                                                       final String algorithm) throws SignatureGenerationException {
         final Map<String, String> params = toMap(createEntriesFrom(splitSettlementData));
 
-        final SortedMap<String, String> sortedParams = new TreeMap<String, String>(params);
-        sortedParams.put("merchantSig", merchantSignature);
-        final String concatenatedKeys = JOINER.join(sortedParams.keySet());
-        final String concatenatedValues = JOINER.join(sortedParams.values());
-        final String signature = signer.signData(secret, algorithm, concatenatedKeys + "|" + concatenatedValues);
+        if ("HmacSHA1".equals(algorithm)) {
+            final SortedMap<String, String> sortedParams = new TreeMap<String, String>(params);
+            sortedParams.put("merchantSig", merchantSignature);
+            final String concatenatedKeys = JOINER.join(sortedParams.keySet());
+            final String concatenatedValues = JOINER.join(sortedParams.values());
+            final String signature = signer.signData(secret, algorithm, concatenatedKeys + "|" + concatenatedValues);
 
-        params.put(SPLITSETTLEMENT + ".sig", signature);
+            params.put(SPLITSETTLEMENT + ".sig", signature);
+        }
 
         return params;
     }

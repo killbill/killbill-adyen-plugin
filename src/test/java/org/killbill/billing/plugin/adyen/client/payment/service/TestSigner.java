@@ -62,4 +62,28 @@ public class TestSigner {
         final String signature = signer.signFormParameters(params, "4468D9782DEF54FCD706C9100C71EC43932B1EBC2ACF6BA0560C05AAA7550C48", "HmacSHA256");
         Assert.assertEquals(signature, "GJ1asjR5VmkvihDJxCd8yE2DGYOKwWwJCBiV3R51NFg=");
     }
+
+    @Test(groups = "fast")
+    public void testSigningString() throws Exception {
+        final ImmutableMap.Builder<String, String> builder = new ImmutableMap.Builder<String, String>();
+        builder.put("countryCode", "NL");
+        builder.put("currencyCode", "EUR");
+        builder.put("merchantAccount", "NickAnderson");
+        builder.put("resURL", "http://localhost:8000");
+        builder.put("merchantReference", "TEST-PAYMENT-2016-07-14-17:13:32");
+        builder.put("allowedMethods", "mc,visa,amex");
+        builder.put("paymentAmount", "199");
+        builder.put("shopper.lastName", "Doe");
+        builder.put("sessionValidity", "2016-07-15T17:13:32+00:00");
+        builder.put("shipBeforeDate", "2016-07-17");
+        builder.put("shopper.firstName", "John");
+        builder.put("skinCode", "43ZAmyBx");
+        builder.put("merchantReturnData", "shopids");
+        builder.put("shopperEmail", "test@adyen.com");
+        builder.put("shopperLocale", "en_US");
+        final Map<String, String> params = builder.build();
+
+        final Signer signer = new Signer();
+        Assert.assertEquals(signer.getSigningString(params), "allowedMethods:countryCode:currencyCode:merchantAccount:merchantReference:merchantReturnData:paymentAmount:resURL:sessionValidity:shipBeforeDate:shopper.firstName:shopper.lastName:shopperEmail:shopperLocale:skinCode:mc,visa,amex:NL:EUR:NickAnderson:TEST-PAYMENT-2016-07-14-17\\:13\\:32:shopids:199:http\\://localhost\\:8000:2016-07-15T17\\:13\\:32+00\\:00:2016-07-17:John:Doe:test@adyen.com:en_US:43ZAmyBx");
+    }
 }

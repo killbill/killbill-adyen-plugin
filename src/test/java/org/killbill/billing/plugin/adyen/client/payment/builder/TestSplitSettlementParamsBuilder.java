@@ -22,7 +22,6 @@ import java.util.Map;
 
 import org.killbill.adyen.payment.AnyType2AnyTypeMap;
 import org.killbill.adyen.payment.AnyType2AnyTypeMap.Entry;
-import org.killbill.billing.plugin.adyen.client.AdyenConfigProperties;
 import org.killbill.billing.plugin.adyen.client.model.SplitSettlementData;
 import org.killbill.billing.plugin.adyen.client.payment.exception.SignatureGenerationException;
 import org.killbill.billing.plugin.adyen.client.payment.service.Signer;
@@ -43,11 +42,11 @@ public class TestSplitSettlementParamsBuilder {
         final String merchantSignature = "A8fZw3UV2aLfWtr8mrqy8+wtVXs=";
         final Signer signer = new Signer();
         final String secret = "Hello kitty";
-        final String algorithm = AdyenConfigProperties.DEFAULT_HMAC_ALGORITHM;
+        final String algorithm = "HmacSHA1";
 
         final Map<String, String> signedParams = new SplitSettlementParamsBuilder().createSignedParamsFrom(splitSettlementData, merchantSignature, signer, secret, algorithm);
 
-        Assert.assertEquals("fTERx5eYhC8UWEJplsh+H89/DPsLC9ZXNLKo0fCluLg=", signedParams.get("splitsettlementdata.sig"));
+        Assert.assertEquals(signedParams.get("splitsettlementdata.sig"), "oOSX6E1YPUas6wvlrwdZUZcWObU=");
     }
 
     @Test(groups = "fast")

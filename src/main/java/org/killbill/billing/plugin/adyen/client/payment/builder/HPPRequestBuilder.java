@@ -31,6 +31,8 @@ import org.killbill.billing.plugin.adyen.client.model.paymentinfo.WebPaymentFron
 import org.killbill.billing.plugin.adyen.client.payment.exception.SignatureGenerationException;
 import org.killbill.billing.plugin.adyen.client.payment.service.PayPalCountryCodes;
 import org.killbill.billing.plugin.adyen.client.payment.service.Signer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Predicates;
 import com.google.common.collect.Maps;
@@ -38,6 +40,8 @@ import com.google.common.collect.Maps;
 public class HPPRequestBuilder extends RequestBuilder<Map<String, String>> {
 
     private static final Locale LOCALE_EN_UK = new Locale("en", "UK");
+
+    private static final Logger logger = LoggerFactory.getLogger(HPPRequestBuilder.class);
 
     private final String merchantAccount;
     private final PaymentData paymentData;
@@ -114,16 +118,27 @@ public class HPPRequestBuilder extends RequestBuilder<Map<String, String>> {
                                                           hmacSecret,
                                                           hmacAlgorithm);
         } else {
+            try {
+                setSplitSettlementData(null, hmacSecret, hmacAlgorithm);
+            } catch (final SignatureGenerationException e) {
+                // Should never happen (no signature computed)
+                throw new RuntimeException(e);
+            }
+            logger.debug("Signing HPP request: hmacAlgorithm='{}', hmacSecret='{}', request='{}'", hmacAlgorithm, hmacSecret, request);
             merchantSignature = signer.signFormParameters(request,
                                                           hmacSecret,
                                                           hmacAlgorithm);
         }
-        request.put("merchantSig", merchantSignature);
 
-        try {
-            setSplitSettlementData(merchantSignature, hmacSecret, hmacAlgorithm);
-        } catch (final SignatureGenerationException e) {
-            throw new RuntimeException(e);
+        request.put("merchantSig", merchantSignature);
+        logger.debug("request='{}'", request);
+
+        if ("HmacSHA1".equals(hmacAlgorithm)) {
+            try {
+                setSplitSettlementData(merchantSignature, hmacSecret, hmacAlgorithm);
+            } catch (final SignatureGenerationException e) {
+                throw new RuntimeException(e);
+            }
         }
 
         return Maps.<String, String>filterValues(request, Predicates.<String>notNull());

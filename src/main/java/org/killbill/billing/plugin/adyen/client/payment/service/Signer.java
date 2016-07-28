@@ -31,6 +31,7 @@ import org.killbill.billing.plugin.adyen.client.payment.exception.SignatureGener
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.base.Predicates;
@@ -57,14 +58,10 @@ public class Signer {
 
     // SHA256
     public String signFormParameters(final Map<String, String> paramsAnyOrder, final String hmacSecret, final String hmacAlgorithm) {
-        final Map<String, String> params = new TreeMap<String, String>(Maps.<String, String>filterValues(paramsAnyOrder, Predicates.<String>notNull()));
-
-        final StringBuilder signingString = new StringBuilder(JOINER.join(Iterables.<String, String>transform(params.keySet(), ESCAPER)))
-                .append(":")
-                .append(JOINER.join(Iterables.<String, String>transform(params.values(), ESCAPER)));
+        final String signingString = getSigningString(paramsAnyOrder);
 
         try {
-            return signData(hmacSecret, hmacAlgorithm, signingString.toString());
+            return signData(hmacSecret, hmacAlgorithm, signingString);
         } catch (final SignatureGenerationException e) {
             logger.warn("Could not build hpp signature", e);
             return "";
@@ -163,6 +160,15 @@ public class Signer {
         } catch (final InvalidKeyException ike) {
             throw new SignatureGenerationException("Error while signature generation.", ike);
         }
+    }
+
+    @VisibleForTesting
+    String getSigningString(final Map<String, String> paramsAnyOrder) {
+        final Map<String, String> params = new TreeMap<String, String>(Maps.<String, String>filterValues(paramsAnyOrder, Predicates.<String>notNull()));
+
+        return JOINER.join(Iterables.<String, String>transform(params.keySet(), ESCAPER)) +
+               ":" +
+               JOINER.join(Iterables.<String, String>transform(params.values(), ESCAPER));
     }
 
     private SecretKey createSecretKey(final String secret, final String algorithm) throws UnsupportedEncodingException {
