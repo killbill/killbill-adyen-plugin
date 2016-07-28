@@ -1,3 +1,11 @@
+0.4.1
+    Add support for Easy Encryption
+    Add support for authorization completions
+    Add support for directory lookups
+    Add support for SHA256 signature calculation
+    Add support for multiple merchant accounts per country
+    Various bug fixes
+
 0.4.0
     Initial release for Kill Bill 0.17.x
 
