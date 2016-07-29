@@ -21,7 +21,6 @@ import java.math.BigDecimal;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Properties;
-import java.util.UUID;
 
 import org.joda.time.DateTime;
 import org.killbill.billing.catalog.api.Currency;
@@ -78,23 +77,7 @@ public class TestHPPRequestBuilder extends BaseTestPaymentRequestBuilder {
                                                                                                                            new SplitSettlementData.Item(750, "deal1", "voucherId2", "voucher"),
                                                                                                                            new SplitSettlementData.Item(750, "deal2", "travelId", "travel")));
 
-        final Signer signer = Mockito.mock(Signer.class);
-        Mockito.when(signer.signFormParameters(Mockito.anyLong(),
-                                               Mockito.anyString(),
-                                               Mockito.anyString(),
-                                               Mockito.anyString(),
-                                               Mockito.anyString(),
-                                               Mockito.anyString(),
-                                               Mockito.anyString(),
-                                               Mockito.anyString(),
-                                               Mockito.anyString(),
-                                               Mockito.anyString(),
-                                               Mockito.anyString(),
-                                               Mockito.anyString(),
-                                               Mockito.anyString())).thenReturn(MERCHANT_SIG);
-        Mockito.when(signer.signFormParameters(Mockito.<String, String>anyMap(),
-                                               Mockito.anyString(),
-                                               Mockito.anyString())).thenReturn(MERCHANT_SIG);
+        final Signer signer = buildSignerMock();
 
         final Map<String, String> params = new HPPRequestBuilder(merchantAccount, paymentData, userData, splitSettlementData, new AdyenConfigProperties(new Properties()), signer).build();
 
@@ -133,5 +116,48 @@ public class TestHPPRequestBuilder extends BaseTestPaymentRequestBuilder {
         Assert.assertEquals(params.get("splitsettlementdata.item3.group"), "deal2");
         Assert.assertEquals(params.get("splitsettlementdata.item3.reference"), "travelId");
         Assert.assertEquals(params.get("splitsettlementdata.item3.type"), "travel");
+    }
+
+    private Signer buildSignerMock() {
+        final Signer signer = Mockito.mock(Signer.class);
+        Mockito.when(signer.signFormParameters(Mockito.anyLong(),
+                                               Mockito.anyString(),
+                                               Mockito.anyString(),
+                                               Mockito.anyString(),
+                                               Mockito.anyString(),
+                                               Mockito.anyString(),
+                                               Mockito.anyString(),
+                                               Mockito.anyString(),
+                                               Mockito.anyString(),
+                                               Mockito.anyString(),
+                                               Mockito.anyString(),
+                                               Mockito.anyString(),
+                                               Mockito.anyString())).thenReturn(MERCHANT_SIG);
+        Mockito.when(signer.signFormParameters(Mockito.<String, String>anyMap(),
+                                               Mockito.anyString(),
+                                               Mockito.anyString())).thenReturn(MERCHANT_SIG);
+        return signer;
+    }
+
+    @Test(groups = "slow")
+    public void testBuilderLocaleGB() throws Exception {
+        final String merchantAccount = MERCHANT_ACCOUNT;
+        final String paymentTransactionExternalKey = MERCHANT_REFERENCE;
+
+        final WebPaymentFrontend paymentInfo = new WebPaymentFrontend();
+        paymentInfo.setCountry("GB");
+        paymentInfo.setBrandCode("paypal");
+
+        final PaymentData<WebPaymentFrontend> paymentData = new PaymentData<WebPaymentFrontend>(
+                new BigDecimal("1"), Currency.GBP, paymentTransactionExternalKey, paymentInfo);
+
+        final UserData userData = new UserData();
+        userData.setShopperLocale(Locale.UK);
+
+        final Signer signer = buildSignerMock();
+        final Map<String, String> params = new HPPRequestBuilder(merchantAccount, paymentData, userData, null, new AdyenConfigProperties(new Properties()), signer).build();
+        Assert.assertEquals(params.get("countryCode"), "GB");
+        Assert.assertEquals(params.get("currencyCode"), "GBP");
+        Assert.assertEquals(params.get("shopperLocale"), "en_GB");
     }
 }
