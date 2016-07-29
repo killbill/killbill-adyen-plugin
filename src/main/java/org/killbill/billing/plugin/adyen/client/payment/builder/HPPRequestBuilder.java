@@ -39,8 +39,6 @@ import com.google.common.collect.Maps;
 
 public class HPPRequestBuilder extends RequestBuilder<Map<String, String>> {
 
-    private static final Locale LOCALE_EN_UK = new Locale("en", "UK");
-
     private static final Logger logger = LoggerFactory.getLogger(HPPRequestBuilder.class);
 
     private final String merchantAccount;
@@ -79,8 +77,7 @@ public class HPPRequestBuilder extends RequestBuilder<Map<String, String>> {
 
         setShopperData();
 
-        // NOTE: Locale.UK is defined as "en_GB".
-        Locale shopperLocale = Locale.UK.equals(userData.getShopperLocale()) ? LOCALE_EN_UK : userData.getShopperLocale();
+        Locale shopperLocale = userData.getShopperLocale();
         if (shopperLocale != null) {
             if ("paypal".equalsIgnoreCase(paymentInfo.getBrandCode()) &&
                 PayPalCountryCodes.isNotPayPalIsoCode(shopperLocale.getCountry()) &&
