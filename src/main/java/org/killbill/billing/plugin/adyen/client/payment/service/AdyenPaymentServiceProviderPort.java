@@ -24,6 +24,8 @@ import java.util.List;
 import java.util.Map;
 
 import org.killbill.adyen.payment.AnyType2AnyTypeMap;
+import org.killbill.adyen.payment.FraudCheckResult;
+import org.killbill.adyen.payment.FraudResult;
 import org.killbill.adyen.payment.ModificationRequest;
 import org.killbill.adyen.payment.ModificationResult;
 import org.killbill.adyen.payment.PaymentRequest;
@@ -103,7 +105,7 @@ public class AdyenPaymentServiceProviderPort extends BaseAdyenPaymentServiceProv
                                                 result.getRefusalReason(),
                                                 result.getResultCode(),
                                                 paymentData.getPaymentTransactionExternalKey(),
-                                                anyType2AnyTypeMapToStringMap(result.getAdditionalData()));
+                                                getAdditionalData(result));
         } else {
             final Map<String, String> formParams = new HashMap<String, String>();
             formParams.put(AdyenPaymentPluginApi.PROPERTY_PA_REQ, result.getPaRequest());
@@ -123,11 +125,35 @@ public class AdyenPaymentServiceProviderPort extends BaseAdyenPaymentServiceProv
                                                 paymentData.getPaymentTransactionExternalKey(),
                                                 result.getIssuerUrl(),
                                                 formParams,
-                                                anyType2AnyTypeMapToStringMap(result.getAdditionalData()));
+                                                getAdditionalData(result));
         }
 
         logger.info("op='{}', {}", operation, purchaseResult);
         return purchaseResult;
+    }
+
+    private Map<String, String> getAdditionalData(final PaymentResult result) {
+        final Map<String, String> additionalDataMap = new HashMap<String, String>();
+        additionalDataMap.putAll(anyType2AnyTypeMapToStringMap(result.getAdditionalData()));
+
+        // Adyen needs to enable it manually
+        if (result.getFraudResult() != null) {
+            final FraudResult fraudResult = result.getFraudResult();
+            additionalDataMap.put("fraudResult.accountScore", String.valueOf(fraudResult.getAccountScore()));
+
+            if (fraudResult.getResults() != null) {
+                final List<FraudCheckResult> fraudCheckResults = fraudResult.getResults().getFraudCheckResult();
+                for (int i = 0; i < fraudCheckResults.size(); i++) {
+                    final FraudCheckResult fraudCheckResult = fraudCheckResults.get(i);
+                    final String key = "fraudResult." + i + ".";
+                    additionalDataMap.put(key + "accountScore", String.valueOf(fraudCheckResult.getAccountScore()));
+                    additionalDataMap.put(key + "checkId", String.valueOf(fraudCheckResult.getCheckId()));
+                    additionalDataMap.put(key + "name", fraudCheckResult.getName());
+                }
+            }
+        }
+
+        return additionalDataMap;
     }
 
     private PurchaseResult handleTechnicalFailureAtPurchase(final String callKey, final PaymentData paymentData, final AdyenCallResult<PaymentResult> adyenCallResult) {
@@ -162,7 +188,7 @@ public class AdyenPaymentServiceProviderPort extends BaseAdyenPaymentServiceProv
                                                 result.getRefusalReason(),
                                                 result.getResultCode(),
                                                 paymentData.getPaymentTransactionExternalKey(),
-                                                anyType2AnyTypeMapToStringMap(result.getAdditionalData()));
+                                                getAdditionalData(result));
         } else {
             final Map<String, String> formParams = new HashMap<String, String>();
             formParams.put("PaReq", result.getPaRequest());
@@ -176,7 +202,7 @@ public class AdyenPaymentServiceProviderPort extends BaseAdyenPaymentServiceProv
                                                 paymentData.getPaymentTransactionExternalKey(),
                                                 result.getIssuerUrl(),
                                                 formParams,
-                                                anyType2AnyTypeMapToStringMap(result.getAdditionalData()));
+                                                getAdditionalData(result));
         }
 
         logger.info("op='{}', {}", operation, purchaseResult);
