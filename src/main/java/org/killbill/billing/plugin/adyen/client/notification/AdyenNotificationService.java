@@ -82,13 +82,14 @@ public class AdyenNotificationService {
                 try {
                     handleNotification(item);
                 } catch (final Exception e) {
-                    logger.warn("Error handling notification: eventCode='{}', pspReference='{}', originalReference='{}', success='{}', reason='{}', merchantReference='{}'",
+                    logger.warn("Error handling notification: eventCode='{}', pspReference='{}', originalReference='{}', success='{}', reason='{}', merchantReference='{}', merchantAccount='{}'",
                                 item.getEventCode(),
                                 item.getPspReference(),
                                 item.getOriginalReference(),
                                 item.isSuccess(),
                                 item.getReason(),
                                 item.getMerchantReference(),
+                                item.getMerchantAccountCode(),
                                 e);
                 }
             }
@@ -104,13 +105,14 @@ public class AdyenNotificationService {
     }
 
     private void handleNotification(final NotificationRequestItem item) {
-        logger.info("Handling notification: eventCode='{}', pspReference='{}', originalReference='{}', success='{}', reason='{}', merchantReference='{}'",
+        logger.info("Handling notification: eventCode='{}', pspReference='{}', originalReference='{}', success='{}', reason='{}', merchantReference='{}', merchantAccount='{}'",
                     item.getEventCode(),
                     item.getPspReference(),
                     item.getOriginalReference(),
                     item.isSuccess(),
                     item.getReason(),
-                    item.getMerchantReference());
+                    item.getMerchantReference(),
+                    item.getMerchantAccountCode());
 
         final AdyenNotificationHandler adyenNotificationHandler = getAdyenNotificationHandler(item);
         if (adyenNotificationHandler == null) {
