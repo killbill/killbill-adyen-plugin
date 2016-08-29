@@ -87,7 +87,7 @@ public abstract class BaseAdyenPaymentServiceProviderPort {
     }
 
     private void appendMerchantAccount(final StringBuilder buffer, final String merchantAccount) {
-        buffer.append("merchantAccount='").append(merchantAccount).append("'");
+        buffer.append(", merchantAccount='").append(merchantAccount).append("'");
     }
 
     private void appendPaymentData(final StringBuilder buffer, final PaymentData paymentData) {
