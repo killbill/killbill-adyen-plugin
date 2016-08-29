@@ -29,9 +29,10 @@ public abstract class BaseAdyenPaymentServiceProviderPort {
 
     protected Logger logger;
 
-    protected void logTransaction(final String transactionType, final UserData userData, final PaymentData paymentData, @Nullable final PurchaseResult result, @Nullable final AdyenCallResult<?> adyenCall) {
+    protected void logTransaction(final String transactionType, final UserData userData, final String merchantAccount, final PaymentData paymentData, @Nullable final PurchaseResult result, @Nullable final AdyenCallResult<?> adyenCall) {
         final StringBuilder logBuffer = new StringBuilder();
         appendTransactionType(logBuffer, transactionType);
+        appendMerchantAccount(logBuffer, merchantAccount);
         appendPaymentData(logBuffer, paymentData);
         appendUserData(logBuffer, userData);
         appendPurchaseResult(logBuffer, result);
@@ -43,9 +44,10 @@ public abstract class BaseAdyenPaymentServiceProviderPort {
         logger.info(logBuffer.toString());
     }
 
-    protected void logTransaction(final String transactionType, final String pspReference, final PaymentData paymentData, final PaymentModificationResponse response, final AdyenCallResult<?> adyenCall) {
+    protected void logTransaction(final String transactionType, final String pspReference, String merchantAccount, final PaymentData paymentData, final PaymentModificationResponse response, final AdyenCallResult<?> adyenCall) {
         final StringBuilder logBuffer = new StringBuilder();
         appendTransactionType(logBuffer, transactionType);
+        appendMerchantAccount(logBuffer, merchantAccount);
         appendPaymentData(logBuffer, paymentData);
         appendPspReference(logBuffer, pspReference);
         appendModificationResponse(logBuffer, response);
@@ -55,9 +57,10 @@ public abstract class BaseAdyenPaymentServiceProviderPort {
         logger.info(logBuffer.toString());
     }
 
-    protected void logTransactionError(final String transactionType, final UserData userData, final PaymentData paymentData, final AdyenCallResult<?> adyenCall) {
+    protected void logTransactionError(final String transactionType, final UserData userData, String merchantAccount, final PaymentData paymentData, final AdyenCallResult<?> adyenCall) {
         final StringBuilder logBuffer = new StringBuilder();
         appendTransactionType(logBuffer, transactionType);
+        appendMerchantAccount(logBuffer, merchantAccount);
         appendPaymentData(logBuffer, paymentData);
         appendUserData(logBuffer, userData);
         appendAdyenCall(logBuffer, adyenCall);
@@ -66,9 +69,10 @@ public abstract class BaseAdyenPaymentServiceProviderPort {
         logger.info(logBuffer.toString());
     }
 
-    protected void logTransactionError(final String transactionType, final String pspReference, final PaymentData paymentData, final AdyenCallResult<?> adyenCall) {
+    protected void logTransactionError(final String transactionType, final String pspReference, String merchantAccount, final PaymentData paymentData, final AdyenCallResult<?> adyenCall) {
         final StringBuilder logBuffer = new StringBuilder();
         appendTransactionType(logBuffer, transactionType);
+        appendMerchantAccount(logBuffer, merchantAccount);
         appendPspReference(logBuffer, pspReference);
         appendPaymentData(logBuffer, paymentData);
         appendPspReference(logBuffer, pspReference);
@@ -80,6 +84,10 @@ public abstract class BaseAdyenPaymentServiceProviderPort {
 
     private void appendTransactionType(final StringBuilder buffer, final String transactionType) {
         buffer.append("op='").append(transactionType).append("'");
+    }
+
+    private void appendMerchantAccount(final StringBuilder buffer, final String merchantAccount) {
+        buffer.append("merchantAccount='").append(merchantAccount).append("'");
     }
 
     private void appendPaymentData(final StringBuilder buffer, final PaymentData paymentData) {
