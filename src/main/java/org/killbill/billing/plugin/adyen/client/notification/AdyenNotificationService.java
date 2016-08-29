@@ -64,63 +64,59 @@ public class AdyenNotificationService {
     }
 
     private ByteArrayOutputStream handleNotifications(final InputStream inputStream) {
-        String response = "error";
-
-        SendNotification sendNotification = null;
+        final SendNotification sendNotification;
         try {
             sendNotification = parse(inputStream);
         } catch (final Exception e) {
             logger.warn("Error parsing Adyen notification", e);
+            return createSendNotificationResponse("error");
         }
 
-        if (sendNotification != null) {
-            final List<NotificationRequestItem> listOfNotifications = sendNotification.getNotification()
-                                                                                      .getNotificationItems()
-                                                                                      .getNotificationRequestItem();
-
-            for (final NotificationRequestItem item : listOfNotifications) {
-                try {
-                    handleNotification(item);
-                } catch (final Exception e) {
-                    logger.warn("Error handling notification: eventCode='{}', pspReference='{}', originalReference='{}', success='{}', reason='{}', merchantReference='{}', merchantAccount='{}'",
-                                item.getEventCode(),
-                                item.getPspReference(),
-                                item.getOriginalReference(),
-                                item.isSuccess(),
-                                item.getReason(),
-                                item.getMerchantReference(),
-                                item.getMerchantAccountCode(),
-                                e);
-                }
-            }
-            response = "[accepted]";
+        final List<NotificationRequestItem> listOfNotifications = sendNotification.getNotification()
+                                                                                  .getNotificationItems()
+                                                                                  .getNotificationRequestItem();
+        for (final NotificationRequestItem item : listOfNotifications) {
+            handleNotification(item);
         }
-
-        try {
-            return createSendNotificationResponse(response);
-        } catch (final Exception e) {
-            // Not much we can do. Let Adyen retry.
-            throw new RuntimeException(e);
-        }
+        return createSendNotificationResponse("[accepted]");
     }
 
     private void handleNotification(final NotificationRequestItem item) {
-        logger.info("Handling notification: eventCode='{}', pspReference='{}', originalReference='{}', success='{}', reason='{}', merchantReference='{}', merchantAccount='{}'",
+        Exception error = null;
+        final long startTime = System.currentTimeMillis();
+        long duration = 0L;
+        try {
+            final AdyenNotificationHandler adyenNotificationHandler = getAdyenNotificationHandler(item);
+            if (adyenNotificationHandler == null) {
+                logger.warn("No handler available - ignoring");
+                return;
+            }
+
+            adyenNotificationHandler.handleNotification(item);
+            duration = System.currentTimeMillis() - startTime;
+        } catch (final Exception e) {
+            duration = System.currentTimeMillis() - startTime;
+            error = e;
+        } finally {
+            final String message = String.format(
+                    "op='notificationHandling' eventCode='%s', pspReference='%s', originalReference='%s', success='%s', reason='%s', merchantReference='%s', merchantAccount='%s', duration=%d, error=%s",
                     item.getEventCode(),
                     item.getPspReference(),
                     item.getOriginalReference(),
                     item.isSuccess(),
                     item.getReason(),
                     item.getMerchantReference(),
-                    item.getMerchantAccountCode());
+                    item.getMerchantAccountCode(),
+                    duration,
+                    error != null);
 
-        final AdyenNotificationHandler adyenNotificationHandler = getAdyenNotificationHandler(item);
-        if (adyenNotificationHandler == null) {
-            logger.warn("No handler available - ignoring");
-            return;
+            if (error == null) {
+                logger.info(message);
+            } else {
+                logger.error(message, error);
+            }
         }
 
-        adyenNotificationHandler.handleNotification(item);
     }
 
     private AdyenNotificationHandler getAdyenNotificationHandler(final NotificationRequestItem notificationRequestItem) {
@@ -144,21 +140,30 @@ public class AdyenNotificationService {
         return (SendNotification) unmarshaller.unmarshal(new DOMSource(sendNotificationNode));
     }
 
-    private ByteArrayOutputStream createSendNotificationResponse(final String value) throws JAXBException, SOAPException, ParserConfigurationException, IOException {
-        final SendNotificationResponse response = new SendNotificationResponse();
-        response.setNotificationResponse(value);
+    private ByteArrayOutputStream createSendNotificationResponse(final String value) {
+        try {
+            final SendNotificationResponse response = new SendNotificationResponse();
+            response.setNotificationResponse(value);
 
-        // Use SOAPMessage to add the envelope
-        final Document document = DocumentBuilderFactory.newInstance().newDocumentBuilder().newDocument();
-        final Marshaller marshaller = jaxbContext.createMarshaller();
-        marshaller.marshal(response, document);
+            // Use SOAPMessage to add the envelope
+            final Document document;
+                document = DocumentBuilderFactory.newInstance().newDocumentBuilder().newDocument();
+            final Marshaller marshaller = jaxbContext.createMarshaller();
+            marshaller.marshal(response, document);
 
-        final SOAPMessage soapMessage = MessageFactory.newInstance().createMessage();
-        soapMessage.getSOAPBody().addDocument(document);
+            final SOAPMessage soapMessage = MessageFactory.newInstance().createMessage();
+            soapMessage.getSOAPBody().addDocument(document);
 
-        final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-        soapMessage.writeTo(outputStream);
+            final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+            soapMessage.writeTo(outputStream);
 
-        return outputStream;
+            return outputStream;
+        } catch (Exception e) {
+            // Avoid unnecessary wrapping
+            if (e instanceof RuntimeException) {
+                throw (RuntimeException) e;
+            }
+            throw new RuntimeException(e);
+        }
     }
 }
