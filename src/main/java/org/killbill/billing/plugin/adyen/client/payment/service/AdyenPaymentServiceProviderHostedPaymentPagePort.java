@@ -42,8 +42,6 @@ import static org.killbill.billing.plugin.util.KillBillMoney.toMinorUnits;
 
 public class AdyenPaymentServiceProviderHostedPaymentPagePort extends BaseAdyenPaymentServiceProviderPort implements Closeable {
 
-    private static final Logger logger = LoggerFactory.getLogger(AdyenPaymentServiceProviderHostedPaymentPagePort.class);
-
     private final AdyenConfigProperties adyenConfigProperties;
     private final AdyenRequestFactory adyenRequestFactory;
     private final DirectoryClient directoryClient;
@@ -54,6 +52,8 @@ public class AdyenPaymentServiceProviderHostedPaymentPagePort extends BaseAdyenP
         this.adyenConfigProperties = adyenConfigProperties;
         this.adyenRequestFactory = adyenRequestFactory;
         this.directoryClient = directoryClient;
+
+        this.logger = LoggerFactory.getLogger(AdyenPaymentServiceProviderHostedPaymentPagePort.class);
     }
 
     @Override
@@ -64,7 +64,7 @@ public class AdyenPaymentServiceProviderHostedPaymentPagePort extends BaseAdyenP
     }
 
     public Map<String, String> getFormParameter(final String merchantAccount, final PaymentData paymentData, final UserData userData, final SplitSettlementData splitSettlementData) throws SignatureGenerationException {
-        logOperation(logger, "createHppRequest", paymentData, userData, null);
+        logTransaction("createHppRequest", userData, paymentData, null, null);
         return adyenRequestFactory.createHppRequest(merchantAccount, paymentData, userData, splitSettlementData);
     }
 

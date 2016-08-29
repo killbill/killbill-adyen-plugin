@@ -20,33 +20,122 @@ package org.killbill.billing.plugin.adyen.client.payment.service;
 import javax.annotation.Nullable;
 
 import org.killbill.billing.plugin.adyen.client.model.PaymentData;
+import org.killbill.billing.plugin.adyen.client.model.PaymentModificationResponse;
+import org.killbill.billing.plugin.adyen.client.model.PurchaseResult;
 import org.killbill.billing.plugin.adyen.client.model.UserData;
 import org.slf4j.Logger;
 
 public abstract class BaseAdyenPaymentServiceProviderPort {
 
-    protected void logOperation(final Logger logger, final String operation, @Nullable final PaymentData paymentData, @Nullable final UserData userData, @Nullable final String pspReference) {
-        final StringBuilder stringBuilder = new StringBuilder("op='").append(operation).append("'");
-        if (paymentData != null && paymentData.getAmount() != null) {
-            stringBuilder.append(", amount='")
-                         .append(paymentData.getAmount())
-                         .append("'");
+    protected Logger logger;
+
+    protected void logTransaction(final String transactionType, final UserData userData, final PaymentData paymentData, @Nullable final PurchaseResult result, @Nullable final AdyenCallResult<?> adyenCall) {
+        final StringBuilder logBuffer = new StringBuilder();
+        appendTransactionType(logBuffer, transactionType);
+        appendPaymentData(logBuffer, paymentData);
+        appendUserData(logBuffer, userData);
+        appendPurchaseResult(logBuffer, result);
+        if (adyenCall != null) {
+            appendDuration(logBuffer, adyenCall.getDuration());
         }
-        if (paymentData != null && paymentData.getPaymentTransactionExternalKey() != null) {
-            stringBuilder.append(", paymentTransactionExternalKey='")
-                         .append(paymentData.getPaymentTransactionExternalKey())
-                         .append("'");
+        logBuffer.append(", error=false");
+
+        logger.info(logBuffer.toString());
+    }
+
+    protected void logTransaction(final String transactionType, final String pspReference, final PaymentData paymentData, final PaymentModificationResponse response, final AdyenCallResult<?> adyenCall) {
+        final StringBuilder logBuffer = new StringBuilder();
+        appendTransactionType(logBuffer, transactionType);
+        appendPaymentData(logBuffer, paymentData);
+        appendPspReference(logBuffer, pspReference);
+        appendModificationResponse(logBuffer, response);
+        appendDuration(logBuffer, adyenCall.getDuration());
+        logBuffer.append(", error=false");
+
+        logger.info(logBuffer.toString());
+    }
+
+    protected void logTransactionError(final String transactionType, final UserData userData, final PaymentData paymentData, final AdyenCallResult<?> adyenCall) {
+        final StringBuilder logBuffer = new StringBuilder();
+        appendTransactionType(logBuffer, transactionType);
+        appendPaymentData(logBuffer, paymentData);
+        appendUserData(logBuffer, userData);
+        appendAdyenCall(logBuffer, adyenCall);
+        logBuffer.append(", error=true");
+
+        logger.info(logBuffer.toString());
+    }
+
+    protected void logTransactionError(final String transactionType, final String pspReference, final PaymentData paymentData, final AdyenCallResult<?> adyenCall) {
+        final StringBuilder logBuffer = new StringBuilder();
+        appendTransactionType(logBuffer, transactionType);
+        appendPspReference(logBuffer, pspReference);
+        appendPaymentData(logBuffer, paymentData);
+        appendPspReference(logBuffer, pspReference);
+        appendAdyenCall(logBuffer, adyenCall);
+        logBuffer.append(", error=true");
+
+        logger.info(logBuffer.toString());
+    }
+
+    private void appendTransactionType(final StringBuilder buffer, final String transactionType) {
+        buffer.append("op='").append(transactionType).append("'");
+    }
+
+    private void appendPaymentData(final StringBuilder buffer, final PaymentData paymentData) {
+        if (paymentData == null ) {
+            return;
         }
+
+        if (paymentData.getAmount() != null) {
+            buffer.append(", amount='")
+                  .append(paymentData.getAmount())
+                  .append("'");
+        }
+        if (paymentData.getAmount() != null) {
+            buffer.append(", amount='")
+                  .append(paymentData.getAmount())
+                  .append("'");
+        }
+        if (paymentData.getPaymentTransactionExternalKey() != null) {
+            buffer.append(", paymentTransactionExternalKey='")
+                  .append(paymentData.getPaymentTransactionExternalKey())
+                  .append("'");
+        }
+    }
+
+    private void appendUserData(final StringBuilder buffer, final UserData userData) {
         if (userData != null && userData.getShopperReference() != null) {
-            stringBuilder.append(", customerId='")
-                         .append(userData.getShopperReference())
-                         .append("'");
+            buffer.append(", customerId='")
+                  .append(userData.getShopperReference())
+                  .append("'");
         }
+    }
+
+
+    private void appendPspReference(final StringBuilder buffer, final String pspReference) {
         if (pspReference != null) {
-            stringBuilder.append(", pspReference='")
-                         .append(pspReference)
-                         .append("'");
+            buffer.append(", pspReference='")
+                  .append(pspReference)
+                  .append("'");
         }
-        logger.info(stringBuilder.toString());
+    }
+
+    private void appendPurchaseResult(final StringBuilder buffer, @Nullable final PurchaseResult result) {
+        if (result != null) {
+            buffer.append(", ").append(result);
+        }
+    }
+
+    private void appendModificationResponse(final StringBuilder buffer, final PaymentModificationResponse response) {
+        buffer.append(", ").append(response);
+    }
+
+    private void appendDuration(final StringBuilder buffer, final long duration) {
+        buffer.append(", duration=").append(duration);
+    }
+
+    private void appendAdyenCall(final StringBuilder buffer, final AdyenCallResult<?> adyenCall) {
+        buffer.append(", ").append(adyenCall);
     }
 }
