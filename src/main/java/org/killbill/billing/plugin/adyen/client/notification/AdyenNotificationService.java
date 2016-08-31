@@ -99,7 +99,7 @@ public class AdyenNotificationService {
             error = e;
         } finally {
             final String message = String.format(
-                    "op='notificationHandling' eventCode='%s', pspReference='%s', originalReference='%s', success='%s', reason='%s', merchantReference='%s', merchantAccount='%s', duration=%d, error=%s",
+                    "op='notificationHandling', eventCode='%s', pspReference='%s', originalReference='%s', success='%s', reason='%s', merchantReference='%s', merchantAccount='%s', duration=%d, error=%s",
                     item.getEventCode(),
                     item.getPspReference(),
                     item.getOriginalReference(),
@@ -146,8 +146,7 @@ public class AdyenNotificationService {
             response.setNotificationResponse(value);
 
             // Use SOAPMessage to add the envelope
-            final Document document;
-                document = DocumentBuilderFactory.newInstance().newDocumentBuilder().newDocument();
+            final Document document = DocumentBuilderFactory.newInstance().newDocumentBuilder().newDocument();
             final Marshaller marshaller = jaxbContext.createMarshaller();
             marshaller.marshal(response, document);
 
