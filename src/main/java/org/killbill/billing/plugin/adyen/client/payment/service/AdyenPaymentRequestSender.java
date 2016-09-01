@@ -131,7 +131,7 @@ public class AdyenPaymentRequestSender implements Closeable {
             return new SuccessfulAdyenCall<T>(result, duration);
         } catch (final Exception e) {
             final long duration = System.currentTimeMillis() - startTime;
-            logger.error("Exception during Adyen request", e);
+            logger.warn("Exception during Adyen request", e);
 
             final UnSuccessfulAdyenCall<T> unsuccessfulResult = mapExceptionToCallResult(e);
             unsuccessfulResult.setDuration(duration);

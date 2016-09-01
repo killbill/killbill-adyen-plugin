@@ -113,7 +113,7 @@ public class AdyenNotificationService {
             if (error == null) {
                 logger.info(message);
             } else {
-                logger.error(message, error);
+                logger.warn(message, error);
             }
         }
 

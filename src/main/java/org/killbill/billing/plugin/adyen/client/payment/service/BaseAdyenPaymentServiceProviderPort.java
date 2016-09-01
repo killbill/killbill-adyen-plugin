@@ -66,7 +66,7 @@ public abstract class BaseAdyenPaymentServiceProviderPort {
         appendAdyenCall(logBuffer, adyenCall);
         logBuffer.append(", error=true");
 
-        logger.info(logBuffer.toString());
+        logger.warn(logBuffer.toString());
     }
 
     protected void logTransactionError(final String transactionType, final String pspReference, final String merchantAccount, final PaymentData paymentData, final AdyenCallResult<?> adyenCall) {
@@ -78,7 +78,7 @@ public abstract class BaseAdyenPaymentServiceProviderPort {
         appendAdyenCall(logBuffer, adyenCall);
         logBuffer.append(", error=true");
 
-        logger.info(logBuffer.toString());
+        logger.warn(logBuffer.toString());
     }
 
     private void appendTransactionType(final StringBuilder buffer, final String transactionType) {
