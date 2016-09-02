@@ -63,4 +63,36 @@ public class TestAdyenPaymentTransactionInfoPlugin {
         Assert.assertEquals(paymentTransactionInfoPlugin.getGatewayErrorCode(), "configuration 905 Payment detail");
         Assert.assertEquals(paymentTransactionInfoPlugin.getGatewayErrorCode().length(), 32);
     }
+
+    @Test(groups = "fast")
+    public void testGatewayErrorCodeRawAcquirerReason() throws Exception {
+        final AdyenResponsesRecord responsesRecord = new AdyenResponsesRecord(UInteger.valueOf(1),
+                                                                              UUID.randomUUID().toString(),
+                                                                              UUID.randomUUID().toString(),
+                                                                              UUID.randomUUID().toString(),
+                                                                              TransactionType.AUTHORIZE.toString(),
+                                                                              BigDecimal.TEN,
+                                                                              Currency.USD.toString(),
+                                                                              null,
+                                                                              UUID.randomUUID().toString(),
+                                                                              UUID.randomUUID().toString(),
+                                                                              UUID.randomUUID().toString(),
+                                                                              UUID.randomUUID().toString(),
+                                                                              UUID.randomUUID().toString(),
+                                                                              UUID.randomUUID().toString(),
+                                                                              UUID.randomUUID().toString(),
+                                                                              UUID.randomUUID().toString(),
+                                                                              BigDecimal.ZERO,
+                                                                              Currency.USD.toString(),
+                                                                              UUID.randomUUID().toString(),
+                                                                              UUID.randomUUID().toString(),
+                                                                              UUID.randomUUID().toString(),
+                                                                              UUID.randomUUID().toString(),
+                                                                              "{\"refusalReasonRaw\":\"05 : Do not honor\"}",
+                                                                              new Timestamp(1242L),
+                                                                              UUID.randomUUID().toString());
+        final PaymentTransactionInfoPlugin paymentTransactionInfoPlugin = new AdyenPaymentTransactionInfoPlugin(responsesRecord);
+        Assert.assertEquals(paymentTransactionInfoPlugin.getGatewayError(), "Do not honor");
+        Assert.assertEquals(paymentTransactionInfoPlugin.getGatewayErrorCode(), "05");
+    }
 }

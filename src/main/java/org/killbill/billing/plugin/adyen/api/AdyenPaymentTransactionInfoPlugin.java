@@ -19,6 +19,8 @@ package org.killbill.billing.plugin.adyen.api;
 import java.math.BigDecimal;
 import java.util.Map;
 import java.util.UUID;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import javax.annotation.Nullable;
 
@@ -44,6 +46,8 @@ import static com.google.common.base.Preconditions.checkArgument;
 public class AdyenPaymentTransactionInfoPlugin extends PluginPaymentTransactionInfoPlugin {
 
     private static final int ERROR_CODE_MAX_LENGTH = 32;
+    private static final Pattern REFUSAL_REASON_PATTERN = Pattern.compile("([0-9]+)\\s*:\\s*(.*)");
+    private static final String REFUSAL_REASON_RAW = "refusalReasonRaw";
 
     public AdyenPaymentTransactionInfoPlugin(final UUID kbPaymentId,
                                              final UUID kbTransactionPaymentPaymentId,
@@ -117,33 +121,109 @@ public class AdyenPaymentTransactionInfoPlugin extends PluginPaymentTransactionI
     }
 
     private static String getGatewayError(final PurchaseResult purchaseResult) {
-        return purchaseResult.getReason() != null ? purchaseResult.getReason() : purchaseResult.getAdditionalData().get(PurchaseResult.EXCEPTION_MESSAGE);
+        final String refusalResponseMessage = getGatewayError(purchaseResult.getAdditionalData());
+        if (refusalResponseMessage != null) {
+            return refusalResponseMessage;
+        } else if (purchaseResult.getReason() != null) {
+            return purchaseResult.getReason();
+        } else {
+            return purchaseResult.getAdditionalData().get(PurchaseResult.EXCEPTION_MESSAGE);
+        }
     }
 
     private static String getGatewayError(final PaymentModificationResponse paymentModificationResponse) {
-        return toString(paymentModificationResponse.getAdditionalData().get(PurchaseResult.EXCEPTION_MESSAGE));
+        final String refusalResponseMessage = getGatewayError(paymentModificationResponse.getAdditionalData());
+        if (refusalResponseMessage != null) {
+            return refusalResponseMessage;
+        } else {
+            return toString(paymentModificationResponse.getAdditionalData().get(PurchaseResult.EXCEPTION_MESSAGE));
+        }
     }
 
     private static String getGatewayError(final AdyenResponsesRecord record) {
-        return record.getRefusalReason() != null ? record.getRefusalReason() : toString(AdyenDao.fromAdditionalData(record.getAdditionalData()).get(PurchaseResult.EXCEPTION_MESSAGE));
+        final Map additionalData = AdyenDao.fromAdditionalData(record.getAdditionalData());
+        final String refusalResponseMessage = getGatewayError(additionalData);
+        if (refusalResponseMessage != null) {
+            return refusalResponseMessage;
+        } else if (record.getRefusalReason() != null) {
+            return record.getRefusalReason();
+        } else {
+            return toString(additionalData.get(PurchaseResult.EXCEPTION_MESSAGE));
+        }
+    }
+
+    private static String getGatewayError(@Nullable final Map additionalData) {
+        if (additionalData == null) {
+            return null;
+        }
+
+        final String refusalReasonRaw = (String) additionalData.get(REFUSAL_REASON_RAW);
+        if (refusalReasonRaw == null) {
+            return null;
+        }
+
+        // See https://docs.adyen.com/support/payments-reporting
+        final Matcher matcher = REFUSAL_REASON_PATTERN.matcher(refusalReasonRaw);
+        if (matcher.matches()) {
+            return matcher.group(2);
+        } else {
+            return null;
+        }
     }
 
     private static String getGatewayErrorCode(final PurchaseResult purchaseResult) {
-        return purchaseResult.getResultCode() != null ? purchaseResult.getResultCode() : getExceptionClass(purchaseResult.getAdditionalData());
+        final String refusalResponseCode = getGatewayErrorCode(purchaseResult.getAdditionalData());
+        if (refusalResponseCode != null) {
+            return refusalResponseCode;
+        } else if (purchaseResult.getResultCode() != null) {
+            return purchaseResult.getResultCode();
+        } else {
+            return getExceptionClass(purchaseResult.getAdditionalData());
+        }
     }
 
     private static String getGatewayErrorCode(final PaymentModificationResponse paymentModificationResponse) {
-        return paymentModificationResponse.getResponse() != null ? paymentModificationResponse.getResponse() : getExceptionClass(paymentModificationResponse.getAdditionalData());
+        final String refusalResponseCode = getGatewayErrorCode(paymentModificationResponse.getAdditionalData());
+        if (refusalResponseCode != null) {
+            return refusalResponseCode;
+        } else if (paymentModificationResponse.getResponse() != null) {
+            return paymentModificationResponse.getResponse();
+        } else {
+            return getExceptionClass(paymentModificationResponse.getAdditionalData());
+        }
     }
 
     private static String getGatewayErrorCode(final AdyenResponsesRecord record) {
-        if (record.getResultCode() != null) {
+        final Map additionalData = AdyenDao.fromAdditionalData(record.getAdditionalData());
+        final String refusalResponseCode = getGatewayErrorCode(additionalData);
+        if (refusalResponseCode != null) {
+            return refusalResponseCode;
+        } else if (record.getResultCode() != null) {
             return record.getResultCode();
         } else if (record.getPspResult() != null) {
             // PaymentModificationResponse
             return record.getPspResult();
         } else {
-            return getExceptionClass(AdyenDao.fromAdditionalData(record.getAdditionalData()));
+            return getExceptionClass(additionalData);
+        }
+    }
+
+    private static String getGatewayErrorCode(@Nullable final Map additionalData) {
+        if (additionalData == null) {
+            return null;
+        }
+
+        final String refusalReasonRaw = (String) additionalData.get(REFUSAL_REASON_RAW);
+        if (refusalReasonRaw == null) {
+            return null;
+        }
+
+        // See https://docs.adyen.com/support/payments-reporting
+        final Matcher matcher = REFUSAL_REASON_PATTERN.matcher(refusalReasonRaw);
+        if (matcher.matches()) {
+            return matcher.group(1);
+        } else {
+            return null;
         }
     }
 
