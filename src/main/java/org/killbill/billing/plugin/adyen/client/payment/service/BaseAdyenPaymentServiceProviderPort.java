@@ -64,6 +64,7 @@ public abstract class BaseAdyenPaymentServiceProviderPort {
         appendPaymentData(logBuffer, paymentData);
         appendUserData(logBuffer, userData);
         appendAdyenCall(logBuffer, adyenCall);
+        appendDuration(logBuffer, adyenCall.getDuration());
         logBuffer.append(", error=true");
 
         logger.warn(logBuffer.toString());
@@ -76,6 +77,7 @@ public abstract class BaseAdyenPaymentServiceProviderPort {
         appendPaymentData(logBuffer, paymentData);
         appendPspReference(logBuffer, pspReference);
         appendAdyenCall(logBuffer, adyenCall);
+        appendDuration(logBuffer, adyenCall.getDuration());
         logBuffer.append(", error=true");
 
         logger.warn(logBuffer.toString());

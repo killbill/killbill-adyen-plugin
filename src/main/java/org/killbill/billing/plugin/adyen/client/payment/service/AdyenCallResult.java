@@ -81,7 +81,6 @@ class SuccessfulAdyenCall<T> implements AdyenCallResult<T> {
     public String toString() {
         final StringBuilder sb = new StringBuilder("SuccessfulAdyenCall{");
         sb.append("result=").append(result);
-        sb.append(", duration=").append(duration);
         sb.append(" }");
         return sb.toString();
     }
@@ -140,7 +139,6 @@ class UnSuccessfulAdyenCall<T> implements AdyenCallResult<T> {
         sb.append("responseStatus=").append(responseStatus);
         sb.append(", exceptionMessage='").append(exceptionMessage).append('\'');
         sb.append(", exceptionClass='").append(exceptionClass).append('\'');
-        sb.append(", duration=").append(duration);
         sb.append(" }");
         return sb.toString();
     }
