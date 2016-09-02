@@ -23,7 +23,8 @@ public class LoggingOutInterceptor extends org.apache.cxf.interceptor.LoggingOut
     private final Iterable<Obfuscator> obfuscators;
 
     public LoggingOutInterceptor() {
-        this(ImmutableList.<Obfuscator>of(new PayUObfuscator()));
+        this(ImmutableList.<Obfuscator>of(new PayUObfuscator(),
+                                          new AuthorizationHeaderObfuscator()));
     }
 
     public LoggingOutInterceptor(final Iterable<Obfuscator> obfuscators) {
@@ -34,8 +35,7 @@ public class LoggingOutInterceptor extends org.apache.cxf.interceptor.LoggingOut
     protected String transform(final String originalLogString) {
         String result = originalLogString.replaceAll("cvc>[0-9]+</", "cvc>***</")
                                          .replaceAll("number>[0-9]+</", "number>***</")
-                                         .replaceAll("bankAccountNumber>[0-9]+</", "bankAccountNumber>***</")
-                                         .replaceAll("Authorization=\\[[^\\]]*\\]", "Authorization=[****]");
+                                         .replaceAll("bankAccountNumber>[0-9]+</", "bankAccountNumber>***</");
 
         for (final Obfuscator obfuscator : obfuscators) {
             result = obfuscator.obfuscateAdyenRequestLog(result);
