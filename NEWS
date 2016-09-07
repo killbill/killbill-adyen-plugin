@@ -1,3 +1,8 @@
+0.4.4
+    Improve logging
+    Refactor credentials obfuscation
+    Return  raw error codes from the schemes
+
 0.4.3
     
 
