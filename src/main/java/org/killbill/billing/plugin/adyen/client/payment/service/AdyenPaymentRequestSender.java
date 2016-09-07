@@ -122,13 +122,20 @@ public class AdyenPaymentRequestSender implements Closeable {
     }
 
     private <T> AdyenCallResult<T> callAdyen(final String merchantAccount, final AdyenCall<PaymentPortType, T> adyenCall) {
+        final long startTime = System.currentTimeMillis();
         try {
             final PaymentPortType paymentPort = adyenPaymentPortRegistry.getPaymentPort(merchantAccount);
             final T result = adyenCall.apply(paymentPort);
-            return new SuccessfulAdyenCall<T>(result);
+
+            final long duration = System.currentTimeMillis() - startTime;
+            return new SuccessfulAdyenCall<T>(result, duration);
         } catch (final Exception e) {
+            final long duration = System.currentTimeMillis() - startTime;
             logger.warn("Exception during Adyen request", e);
-            return mapExceptionToCallResult(e);
+
+            final UnSuccessfulAdyenCall<T> unsuccessfulResult = mapExceptionToCallResult(e);
+            unsuccessfulResult.setDuration(duration);
+            return unsuccessfulResult;
         }
     }
 
@@ -136,7 +143,7 @@ public class AdyenPaymentRequestSender implements Closeable {
      * Educated guess approach to transform CXF exceptions into error status codes.
      * In the future if we encounter further different cases it makes sense to change this if/else structure to a map with lookup.
      */
-    private <T> AdyenCallResult<T> mapExceptionToCallResult(final Exception e) {
+    private <T> UnSuccessfulAdyenCall<T> mapExceptionToCallResult(final Exception e) {
         //noinspection ThrowableResultOfMethodCallIgnored
         final Throwable rootCause = Throwables.getRootCause(e);
         final String errorMessage = rootCause.getMessage();

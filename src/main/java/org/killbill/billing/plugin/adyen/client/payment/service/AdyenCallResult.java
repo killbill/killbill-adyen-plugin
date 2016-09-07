@@ -24,6 +24,8 @@ public interface AdyenCallResult<T> {
 
     Optional<T> getResult();
 
+    long getDuration();
+
     Optional<AdyenCallErrorStatus> getResponseStatus();
 
     Optional<String> getExceptionClass();
@@ -38,13 +40,21 @@ class SuccessfulAdyenCall<T> implements AdyenCallResult<T> {
 
     private final T result;
 
-    public SuccessfulAdyenCall(final T result) {
+    private final long duration;
+
+    public SuccessfulAdyenCall(final T result, long duration) {
         this.result = checkNotNull(result, "result");
+        this.duration = duration;
     }
 
     @Override
     public Optional<T> getResult() {
         return Optional.of(result);
+    }
+
+    @Override
+    public long getDuration() {
+        return duration;
     }
 
     @Override
@@ -71,7 +81,7 @@ class SuccessfulAdyenCall<T> implements AdyenCallResult<T> {
     public String toString() {
         final StringBuilder sb = new StringBuilder("SuccessfulAdyenCall{");
         sb.append("result=").append(result);
-        sb.append('}');
+        sb.append(" }");
         return sb.toString();
     }
 }
@@ -81,6 +91,7 @@ class UnSuccessfulAdyenCall<T> implements AdyenCallResult<T> {
     private final AdyenCallErrorStatus responseStatus;
     private final String exceptionClass;
     private final String exceptionMessage;
+    private long duration;
 
     UnSuccessfulAdyenCall(final AdyenCallErrorStatus responseStatus, final Throwable rootCause) {
         this.responseStatus = responseStatus;
@@ -91,6 +102,15 @@ class UnSuccessfulAdyenCall<T> implements AdyenCallResult<T> {
     @Override
     public Optional<T> getResult() {
         return Optional.absent();
+    }
+
+    @Override
+    public long getDuration() {
+        return duration;
+    }
+
+    public void setDuration(final long duration) {
+        this.duration = duration;
     }
 
     @Override
@@ -119,7 +139,7 @@ class UnSuccessfulAdyenCall<T> implements AdyenCallResult<T> {
         sb.append("responseStatus=").append(responseStatus);
         sb.append(", exceptionMessage='").append(exceptionMessage).append('\'');
         sb.append(", exceptionClass='").append(exceptionClass).append('\'');
-        sb.append('}');
+        sb.append(" }");
         return sb.toString();
     }
 }

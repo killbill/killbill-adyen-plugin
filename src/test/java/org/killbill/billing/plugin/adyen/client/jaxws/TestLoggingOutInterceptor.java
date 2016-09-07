@@ -34,6 +34,14 @@ public class TestLoggingOutInterceptor {
     }
 
     @Test
+    public void testAuthenticationHeaderObfuscation() {
+        final String authScheme = "Basic d3NGFueKYWRlx3NDApMjM=";
+        final String result = new LoggingOutInterceptor().transform(" Headers: {Accept=[*/*], Authorization=["+ authScheme + "] ");
+
+        Assert.assertFalse(result.contains(authScheme));
+    }
+
+    @Test
     public void testPayUExpiryMonthObfuscation() {
         final String month = "04";
 

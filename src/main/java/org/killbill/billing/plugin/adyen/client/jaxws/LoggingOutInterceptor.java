@@ -23,7 +23,8 @@ public class LoggingOutInterceptor extends org.apache.cxf.interceptor.LoggingOut
     private final Iterable<Obfuscator> obfuscators;
 
     public LoggingOutInterceptor() {
-        this(ImmutableList.<Obfuscator>of(new PayUObfuscator()));
+        this(ImmutableList.<Obfuscator>of(new PayUObfuscator(),
+                                          new AuthorizationHeaderObfuscator()));
     }
 
     public LoggingOutInterceptor(final Iterable<Obfuscator> obfuscators) {

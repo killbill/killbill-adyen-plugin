@@ -39,12 +39,9 @@ import org.killbill.billing.plugin.adyen.client.model.PurchaseResult;
 import org.killbill.billing.plugin.adyen.client.model.SplitSettlementData;
 import org.killbill.billing.plugin.adyen.client.model.UserData;
 import org.killbill.billing.plugin.adyen.client.payment.builder.AdyenRequestFactory;
-import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class AdyenPaymentServiceProviderPort extends BaseAdyenPaymentServiceProviderPort implements Closeable {
-
-    private static final Logger logger = LoggerFactory.getLogger(AdyenPaymentServiceProviderPort.class);
 
     private final AdyenRequestFactory adyenRequestFactory;
     private final AdyenPaymentRequestSender adyenPaymentRequestSender;
@@ -53,6 +50,8 @@ public class AdyenPaymentServiceProviderPort extends BaseAdyenPaymentServiceProv
                                            final AdyenPaymentRequestSender adyenPaymentRequestSender) {
         this.adyenRequestFactory = adyenRequestFactory;
         this.adyenPaymentRequestSender = adyenPaymentRequestSender;
+
+        this.logger = LoggerFactory.getLogger(AdyenPaymentServiceProviderPort.class);
     }
 
     @Override
@@ -80,8 +79,6 @@ public class AdyenPaymentServiceProviderPort extends BaseAdyenPaymentServiceProv
                                              final UserData userData,
                                              final SplitSettlementData splitSettlementData) {
         final String operation = authorize ? "authorize" : "credit";
-        logOperation(logger, operation, paymentData, userData, null);
-
         final PaymentRequest request = adyenRequestFactory.createPaymentRequest(merchantAccount, paymentData, userData, splitSettlementData);
 
         final AdyenCallResult<PaymentResult> adyenCallResult;
@@ -92,7 +89,7 @@ public class AdyenPaymentServiceProviderPort extends BaseAdyenPaymentServiceProv
         }
 
         if (!adyenCallResult.receivedWellFormedResponse()) {
-            return handleTechnicalFailureAtPurchase(operation, paymentData, adyenCallResult);
+            return handleTechnicalFailureAtPurchase(operation, userData, merchantAccount, paymentData, adyenCallResult);
         }
 
         final PurchaseResult purchaseResult;
@@ -128,7 +125,7 @@ public class AdyenPaymentServiceProviderPort extends BaseAdyenPaymentServiceProv
                                                 getAdditionalData(result));
         }
 
-        logger.info("op='{}', {}", operation, purchaseResult);
+        logTransaction(operation, userData, merchantAccount, paymentData, purchaseResult, adyenCallResult);
         return purchaseResult;
     }
 
@@ -156,9 +153,9 @@ public class AdyenPaymentServiceProviderPort extends BaseAdyenPaymentServiceProv
         return additionalDataMap;
     }
 
-    private PurchaseResult handleTechnicalFailureAtPurchase(final String callKey, final PaymentData paymentData, final AdyenCallResult<PaymentResult> adyenCallResult) {
-        logger.warn("op='{}', paymentTransactionExternalKey='{}', {}", callKey, paymentData.getPaymentTransactionExternalKey(), adyenCallResult);
-        return new PurchaseResult(paymentData.getPaymentTransactionExternalKey(), adyenCallResult);
+    private PurchaseResult handleTechnicalFailureAtPurchase(final String transactionType, final UserData userData, final String merchantAccount, final PaymentData paymentData, final AdyenCallResult<PaymentResult> adyenCall) {
+        logTransactionError(transactionType, userData, merchantAccount, paymentData, adyenCall);
+        return new PurchaseResult(paymentData.getPaymentTransactionExternalKey(), adyenCall);
     }
 
     public PurchaseResult authorize3DSecure(final String merchantAccount,
@@ -166,8 +163,6 @@ public class AdyenPaymentServiceProviderPort extends BaseAdyenPaymentServiceProv
                                             final UserData userData,
                                             final SplitSettlementData splitSettlementData) {
         final String operation = "authorize3DSecure";
-        logOperation(logger, operation, paymentData, userData, null);
-
         final PaymentRequest3D request = adyenRequestFactory.paymentRequest3d(merchantAccount,
                                                                               paymentData,
                                                                               userData,
@@ -175,7 +170,7 @@ public class AdyenPaymentServiceProviderPort extends BaseAdyenPaymentServiceProv
         final AdyenCallResult<PaymentResult> adyenCallResult = adyenPaymentRequestSender.authorise3D(merchantAccount, request);
 
         if (!adyenCallResult.receivedWellFormedResponse()) {
-            return handleTechnicalFailureAtPurchase(operation, paymentData, adyenCallResult);
+            return handleTechnicalFailureAtPurchase(operation, userData, merchantAccount, paymentData, adyenCallResult);
         }
 
         final PurchaseResult purchaseResult;
@@ -205,7 +200,7 @@ public class AdyenPaymentServiceProviderPort extends BaseAdyenPaymentServiceProv
                                                 getAdditionalData(result));
         }
 
-        logger.info("op='{}', {}", operation, purchaseResult);
+        logTransaction(operation, userData, merchantAccount, paymentData, purchaseResult, adyenCallResult);
         return purchaseResult;
     }
 
@@ -266,20 +261,18 @@ public class AdyenPaymentServiceProviderPort extends BaseAdyenPaymentServiceProv
                                                final PaymentData paymentData,
                                                final String pspReference,
                                                final SplitSettlementData splitSettlementData) {
-        logOperation(logger, operation, paymentData, null, pspReference);
-
         final ModificationRequest modificationRequest = adyenRequestFactory.createModificationRequest(merchantAccount, paymentData, pspReference, splitSettlementData);
-        final AdyenCallResult<ModificationResult> adyenCallResult = modificationExecutor.execute(modificationRequest);
+        final AdyenCallResult<ModificationResult> adyenCall = modificationExecutor.execute(modificationRequest);
 
-        if (!adyenCallResult.receivedWellFormedResponse()) {
-            logger.warn("op='{}', success='false', {}", operation, adyenCallResult);
-            return new PaymentModificationResponse(pspReference, adyenCallResult);
+        if (!adyenCall.receivedWellFormedResponse()) {
+            logTransactionError(operation, pspReference, merchantAccount, paymentData, adyenCall);
+            return new PaymentModificationResponse(pspReference, adyenCall);
         } else {
-            final ModificationResult result = adyenCallResult.getResult().get();
+            final ModificationResult result = adyenCall.getResult().get();
             final PaymentModificationResponse response = new PaymentModificationResponse(result.getResponse(),
                                                                                          result.getPspReference(),
                                                                                          entriesToMap(result.getAdditionalData()));
-            logger.info("op='{}', success='true', {}", operation, response);
+            logTransaction(operation, pspReference, merchantAccount, paymentData, response, adyenCall);
             return response;
         }
     }
