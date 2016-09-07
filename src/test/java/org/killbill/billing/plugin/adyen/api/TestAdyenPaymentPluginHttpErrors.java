@@ -198,7 +198,7 @@ public class TestAdyenPaymentPluginHttpErrors {
         assertEquals(results.get(0).getGatewayErrorCode(), expectedGatewayErrorCode);
     }
 
-    @Test(groups = "slow")
+    @Test(groups = "slow", enabled=false)
     public void testAuthorizeWithInvalidValues() throws Exception {
         final String expectedGatewayError = "validation Expiry month should be between 1 and 12 inclusive Card";
         final String expectedGatewayErrorCode = "o.a.cxf.binding.soap.SoapFault";
