@@ -694,7 +694,7 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
     }
 
     private SplitSettlementData buildSplitSettlementData(final Currency currency, final Iterable<PluginProperty> pluginProperties) {
-        final Map<Short, Long> amounts = new HashMap<Short, Long>();
+        final Map<Short, BigDecimal> amounts = new HashMap<Short, BigDecimal>();
         final Map<Short, String> groups = new HashMap<Short, String>();
         final Map<Short, String> references = new HashMap<Short, String>();
         final Map<Short, String> types = new HashMap<Short, String>();
@@ -706,7 +706,8 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
 
                 final String value = pluginProperty.getValue().toString();
                 if ("amount".equals(suffix)) {
-                    amounts.put(itemNb, new BigDecimal(value).longValue());
+                    // In major units
+                    amounts.put(itemNb, new BigDecimal(value));
                 } else if ("group".equals(suffix)) {
                     groups.put(itemNb, value);
                 } else if ("reference".equals(suffix)) {
@@ -721,7 +722,7 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
         for (final Short itemNb : amounts.keySet()) {
             final String type = types.get(itemNb);
             if (type != null) {
-                items.add(new SplitSettlementData.Item(KillBillMoney.toMinorUnits(currency.toString(), BigDecimal.valueOf(amounts.get(itemNb))),
+                items.add(new SplitSettlementData.Item(KillBillMoney.toMinorUnits(currency.toString(), amounts.get(itemNb)),
                                                        MoreObjects.firstNonNull(groups.get(itemNb), type),
                                                        MoreObjects.firstNonNull(references.get(itemNb), type),
                                                        type));
