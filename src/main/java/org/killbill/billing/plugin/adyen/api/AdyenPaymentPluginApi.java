@@ -108,6 +108,7 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
     public static final String PROPERTY_PAYMENT_PROCESSOR_ACCOUNT_ID = "paymentProcessorAccountId";
     public static final String PROPERTY_ACQUIRER = "acquirer";
     public static final String PROPERTY_ACQUIRER_MID = "acquirerMID";
+    public static final String PROPERTY_SELECTED_BRAND = "selectedBrand";
     public static final String PROPERTY_INSTALLMENTS = "installments";
     public static final String SPLIT_SETTLEMENT_DATA_ITEM = "splitSettlementDataItem";
     public static final String PROPERTY_RECURRING_TYPE = "recurringType";

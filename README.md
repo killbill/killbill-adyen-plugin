@@ -354,4 +354,7 @@ Plugin properties
 | createPendingPayment     | Whether to create a PENDING payment for HPP   |
 | authMode                 | Create an auth instead of purchase for HPP    |
 | paymentExternalKey       | HPP payment external key                      |
+| acquirer                 | Value of Adyen's acquirerCode field           |
+| acquirerMID              | Value of Adyen's authorisationMid field       |
+| selectedBrand            | Value of Adyen's selectedBrand field          |
 | lookupDirectory          | If true, query the directory (HPP flow)       |

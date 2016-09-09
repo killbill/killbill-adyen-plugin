@@ -55,13 +55,13 @@ import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.PROPER
 import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.PROPERTY_PA_RES;
 import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.PROPERTY_RECURRING_DETAIL_ID;
 import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.PROPERTY_RECURRING_TYPE;
+import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.PROPERTY_SELECTED_BRAND;
 import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.PROPERTY_TERM_URL;
 import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.PROPERTY_THREE_D_THRESHOLD;
 import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.PROPERTY_USER_AGENT;
 import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.decode;
 import static org.killbill.billing.plugin.api.payment.PluginPaymentPluginApi.PROPERTY_ADDRESS1;
 import static org.killbill.billing.plugin.api.payment.PluginPaymentPluginApi.PROPERTY_ADDRESS2;
-import static org.killbill.billing.plugin.api.payment.PluginPaymentPluginApi.PROPERTY_CC_TYPE;
 import static org.killbill.billing.plugin.api.payment.PluginPaymentPluginApi.PROPERTY_CITY;
 import static org.killbill.billing.plugin.api.payment.PluginPaymentPluginApi.PROPERTY_STATE;
 import static org.killbill.billing.plugin.api.payment.PluginPaymentPluginApi.PROPERTY_ZIP;
@@ -239,7 +239,7 @@ public abstract class PaymentInfoMappingService {
     private static void setSelectedBrand(final PaymentInfo paymentInfo, final Iterable<PluginProperty> properties) {
         // For the MisterCash payment method, it can be set to maestro (default, to be processed like a Maestro card) or bcmc (to be processed like a MisterCash card)
         // It can also be set to specific values for DineroMail or to force recurring ELV contracts to be handled as SEPA
-        final String selectedBrand = PluginProperties.findPluginPropertyValue(PROPERTY_CC_TYPE, properties);
+        final String selectedBrand = PluginProperties.findPluginPropertyValue(PROPERTY_SELECTED_BRAND, properties);
         paymentInfo.setSelectedBrand(selectedBrand);
     }
 
