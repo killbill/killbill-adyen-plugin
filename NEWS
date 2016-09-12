@@ -1,3 +1,7 @@
+0.4.5
+    fix split settlements parsing
+    introduce specific property for selectedBrand value
+
 0.4.4
     Improve logging
     Refactor credentials obfuscation
