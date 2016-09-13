@@ -31,6 +31,7 @@ import org.killbill.billing.plugin.adyen.TestWithEmbeddedDBBase;
 import org.killbill.billing.plugin.adyen.core.AdyenActivator;
 import org.killbill.billing.util.callcontext.CallContext;
 import org.killbill.clock.Clock;
+import org.killbill.clock.ClockMock;
 import org.killbill.clock.DefaultClock;
 import org.mockito.Mockito;
 import org.testng.annotations.BeforeMethod;
@@ -41,6 +42,7 @@ import static org.testng.Assert.assertEquals;
 
 public class TestAdyenPaymentPluginApiBase extends TestWithEmbeddedDBBase {
 
+    protected ClockMock clock;
     protected CallContext context;
     protected Account account;
     protected AdyenPaymentPluginApi adyenPaymentPluginApi;
@@ -48,7 +50,7 @@ public class TestAdyenPaymentPluginApiBase extends TestWithEmbeddedDBBase {
 
     @BeforeMethod(groups = "slow")
     public void setUp() throws Exception {
-        final Clock clock = new DefaultClock();
+        clock = new ClockMock();
 
         context = Mockito.mock(CallContext.class);
         Mockito.when(context.getTenantId()).thenReturn(UUID.randomUUID());

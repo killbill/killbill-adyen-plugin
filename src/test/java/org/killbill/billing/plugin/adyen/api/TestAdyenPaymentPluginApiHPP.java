@@ -18,12 +18,15 @@
 package org.killbill.billing.plugin.adyen.api;
 
 import java.sql.SQLException;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
 import javax.annotation.Nullable;
 
+import org.joda.time.Period;
 import org.killbill.billing.payment.api.Payment;
 import org.killbill.billing.payment.api.PaymentApiException;
 import org.killbill.billing.payment.api.PluginProperty;
@@ -32,8 +35,10 @@ import org.killbill.billing.payment.plugin.api.HostedPaymentPageFormDescriptor;
 import org.killbill.billing.payment.plugin.api.PaymentPluginApiException;
 import org.killbill.billing.payment.plugin.api.PaymentPluginStatus;
 import org.killbill.billing.payment.plugin.api.PaymentTransactionInfoPlugin;
+import org.killbill.billing.plugin.adyen.dao.gen.tables.records.AdyenResponsesRecord;
 import org.killbill.billing.plugin.api.PluginProperties;
 import org.testng.annotations.BeforeMethod;
+import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
 import com.google.common.collect.ImmutableList;
@@ -92,7 +97,22 @@ public class TestAdyenPaymentPluginApiHPP extends TestAdyenPaymentPluginApiBase 
         verifyPayment(TransactionType.AUTHORIZE);
     }
 
-    private void triggerBuildFormDescriptor(final Map<String, String> extraProperties, @Nullable final TransactionType transactionType) throws PaymentPluginApiException, SQLException, PaymentApiException {
+    @Test(groups = "slow")
+    public void testCancelExpiredPayment() throws Exception {
+        final Payment payment = triggerBuildFormDescriptor(ImmutableMap.<String, String>of(AdyenPaymentPluginApi.PROPERTY_CREATE_PENDING_PAYMENT, "true",
+                                                                                           AdyenPaymentPluginApi.PROPERTY_AUTH_MODE, "true"),
+                                                           TransactionType.AUTHORIZE);
+        final Period expirationPeriod = Period.days(adyenConfigProperties.getHppExpirationPeriodInDays()).plusMinutes(1);
+        clock.setDeltaFromReality(expirationPeriod.toStandardDuration().getMillis());
+
+        final PaymentTransactionInfoPlugin transactionInfo = adyenPaymentPluginApi.getPaymentInfo(account.getId(), payment.getId(), Collections.<PluginProperty>emptyList(), context).get(0);
+        assertEquals(transactionInfo.getStatus(), PaymentPluginStatus.CANCELED);
+
+        final PluginProperty updateMessage = PluginProperties.findPluginProperties("message", transactionInfo.getProperties()).iterator().next();
+        assertEquals(updateMessage.getValue(), "Payment Expired - Cancelled by Janitor");
+    }
+
+    private Payment triggerBuildFormDescriptor(final Map<String, String> extraProperties, @Nullable final TransactionType transactionType) throws PaymentPluginApiException, SQLException, PaymentApiException {
         assertNull(dao.getHppRequest(paymentTransactionExternalKey));
         assertTrue(killbillApi.getPaymentApi().getAccountPayments(account.getId(), false, false, ImmutableList.<PluginProperty>of(), context).isEmpty());
 
@@ -129,7 +149,11 @@ public class TestAdyenPaymentPluginApiHPP extends TestAdyenPaymentPluginApiBase 
             assertEquals(pendingPaymentTransactions.size(), 1);
             assertEquals(pendingPaymentTransactions.get(0).getStatus(), PaymentPluginStatus.PENDING);
             assertEquals(pendingPaymentTransactions.get(0).getTransactionType(), transactionType);
+
+            return payment;
         }
+
+        return null;
     }
 
     private void processHPPNotification() throws PaymentPluginApiException {
