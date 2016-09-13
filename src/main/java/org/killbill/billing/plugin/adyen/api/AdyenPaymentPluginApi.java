@@ -223,6 +223,42 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
     }
 
     @Override
+    public List<PaymentTransactionInfoPlugin> getPaymentInfo(final UUID kbAccountId, final UUID kbPaymentId, final Iterable<PluginProperty> properties, final TenantContext context) throws PaymentPluginApiException {
+        final List<PaymentTransactionInfoPlugin> transactions = super.getPaymentInfo(kbAccountId, kbPaymentId, properties, context);
+        final ExpiredPaymentPolicy expiredPaymentPolicy = expiredPaymentPolicy(context);
+
+        if (expiredPaymentPolicy.isExpired(transactions)) {
+            cancelExpiredPayment(transactions, context);
+            // reload payment
+            return super.getPaymentInfo(kbAccountId, kbPaymentId, properties, context);
+        }
+        return transactions;
+    }
+
+    private void cancelExpiredPayment(final List<PaymentTransactionInfoPlugin> transactions, final TenantContext context) {
+        final List<PluginProperty> updatedStatusProperties = PluginProperties.buildPluginProperties(
+                ImmutableMap.builder()
+                            .put(PROPERTY_FROM_HPP_TRANSACTION_STATUS,
+                                 PaymentPluginStatus.CANCELED.toString())
+                            .put("message",
+                                 "Payment Expired - Cancelled by Janitor")
+                            .build());
+
+        final PaymentTransactionInfoPlugin expiredPendingTransaction = transactions.get(0);
+        try {
+            dao.updateResponse(expiredPendingTransaction.getKbTransactionPaymentId(),
+                               PluginProperties.merge(expiredPendingTransaction.getProperties(), updatedStatusProperties),
+                               context.getTenantId());
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private ExpiredPaymentPolicy expiredPaymentPolicy(final TenantContext context) {
+        return new ExpiredPaymentPolicy(clock, getConfigProperties(context));
+    }
+
+    @Override
     protected PaymentTransactionInfoPlugin buildPaymentTransactionInfoPlugin(final AdyenResponsesRecord adyenResponsesRecord) {
         return new AdyenPaymentTransactionInfoPlugin(adyenResponsesRecord);
     }
