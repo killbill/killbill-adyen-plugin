@@ -61,7 +61,15 @@ public class TestAdyenPaymentPluginApiBase extends TestWithEmbeddedDBBase {
         final OSGIKillbillLogService logService = TestUtils.buildLogService();
 
         final OSGIConfigPropertiesService configPropertiesService = Mockito.mock(OSGIConfigPropertiesService.class);
-        adyenPaymentPluginApi = new AdyenPaymentPluginApi(adyenConfigurationHandler, adyenHostedPaymentPageConfigurationHandler, adyenRecurringConfigurationHandler, killbillApi, configPropertiesService, logService, clock, dao);
+        adyenPaymentPluginApi = new AdyenPaymentPluginApi(adyenConfigurationHandler,
+                                                          adyenConfigPropertiesConfigurationHandler,
+                                                          adyenHostedPaymentPageConfigurationHandler,
+                                                          adyenRecurringConfigurationHandler,
+                                                          killbillApi,
+                                                          configPropertiesService,
+                                                          logService,
+                                                          clock,
+                                                          dao);
 
         TestUtils.updateOSGIKillbillAPI(killbillApi, adyenPaymentPluginApi);
     }
