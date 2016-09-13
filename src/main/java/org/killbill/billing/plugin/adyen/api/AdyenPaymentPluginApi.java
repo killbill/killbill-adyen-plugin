@@ -249,8 +249,8 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
             dao.updateResponse(expiredPendingTransaction.getKbTransactionPaymentId(),
                                PluginProperties.merge(expiredPendingTransaction.getProperties(), updatedStatusProperties),
                                context.getTenantId());
-        } catch (SQLException e) {
-            e.printStackTrace();
+        } catch (final SQLException e) {
+            logService.log(LogService.LOG_ERROR, "Unable to update canceled payment", e);
         }
     }
 
