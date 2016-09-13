@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import org.joda.time.Period;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -421,6 +422,36 @@ public class TestAdyenPaymentPluginApi extends TestAdyenPaymentPluginApiBase {
         assertEquals(paymentTransactionInfoPluginsPostCapture.get(0).getStatus(), PaymentPluginStatus.PROCESSED);
         assertEquals(paymentTransactionInfoPluginsPostCapture.get(1).getTransactionType(), TransactionType.CAPTURE);
         assertEquals(paymentTransactionInfoPluginsPostCapture.get(1).getStatus(), PaymentPluginStatus.PENDING);
+    }
+
+    @Test(groups = "slow")
+    public void testAuthorizeAndExpire3DSecure() throws Exception {
+        adyenPaymentPluginApi.addPaymentMethod(account.getId(), account.getPaymentMethodId(), adyenEmptyPaymentMethodPlugin(), true, propertiesWith3DSInfo, context);
+
+        final Payment payment = TestUtils.buildPayment(account.getId(), account.getPaymentMethodId(), account.getCurrency(), killbillApi);
+
+        final PaymentTransaction authorizationTransaction = TestUtils.buildPaymentTransaction(payment, TransactionType.AUTHORIZE, new BigDecimal("1000"), account.getCurrency());
+        final PaymentTransactionInfoPlugin authorizationInfoPlugin = adyenPaymentPluginApi.authorizePayment(account.getId(),
+                                                                                                             payment.getId(),
+                                                                                                             authorizationTransaction.getId(),
+                                                                                                             account.getPaymentMethodId(),
+                                                                                                             authorizationTransaction.getAmount(),
+                                                                                                             authorizationTransaction.getCurrency(),
+                                                                                                             propertiesWith3DSInfo,
+                                                                                                             context);
+        assertEquals(authorizationInfoPlugin.getStatus(), PaymentPluginStatus.PENDING);
+
+        final Period expirationPeriod = Period.days(adyenConfigProperties.getPendingPaymentExpirationPeriodInDays()).plusMinutes(1);
+        clock.setDeltaFromReality(expirationPeriod.toStandardDuration().getMillis());
+
+        final List<PaymentTransactionInfoPlugin> expiredPaymentTransactions = adyenPaymentPluginApi.getPaymentInfo(account.getId(),
+                                                                                                                   authorizationInfoPlugin.getKbPaymentId(),
+                                                                                                                   ImmutableList.<PluginProperty>of(),
+                                                                                                                   context);
+        assertEquals(expiredPaymentTransactions.size(), 1);
+        final PaymentTransactionInfoPlugin canceledTransaction = expiredPaymentTransactions.get(0);
+        assertEquals(canceledTransaction.getTransactionType(), TransactionType.AUTHORIZE);
+        assertEquals(canceledTransaction.getStatus(), PaymentPluginStatus.CANCELED);
     }
 
     @Test(groups = "slow")

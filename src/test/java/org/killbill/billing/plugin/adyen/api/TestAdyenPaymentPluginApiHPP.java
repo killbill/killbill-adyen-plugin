@@ -102,10 +102,11 @@ public class TestAdyenPaymentPluginApiHPP extends TestAdyenPaymentPluginApiBase 
         final Period expirationPeriod = Period.days(adyenConfigProperties.getPendingPaymentExpirationPeriodInDays()).plusMinutes(1);
         clock.setDeltaFromReality(expirationPeriod.toStandardDuration().getMillis());
 
-        final PaymentTransactionInfoPlugin transactionInfo = adyenPaymentPluginApi.getPaymentInfo(account.getId(), payment.getId(), Collections.<PluginProperty>emptyList(), context).get(0);
-        assertEquals(transactionInfo.getStatus(), PaymentPluginStatus.CANCELED);
+        final List<PaymentTransactionInfoPlugin> transactions = adyenPaymentPluginApi.getPaymentInfo(account.getId(), payment.getId(), Collections.<PluginProperty>emptyList(), context);
+        final PaymentTransactionInfoPlugin canceledTransaction = transactions.get(0);
+        assertEquals(canceledTransaction.getStatus(), PaymentPluginStatus.CANCELED);
 
-        final PluginProperty updateMessage = PluginProperties.findPluginProperties("message", transactionInfo.getProperties()).iterator().next();
+        final PluginProperty updateMessage = PluginProperties.findPluginProperties("message", canceledTransaction.getProperties()).iterator().next();
         assertEquals(updateMessage.getValue(), "Payment Expired - Cancelled by Janitor");
     }
 

@@ -228,14 +228,14 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
         final ExpiredPaymentPolicy expiredPaymentPolicy = expiredPaymentPolicy(context);
 
         if (expiredPaymentPolicy.isExpired(transactions)) {
-            cancelExpiredPayment(transactions, context);
+            cancelExpiredPayment(expiredPaymentPolicy.latestTransaction(transactions), context);
             // reload payment
             return super.getPaymentInfo(kbAccountId, kbPaymentId, properties, context);
         }
         return transactions;
     }
 
-    private void cancelExpiredPayment(final List<PaymentTransactionInfoPlugin> transactions, final TenantContext context) {
+    private void cancelExpiredPayment(PaymentTransactionInfoPlugin expiredTransaction, final TenantContext context) {
         final List<PluginProperty> updatedStatusProperties = PluginProperties.buildPluginProperties(
                 ImmutableMap.builder()
                             .put(PROPERTY_FROM_HPP_TRANSACTION_STATUS,
@@ -244,10 +244,9 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
                                  "Payment Expired - Cancelled by Janitor")
                             .build());
 
-        final PaymentTransactionInfoPlugin expiredPendingTransaction = transactions.get(0);
         try {
-            dao.updateResponse(expiredPendingTransaction.getKbTransactionPaymentId(),
-                               PluginProperties.merge(expiredPendingTransaction.getProperties(), updatedStatusProperties),
+            dao.updateResponse(expiredTransaction.getKbTransactionPaymentId(),
+                               PluginProperties.merge(expiredTransaction.getProperties(), updatedStatusProperties),
                                context.getTenantId());
         } catch (final SQLException e) {
             logService.log(LogService.LOG_ERROR, "Unable to update canceled payment", e);

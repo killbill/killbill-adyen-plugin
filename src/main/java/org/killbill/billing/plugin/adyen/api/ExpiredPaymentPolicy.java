@@ -26,6 +26,8 @@ import org.killbill.billing.payment.plugin.api.PaymentTransactionInfoPlugin;
 import org.killbill.billing.plugin.adyen.client.AdyenConfigProperties;
 import org.killbill.clock.Clock;
 
+import com.google.common.collect.Iterables;
+
 public class ExpiredPaymentPolicy {
 
     private final Clock clock;
@@ -37,18 +39,17 @@ public class ExpiredPaymentPolicy {
         this.adyenProperties = adyenProperties;
     }
 
-    public boolean isExpired(List<PaymentTransactionInfoPlugin> paymentTransactions) {
-        // Expecting only one payment transaction
-        if (paymentTransactions.isEmpty() || paymentTransactions.size() > 1) {
+    public boolean isExpired(final List<PaymentTransactionInfoPlugin> paymentTransactions) {
+        if(!containOnlyAuthsOrPurchases(paymentTransactions)) {
             return false;
         }
 
-        final AdyenPaymentTransactionInfoPlugin transaction = (AdyenPaymentTransactionInfoPlugin) paymentTransactions.get(0);
+        final PaymentTransactionInfoPlugin transaction = latestTransaction(paymentTransactions);
         if (transaction.getCreatedDate() == null) {
             return false;
         }
 
-        if (isAuthOrPurchase(transaction) && transaction.getStatusFromHpp() == PaymentPluginStatus.PENDING) {
+        if (transaction.getStatus() == PaymentPluginStatus.PENDING) {
             final DateTime expirationDate = expirationDate(transaction);
             return clock.getNow(expirationDate.getZone()).isAfter(expirationDate);
         }
@@ -56,12 +57,21 @@ public class ExpiredPaymentPolicy {
         return false;
     }
 
-    private boolean isAuthOrPurchase(final AdyenPaymentTransactionInfoPlugin transaction) {
-        return transaction.getTransactionType() == TransactionType.AUTHORIZE
-               || transaction.getTransactionType() == TransactionType.PURCHASE;
+    public PaymentTransactionInfoPlugin latestTransaction(final List<PaymentTransactionInfoPlugin> paymentTransactions) {
+        return Iterables.getLast(paymentTransactions);
     }
 
-    private DateTime expirationDate(AdyenPaymentTransactionInfoPlugin transaction) {
+    private boolean containOnlyAuthsOrPurchases(final List<PaymentTransactionInfoPlugin> transactions) {
+        for(final PaymentTransactionInfoPlugin transaction : transactions) {
+            if (transaction.getTransactionType() != TransactionType.AUTHORIZE
+                && transaction.getTransactionType() != TransactionType.PURCHASE) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private DateTime expirationDate(PaymentTransactionInfoPlugin transaction) {
         return transaction.getCreatedDate().plusDays(adyenProperties.getPendingPaymentExpirationPeriodInDays());
     }
 }
