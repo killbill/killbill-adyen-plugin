@@ -62,6 +62,6 @@ public class ExpiredPaymentPolicy {
     }
 
     private DateTime expirationDate(AdyenPaymentTransactionInfoPlugin transaction) {
-        return transaction.getCreatedDate().plusDays(adyenProperties.getHppExpirationPeriodInDays());
+        return transaction.getCreatedDate().plusDays(adyenProperties.getPendingPaymentExpirationPeriodInDays());
     }
 }

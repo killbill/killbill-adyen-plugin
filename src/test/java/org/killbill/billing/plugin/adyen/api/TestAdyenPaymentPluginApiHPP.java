@@ -18,7 +18,6 @@
 package org.killbill.billing.plugin.adyen.api;
 
 import java.sql.SQLException;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -35,10 +34,8 @@ import org.killbill.billing.payment.plugin.api.HostedPaymentPageFormDescriptor;
 import org.killbill.billing.payment.plugin.api.PaymentPluginApiException;
 import org.killbill.billing.payment.plugin.api.PaymentPluginStatus;
 import org.killbill.billing.payment.plugin.api.PaymentTransactionInfoPlugin;
-import org.killbill.billing.plugin.adyen.dao.gen.tables.records.AdyenResponsesRecord;
 import org.killbill.billing.plugin.api.PluginProperties;
 import org.testng.annotations.BeforeMethod;
-import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
 import com.google.common.collect.ImmutableList;
@@ -102,7 +99,7 @@ public class TestAdyenPaymentPluginApiHPP extends TestAdyenPaymentPluginApiBase 
         final Payment payment = triggerBuildFormDescriptor(ImmutableMap.<String, String>of(AdyenPaymentPluginApi.PROPERTY_CREATE_PENDING_PAYMENT, "true",
                                                                                            AdyenPaymentPluginApi.PROPERTY_AUTH_MODE, "true"),
                                                            TransactionType.AUTHORIZE);
-        final Period expirationPeriod = Period.days(adyenConfigProperties.getHppExpirationPeriodInDays()).plusMinutes(1);
+        final Period expirationPeriod = Period.days(adyenConfigProperties.getPendingPaymentExpirationPeriodInDays()).plusMinutes(1);
         clock.setDeltaFromReality(expirationPeriod.toStandardDuration().getMillis());
 
         final PaymentTransactionInfoPlugin transactionInfo = adyenPaymentPluginApi.getPaymentInfo(account.getId(), payment.getId(), Collections.<PluginProperty>emptyList(), context).get(0);
