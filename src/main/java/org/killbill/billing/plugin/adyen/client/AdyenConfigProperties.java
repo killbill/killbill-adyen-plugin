@@ -28,6 +28,8 @@ public class AdyenConfigProperties {
 
     public static final String DEFAULT_HMAC_ALGORITHM = "HmacSHA256";
 
+    public static final int DEFAULT_HPP_EXPIRATION_PERIOD_IN_DAYS = 7;
+
     private static final String PROPERTY_PREFIX = "org.killbill.billing.plugin.adyen.";
     private static final String ENTRY_DELIMITER = "|";
     private static final String KEY_VALUE_DELIMITER = "#";
@@ -63,6 +65,7 @@ public class AdyenConfigProperties {
     private final String acquirersList;
     private final String paymentConnectionTimeout;
     private final String paymentReadTimeout;
+    private final int hppExpirationPeriodInDays;
 
     public AdyenConfigProperties(final Properties properties) {
         this.proxyServer = properties.getProperty(PROPERTY_PREFIX + "proxyServer");
@@ -84,6 +87,16 @@ public class AdyenConfigProperties {
         this.hppTarget = properties.getProperty(PROPERTY_PREFIX + "hpp.target");
         this.hppSkipDetailsTarget = this.hppTarget != null ? this.hppTarget.replace(this.hppTarget.substring(this.hppTarget.lastIndexOf('/') + 1), "skipDetails.shtml") : null;
         this.hppVariantOverride = properties.getProperty(PROPERTY_PREFIX + "hppVariantOverride");
+
+        int hppExpirationPeriodInDays = 0;
+        try {
+            final String hppExpirationPeriod = properties.getProperty(PROPERTY_PREFIX + "hppExpirationPeriodInDays");
+            hppExpirationPeriodInDays = Integer.parseInt(hppExpirationPeriod);
+        } catch(NumberFormatException e) {
+            hppExpirationPeriodInDays = DEFAULT_HPP_EXPIRATION_PERIOD_IN_DAYS;
+        }
+        this.hppExpirationPeriodInDays = hppExpirationPeriodInDays;
+
         this.acquirersList = properties.getProperty(PROPERTY_PREFIX + "acquirersList");
 
         this.merchantAccounts = properties.getProperty(PROPERTY_PREFIX + "merchantAccount");
@@ -201,6 +214,10 @@ public class AdyenConfigProperties {
 
     public String getHppVariantOverride() {
         return hppVariantOverride;
+    }
+
+    public int getHppExpirationPeriodInDays() {
+        return hppExpirationPeriodInDays;
     }
 
     public String getAcquirersList() {
