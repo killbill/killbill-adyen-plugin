@@ -40,6 +40,7 @@ import org.killbill.billing.plugin.adyen.client.payment.service.DirectoryClient;
 import org.killbill.billing.plugin.adyen.client.payment.service.Signer;
 import org.killbill.billing.plugin.adyen.client.recurring.AdyenRecurringClient;
 import org.killbill.billing.plugin.adyen.core.AdyenActivator;
+import org.killbill.billing.plugin.adyen.core.AdyenConfigPropertiesConfigurationHandler;
 import org.killbill.billing.plugin.adyen.core.AdyenConfigurationHandler;
 import org.killbill.billing.plugin.adyen.core.AdyenHostedPaymentPageConfigurationHandler;
 import org.killbill.billing.plugin.adyen.core.AdyenRecurringConfigurationHandler;
@@ -70,6 +71,7 @@ public abstract class TestRemoteBase {
 
     protected AdyenConfigProperties adyenConfigProperties;
     protected AdyenConfigurationHandler adyenConfigurationHandler;
+    protected AdyenConfigPropertiesConfigurationHandler adyenConfigPropertiesConfigurationHandler;
     protected AdyenHostedPaymentPageConfigurationHandler adyenHostedPaymentPageConfigurationHandler;
     protected AdyenRecurringConfigurationHandler adyenRecurringConfigurationHandler;
     protected AdyenPaymentServiceProviderPort adyenPaymentServiceProviderPort;
@@ -108,6 +110,9 @@ public abstract class TestRemoteBase {
 
         adyenConfigurationHandler = new AdyenConfigurationHandler(AdyenActivator.PLUGIN_NAME, killbillAPI, logService);
         adyenConfigurationHandler.setDefaultConfigurable(adyenPaymentServiceProviderPort);
+
+        adyenConfigPropertiesConfigurationHandler = new AdyenConfigPropertiesConfigurationHandler(AdyenActivator.PLUGIN_NAME, killbillAPI, logService);
+        adyenConfigPropertiesConfigurationHandler.setDefaultConfigurable(adyenConfigProperties);
 
         adyenHostedPaymentPageConfigurationHandler = new AdyenHostedPaymentPageConfigurationHandler(AdyenActivator.PLUGIN_NAME, killbillAPI, logService);
         adyenHostedPaymentPageConfigurationHandler.setDefaultConfigurable(adyenPaymentServiceProviderHostedPaymentPagePort);

@@ -151,8 +151,4 @@ public class AdyenPaymentServiceProviderHostedPaymentPagePort extends BaseAdyenP
                                           requestParameterMap);
         }
     }
-
-    public AdyenConfigProperties getAdyenConfigProperties() {
-        return adyenConfigProperties;
-    }
 }

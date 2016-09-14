@@ -23,15 +23,14 @@ import javax.servlet.http.HttpServlet;
 
 import org.killbill.billing.osgi.api.OSGIPluginProperties;
 import org.killbill.billing.osgi.libs.killbill.KillbillActivatorBase;
-import org.killbill.billing.osgi.libs.killbill.OSGIKillbillEventDispatcher.OSGIKillbillEventHandler;
 import org.killbill.billing.payment.plugin.api.PaymentPluginApi;
 import org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi;
+import org.killbill.billing.plugin.adyen.client.AdyenConfigProperties;
 import org.killbill.billing.plugin.adyen.client.payment.service.AdyenPaymentServiceProviderHostedPaymentPagePort;
 import org.killbill.billing.plugin.adyen.client.payment.service.AdyenPaymentServiceProviderPort;
 import org.killbill.billing.plugin.adyen.client.recurring.AdyenRecurringClient;
 import org.killbill.billing.plugin.adyen.dao.AdyenDao;
 import org.killbill.billing.plugin.api.notification.PluginConfigurationEventHandler;
-import org.killbill.billing.plugin.api.notification.PluginConfigurationHandler;
 import org.killbill.clock.Clock;
 import org.killbill.clock.DefaultClock;
 import org.osgi.framework.BundleContext;
@@ -41,6 +40,7 @@ public class AdyenActivator extends KillbillActivatorBase {
     public static final String PLUGIN_NAME = "killbill-adyen";
 
     private AdyenConfigurationHandler adyenConfigurationHandler;
+    private AdyenConfigPropertiesConfigurationHandler adyenConfigPropertiesConfigurationHandler;
     private AdyenHostedPaymentPageConfigurationHandler adyenHostedPaymentPageConfigurationHandler;
     private AdyenRecurringConfigurationHandler adyenRecurringConfigurationHandler;
 
@@ -56,11 +56,15 @@ public class AdyenActivator extends KillbillActivatorBase {
         registerServlet(context, adyenServlet);
 
         adyenConfigurationHandler = new AdyenConfigurationHandler(PLUGIN_NAME, killbillAPI, logService);
+        adyenConfigPropertiesConfigurationHandler = new AdyenConfigPropertiesConfigurationHandler(PLUGIN_NAME, killbillAPI, logService);
         adyenHostedPaymentPageConfigurationHandler = new AdyenHostedPaymentPageConfigurationHandler(PLUGIN_NAME, killbillAPI, logService);
         adyenRecurringConfigurationHandler = new AdyenRecurringConfigurationHandler(PLUGIN_NAME, killbillAPI, logService);
 
         final AdyenPaymentServiceProviderPort globalAdyenClient = adyenConfigurationHandler.createConfigurable(configProperties.getProperties());
         adyenConfigurationHandler.setDefaultConfigurable(globalAdyenClient);
+
+        final AdyenConfigProperties adyenConfigProperties = adyenConfigPropertiesConfigurationHandler.createConfigurable(configProperties.getProperties());
+        adyenConfigPropertiesConfigurationHandler.setDefaultConfigurable(adyenConfigProperties);
 
         final AdyenPaymentServiceProviderHostedPaymentPagePort globalAdyenHppClient = adyenHostedPaymentPageConfigurationHandler.createConfigurable(configProperties.getProperties());
         adyenHostedPaymentPageConfigurationHandler.setDefaultConfigurable(globalAdyenHppClient);
@@ -69,7 +73,15 @@ public class AdyenActivator extends KillbillActivatorBase {
         adyenRecurringConfigurationHandler.setDefaultConfigurable(globalAdyenRecurringClient);
 
         // Register the payment plugin
-        final AdyenPaymentPluginApi pluginApi = new AdyenPaymentPluginApi(adyenConfigurationHandler, adyenHostedPaymentPageConfigurationHandler, adyenRecurringConfigurationHandler, killbillAPI, configProperties, logService, clock, dao);
+        final AdyenPaymentPluginApi pluginApi = new AdyenPaymentPluginApi(adyenConfigurationHandler,
+                                                                          adyenConfigPropertiesConfigurationHandler,
+                                                                          adyenHostedPaymentPageConfigurationHandler,
+                                                                          adyenRecurringConfigurationHandler,
+                                                                          killbillAPI,
+                                                                          configProperties,
+                                                                          logService,
+                                                                          clock,
+                                                                          dao);
         registerPaymentPluginApi(context, pluginApi);
         registerHandlers();
     }

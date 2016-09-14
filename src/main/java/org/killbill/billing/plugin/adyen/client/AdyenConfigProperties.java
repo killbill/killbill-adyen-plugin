@@ -28,6 +28,8 @@ public class AdyenConfigProperties {
 
     public static final String DEFAULT_HMAC_ALGORITHM = "HmacSHA256";
 
+    public static final int DEFAULT_PENDING_PAYMENT_EXPIRATION_PERIOD_IN_DAYS = 3;
+
     private static final String PROPERTY_PREFIX = "org.killbill.billing.plugin.adyen.";
     private static final String ENTRY_DELIMITER = "|";
     private static final String KEY_VALUE_DELIMITER = "#";
@@ -63,6 +65,7 @@ public class AdyenConfigProperties {
     private final String acquirersList;
     private final String paymentConnectionTimeout;
     private final String paymentReadTimeout;
+    private final int pendingPaymentExpirationPeriodInDays;
 
     public AdyenConfigProperties(final Properties properties) {
         this.proxyServer = properties.getProperty(PROPERTY_PREFIX + "proxyServer");
@@ -84,6 +87,16 @@ public class AdyenConfigProperties {
         this.hppTarget = properties.getProperty(PROPERTY_PREFIX + "hpp.target");
         this.hppSkipDetailsTarget = this.hppTarget != null ? this.hppTarget.replace(this.hppTarget.substring(this.hppTarget.lastIndexOf('/') + 1), "skipDetails.shtml") : null;
         this.hppVariantOverride = properties.getProperty(PROPERTY_PREFIX + "hppVariantOverride");
+
+        int pendingPaymentExpirationPeriodInDays = 0;
+        try {
+            final String pendingPaymentExpirationPeriod = properties.getProperty(PROPERTY_PREFIX + "pendingPaymentExpirationPeriodInDays");
+            pendingPaymentExpirationPeriodInDays = Integer.parseInt(pendingPaymentExpirationPeriod);
+        } catch(NumberFormatException e) {
+            pendingPaymentExpirationPeriodInDays = DEFAULT_PENDING_PAYMENT_EXPIRATION_PERIOD_IN_DAYS;
+        }
+        this.pendingPaymentExpirationPeriodInDays = pendingPaymentExpirationPeriodInDays;
+
         this.acquirersList = properties.getProperty(PROPERTY_PREFIX + "acquirersList");
 
         this.merchantAccounts = properties.getProperty(PROPERTY_PREFIX + "merchantAccount");
@@ -201,6 +214,10 @@ public class AdyenConfigProperties {
 
     public String getHppVariantOverride() {
         return hppVariantOverride;
+    }
+
+    public int getPendingPaymentExpirationPeriodInDays() {
+        return pendingPaymentExpirationPeriodInDays;
     }
 
     public String getAcquirersList() {

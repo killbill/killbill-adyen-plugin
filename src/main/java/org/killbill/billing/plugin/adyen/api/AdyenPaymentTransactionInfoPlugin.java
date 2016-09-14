@@ -112,12 +112,21 @@ public class AdyenPaymentTransactionInfoPlugin extends PluginPaymentTransactionI
 
     @Override
     public PaymentPluginStatus getStatus() {
-        final String hppTransactionStatus = PluginProperties.findPluginPropertyValue(AdyenPaymentPluginApi.PROPERTY_FROM_HPP_TRANSACTION_STATUS, getProperties());
+        final PaymentPluginStatus hppTransactionStatus = getStatusFromHpp();
         if (hppTransactionStatus != null) {
-            return PaymentPluginStatus.valueOf(hppTransactionStatus);
+            return hppTransactionStatus;
         } else {
             return super.getStatus();
         }
+    }
+
+    public PaymentPluginStatus getStatusFromHpp() {
+        final String hppTransactionStatus = PluginProperties.findPluginPropertyValue(AdyenPaymentPluginApi.PROPERTY_FROM_HPP_TRANSACTION_STATUS, getProperties());
+        if (hppTransactionStatus != null) {
+            return PaymentPluginStatus.valueOf(hppTransactionStatus);
+        }
+
+        return null;
     }
 
     private static String getGatewayError(final PurchaseResult purchaseResult) {

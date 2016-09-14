@@ -41,6 +41,7 @@ import org.killbill.billing.plugin.adyen.client.payment.service.AdyenPaymentServ
 import org.killbill.billing.plugin.adyen.client.payment.service.Signer;
 import org.killbill.billing.plugin.adyen.client.recurring.AdyenRecurringClient;
 import org.killbill.billing.plugin.adyen.core.AdyenActivator;
+import org.killbill.billing.plugin.adyen.core.AdyenConfigPropertiesConfigurationHandler;
 import org.killbill.billing.plugin.adyen.core.AdyenConfigurationHandler;
 import org.killbill.billing.plugin.adyen.core.AdyenHostedPaymentPageConfigurationHandler;
 import org.killbill.billing.plugin.adyen.core.AdyenRecurringConfigurationHandler;
@@ -118,6 +119,9 @@ public class AdyenPluginMockBuilder {
         final AdyenConfigurationHandler adyenConfigurationHandler = new AdyenConfigurationHandler(AdyenActivator.PLUGIN_NAME, killbillAPI, logService);
         adyenConfigurationHandler.setDefaultConfigurable(adyenPaymentServiceProviderPort);
 
+        final AdyenConfigPropertiesConfigurationHandler adyenConfigPropertiesConfigurationHandler = new AdyenConfigPropertiesConfigurationHandler(AdyenActivator.PLUGIN_NAME, killbillAPI, logService);
+        adyenConfigPropertiesConfigurationHandler.setDefaultConfigurable(adyenConfigProperties);
+
         final AdyenHostedPaymentPageConfigurationHandler adyenHostedPaymentPageConfigurationHandler = new AdyenHostedPaymentPageConfigurationHandler(AdyenActivator.PLUGIN_NAME, killbillAPI, logService);
         adyenHostedPaymentPageConfigurationHandler.setDefaultConfigurable(adyenPaymentServiceProviderHostedPaymentPagePort);
 
@@ -128,7 +132,15 @@ public class AdyenPluginMockBuilder {
 
         final OSGIConfigPropertiesService configPropertiesService = mock(OSGIConfigPropertiesService.class);
 
-        return new AdyenPaymentPluginApi(adyenConfigurationHandler, adyenHostedPaymentPageConfigurationHandler, adyenRecurringConfigurationHandler, killbillAPI, configPropertiesService, logService, clock, dao);
+        return new AdyenPaymentPluginApi(adyenConfigurationHandler,
+                                         adyenConfigPropertiesConfigurationHandler,
+                                         adyenHostedPaymentPageConfigurationHandler,
+                                         adyenRecurringConfigurationHandler,
+                                         killbillAPI,
+                                         configPropertiesService,
+                                         logService,
+                                         clock,
+                                         dao);
     }
 
     public AdyenPluginMockBuilder withDatabaseAccess(final AdyenDao dao) {

@@ -72,6 +72,7 @@ import org.killbill.billing.plugin.adyen.client.payment.service.AdyenPaymentServ
 import org.killbill.billing.plugin.adyen.client.recurring.AdyenRecurringClient;
 import org.killbill.billing.plugin.adyen.core.AdyenActivator;
 import org.killbill.billing.plugin.adyen.core.AdyenConfigurationHandler;
+import org.killbill.billing.plugin.adyen.core.AdyenConfigPropertiesConfigurationHandler;
 import org.killbill.billing.plugin.adyen.core.AdyenHostedPaymentPageConfigurationHandler;
 import org.killbill.billing.plugin.adyen.core.AdyenRecurringConfigurationHandler;
 import org.killbill.billing.plugin.adyen.core.KillbillAdyenNotificationHandler;
@@ -196,10 +197,12 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
     private final AdyenConfigurationHandler adyenConfigurationHandler;
     private final AdyenHostedPaymentPageConfigurationHandler adyenHppConfigurationHandler;
     private final AdyenRecurringConfigurationHandler adyenRecurringConfigurationHandler;
+    private final AdyenConfigPropertiesConfigurationHandler adyenConfigPropertiesConfigurationHandler;
     private final AdyenDao dao;
     private final AdyenNotificationService adyenNotificationService;
 
     public AdyenPaymentPluginApi(final AdyenConfigurationHandler adyenConfigurationHandler,
+                                 final AdyenConfigPropertiesConfigurationHandler adyenConfigPropertiesConfigurationHandler,
                                  final AdyenHostedPaymentPageConfigurationHandler adyenHppConfigurationHandler,
                                  final AdyenRecurringConfigurationHandler adyenRecurringConfigurationHandler,
                                  final OSGIKillbillAPI killbillApi,
@@ -211,11 +214,47 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
         this.adyenConfigurationHandler = adyenConfigurationHandler;
         this.adyenHppConfigurationHandler = adyenHppConfigurationHandler;
         this.adyenRecurringConfigurationHandler = adyenRecurringConfigurationHandler;
+        this.adyenConfigPropertiesConfigurationHandler = adyenConfigPropertiesConfigurationHandler;
         this.dao = dao;
 
         final AdyenNotificationHandler adyenNotificationHandler = new KillbillAdyenNotificationHandler(killbillApi, dao, clock);
         //noinspection RedundantTypeArguments
         this.adyenNotificationService = new AdyenNotificationService(ImmutableList.<AdyenNotificationHandler>of(adyenNotificationHandler));
+    }
+
+    @Override
+    public List<PaymentTransactionInfoPlugin> getPaymentInfo(final UUID kbAccountId, final UUID kbPaymentId, final Iterable<PluginProperty> properties, final TenantContext context) throws PaymentPluginApiException {
+        final List<PaymentTransactionInfoPlugin> transactions = super.getPaymentInfo(kbAccountId, kbPaymentId, properties, context);
+        final ExpiredPaymentPolicy expiredPaymentPolicy = expiredPaymentPolicy(context);
+
+        if (expiredPaymentPolicy.isExpired(transactions)) {
+            cancelExpiredPayment(expiredPaymentPolicy.latestTransaction(transactions), context);
+            // reload payment
+            return super.getPaymentInfo(kbAccountId, kbPaymentId, properties, context);
+        }
+        return transactions;
+    }
+
+    private void cancelExpiredPayment(PaymentTransactionInfoPlugin expiredTransaction, final TenantContext context) {
+        final List<PluginProperty> updatedStatusProperties = PluginProperties.buildPluginProperties(
+                ImmutableMap.builder()
+                            .put(PROPERTY_FROM_HPP_TRANSACTION_STATUS,
+                                 PaymentPluginStatus.CANCELED.toString())
+                            .put("message",
+                                 "Payment Expired - Cancelled by Janitor")
+                            .build());
+
+        try {
+            dao.updateResponse(expiredTransaction.getKbTransactionPaymentId(),
+                               PluginProperties.merge(expiredTransaction.getProperties(), updatedStatusProperties),
+                               context.getTenantId());
+        } catch (final SQLException e) {
+            logService.log(LogService.LOG_ERROR, "Unable to update canceled payment", e);
+        }
+    }
+
+    private ExpiredPaymentPolicy expiredPaymentPolicy(final TenantContext context) {
+        return new ExpiredPaymentPolicy(clock, getConfigProperties(context));
     }
 
     @Override
@@ -536,7 +575,7 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
             formParameter.put("directory", MoreObjects.firstNonNull(directory, ImmutableMap.of()));
         }
 
-        final String target = webPaymentFrontend.getBrandCode() != null ? hostedPaymentPagePort.getAdyenConfigProperties().getHppSkipDetailsTarget() : hostedPaymentPagePort.getAdyenConfigProperties().getHppTarget();
+        final String target = webPaymentFrontend.getBrandCode() != null ? getConfigProperties(context).getHppSkipDetailsTarget() : getConfigProperties(context).getHppTarget();
         final String hppTarget = PluginProperties.getValue(PROPERTY_HPP_TARGET, target, properties);
         return new AdyenHostedPaymentPageFormDescriptor(kbAccountId, hppTarget, PluginProperties.buildPluginProperties(formParameter));
     }
@@ -789,7 +828,7 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
 
     private PaymentInfo buildPaymentInfo(final String merchantAccount, final String countryCode, final AccountData account, @Nullable final AdyenPaymentMethodsRecord paymentMethodsRecord, final Iterable<PluginProperty> properties, final TenantContext context) {
         // A bit of a hack - it would be nice to be able to isolate AdyenConfigProperties
-        final AdyenConfigProperties adyenConfigProperties = adyenHppConfigurationHandler.getConfigurable(context.getTenantId()).getAdyenConfigProperties();
+        final AdyenConfigProperties adyenConfigProperties = getConfigProperties(context);
         return PaymentInfoMappingService.toPaymentInfo(merchantAccount, countryCode, adyenConfigProperties, clock, account, paymentMethodsRecord, properties);
     }
 
@@ -884,9 +923,11 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
             return pluginPropertyMerchantAccount;
         }
 
-        // A bit of a hack - it would be nice to be able to isolate AdyenConfigProperties
-        final AdyenConfigProperties adyenConfigProperties = adyenHppConfigurationHandler.getConfigurable(context.getTenantId()).getAdyenConfigProperties();
-        return adyenConfigProperties.getMerchantAccount(countryCode);
+        return getConfigProperties(context).getMerchantAccount(countryCode);
+    }
+
+    private AdyenConfigProperties getConfigProperties(final TenantContext context) {
+        return adyenConfigPropertiesConfigurationHandler.getConfigurable(context.getTenantId());
     }
 
     public static String decode(final String value) {
