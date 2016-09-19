@@ -158,6 +158,7 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
     // HPP
     public static final String PROPERTY_CREATE_PENDING_PAYMENT = "createPendingPayment";
     public static final String PROPERTY_AUTH_MODE = "authMode";
+    public static final String PROPERTY_PAYMENT_METHOD_ID = "paymentMethodId";
     public static final String PROPERTY_PAYMENT_EXTERNAL_KEY = "paymentExternalKey";
     public static final String PROPERTY_RESULT_URL = "resultUrl";
     public static final String PROPERTY_SERVER_URL = "serverUrl";
@@ -531,7 +532,9 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
         Payment pendingPayment = null;
         if (shouldCreatePendingPayment) {
             final boolean authMode = Boolean.valueOf(PluginProperties.findPluginPropertyValue(PROPERTY_AUTH_MODE, mergedProperties));
-            pendingPayment = createPendingPayment(authMode, account, paymentData, context);
+            final String paymentMethodIdString = PluginProperties.findPluginPropertyValue(PROPERTY_PAYMENT_METHOD_ID, mergedProperties);
+            final UUID paymentMethodId = paymentMethodIdString == null ? null : UUID.fromString(paymentMethodIdString);
+            pendingPayment = createPendingPayment(authMode, account, paymentMethodId, paymentData, context);
         }
 
         final String merchantReference = pendingPayment == null ? paymentData.getPaymentTransactionExternalKey() : pendingPayment.getTransactions().get(0).getExternalKey();
@@ -858,7 +861,7 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
         return MoreObjects.firstNonNull(paymentMethodsRecord, emptyRecord(kbPaymentMethodId));
     }
 
-    private Payment createPendingPayment(final boolean authMode, final Account account, final PaymentData paymentData, final CallContext context) throws PaymentPluginApiException {
+    private Payment createPendingPayment(final boolean authMode, final Account account, @Nullable final UUID paymentMethodId, final PaymentData paymentData, final CallContext context) throws PaymentPluginApiException {
         final UUID kbPaymentId = null;
         final String paymentTransactionExternalKey = paymentData.getPaymentTransactionExternalKey();
         //noinspection UnnecessaryLocalVariable
@@ -868,7 +871,7 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
         final Iterable<PluginProperty> purchaseProperties = PluginProperties.buildPluginProperties(purchasePropertiesMap);
 
         try {
-            final UUID kbPaymentMethodId = getAdyenKbPaymentMethodId(account.getId(), context);
+            final UUID kbPaymentMethodId = paymentMethodId != null ? paymentMethodId : getAdyenKbPaymentMethodId(account.getId(), context);
             if (authMode) {
                 return killbillAPI.getPaymentApi().createAuthorization(account,
                                                                        kbPaymentMethodId,
