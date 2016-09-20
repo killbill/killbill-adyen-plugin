@@ -1,3 +1,6 @@
+0.4.6
+    Implement functionality to expire pending payments
+
 0.4.5
     fix split settlements parsing
     introduce specific property for selectedBrand value
