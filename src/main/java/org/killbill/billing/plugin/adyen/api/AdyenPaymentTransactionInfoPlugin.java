@@ -17,6 +17,8 @@
 package org.killbill.billing.plugin.adyen.api;
 
 import java.math.BigDecimal;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.regex.Matcher;
@@ -27,6 +29,7 @@ import javax.annotation.Nullable;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 import org.killbill.billing.catalog.api.Currency;
+import org.killbill.billing.payment.api.PluginProperty;
 import org.killbill.billing.payment.api.TransactionType;
 import org.killbill.billing.payment.plugin.api.PaymentPluginStatus;
 import org.killbill.billing.plugin.adyen.client.model.PaymentModificationResponse;
@@ -40,8 +43,10 @@ import org.killbill.billing.plugin.api.payment.PluginPaymentTransactionInfoPlugi
 
 import com.google.common.base.Optional;
 import com.google.common.base.Strings;
+import com.google.common.collect.ImmutableList;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static org.killbill.billing.plugin.adyen.api.AdyenModelPluginBase.toMap;
 
 public class AdyenPaymentTransactionInfoPlugin extends PluginPaymentTransactionInfoPlugin {
 
@@ -91,7 +96,7 @@ public class AdyenPaymentTransactionInfoPlugin extends PluginPaymentTransactionI
               null,
               utcNow,
               utcNow,
-              PluginProperties.buildPluginProperties(paymentModificationResponse.getAdditionalData()));
+              buildProperties(paymentModificationResponse.getAdditionalData()));
     }
 
     public AdyenPaymentTransactionInfoPlugin(final AdyenResponsesRecord record) {
@@ -107,7 +112,7 @@ public class AdyenPaymentTransactionInfoPlugin extends PluginPaymentTransactionI
               record.getAuthCode(),
               new DateTime(record.getCreatedDate(), DateTimeZone.UTC),
               new DateTime(record.getCreatedDate(), DateTimeZone.UTC),
-              AdyenModelPluginBase.buildPluginProperties(record.getAdditionalData()));
+              buildProperties(toMap(record.getAdditionalData())));
     }
 
     @Override
@@ -386,5 +391,24 @@ public class AdyenPaymentTransactionInfoPlugin extends PluginPaymentTransactionI
 
         final int lastDotIndex = dotCount - 1;
         lengthArray[dotCount] = className.length() - dotArray[lastDotIndex];
+    }
+
+    private static List<PluginProperty> buildProperties(@Nullable final Map data) {
+        if (data == null) {
+            return ImmutableList.<PluginProperty>of();
+        }
+        final List<PluginProperty> originalProperties = PluginProperties.buildPluginProperties(data);
+
+        // Add common properties returned by plugins (used by Analytics)
+        final Map<String, Object> defaultProperties = new HashMap<String, Object>();
+        defaultProperties.put("processorResponse", data.get("refusalReasonRaw"));
+        defaultProperties.put("avsResultCode", data.get("avsResultRaw"));
+        defaultProperties.put("cvvResultCode", data.get("cvcResultRaw"));
+        defaultProperties.put("payment_processor_account_id", data.get("merchantAccountCode"));
+        // Already populated
+        //defaultProperties.put("paymentMethod", data.get("paymentMethod"));
+
+        final Iterable<PluginProperty> propertiesWithDefaults = PluginProperties.merge(defaultProperties, originalProperties);
+        return ImmutableList.<PluginProperty>copyOf(propertiesWithDefaults);
     }
 }

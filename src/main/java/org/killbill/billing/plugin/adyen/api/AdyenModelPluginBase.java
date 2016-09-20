@@ -1,7 +1,8 @@
 /*
- * Copyright 2014 Groupon, Inc
+ * Copyright 2014-2016 Groupon, Inc
+ * Copyright 2014-2016 The Billing Project, LLC
  *
- * Groupon licenses this file to you under the Apache License, version 2.0
+ * The Billing Project licenses this file to you under the Apache License, version 2.0
  * (the "License"); you may not use this file except in compliance with the
  * License.  You may obtain a copy of the License at:
  *
@@ -26,24 +27,26 @@ import org.killbill.billing.payment.api.PluginProperty;
 import org.killbill.billing.plugin.api.PluginProperties;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 
 public abstract class AdyenModelPluginBase {
 
     private static final ObjectMapper objectMapper = new ObjectMapper();
 
-    protected static List<PluginProperty> buildPluginProperties(@Nullable final String additionalData) {
+    protected static Map toMap(@Nullable final String additionalData) {
         if (additionalData == null) {
-            return ImmutableList.<PluginProperty>of();
+            return ImmutableMap.of();
         }
 
-        final Map additionalDataMap;
         try {
-            additionalDataMap = objectMapper.readValue(additionalData, Map.class);
+            return objectMapper.readValue(additionalData, Map.class);
         } catch (final IOException e) {
-            return ImmutableList.<PluginProperty>of();
+            return ImmutableMap.of();
         }
+    }
 
+    protected static List<PluginProperty> buildPluginProperties(@Nullable final String additionalData) {
+        final Map additionalDataMap = toMap(additionalData);
         return PluginProperties.buildPluginProperties(additionalDataMap);
     }
 }
