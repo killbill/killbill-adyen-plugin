@@ -1,20 +1,25 @@
+0.4.7
+    Fix NoSuchElementException when the payment is unknown to the plugin
+
 0.4.6
     Implement functionality to expire pending payments
+    Fixes for Analytics
 
 0.4.5
-    fix split settlements parsing
-    introduce specific property for selectedBrand value
+    Fix split settlements parsing
+    Introduce specific property for selectedBrand value
 
 0.4.4
     Improve logging
     Refactor credentials obfuscation
-    Return  raw error codes from the schemes
+    Return raw error codes from the schemes
 
 0.4.3
-    
+    No change
 
 0.4.2
-    
+    Store fraud check results, if returned
+    Fix GB vs UK inconsistencies
 
 0.4.1
     Add support for Easy Encryption
