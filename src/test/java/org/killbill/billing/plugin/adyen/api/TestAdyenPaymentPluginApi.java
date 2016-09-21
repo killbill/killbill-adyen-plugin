@@ -171,6 +171,14 @@ public class TestAdyenPaymentPluginApi extends TestAdyenPaymentPluginApiBase {
     }
 
     @Test(groups = "slow")
+    public void testUnknownPayment() throws Exception {
+        assertTrue(adyenPaymentPluginApi.getPaymentInfo(account.getId(),
+                                                        UUID.randomUUID(),
+                                                        ImmutableList.<PluginProperty>of(),
+                                                        context).isEmpty());
+    }
+
+    @Test(groups = "slow")
     public void testAuthorizeAndMultipleCaptures() throws Exception {
         adyenPaymentPluginApi.addPaymentMethod(account.getId(), account.getPaymentMethodId(), adyenEmptyPaymentMethodPlugin(), true, propertiesWithCCInfo, context);
 

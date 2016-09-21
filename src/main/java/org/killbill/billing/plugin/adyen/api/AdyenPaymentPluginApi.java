@@ -71,8 +71,8 @@ import org.killbill.billing.plugin.adyen.client.payment.service.AdyenPaymentServ
 import org.killbill.billing.plugin.adyen.client.payment.service.AdyenPaymentServiceProviderPort;
 import org.killbill.billing.plugin.adyen.client.recurring.AdyenRecurringClient;
 import org.killbill.billing.plugin.adyen.core.AdyenActivator;
-import org.killbill.billing.plugin.adyen.core.AdyenConfigurationHandler;
 import org.killbill.billing.plugin.adyen.core.AdyenConfigPropertiesConfigurationHandler;
+import org.killbill.billing.plugin.adyen.core.AdyenConfigurationHandler;
 import org.killbill.billing.plugin.adyen.core.AdyenHostedPaymentPageConfigurationHandler;
 import org.killbill.billing.plugin.adyen.core.AdyenRecurringConfigurationHandler;
 import org.killbill.billing.plugin.adyen.core.KillbillAdyenNotificationHandler;
@@ -226,8 +226,12 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
     @Override
     public List<PaymentTransactionInfoPlugin> getPaymentInfo(final UUID kbAccountId, final UUID kbPaymentId, final Iterable<PluginProperty> properties, final TenantContext context) throws PaymentPluginApiException {
         final List<PaymentTransactionInfoPlugin> transactions = super.getPaymentInfo(kbAccountId, kbPaymentId, properties, context);
-        final ExpiredPaymentPolicy expiredPaymentPolicy = expiredPaymentPolicy(context);
+        if (transactions.isEmpty()) {
+            // We don't know about this payment (maybe it was aborted in a control plugin)
+            return transactions;
+        }
 
+        final ExpiredPaymentPolicy expiredPaymentPolicy = expiredPaymentPolicy(context);
         if (expiredPaymentPolicy.isExpired(transactions)) {
             cancelExpiredPayment(expiredPaymentPolicy.latestTransaction(transactions), context);
             // reload payment

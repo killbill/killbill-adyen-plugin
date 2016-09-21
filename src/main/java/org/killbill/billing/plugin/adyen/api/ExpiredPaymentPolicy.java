@@ -40,7 +40,7 @@ public class ExpiredPaymentPolicy {
     }
 
     public boolean isExpired(final List<PaymentTransactionInfoPlugin> paymentTransactions) {
-        if(!containOnlyAuthsOrPurchases(paymentTransactions)) {
+        if (!containOnlyAuthsOrPurchases(paymentTransactions)) {
             return false;
         }
 
