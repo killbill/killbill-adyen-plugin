@@ -671,7 +671,22 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
         final SplitSettlementData splitSettlementData = buildSplitSettlementData(currency, properties);
         final DateTime utcNow = clock.getUTCNow();
 
-        final PurchaseResult response = transactionExecutor.execute(merchantAccount, paymentData, userData, splitSettlementData);
+        final PurchaseResult response;
+        if (shouldSkipAdyen(properties)) {
+            response = new PurchaseResult(PaymentServiceProviderResult.AUTHORISED,
+                                          null,
+                                          null,
+                                          "skip_gw",
+                                          PaymentServiceProviderResult.AUTHORISED.getResponses()[0],
+                                          paymentData.getPaymentTransactionExternalKey(),
+                                          ImmutableMap.<String, String>of("skipGw", "true",
+                                                                          "merchantAccountCode", merchantAccount,
+                                                                          "merchantReference", paymentData.getPaymentTransactionExternalKey(),
+                                                                          "fromHPPTransactionStatus", "PROCESSED"));
+        } else {
+            response = transactionExecutor.execute(merchantAccount, paymentData, userData, splitSettlementData);
+        }
+
         try {
             dao.addResponse(kbAccountId, kbPaymentId, kbTransactionId, transactionType, amount, currency, response, utcNow, context.getTenantId());
             return new AdyenPaymentTransactionInfoPlugin(kbPaymentId, kbTransactionId, transactionType, amount, currency, utcNow, response);
@@ -716,7 +731,18 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
         final SplitSettlementData splitSettlementData = buildSplitSettlementData(currency, properties);
         final DateTime utcNow = clock.getUTCNow();
 
-        final PaymentModificationResponse response = transactionExecutor.execute(merchantAccount, paymentData, pspReference, splitSettlementData);
+        final PaymentModificationResponse response;
+        if (shouldSkipAdyen(properties)) {
+            response = new PaymentModificationResponse(PaymentServiceProviderResult.PENDING.getResponses()[0],
+                                                       null,
+                                                       ImmutableMap.<Object, Object>of("skipGw", "true",
+                                                                                       "merchantAccountCode", merchantAccount,
+                                                                                       "merchantReference", paymentData.getPaymentTransactionExternalKey(),
+                                                                                       "fromHPPTransactionStatus", "PROCESSED"));
+        } else {
+            response = transactionExecutor.execute(merchantAccount, paymentData, pspReference, splitSettlementData);
+        }
+
         final Optional<PaymentServiceProviderResult> paymentServiceProviderResult;
         if (response.isTechnicallySuccessful()) {
             paymentServiceProviderResult = Optional.of(PaymentServiceProviderResult.RECEIVED);
@@ -730,6 +756,10 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
         } catch (final SQLException e) {
             throw new PaymentPluginApiException("Payment went through, but we encountered a database error. Payment details: " + (response.toString()), e);
         }
+    }
+
+    private boolean shouldSkipAdyen(final Iterable<PluginProperty> properties) {
+        return "true".equals(PluginProperties.findPluginPropertyValue("skipGw", properties)) || "true".equals(PluginProperties.findPluginPropertyValue("skip_gw", properties));
     }
 
     private String getCountryCode(final AccountData account, @Nullable final AdyenPaymentMethodsRecord paymentMethodsRecord, final Iterable<PluginProperty> properties) {

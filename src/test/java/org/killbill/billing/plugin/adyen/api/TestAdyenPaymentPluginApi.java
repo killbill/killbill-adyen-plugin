@@ -179,6 +179,14 @@ public class TestAdyenPaymentPluginApi extends TestAdyenPaymentPluginApiBase {
     }
 
     @Test(groups = "slow")
+    public void testAuthorizeAndCaptureSkipGw() throws Exception {
+        adyenPaymentPluginApi.addPaymentMethod(account.getId(), account.getPaymentMethodId(), adyenEmptyPaymentMethodPlugin(), true, propertiesWithCCInfo, context);
+
+        final Payment payment = doAuthorize(BigDecimal.TEN, PluginProperties.buildPluginProperties(ImmutableMap.<String, String>of(AdyenPaymentPluginApi.PROPERTY_CC_VERIFICATION_VALUE, CC_VERIFICATION_VALUE, "skip_gw", "true")));
+        doCapture(payment, new BigDecimal("5"), ImmutableList.<PluginProperty>of(new PluginProperty("skip_gw", "true", false)));
+    }
+
+    @Test(groups = "slow")
     public void testAuthorizeAndMultipleCaptures() throws Exception {
         adyenPaymentPluginApi.addPaymentMethod(account.getId(), account.getPaymentMethodId(), adyenEmptyPaymentMethodPlugin(), true, propertiesWithCCInfo, context);
 
@@ -649,6 +657,10 @@ public class TestAdyenPaymentPluginApi extends TestAdyenPaymentPluginApiBase {
 
         verifyPaymentTransactionInfoPlugin(payment, paymentTransaction, paymentTransactionInfoPlugin);
 
+        if ("true".equals(PluginProperties.findPluginPropertyValue("skip_gw", pluginProperties))) {
+            return payment;
+        }
+
         if (paymentTransactionInfoPlugin.getTransactionType() == TransactionType.AUTHORIZE ||
             paymentTransactionInfoPlugin.getTransactionType() == TransactionType.PURCHASE) {
             // Authorization are synchronous
@@ -722,13 +734,21 @@ public class TestAdyenPaymentPluginApi extends TestAdyenPaymentPluginApiBase {
                 expectedPaymentPluginStatus = ImmutableList.of(PaymentPluginStatus.PENDING);
                 break;
         }
-        assertTrue(expectedGatewayErrorCodes.contains(paymentTransactionInfoPlugin.getGatewayErrorCode()), "was: " + paymentTransactionInfoPlugin.getGatewayErrorCode());
-        assertTrue(expectedPaymentPluginStatus.contains(paymentTransactionInfoPlugin.getStatus()), "was: " + paymentTransactionInfoPlugin.getStatus());
 
-        assertNull(paymentTransactionInfoPlugin.getGatewayError());
-        assertNotNull(paymentTransactionInfoPlugin.getFirstPaymentReferenceId());
-        // NULL for subsequent transactions (modifications)
-        //Assert.assertNotNull(paymentTransactionInfoPlugin.getSecondPaymentReferenceId());
+        if ("skip_gw".equals(paymentTransactionInfoPlugin.getGatewayError()) ||
+            "true".equals(PluginProperties.findPluginPropertyValue("skipGw", paymentTransactionInfoPlugin.getProperties()))) {
+            assertEquals(paymentTransactionInfoPlugin.getGatewayErrorCode(), TransactionType.AUTHORIZE.equals(paymentTransaction.getTransactionType()) ? "Authorised" : "Pending");
+            assertEquals(paymentTransactionInfoPlugin.getStatus(), PaymentPluginStatus.PROCESSED);
+            assertNull(paymentTransactionInfoPlugin.getFirstPaymentReferenceId());
+        } else {
+            assertTrue(expectedGatewayErrorCodes.contains(paymentTransactionInfoPlugin.getGatewayErrorCode()), "was: " + paymentTransactionInfoPlugin.getGatewayErrorCode());
+            assertTrue(expectedPaymentPluginStatus.contains(paymentTransactionInfoPlugin.getStatus()), "was: " + paymentTransactionInfoPlugin.getStatus());
+
+            assertNull(paymentTransactionInfoPlugin.getGatewayError());
+            assertNotNull(paymentTransactionInfoPlugin.getFirstPaymentReferenceId());
+            // NULL for subsequent transactions (modifications)
+            //Assert.assertNotNull(paymentTransactionInfoPlugin.getSecondPaymentReferenceId());
+        }
     }
 
     private PaymentMethodPlugin adyenEmptyPaymentMethodPlugin() {
