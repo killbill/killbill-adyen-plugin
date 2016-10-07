@@ -30,9 +30,7 @@ import org.killbill.billing.plugin.TestUtils;
 import org.killbill.billing.plugin.adyen.TestWithEmbeddedDBBase;
 import org.killbill.billing.plugin.adyen.core.AdyenActivator;
 import org.killbill.billing.util.callcontext.CallContext;
-import org.killbill.clock.Clock;
 import org.killbill.clock.ClockMock;
-import org.killbill.clock.DefaultClock;
 import org.mockito.Mockito;
 import org.testng.annotations.BeforeMethod;
 
@@ -47,6 +45,7 @@ public class TestAdyenPaymentPluginApiBase extends TestWithEmbeddedDBBase {
     protected Account account;
     protected AdyenPaymentPluginApi adyenPaymentPluginApi;
     protected OSGIKillbillAPI killbillApi;
+    protected String defaultMerchantAccount;
 
     @BeforeMethod(groups = "slow")
     public void setUp() throws Exception {
@@ -57,6 +56,8 @@ public class TestAdyenPaymentPluginApiBase extends TestWithEmbeddedDBBase {
 
         account = TestUtils.buildAccount(DEFAULT_CURRENCY, DEFAULT_COUNTRY);
         killbillApi = TestUtils.buildOSGIKillbillAPI(account);
+
+        defaultMerchantAccount = adyenConfigPropertiesConfigurationHandler.getConfigurable(context.getTenantId()).getMerchantAccount(DEFAULT_COUNTRY);
 
         TestUtils.buildPaymentMethod(account.getId(), account.getPaymentMethodId(), AdyenActivator.PLUGIN_NAME, killbillApi);
 
@@ -97,7 +98,7 @@ public class TestAdyenPaymentPluginApiBase extends TestWithEmbeddedDBBase {
                                     "            </amount>\n" +
                                     "            <eventCode>" + eventCode + "</eventCode>\n" +
                                     "            <eventDate>2013-04-15T06:59:22.278+02:00</eventDate>\n" +
-                                    "            <merchantAccountCode>TestMerchant</merchantAccountCode>\n" +
+                                    "            <merchantAccountCode>" + defaultMerchantAccount + "</merchantAccountCode>\n" +
                                     "            <merchantReference>" + merchantReference + "</merchantReference>\n" +
                                     "            <operations>\n" +
                                     "              <string>CANCEL</string>\n" +

@@ -708,7 +708,6 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
         final Account account = getAccount(kbAccountId, context);
         final AdyenPaymentMethodsRecord nonNullPaymentMethodsRecord = getAdyenPaymentMethodsRecord(kbPaymentMethodId, context);
         final String countryCode = getCountryCode(account, nonNullPaymentMethodsRecord, properties);
-        final String merchantAccount = getMerchantAccount(countryCode, properties, context);
 
         final boolean fromHPP = Boolean.valueOf(PluginProperties.findPluginPropertyValue(PROPERTY_FROM_HPP, properties));
         if (fromHPP) {
@@ -716,17 +715,17 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
             return getPaymentTransactionInfoPluginForHPP(transactionType, kbAccountId, kbPaymentId, kbTransactionId, amount, currency, properties, context);
         }
 
-        final String pspReference;
+        final AdyenResponsesRecord previousResponse;
         try {
-            final AdyenResponsesRecord previousResponse = dao.getSuccessfulAuthorizationResponse(kbPaymentId, context.getTenantId());
+            previousResponse = dao.getSuccessfulAuthorizationResponse(kbPaymentId, context.getTenantId());
             if (previousResponse == null) {
                 throw new PaymentPluginApiException(null, "Unable to retrieve previous payment response for kbTransactionId " + kbTransactionId);
             }
-            pspReference = previousResponse.getPspReference();
         } catch (final SQLException e) {
             throw new PaymentPluginApiException("Unable to retrieve previous payment response for kbTransactionId " + kbTransactionId, e);
         }
 
+        final String merchantAccount = getMerchantAccount(countryCode, previousResponse, properties, context);
         final PaymentData paymentData = buildPaymentData(merchantAccount, countryCode, account, kbPaymentId, kbTransactionId, nonNullPaymentMethodsRecord, amount, currency, properties, context);
         final SplitSettlementData splitSettlementData = buildSplitSettlementData(currency, properties);
         final DateTime utcNow = clock.getUTCNow();
@@ -740,7 +739,7 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
                                                                                        "merchantReference", paymentData.getPaymentTransactionExternalKey(),
                                                                                        "fromHPPTransactionStatus", "PROCESSED"));
         } else {
-            response = transactionExecutor.execute(merchantAccount, paymentData, pspReference, splitSettlementData);
+            response = transactionExecutor.execute(merchantAccount, paymentData, previousResponse.getPspReference(), splitSettlementData);
         }
 
         final Optional<PaymentServiceProviderResult> paymentServiceProviderResult;
@@ -955,9 +954,21 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
     }
 
     private String getMerchantAccount(final String countryCode, final Iterable<PluginProperty> properties, final TenantContext context) {
+        return getMerchantAccount(countryCode, null, properties, context);
+    }
+
+    private String getMerchantAccount(final String countryCode, @Nullable final AdyenResponsesRecord adyenResponsesRecord, final Iterable<PluginProperty> properties, final TenantContext context) {
         final String pluginPropertyMerchantAccount = PluginProperties.findPluginPropertyValue(PROPERTY_PAYMENT_PROCESSOR_ACCOUNT_ID, properties);
         if (pluginPropertyMerchantAccount != null) {
             return pluginPropertyMerchantAccount;
+        }
+
+        if (adyenResponsesRecord != null) {
+            final Map additionalData = AdyenDao.fromAdditionalData(adyenResponsesRecord.getAdditionalData());
+            final Object merchantAccountCode = additionalData.get("merchantAccountCode");
+            if (merchantAccountCode != null) {
+                return merchantAccountCode.toString();
+            }
         }
 
         return getConfigProperties(context).getMerchantAccount(countryCode);

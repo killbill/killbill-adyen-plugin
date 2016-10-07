@@ -508,7 +508,7 @@ public class AdyenDao extends PluginPaymentDao<AdyenResponsesRecord, AdyenRespon
         return asString(response.getAdditionalData());
     }
 
-    public static Map fromAdditionalData(final String additionalData) {
+    public static Map fromAdditionalData(@Nullable final String additionalData) {
         if (additionalData == null) {
             return ImmutableMap.of();
         }
