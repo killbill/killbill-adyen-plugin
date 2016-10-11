@@ -401,7 +401,7 @@ public class AdyenPaymentTransactionInfoPlugin extends PluginPaymentTransactionI
 
         // Add common properties returned by plugins (used by Analytics)
         final Map<String, Object> defaultProperties = new HashMap<String, Object>();
-        defaultProperties.put("processorResponse", data.get("refusalReasonRaw"));
+        defaultProperties.put("processorResponse", getGatewayErrorCode(data));
         defaultProperties.put("avsResultCode", data.get("avsResultRaw"));
         defaultProperties.put("cvvResultCode", data.get("cvcResultRaw"));
         defaultProperties.put("payment_processor_account_id", data.get("merchantAccountCode"));
