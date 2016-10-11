@@ -20,17 +20,14 @@ import java.math.BigDecimal;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.annotation.Nullable;
 
-import org.joda.time.DateTime;
 import org.killbill.adyen.common.Amount;
 import org.killbill.adyen.notification.NotificationRequestItem;
 import org.killbill.billing.account.api.Account;
 import org.killbill.billing.account.api.AccountApiException;
 import org.killbill.billing.catalog.api.Currency;
-import org.killbill.billing.osgi.libs.killbill.OSGIKillbillAPI;
 import org.killbill.billing.payment.api.Payment;
 import org.killbill.billing.payment.api.PaymentApiException;
 import org.killbill.billing.payment.api.PaymentTransaction;
@@ -38,12 +35,11 @@ import org.killbill.billing.payment.api.PluginProperty;
 import org.killbill.billing.payment.api.TransactionStatus;
 import org.killbill.billing.payment.api.TransactionType;
 import org.killbill.billing.plugin.TestUtils;
-import org.killbill.billing.plugin.adyen.client.model.NotificationItem;
-import org.killbill.billing.plugin.adyen.dao.AdyenDao;
-import org.killbill.billing.plugin.adyen.dao.gen.tables.records.AdyenHppRequestsRecord;
-import org.killbill.billing.plugin.adyen.dao.gen.tables.records.AdyenResponsesRecord;
+import org.killbill.billing.plugin.adyen.api.TestAdyenPaymentPluginApiBase;
+import org.killbill.billing.plugin.adyen.client.model.PaymentServiceProviderResult;
+import org.killbill.billing.plugin.adyen.client.model.PurchaseResult;
+import org.killbill.billing.plugin.adyen.dao.gen.tables.records.AdyenNotificationsRecord;
 import org.killbill.billing.util.callcontext.CallContext;
-import org.killbill.clock.DefaultClock;
 import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
@@ -54,22 +50,14 @@ import org.testng.annotations.Test;
 import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableList;
 
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+public class TestKillbillAdyenNotificationHandler extends TestAdyenPaymentPluginApiBase {
 
-public class TestKillbillAdyenNotificationHandler {
-
-    private Account account;
     private Payment payment;
-    private OSGIKillbillAPI killbillApi;
+    private KillbillAdyenNotificationHandler killbillAdyenNotificationHandler;
 
-    @BeforeMethod(groups = "fast")
+    @BeforeMethod(groups = "slow")
     public void setUp() throws Exception {
-        account = TestUtils.buildAccount(Currency.EUR, "DE");
-        killbillApi = TestUtils.buildOSGIKillbillAPI(account);
-
-        TestUtils.buildPaymentMethod(account.getId(), account.getPaymentMethodId(), AdyenActivator.PLUGIN_NAME, killbillApi);
-        payment = TestUtils.buildPayment(account.getId(), account.getPaymentMethodId(), account.getCurrency(), killbillApi);
+        super.setUp();
 
         Mockito.when(killbillApi.getPaymentApi().createCapture(Mockito.<Account>any(),
                                                                Mockito.<UUID>any(),
@@ -90,30 +78,36 @@ public class TestKillbillAdyenNotificationHandler {
                        return payment;
                    }
                });
+
+        TestUtils.buildPaymentMethod(account.getId(), account.getPaymentMethodId(), AdyenActivator.PLUGIN_NAME, killbillApi);
+        payment = TestUtils.buildPayment(account.getId(), account.getPaymentMethodId(), account.getCurrency(), killbillApi);
+
+        killbillAdyenNotificationHandler = new KillbillAdyenNotificationHandler(killbillApi, dao, clock);
     }
 
-    @Test(groups = "fast")
+    @Test(groups = "slow")
     public void testHandleAuthorizationCaptureSuccess() throws Exception {
         final boolean success = true;
 
-        final AtomicBoolean isNotificationRecorded = new AtomicBoolean(false);
-
-        final NotificationRequestItem item = getNotificationRequestItem("AUTHORISATION", success, payment.getExternalKey());
-        final KillbillAdyenNotificationHandler killbillAdyenNotificationHandler = getKillbillAdyenNotificationHandler(TransactionType.AUTHORIZE, item, isNotificationRecorded);
+        final NotificationRequestItem authItem = getNotificationRequestItem("AUTHORISATION", success);
+        setupTransaction(TransactionType.AUTHORIZE, authItem);
 
         Assert.assertEquals(payment.getTransactions().size(), 1);
         Assert.assertEquals(payment.getTransactions().get(0).getTransactionType(), TransactionType.AUTHORIZE);
         Assert.assertEquals(payment.getTransactions().get(0).getTransactionStatus(), TransactionStatus.PENDING);
 
-        killbillAdyenNotificationHandler.handleNotification(item);
+        killbillAdyenNotificationHandler.handleNotification(authItem);
+        verifyLastNotificationRecorded(1);
 
-        Assert.assertTrue(isNotificationRecorded.get());
         Assert.assertEquals(payment.getTransactions().size(), 1);
         Assert.assertEquals(payment.getTransactions().get(0).getTransactionType(), TransactionType.AUTHORIZE);
         Assert.assertEquals(payment.getTransactions().get(0).getTransactionStatus(), TransactionStatus.SUCCESS);
 
-        final NotificationRequestItem captureItem = getNotificationRequestItem("CAPTURE", success, payment.getExternalKey());
+        // Capture done outside of Kill Bill
+        final NotificationRequestItem captureItem = getNotificationRequestItem(authItem, "CAPTURE", success);
+
         killbillAdyenNotificationHandler.handleNotification(captureItem);
+        verifyLastNotificationRecorded(2);
 
         Assert.assertEquals(payment.getTransactions().size(), 2);
         Assert.assertEquals(payment.getTransactions().get(0).getTransactionType(), TransactionType.AUTHORIZE);
@@ -122,194 +116,215 @@ public class TestKillbillAdyenNotificationHandler {
         Assert.assertEquals(payment.getTransactions().get(1).getTransactionStatus(), TransactionStatus.SUCCESS);
     }
 
-    @Test(groups = "fast")
+    @Test(groups = "slow")
     public void testHandleCaptureFailure() throws Exception {
         final boolean success = false;
 
-        final AtomicBoolean isNotificationRecorded = new AtomicBoolean(false);
-
         final NotificationRequestItem item = getNotificationRequestItem("CAPTURE", success);
-        final KillbillAdyenNotificationHandler killbillAdyenNotificationHandler = getKillbillAdyenNotificationHandler(TransactionType.CAPTURE, item, isNotificationRecorded);
+        setupTransaction(TransactionType.CAPTURE, item);
 
         Assert.assertEquals(payment.getTransactions().size(), 1);
-        Assert.assertEquals(payment.getTransactions().get(payment.getTransactions().size() - 1).getTransactionType(), TransactionType.CAPTURE);
-        Assert.assertEquals(payment.getTransactions().get(payment.getTransactions().size() - 1).getTransactionStatus(), TransactionStatus.PENDING);
+        Assert.assertEquals(payment.getTransactions().get(0).getTransactionType(), TransactionType.CAPTURE);
+        Assert.assertEquals(payment.getTransactions().get(0).getTransactionStatus(), TransactionStatus.PENDING);
 
         killbillAdyenNotificationHandler.handleNotification(item);
+        verifyLastNotificationRecorded(1);
 
-        Assert.assertTrue(isNotificationRecorded.get());
         Assert.assertEquals(payment.getTransactions().size(), 1);
-        Assert.assertEquals(payment.getTransactions().get(payment.getTransactions().size() - 1).getTransactionType(), TransactionType.CAPTURE);
-        Assert.assertEquals(payment.getTransactions().get(payment.getTransactions().size() - 1).getTransactionStatus(), TransactionStatus.PAYMENT_FAILURE);
+        Assert.assertEquals(payment.getTransactions().get(0).getTransactionType(), TransactionType.CAPTURE);
+        Assert.assertEquals(payment.getTransactions().get(0).getTransactionStatus(), TransactionStatus.PAYMENT_FAILURE);
     }
 
-    @Test(groups = "fast")
+    @Test(groups = "slow")
     public void testHandleChargeback() throws Exception {
         final boolean success = true;
 
-        final AtomicBoolean isNotificationRecorded = new AtomicBoolean(false);
-
-        final NotificationRequestItem item = getNotificationRequestItemForChargeback(success);
-        final KillbillAdyenNotificationHandler killbillAdyenNotificationHandler = getKillbillAdyenNotificationHandlerForChargeback(item, isNotificationRecorded);
+        final NotificationRequestItem purchaseItem = getNotificationRequestItem("AUTHORISATION", success);
+        setupTransaction(TransactionType.PURCHASE, purchaseItem);
 
         Assert.assertEquals(payment.getTransactions().size(), 1);
+        Assert.assertEquals(payment.getTransactions().get(0).getTransactionType(), TransactionType.PURCHASE);
+        Assert.assertEquals(payment.getTransactions().get(0).getTransactionStatus(), TransactionStatus.PENDING);
 
-        killbillAdyenNotificationHandler.handleNotification(item);
+        killbillAdyenNotificationHandler.handleNotification(purchaseItem);
+        verifyLastNotificationRecorded(1);
 
-        Assert.assertTrue(isNotificationRecorded.get());
+        Assert.assertEquals(payment.getTransactions().size(), 1);
+        Assert.assertEquals(payment.getTransactions().get(0).getTransactionType(), TransactionType.PURCHASE);
+        Assert.assertEquals(payment.getTransactions().get(0).getTransactionStatus(), TransactionStatus.SUCCESS);
+
+        // Chargeback done outside of Kill Bill
+        final NotificationRequestItem chargebackItem = getNotificationRequestItem(purchaseItem, "CHARGEBACK", success);
+
+        killbillAdyenNotificationHandler.handleNotification(chargebackItem);
+        verifyLastNotificationRecorded(2);
+
         Assert.assertEquals(payment.getTransactions().size(), 2);
-        Assert.assertEquals(payment.getTransactions().get(payment.getTransactions().size() - 1).getTransactionType(), TransactionType.CHARGEBACK);
+        Assert.assertEquals(payment.getTransactions().get(0).getTransactionType(), TransactionType.PURCHASE);
+        Assert.assertEquals(payment.getTransactions().get(0).getTransactionStatus(), TransactionStatus.SUCCESS);
+        Assert.assertEquals(payment.getTransactions().get(1).getTransactionType(), TransactionType.CHARGEBACK);
+        Assert.assertEquals(payment.getTransactions().get(1).getTransactionStatus(), TransactionStatus.SUCCESS);
     }
 
-    @Test(groups = "fast")
+    @Test(groups = "slow")
+    public void testHandleChargebackOnCaptureWithSamePspReference() throws Exception {
+        final boolean success = true;
+
+        final NotificationRequestItem authItem = getNotificationRequestItem("AUTHORISATION", success);
+        setupTransaction(TransactionType.AUTHORIZE, authItem);
+
+        Assert.assertEquals(payment.getTransactions().size(), 1);
+        Assert.assertEquals(payment.getTransactions().get(0).getTransactionType(), TransactionType.AUTHORIZE);
+        Assert.assertEquals(payment.getTransactions().get(0).getTransactionStatus(), TransactionStatus.PENDING);
+
+        killbillAdyenNotificationHandler.handleNotification(authItem);
+        verifyLastNotificationRecorded(1);
+
+        Assert.assertEquals(payment.getTransactions().size(), 1);
+        Assert.assertEquals(payment.getTransactions().get(0).getTransactionType(), TransactionType.AUTHORIZE);
+        Assert.assertEquals(payment.getTransactions().get(0).getTransactionStatus(), TransactionStatus.SUCCESS);
+
+        final NotificationRequestItem captureItem = getNotificationRequestItem(authItem, "CAPTURE", success);
+        setupTransaction(TransactionType.CAPTURE, captureItem);
+
+        Assert.assertEquals(payment.getTransactions().size(), 2);
+        Assert.assertEquals(payment.getTransactions().get(0).getTransactionType(), TransactionType.AUTHORIZE);
+        Assert.assertEquals(payment.getTransactions().get(0).getTransactionStatus(), TransactionStatus.SUCCESS);
+        Assert.assertEquals(payment.getTransactions().get(1).getTransactionType(), TransactionType.CAPTURE);
+        Assert.assertEquals(payment.getTransactions().get(1).getTransactionStatus(), TransactionStatus.PENDING);
+
+        killbillAdyenNotificationHandler.handleNotification(captureItem);
+        verifyLastNotificationRecorded(2);
+
+        Assert.assertEquals(payment.getTransactions().size(), 2);
+        Assert.assertEquals(payment.getTransactions().get(0).getTransactionType(), TransactionType.AUTHORIZE);
+        Assert.assertEquals(payment.getTransactions().get(0).getTransactionStatus(), TransactionStatus.SUCCESS);
+        Assert.assertEquals(payment.getTransactions().get(1).getTransactionType(), TransactionType.CAPTURE);
+        Assert.assertEquals(payment.getTransactions().get(1).getTransactionStatus(), TransactionStatus.SUCCESS);
+
+        // Chargeback done outside of Kill Bill: note that the PSP reference is re-used by Adyen, make sure we don't link it to the capture transaction
+        final NotificationRequestItem chargebackItem = getNotificationRequestItem(authItem, captureItem.getPspReference(), "CHARGEBACK", success);
+
+        killbillAdyenNotificationHandler.handleNotification(chargebackItem);
+        verifyLastNotificationRecorded(3);
+
+        Assert.assertEquals(payment.getTransactions().size(), 3);
+        Assert.assertEquals(payment.getTransactions().get(0).getTransactionType(), TransactionType.AUTHORIZE);
+        Assert.assertEquals(payment.getTransactions().get(0).getTransactionStatus(), TransactionStatus.SUCCESS);
+        Assert.assertEquals(payment.getTransactions().get(1).getTransactionType(), TransactionType.CAPTURE);
+        Assert.assertEquals(payment.getTransactions().get(1).getTransactionStatus(), TransactionStatus.SUCCESS);
+        Assert.assertEquals(payment.getTransactions().get(2).getTransactionType(), TransactionType.CHARGEBACK);
+        Assert.assertEquals(payment.getTransactions().get(2).getTransactionStatus(), TransactionStatus.SUCCESS);
+    }
+
+    @Test(groups = "slow")
+    public void testHandleChargebackOnCaptureDoneOutsideOfKillBillWithSamePspReference() throws Exception {
+        final boolean success = true;
+
+        final NotificationRequestItem authItem = getNotificationRequestItem("AUTHORISATION", success);
+        setupTransaction(TransactionType.AUTHORIZE, authItem);
+
+        Assert.assertEquals(payment.getTransactions().size(), 1);
+        Assert.assertEquals(payment.getTransactions().get(0).getTransactionType(), TransactionType.AUTHORIZE);
+        Assert.assertEquals(payment.getTransactions().get(0).getTransactionStatus(), TransactionStatus.PENDING);
+
+        killbillAdyenNotificationHandler.handleNotification(authItem);
+        verifyLastNotificationRecorded(1);
+
+        Assert.assertEquals(payment.getTransactions().size(), 1);
+        Assert.assertEquals(payment.getTransactions().get(0).getTransactionType(), TransactionType.AUTHORIZE);
+        Assert.assertEquals(payment.getTransactions().get(0).getTransactionStatus(), TransactionStatus.SUCCESS);
+
+        // Capture done outside of Kill Bill
+        final NotificationRequestItem captureItem = getNotificationRequestItem(authItem, "CAPTURE", success);
+
+        killbillAdyenNotificationHandler.handleNotification(captureItem);
+        verifyLastNotificationRecorded(2);
+
+        Assert.assertEquals(payment.getTransactions().size(), 2);
+        Assert.assertEquals(payment.getTransactions().get(0).getTransactionType(), TransactionType.AUTHORIZE);
+        Assert.assertEquals(payment.getTransactions().get(0).getTransactionStatus(), TransactionStatus.SUCCESS);
+        Assert.assertEquals(payment.getTransactions().get(1).getTransactionType(), TransactionType.CAPTURE);
+        Assert.assertEquals(payment.getTransactions().get(1).getTransactionStatus(), TransactionStatus.SUCCESS);
+
+        // Chargeback done outside of Kill Bill: even though the same PSP reference as the capture is re-used,
+        // the original response will be looked-up using the original PSP reference (capture not triggered by Kill Bill)
+        final NotificationRequestItem chargebackItem = getNotificationRequestItem(authItem, captureItem.getPspReference(), "CHARGEBACK", success);
+
+        killbillAdyenNotificationHandler.handleNotification(chargebackItem);
+        verifyLastNotificationRecorded(3);
+
+        Assert.assertEquals(payment.getTransactions().size(), 3);
+        Assert.assertEquals(payment.getTransactions().get(0).getTransactionType(), TransactionType.AUTHORIZE);
+        Assert.assertEquals(payment.getTransactions().get(0).getTransactionStatus(), TransactionStatus.SUCCESS);
+        Assert.assertEquals(payment.getTransactions().get(1).getTransactionType(), TransactionType.CAPTURE);
+        Assert.assertEquals(payment.getTransactions().get(1).getTransactionStatus(), TransactionStatus.SUCCESS);
+        Assert.assertEquals(payment.getTransactions().get(2).getTransactionType(), TransactionType.CHARGEBACK);
+        Assert.assertEquals(payment.getTransactions().get(2).getTransactionStatus(), TransactionStatus.SUCCESS);
+    }
+
+    @Test(groups = "slow")
     public void testReportAvailable() throws Exception {
         final boolean success = true;
 
-        final AtomicBoolean isNotificationRecorded = new AtomicBoolean(false);
-
         final NotificationRequestItem item = getNotificationRequestItem("REPORT_AVAILABLE", success);
-        final KillbillAdyenNotificationHandler killbillAdyenNotificationHandler = getKillbillAdyenNotificationHandler(null, item, isNotificationRecorded);
 
         final List<PaymentTransaction> oldPaymentTransactions = ImmutableList.<PaymentTransaction>copyOf(payment.getTransactions());
 
         killbillAdyenNotificationHandler.handleNotification(item);
 
-        Assert.assertTrue(isNotificationRecorded.get());
+        final List<AdyenNotificationsRecord> notifications = dao.getNotifications();
+        Assert.assertEquals(notifications.size(), 1);
         Assert.assertEquals(payment.getTransactions(), oldPaymentTransactions);
     }
 
-    private KillbillAdyenNotificationHandler getKillbillAdyenNotificationHandler(@Nullable final TransactionType transactionType, final NotificationRequestItem item, final AtomicBoolean isNotificationRecorded) throws AccountApiException, PaymentApiException, SQLException {
+    private void setupTransaction(final TransactionType transactionType, final NotificationRequestItem item) throws AccountApiException, PaymentApiException, SQLException {
         final PaymentTransaction paymentTransaction = TestUtils.buildPaymentTransaction(payment, transactionType, TransactionStatus.PENDING, BigDecimal.TEN, account.getCurrency());
 
-        final AdyenDao adyenDao = getAdyenDao(payment, paymentTransaction, transactionType, item, isNotificationRecorded);
-        final DefaultClock clock = new DefaultClock();
-
-        return new KillbillAdyenNotificationHandler(killbillApi, adyenDao, clock);
-    }
-
-    private KillbillAdyenNotificationHandler getKillbillAdyenNotificationHandlerForChargeback(final NotificationRequestItem item, final AtomicBoolean isNotificationRecorded) throws AccountApiException, PaymentApiException, SQLException {
-        TestUtils.buildPaymentTransaction(payment, TransactionType.PURCHASE, TransactionStatus.SUCCESS, BigDecimal.TEN, account.getCurrency());
-
-        final AdyenDao adyenDao = getAdyenDaoForChargeback(payment, item, isNotificationRecorded);
-        final DefaultClock clock = new DefaultClock();
-
-        return new KillbillAdyenNotificationHandler(killbillApi, adyenDao, clock);
+        dao.addResponse(payment.getAccountId(),
+                        paymentTransaction.getPaymentId(),
+                        paymentTransaction.getId(),
+                        paymentTransaction.getTransactionType(),
+                        paymentTransaction.getAmount(),
+                        paymentTransaction.getCurrency(),
+                        new PurchaseResult(PaymentServiceProviderResult.AUTHORISED, null, item.getPspReference(), null, null, null, null),
+                        clock.getUTCNow(),
+                        context.getTenantId());
     }
 
     private NotificationRequestItem getNotificationRequestItem(final String eventCode, final boolean success) {
-        return getNotificationRequestItem(eventCode, success, null);
+        return getNotificationRequestItem(null, eventCode, success);
     }
 
-    private NotificationRequestItem getNotificationRequestItem(final String eventCode, final boolean success, final String merchantReference) {
+    private NotificationRequestItem getNotificationRequestItem(@Nullable final NotificationRequestItem originalItem, final String eventCode, final boolean success) {
         final String pspReference = UUID.randomUUID().toString();
+        return getNotificationRequestItem(originalItem, pspReference, eventCode, success);
+    }
 
+    private NotificationRequestItem getNotificationRequestItem(@Nullable final NotificationRequestItem originalItem, final String pspReference, final String eventCode, final boolean success) {
         final NotificationRequestItem item = new NotificationRequestItem();
         item.setEventCode(eventCode);
         item.setPspReference(pspReference);
-        item.setMerchantReference(merchantReference);
+        if (originalItem != null) {
+            item.setOriginalReference(originalItem.getPspReference());
+        }
+        // Adyen doesn't require the merchant reference to be unique (modification transactions will default to the one from the auth)
+        item.setMerchantReference(payment.getExternalKey());
         item.setSuccess(success);
 
-        return item;
-    }
-
-    private NotificationRequestItem getNotificationRequestItemForChargeback(final boolean success) {
-        final String originalReference = UUID.randomUUID().toString();
-
-        final NotificationRequestItem item = new NotificationRequestItem();
-        item.setEventCode("CHARGEBACK");
-        item.setOriginalReference(originalReference);
-        item.setSuccess(success);
-
-        Amount amount = new Amount();
+        final Amount amount = new Amount();
         amount.setCurrency("EUR");
         amount.setValue(10l);
-
         item.setAmount(amount);
 
         return item;
     }
 
-    private AdyenDao getAdyenDao(final Payment payment, final PaymentTransaction paymentTransaction, final TransactionType transactionType, final NotificationRequestItem item, final AtomicBoolean isNotificationRecorded) throws SQLException {
-        final AdyenDao adyenDao = mock(AdyenDao.class);
-
-        if (transactionType != null) {
-            final AdyenResponsesRecord record = new AdyenResponsesRecord();
-            record.setKbAccountId(payment.getAccountId().toString());
-            record.setKbPaymentId(payment.getId().toString());
-            record.setKbPaymentTransactionId(paymentTransaction.getId().toString());
-            record.setKbTenantId(UUID.randomUUID().toString());
-
-            when(adyenDao.getResponse(item.getPspReference())).thenReturn(record);
-            Mockito.doAnswer(new Answer<Void>() {
-                @Override
-                public Void answer(final InvocationOnMock invocation) throws Throwable {
-                    isNotificationRecorded.set(true);
-                    return null;
-                }
-            })
-                   .when(adyenDao)
-                   .addNotification(Mockito.eq(UUID.fromString(record.getKbAccountId())),
-                                    Mockito.eq(UUID.fromString(record.getKbPaymentId())),
-                                    Mockito.eq(UUID.fromString(record.getKbPaymentTransactionId())),
-                                    Mockito.eq(transactionType),
-                                    Mockito.<NotificationItem>any(),
-                                    Mockito.<DateTime>any(),
-                                    Mockito.eq(UUID.fromString(record.getKbTenantId())));
-
-            final AdyenHppRequestsRecord hppRequestsRecord = new AdyenHppRequestsRecord();
-            hppRequestsRecord.setKbAccountId(payment.getAccountId().toString());
-            hppRequestsRecord.setKbPaymentId(payment.getId().toString());
-            hppRequestsRecord.setKbPaymentTransactionId(paymentTransaction.getId().toString());
-            hppRequestsRecord.setKbTenantId(UUID.randomUUID().toString());
-            when(adyenDao.getHppRequest(item.getMerchantReference())).thenReturn(hppRequestsRecord);
-        } else {
-            // Special case for reports
-            Mockito.doAnswer(new Answer<Void>() {
-                @Override
-                public Void answer(final InvocationOnMock invocation) throws Throwable {
-                    isNotificationRecorded.set(true);
-                    return null;
-                }
-            })
-                   .when(adyenDao)
-                   .addNotification(Mockito.<UUID>eq(null),
-                                    Mockito.<UUID>eq(null),
-                                    Mockito.<UUID>eq(null),
-                                    Mockito.<TransactionType>eq(null),
-                                    Mockito.<NotificationItem>any(),
-                                    Mockito.<DateTime>any(),
-                                    Mockito.<UUID>eq(null));
-        }
-
-        return adyenDao;
-    }
-
-    private AdyenDao getAdyenDaoForChargeback(final Payment payment, final NotificationRequestItem item, final AtomicBoolean isNotificationRecorded) throws SQLException {
-        final TransactionType transactionType = TransactionType.CHARGEBACK;
-
-        final AdyenDao adyenDao = mock(AdyenDao.class);
-
-        final AdyenResponsesRecord record = new AdyenResponsesRecord();
-        record.setKbAccountId(payment.getAccountId().toString());
-        record.setKbPaymentId(payment.getId().toString());
-        record.setKbTenantId(UUID.randomUUID().toString());
-
-        when(adyenDao.getResponse(item.getOriginalReference())).thenReturn(record);
-        Mockito.doAnswer(new Answer<Void>() {
-            @Override
-            public Void answer(final InvocationOnMock invocation) throws Throwable {
-                isNotificationRecorded.set(true);
-                return null;
-            }
-        }).when(adyenDao)
-               .addNotification(Mockito.eq(UUID.fromString(record.getKbAccountId())),
-                                Mockito.eq(UUID.fromString(record.getKbPaymentId())),
-                                Mockito.<UUID>any(),
-                                Mockito.eq(transactionType),
-                                Mockito.<NotificationItem>any(),
-                                Mockito.<DateTime>any(),
-                                Mockito.eq(UUID.fromString(record.getKbTenantId())));
-
-        return adyenDao;
+    private void verifyLastNotificationRecorded(final int nb) throws SQLException {
+        final List<AdyenNotificationsRecord> notifications = dao.getNotifications();
+        Assert.assertEquals(notifications.size(), nb);
+        Assert.assertEquals(notifications.get(nb - 1).getKbAccountId(), payment.getAccountId().toString());
+        Assert.assertEquals(notifications.get(nb - 1).getKbPaymentId(), payment.getId().toString());
+        Assert.assertEquals(notifications.get(nb - 1).getKbPaymentTransactionId(), payment.getTransactions().get(payment.getTransactions().size() - 1).getId().toString());
     }
 }

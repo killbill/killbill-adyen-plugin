@@ -229,8 +229,10 @@ public class KillbillAdyenNotificationHandler implements AdyenNotificationHandle
                 if (isHPP && expectedTransactionType != null && paymentTransaction.getTransactionType() != expectedTransactionType) {
                     // Follow-on transaction
                     paymentTransaction = null;
+                } else if (expectedTransactionType != null && paymentTransaction.getTransactionType() != expectedTransactionType) {
+                    // Adyen most likely confused us by re-using the PSP reference...
+                    paymentTransaction = null;
                 } else {
-                    Preconditions.checkArgument(expectedTransactionType == null || paymentTransaction.getTransactionType() == expectedTransactionType, String.format("transactionType='%s' doesn't match expectedTransactionType='%s'", paymentTransaction.getTransactionType(), expectedTransactionType));
                     // Update the plugin tables
                     updateResponse(notification, kbPaymentTransactionId, isHPP, paymentPluginStatus, kbTenantId);
                 }

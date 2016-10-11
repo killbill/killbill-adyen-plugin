@@ -473,6 +473,20 @@ public class AdyenDao extends PluginPaymentDao<AdyenResponsesRecord, AdyenRespon
                        });
     }
 
+    // Just for testing
+    public List<AdyenNotificationsRecord> getNotifications() throws SQLException {
+        return execute(dataSource.getConnection(),
+                       new WithConnectionCallback<List<AdyenNotificationsRecord>>() {
+                           @Override
+                           public List<AdyenNotificationsRecord> withConnection(final Connection conn) throws SQLException {
+                               return DSL.using(conn, dialect, settings)
+                                         .selectFrom(ADYEN_NOTIFICATIONS)
+                                         .orderBy(ADYEN_NOTIFICATIONS.RECORD_ID.asc())
+                                         .fetch();
+                           }
+                       });
+    }
+
     private String getString(@Nullable final Iterable iterable) {
         if (iterable == null || !iterable.iterator().hasNext()) {
             return null;
