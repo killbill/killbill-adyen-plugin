@@ -46,6 +46,7 @@ create table adyen_responses (
 ) /*! CHARACTER SET utf8 COLLATE utf8_bin */;
 create index adyen_responses_kb_payment_id on adyen_responses(kb_payment_id);
 create index adyen_responses_kb_payment_transaction_id on adyen_responses(kb_payment_transaction_id);
+create index psp_reference_idx on adyen_responses(psp_reference);
 
 drop table if exists adyen_notifications;
 create table adyen_notifications (
