@@ -40,6 +40,7 @@ import org.killbill.billing.plugin.adyen.client.model.PaymentServiceProviderResu
 import org.killbill.billing.plugin.adyen.client.model.PurchaseResult;
 import org.killbill.billing.plugin.adyen.dao.gen.tables.records.AdyenNotificationsRecord;
 import org.killbill.billing.util.callcontext.CallContext;
+import org.killbill.billing.util.callcontext.TenantContext;
 import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
@@ -74,6 +75,34 @@ public class TestKillbillAdyenNotificationHandler extends TestAdyenPaymentPlugin
                        final String paymentTransactionExternalKey = MoreObjects.firstNonNull((String) invocation.getArguments()[4], UUID.randomUUID().toString());
 
                        TestUtils.buildPaymentTransaction(payment, paymentTransactionExternalKey, TransactionType.CAPTURE, TransactionStatus.SUCCESS, amount, currency);
+
+                       return payment;
+                   }
+               });
+
+        Mockito.when(killbillApi.getPaymentApi().createChargebackReversal(Mockito.<Account>any(),
+                                                                          Mockito.<UUID>any(),
+                                                                          Mockito.<String>any(),
+                                                                          Mockito.<CallContext>any()))
+               .then(new Answer<Payment>() {
+                   @Override
+                   public Payment answer(final InvocationOnMock invocation) throws Throwable {
+                       final UUID kbPaymentId = (UUID) invocation.getArguments()[1];
+                       final Payment payment = killbillApi.getPaymentApi().getPayment(kbPaymentId, false, false, ImmutableList.<PluginProperty>of(), (TenantContext) invocation.getArguments()[3]);
+                       Assert.assertNotNull(payment);
+
+                       final String kbPaymentTransactionExternalKey = (String) invocation.getArguments()[2];
+                       PaymentTransaction paymentTransaction = null;
+                       for (final PaymentTransaction t : payment.getTransactions()) {
+                           if (kbPaymentTransactionExternalKey.equals(t.getExternalKey())) {
+                               paymentTransaction = t;
+                               break;
+                           }
+                       }
+                       Assert.assertNotNull(paymentTransaction);
+                       Assert.assertEquals(paymentTransaction.getTransactionStatus(), TransactionStatus.SUCCESS);
+
+                       Mockito.when(paymentTransaction.getTransactionStatus()).thenReturn(TransactionStatus.PAYMENT_FAILURE);
 
                        return payment;
                    }
@@ -261,6 +290,49 @@ public class TestKillbillAdyenNotificationHandler extends TestAdyenPaymentPlugin
         Assert.assertEquals(payment.getTransactions().get(1).getTransactionStatus(), TransactionStatus.SUCCESS);
         Assert.assertEquals(payment.getTransactions().get(2).getTransactionType(), TransactionType.CHARGEBACK);
         Assert.assertEquals(payment.getTransactions().get(2).getTransactionStatus(), TransactionStatus.SUCCESS);
+    }
+
+    @Test(groups = "slow")
+    public void testHandleChargebackReversed() throws Exception {
+        final boolean success = true;
+
+        final NotificationRequestItem authItem = getNotificationRequestItem("AUTHORISATION", success);
+        setupTransaction(TransactionType.PURCHASE, authItem);
+
+        Assert.assertEquals(payment.getTransactions().size(), 1);
+        Assert.assertEquals(payment.getTransactions().get(0).getTransactionType(), TransactionType.PURCHASE);
+        Assert.assertEquals(payment.getTransactions().get(0).getTransactionStatus(), TransactionStatus.PENDING);
+
+        killbillAdyenNotificationHandler.handleNotification(authItem);
+        verifyLastNotificationRecorded(1);
+
+        Assert.assertEquals(payment.getTransactions().size(), 1);
+        Assert.assertEquals(payment.getTransactions().get(0).getTransactionType(), TransactionType.PURCHASE);
+        Assert.assertEquals(payment.getTransactions().get(0).getTransactionStatus(), TransactionStatus.SUCCESS);
+
+        // Chargeback done outside of Kill Bill
+        final NotificationRequestItem chargebackItem = getNotificationRequestItem(authItem, UUID.randomUUID().toString(), "CHARGEBACK", success);
+
+        killbillAdyenNotificationHandler.handleNotification(chargebackItem);
+        verifyLastNotificationRecorded(2);
+
+        Assert.assertEquals(payment.getTransactions().size(), 2);
+        Assert.assertEquals(payment.getTransactions().get(0).getTransactionType(), TransactionType.PURCHASE);
+        Assert.assertEquals(payment.getTransactions().get(0).getTransactionStatus(), TransactionStatus.SUCCESS);
+        Assert.assertEquals(payment.getTransactions().get(1).getTransactionType(), TransactionType.CHARGEBACK);
+        Assert.assertEquals(payment.getTransactions().get(1).getTransactionStatus(), TransactionStatus.SUCCESS);
+
+        // Chargeback reversal done outside of Kill Bill: no original PSP reference, but the PSP reference of the auth is re-used
+        final NotificationRequestItem chargebackReversedItem = getNotificationRequestItem(null, authItem.getPspReference(), "CHARGEBACK_REVERSED", success);
+
+        killbillAdyenNotificationHandler.handleNotification(chargebackReversedItem);
+        verifyLastNotificationRecorded(3);
+
+        Assert.assertEquals(payment.getTransactions().size(), 2);
+        Assert.assertEquals(payment.getTransactions().get(0).getTransactionType(), TransactionType.PURCHASE);
+        Assert.assertEquals(payment.getTransactions().get(0).getTransactionStatus(), TransactionStatus.SUCCESS);
+        Assert.assertEquals(payment.getTransactions().get(1).getTransactionType(), TransactionType.CHARGEBACK);
+        Assert.assertEquals(payment.getTransactions().get(1).getTransactionStatus(), TransactionStatus.PAYMENT_FAILURE);
     }
 
     @Test(groups = "slow")

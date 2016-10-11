@@ -71,7 +71,6 @@ public class KillbillAdyenNotificationHandler implements AdyenNotificationHandle
                                                                                                                                        .put("REFUND", TransactionType.REFUND)
                                                                                                                                        .put("CAPTURE", TransactionType.CAPTURE)
                                                                                                                                        .put("REFUND_WITH_DATA", TransactionType.CREDIT)
-                                                                                                                                       .put("NOTIFICATION_OF_CHARGEBACK", TransactionType.CHARGEBACK)
                                                                                                                                        .put("CHARGEBACK", TransactionType.CHARGEBACK)
                                                                                                                                        .put("CHARGEBACK_REVERSED", TransactionType.CHARGEBACK)
                                                                                                                                        .build();
@@ -184,18 +183,12 @@ public class KillbillAdyenNotificationHandler implements AdyenNotificationHandle
             // be further investigated. Most of the times it will for example need to be retried to make it work.
             // REFUNDED_REVERSED means we received back the funds from the bank. This can happen if the card is closed.
             paymentPluginStatus = PaymentPluginStatus.ERROR;
-        // TODO Chargebacks are always created in Kill Bill with PaymentPluginStatus.PROCESSED today
-        //} else if ("NOTIFICATION_OF_CHARGEBACK".equals(notification.getEventCode())) {
-        //    // Whenever a real dispute case is opened this is the first notification in the process which you will receive.
-        //    // This is the start point to look into the dispute and upload defence material.
-        //    paymentPluginStatus = PaymentPluginStatus.PENDING;
         } else if ("CHARGEBACK".equals(notification.getEventCode())) {
             // Whenever the funds are really deducted we send out the chargeback notification.
             paymentPluginStatus = PaymentPluginStatus.PROCESSED;
-        // TODO See above and https://github.com/killbill/killbill/issues/477
-        //} else if ("CHARGEBACK_REVERSED".equals(notification.getEventCode())) {
-        //    // When you win the case and the funds are returned to your account we send out the chargeback_reversed notification.
-        //    paymentPluginStatus = PaymentPluginStatus.ERROR;
+        } else if ("CHARGEBACK_REVERSED".equals(notification.getEventCode())) {
+            // When you win the case and the funds are returned to your account we send out the chargeback_reversed notification.
+            paymentPluginStatus = PaymentPluginStatus.ERROR;
         } else {
             paymentPluginStatus = PaymentPluginStatus.UNDEFINED;
         }
@@ -246,8 +239,12 @@ public class KillbillAdyenNotificationHandler implements AdyenNotificationHandle
                 return transitionPendingTransaction(account, kbPaymentTransactionId, paymentPluginStatus, context);
             } else if (paymentTransaction != null && paymentTransaction.getPaymentInfoPlugin().getStatus() != paymentPluginStatus) {
                 return fixPaymentTransactionState(payment, paymentTransaction, paymentPluginStatus, context);
-            } else if (paymentTransaction == null && expectedTransactionType == TransactionType.CHARGEBACK) {
+            } else if (paymentTransaction == null && expectedTransactionType == TransactionType.CHARGEBACK && PaymentPluginStatus.PROCESSED.equals(paymentPluginStatus)) {
                 return createChargeback(account, kbPaymentId, notification, context);
+            } else if (paymentTransaction == null && expectedTransactionType == TransactionType.CHARGEBACK && PaymentPluginStatus.ERROR.equals(paymentPluginStatus)) {
+                // There should only be one chargeback in Kill Bill, see https://github.com/killbill/killbill/issues/477
+                final PaymentTransaction chargeback = filterForTransaction(payment, TransactionType.CHARGEBACK);
+                return createChargebackReversal(account, kbPaymentId, chargeback, context);
             } else if (paymentTransaction == null) {
                 // HPP not associated with a pending payment
                 return createPayment(account, payment, notification, authMode, expectedTransactionType, paymentPluginStatus, context);
@@ -447,8 +444,9 @@ public class KillbillAdyenNotificationHandler implements AdyenNotificationHandle
     private PaymentTransaction createChargeback(final Account account, final UUID kbPaymentId, final NotificationItem notification, final CallContext context) {
         final BigDecimal amount = notification.getAmount();
         final Currency currency = Currency.valueOf(notification.getCurrency());
-        // We cannot use the merchant reference here, because it's the one associated with the auth
-        final String paymentTransactionExternalKey = Strings.emptyToNull(notification.getPspReference());
+        // We cannot use the merchant reference here, because it's the one associated with the auth.
+        // We cannot use the PSP reference either as it may be the one from the capture.
+        final String paymentTransactionExternalKey = null;
 
         try {
             final Payment chargeback = osgiKillbillAPI.getPaymentApi().createChargeback(account,
@@ -461,6 +459,21 @@ public class KillbillAdyenNotificationHandler implements AdyenNotificationHandle
         } catch (final PaymentApiException e) {
             // Have Adyen retry
             throw new RuntimeException("Failed to record chargeback", e);
+        }
+    }
+
+    private PaymentTransaction createChargebackReversal(final Account account, final UUID kbPaymentId, final PaymentTransaction chargeback, final CallContext context) {
+        final String paymentTransactionExternalKey = chargeback.getExternalKey();
+
+        try {
+            final Payment chargebackReversal = osgiKillbillAPI.getPaymentApi().createChargebackReversal(account,
+                                                                                                        kbPaymentId,
+                                                                                                        paymentTransactionExternalKey,
+                                                                                                        context);
+            return filterForLastTransaction(chargebackReversal);
+        } catch (final PaymentApiException e) {
+            // Have Adyen retry
+            throw new RuntimeException("Failed to record chargeback reversal", e);
         }
     }
 
@@ -558,6 +571,15 @@ public class KillbillAdyenNotificationHandler implements AdyenNotificationHandle
     private PaymentTransaction filterForTransaction(final Payment payment, final UUID kbTransactionId) {
         for (final PaymentTransaction paymentTransaction : payment.getTransactions()) {
             if (paymentTransaction.getId().equals(kbTransactionId)) {
+                return paymentTransaction;
+            }
+        }
+        return null;
+    }
+
+    private PaymentTransaction filterForTransaction(final Payment payment, final TransactionType transactionType) {
+        for (final PaymentTransaction paymentTransaction : payment.getTransactions()) {
+            if (paymentTransaction.getTransactionType().equals(transactionType)) {
                 return paymentTransaction;
             }
         }
