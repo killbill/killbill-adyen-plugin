@@ -52,5 +52,6 @@ CREATE TABLE `received_payments_report` (
   `Reserved10` varchar(250) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 CREATE INDEX received_payments_report_acct_date_pm ON received_payments_report(Merchant_Account, Creation_Date, Payment_Method);
+CREATE INDEX received_payments_report_shopper_reference ON received_payments_report(Shopper_Reference);
 
 /* LOAD DATA INFILE '/tmp/received_payments_report_YYYY_MM_DD.csv' INTO TABLE received_payments_report FIELDS TERMINATED by ',' OPTIONALLY ENCLOSED BY '"' IGNORE 1 LINES; */

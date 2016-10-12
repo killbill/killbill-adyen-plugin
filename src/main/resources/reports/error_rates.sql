@@ -1,5 +1,6 @@
 select
   Merchant_Account
+, date_format(Creation_Date, '%Y-%m-%d') day
 , Payment_Method
 , system
 , count(*) count
@@ -44,6 +45,7 @@ select
 from (
   select
     Merchant_Account
+  , Creation_Date
   , Payment_Method
   , case when Merchant_Reference REGEXP '[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}' then 'kb' else 'other' end system
   , case when Acquirer_Response = 'APPROVED' then 1 else 0 end APPROVED
@@ -69,6 +71,6 @@ from (
   where 1 = 1
 ) error_rates
 where 1 = 1
-group by 1,2,3
-order by 1,2,3
+group by 1,2,3,4
+order by 1,2,3,4
 ;
