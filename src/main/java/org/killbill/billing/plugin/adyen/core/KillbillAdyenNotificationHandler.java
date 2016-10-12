@@ -353,13 +353,29 @@ public class KillbillAdyenNotificationHandler implements AdyenNotificationHandle
         final BigDecimal amount = notification.getAmount();
         final Currency currency = notification.getCurrency() != null ? Currency.valueOf(notification.getCurrency()) : null;
         final String paymentExternalKey = payment != null ? payment.getExternalKey() : Strings.emptyToNull(notification.getMerchantReference());
-        final String paymentTransactionExternalKey = payment != null ? notification.getPspReference() : Strings.emptyToNull(notification.getMerchantReference());
         final Iterable<PluginProperty> pluginProperties = toPluginProperties(notification, true, paymentPluginStatus);
 
         TransactionType transactionType = MoreObjects.firstNonNull(expectedTransactionType, TransactionType.AUTHORIZE);
         if (transactionType == TransactionType.AUTHORIZE && !authMode) {
             // Auto-capture mode configured in Adyen
             transactionType = TransactionType.PURCHASE;
+        }
+
+        final String paymentTransactionExternalKey;
+        switch (transactionType) {
+            case AUTHORIZE:
+            case CREDIT:
+            case PURCHASE:
+                paymentTransactionExternalKey = Strings.emptyToNull(notification.getMerchantReference());
+                break;
+            case CAPTURE:
+            case CHARGEBACK:
+            case REFUND:
+            case VOID:
+            default:
+                // We cannot use the merchant reference nor the PSP reference (not necessarily unique)
+                paymentTransactionExternalKey = null;
+                break;
         }
 
         try {
