@@ -40,7 +40,6 @@ import org.killbill.billing.plugin.adyen.client.model.PaymentServiceProviderResu
 import org.killbill.billing.plugin.adyen.client.model.PurchaseResult;
 import org.killbill.billing.plugin.adyen.dao.gen.tables.records.AdyenNotificationsRecord;
 import org.killbill.billing.util.callcontext.CallContext;
-import org.killbill.billing.util.callcontext.TenantContext;
 import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
@@ -75,34 +74,6 @@ public class TestKillbillAdyenNotificationHandler extends TestAdyenPaymentPlugin
                        final String paymentTransactionExternalKey = MoreObjects.firstNonNull((String) invocation.getArguments()[4], UUID.randomUUID().toString());
 
                        TestUtils.buildPaymentTransaction(payment, paymentTransactionExternalKey, TransactionType.CAPTURE, TransactionStatus.SUCCESS, amount, currency);
-
-                       return payment;
-                   }
-               });
-
-        Mockito.when(killbillApi.getPaymentApi().createChargebackReversal(Mockito.<Account>any(),
-                                                                          Mockito.<UUID>any(),
-                                                                          Mockito.<String>any(),
-                                                                          Mockito.<CallContext>any()))
-               .then(new Answer<Payment>() {
-                   @Override
-                   public Payment answer(final InvocationOnMock invocation) throws Throwable {
-                       final UUID kbPaymentId = (UUID) invocation.getArguments()[1];
-                       final Payment payment = killbillApi.getPaymentApi().getPayment(kbPaymentId, false, false, ImmutableList.<PluginProperty>of(), (TenantContext) invocation.getArguments()[3]);
-                       Assert.assertNotNull(payment);
-
-                       final String kbPaymentTransactionExternalKey = (String) invocation.getArguments()[2];
-                       PaymentTransaction paymentTransaction = null;
-                       for (final PaymentTransaction t : payment.getTransactions()) {
-                           if (kbPaymentTransactionExternalKey.equals(t.getExternalKey())) {
-                               paymentTransaction = t;
-                               break;
-                           }
-                       }
-                       Assert.assertNotNull(paymentTransaction);
-                       Assert.assertEquals(paymentTransaction.getTransactionStatus(), TransactionStatus.SUCCESS);
-
-                       Mockito.when(paymentTransaction.getTransactionStatus()).thenReturn(TransactionStatus.PAYMENT_FAILURE);
 
                        return payment;
                    }
@@ -165,6 +136,152 @@ public class TestKillbillAdyenNotificationHandler extends TestAdyenPaymentPlugin
     }
 
     @Test(groups = "slow")
+    public void testHandleRefundFailureAfterRefundSuccess() throws Exception {
+        final boolean success = true;
+
+        final NotificationRequestItem authItem = getNotificationRequestItem("AUTHORISATION", success);
+        setupTransaction(TransactionType.AUTHORIZE, authItem);
+
+        Assert.assertEquals(payment.getTransactions().size(), 1);
+        Assert.assertEquals(payment.getTransactions().get(0).getTransactionType(), TransactionType.AUTHORIZE);
+        Assert.assertEquals(payment.getTransactions().get(0).getTransactionStatus(), TransactionStatus.PENDING);
+
+        killbillAdyenNotificationHandler.handleNotification(authItem);
+        verifyLastNotificationRecorded(1);
+
+        Assert.assertEquals(payment.getTransactions().size(), 1);
+        Assert.assertEquals(payment.getTransactions().get(0).getTransactionType(), TransactionType.AUTHORIZE);
+        Assert.assertEquals(payment.getTransactions().get(0).getTransactionStatus(), TransactionStatus.SUCCESS);
+
+        final NotificationRequestItem captureItem = getNotificationRequestItem(authItem, "CAPTURE", success);
+        setupTransaction(TransactionType.CAPTURE, captureItem);
+
+        Assert.assertEquals(payment.getTransactions().size(), 2);
+        Assert.assertEquals(payment.getTransactions().get(0).getTransactionType(), TransactionType.AUTHORIZE);
+        Assert.assertEquals(payment.getTransactions().get(0).getTransactionStatus(), TransactionStatus.SUCCESS);
+        Assert.assertEquals(payment.getTransactions().get(1).getTransactionType(), TransactionType.CAPTURE);
+        Assert.assertEquals(payment.getTransactions().get(1).getTransactionStatus(), TransactionStatus.PENDING);
+
+        killbillAdyenNotificationHandler.handleNotification(captureItem);
+        verifyLastNotificationRecorded(2);
+
+        Assert.assertEquals(payment.getTransactions().size(), 2);
+        Assert.assertEquals(payment.getTransactions().get(0).getTransactionType(), TransactionType.AUTHORIZE);
+        Assert.assertEquals(payment.getTransactions().get(0).getTransactionStatus(), TransactionStatus.SUCCESS);
+        Assert.assertEquals(payment.getTransactions().get(1).getTransactionType(), TransactionType.CAPTURE);
+        Assert.assertEquals(payment.getTransactions().get(1).getTransactionStatus(), TransactionStatus.SUCCESS);
+
+        final NotificationRequestItem refundItem = getNotificationRequestItem(authItem, "REFUND", success);
+        setupTransaction(TransactionType.REFUND, refundItem);
+
+        Assert.assertEquals(payment.getTransactions().size(), 3);
+        Assert.assertEquals(payment.getTransactions().get(0).getTransactionType(), TransactionType.AUTHORIZE);
+        Assert.assertEquals(payment.getTransactions().get(0).getTransactionStatus(), TransactionStatus.SUCCESS);
+        Assert.assertEquals(payment.getTransactions().get(1).getTransactionType(), TransactionType.CAPTURE);
+        Assert.assertEquals(payment.getTransactions().get(1).getTransactionStatus(), TransactionStatus.SUCCESS);
+        Assert.assertEquals(payment.getTransactions().get(2).getTransactionType(), TransactionType.REFUND);
+        Assert.assertEquals(payment.getTransactions().get(2).getTransactionStatus(), TransactionStatus.PENDING);
+
+        killbillAdyenNotificationHandler.handleNotification(refundItem);
+        verifyLastNotificationRecorded(3);
+
+        Assert.assertEquals(payment.getTransactions().size(), 3);
+        Assert.assertEquals(payment.getTransactions().get(0).getTransactionType(), TransactionType.AUTHORIZE);
+        Assert.assertEquals(payment.getTransactions().get(0).getTransactionStatus(), TransactionStatus.SUCCESS);
+        Assert.assertEquals(payment.getTransactions().get(1).getTransactionType(), TransactionType.CAPTURE);
+        Assert.assertEquals(payment.getTransactions().get(1).getTransactionStatus(), TransactionStatus.SUCCESS);
+        Assert.assertEquals(payment.getTransactions().get(2).getTransactionType(), TransactionType.REFUND);
+        Assert.assertEquals(payment.getTransactions().get(2).getTransactionStatus(), TransactionStatus.SUCCESS);
+
+        // The PSP reference of the refund is re-used
+        final NotificationRequestItem refundFailedItem = getNotificationRequestItem(authItem, refundItem.getPspReference(), "REFUND_FAILED", success);
+
+        killbillAdyenNotificationHandler.handleNotification(refundFailedItem);
+        verifyLastNotificationRecorded(4);
+
+        Assert.assertEquals(payment.getTransactions().size(), 3);
+        Assert.assertEquals(payment.getTransactions().get(0).getTransactionType(), TransactionType.AUTHORIZE);
+        Assert.assertEquals(payment.getTransactions().get(0).getTransactionStatus(), TransactionStatus.SUCCESS);
+        Assert.assertEquals(payment.getTransactions().get(1).getTransactionType(), TransactionType.CAPTURE);
+        Assert.assertEquals(payment.getTransactions().get(1).getTransactionStatus(), TransactionStatus.SUCCESS);
+        Assert.assertEquals(payment.getTransactions().get(2).getTransactionType(), TransactionType.REFUND);
+        Assert.assertEquals(payment.getTransactions().get(2).getTransactionStatus(), TransactionStatus.PAYMENT_FAILURE);
+    }
+
+    @Test(groups = "slow")
+    public void testHandleRefundFailureAfterRefundSuccessV2() throws Exception {
+        final boolean success = true;
+
+        final NotificationRequestItem authItem = getNotificationRequestItem("AUTHORISATION", success);
+        setupTransaction(TransactionType.AUTHORIZE, authItem);
+
+        Assert.assertEquals(payment.getTransactions().size(), 1);
+        Assert.assertEquals(payment.getTransactions().get(0).getTransactionType(), TransactionType.AUTHORIZE);
+        Assert.assertEquals(payment.getTransactions().get(0).getTransactionStatus(), TransactionStatus.PENDING);
+
+        killbillAdyenNotificationHandler.handleNotification(authItem);
+        verifyLastNotificationRecorded(1);
+
+        Assert.assertEquals(payment.getTransactions().size(), 1);
+        Assert.assertEquals(payment.getTransactions().get(0).getTransactionType(), TransactionType.AUTHORIZE);
+        Assert.assertEquals(payment.getTransactions().get(0).getTransactionStatus(), TransactionStatus.SUCCESS);
+
+        final NotificationRequestItem captureItem = getNotificationRequestItem(authItem, "CAPTURE", success);
+        setupTransaction(TransactionType.CAPTURE, captureItem);
+
+        Assert.assertEquals(payment.getTransactions().size(), 2);
+        Assert.assertEquals(payment.getTransactions().get(0).getTransactionType(), TransactionType.AUTHORIZE);
+        Assert.assertEquals(payment.getTransactions().get(0).getTransactionStatus(), TransactionStatus.SUCCESS);
+        Assert.assertEquals(payment.getTransactions().get(1).getTransactionType(), TransactionType.CAPTURE);
+        Assert.assertEquals(payment.getTransactions().get(1).getTransactionStatus(), TransactionStatus.PENDING);
+
+        killbillAdyenNotificationHandler.handleNotification(captureItem);
+        verifyLastNotificationRecorded(2);
+
+        Assert.assertEquals(payment.getTransactions().size(), 2);
+        Assert.assertEquals(payment.getTransactions().get(0).getTransactionType(), TransactionType.AUTHORIZE);
+        Assert.assertEquals(payment.getTransactions().get(0).getTransactionStatus(), TransactionStatus.SUCCESS);
+        Assert.assertEquals(payment.getTransactions().get(1).getTransactionType(), TransactionType.CAPTURE);
+        Assert.assertEquals(payment.getTransactions().get(1).getTransactionStatus(), TransactionStatus.SUCCESS);
+
+        final NotificationRequestItem refundItem = getNotificationRequestItem(authItem, "REFUND", success);
+        setupTransaction(TransactionType.REFUND, refundItem);
+
+        Assert.assertEquals(payment.getTransactions().size(), 3);
+        Assert.assertEquals(payment.getTransactions().get(0).getTransactionType(), TransactionType.AUTHORIZE);
+        Assert.assertEquals(payment.getTransactions().get(0).getTransactionStatus(), TransactionStatus.SUCCESS);
+        Assert.assertEquals(payment.getTransactions().get(1).getTransactionType(), TransactionType.CAPTURE);
+        Assert.assertEquals(payment.getTransactions().get(1).getTransactionStatus(), TransactionStatus.SUCCESS);
+        Assert.assertEquals(payment.getTransactions().get(2).getTransactionType(), TransactionType.REFUND);
+        Assert.assertEquals(payment.getTransactions().get(2).getTransactionStatus(), TransactionStatus.PENDING);
+
+        killbillAdyenNotificationHandler.handleNotification(refundItem);
+        verifyLastNotificationRecorded(3);
+
+        Assert.assertEquals(payment.getTransactions().size(), 3);
+        Assert.assertEquals(payment.getTransactions().get(0).getTransactionType(), TransactionType.AUTHORIZE);
+        Assert.assertEquals(payment.getTransactions().get(0).getTransactionStatus(), TransactionStatus.SUCCESS);
+        Assert.assertEquals(payment.getTransactions().get(1).getTransactionType(), TransactionType.CAPTURE);
+        Assert.assertEquals(payment.getTransactions().get(1).getTransactionStatus(), TransactionStatus.SUCCESS);
+        Assert.assertEquals(payment.getTransactions().get(2).getTransactionType(), TransactionType.REFUND);
+        Assert.assertEquals(payment.getTransactions().get(2).getTransactionStatus(), TransactionStatus.SUCCESS);
+
+        // The PSP reference of the refund is re-used and success is set to false
+        final NotificationRequestItem refundFailedItem = getNotificationRequestItem(authItem, refundItem.getPspReference(), "REFUNDED_REVERSED", false);
+
+        killbillAdyenNotificationHandler.handleNotification(refundFailedItem);
+        verifyLastNotificationRecorded(4);
+
+        Assert.assertEquals(payment.getTransactions().size(), 3);
+        Assert.assertEquals(payment.getTransactions().get(0).getTransactionType(), TransactionType.AUTHORIZE);
+        Assert.assertEquals(payment.getTransactions().get(0).getTransactionStatus(), TransactionStatus.SUCCESS);
+        Assert.assertEquals(payment.getTransactions().get(1).getTransactionType(), TransactionType.CAPTURE);
+        Assert.assertEquals(payment.getTransactions().get(1).getTransactionStatus(), TransactionStatus.SUCCESS);
+        Assert.assertEquals(payment.getTransactions().get(2).getTransactionType(), TransactionType.REFUND);
+        Assert.assertEquals(payment.getTransactions().get(2).getTransactionStatus(), TransactionStatus.PAYMENT_FAILURE);
+    }
+
+    @Test(groups = "slow")
     public void testHandleChargeback() throws Exception {
         final boolean success = true;
 
@@ -182,11 +299,33 @@ public class TestKillbillAdyenNotificationHandler extends TestAdyenPaymentPlugin
         Assert.assertEquals(payment.getTransactions().get(0).getTransactionType(), TransactionType.PURCHASE);
         Assert.assertEquals(payment.getTransactions().get(0).getTransactionStatus(), TransactionStatus.SUCCESS);
 
+        // Chargeback notification
+        final NotificationRequestItem notificationOfChargebackItem = getNotificationRequestItem(purchaseItem, "NOTIFICATION_OF_CHARGEBACK", success);
+
+        killbillAdyenNotificationHandler.handleNotification(notificationOfChargebackItem);
+        // We'll find the payment, but there is not associated transaction (yet)
+        verifyLastNotificationRecorded(2, null);
+
+        Assert.assertEquals(payment.getTransactions().size(), 1);
+        Assert.assertEquals(payment.getTransactions().get(0).getTransactionType(), TransactionType.PURCHASE);
+        Assert.assertEquals(payment.getTransactions().get(0).getTransactionStatus(), TransactionStatus.SUCCESS);
+
+        // Request for information notification
+        final NotificationRequestItem requestForInformationItem = getNotificationRequestItem(purchaseItem, "REQUEST_FOR_INFORMATION", success);
+
+        killbillAdyenNotificationHandler.handleNotification(requestForInformationItem);
+        // We'll find the payment, but there is not associated transaction (yet)
+        verifyLastNotificationRecorded(3, null);
+
+        Assert.assertEquals(payment.getTransactions().size(), 1);
+        Assert.assertEquals(payment.getTransactions().get(0).getTransactionType(), TransactionType.PURCHASE);
+        Assert.assertEquals(payment.getTransactions().get(0).getTransactionStatus(), TransactionStatus.SUCCESS);
+
         // Chargeback done outside of Kill Bill
         final NotificationRequestItem chargebackItem = getNotificationRequestItem(purchaseItem, "CHARGEBACK", success);
 
         killbillAdyenNotificationHandler.handleNotification(chargebackItem);
-        verifyLastNotificationRecorded(2);
+        verifyLastNotificationRecorded(4);
 
         Assert.assertEquals(payment.getTransactions().size(), 2);
         Assert.assertEquals(payment.getTransactions().get(0).getTransactionType(), TransactionType.PURCHASE);
@@ -393,10 +532,14 @@ public class TestKillbillAdyenNotificationHandler extends TestAdyenPaymentPlugin
     }
 
     private void verifyLastNotificationRecorded(final int nb) throws SQLException {
+        verifyLastNotificationRecorded(nb, payment.getTransactions().get(payment.getTransactions().size() - 1).getId().toString());
+    }
+
+    private void verifyLastNotificationRecorded(final int nb, final String expectedTransactionId) throws SQLException {
         final List<AdyenNotificationsRecord> notifications = dao.getNotifications();
         Assert.assertEquals(notifications.size(), nb);
         Assert.assertEquals(notifications.get(nb - 1).getKbAccountId(), payment.getAccountId().toString());
         Assert.assertEquals(notifications.get(nb - 1).getKbPaymentId(), payment.getId().toString());
-        Assert.assertEquals(notifications.get(nb - 1).getKbPaymentTransactionId(), payment.getTransactions().get(payment.getTransactions().size() - 1).getId().toString());
+        Assert.assertEquals(notifications.get(nb - 1).getKbPaymentTransactionId(), expectedTransactionId);
     }
 }
