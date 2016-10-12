@@ -1,3 +1,9 @@
+0.4.8
+    Add support for skipGw=true property
+    Use auth merchant account for modification transactions by default
+    Better support for chargebacks
+    Bug fixes in notifications handler
+
 0.4.7
     Fix NoSuchElementException when the payment is unknown to the plugin
 
