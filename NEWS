@@ -1,3 +1,6 @@
+0.4.9
+    add support for ELV
+
 0.4.8
     Add support for skipGw=true property
     Use auth merchant account for modification transactions by default
