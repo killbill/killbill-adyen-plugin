@@ -21,6 +21,7 @@ import javax.annotation.Nullable;
 
 import org.killbill.billing.account.api.AccountData;
 import org.killbill.billing.payment.api.PluginProperty;
+import org.killbill.billing.plugin.adyen.client.model.paymentinfo.ELVDirectDebit;
 import org.killbill.billing.plugin.adyen.client.model.paymentinfo.SepaDirectDebit;
 import org.killbill.billing.plugin.adyen.dao.gen.tables.records.AdyenPaymentMethodsRecord;
 import org.killbill.billing.plugin.api.PluginProperties;
@@ -28,22 +29,33 @@ import org.killbill.billing.plugin.api.PluginProperties;
 import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.PROPERTY_DD_ACCOUNT_NUMBER;
 import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.PROPERTY_DD_BANK_IDENTIFIER_CODE;
 import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.PROPERTY_DD_HOLDER_NAME;
+import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.PROPERTY_ELV_BLZ;
 import static org.killbill.billing.plugin.api.payment.PluginPaymentPluginApi.PROPERTY_COUNTRY;
 
 public abstract class SepaDirectDebitMappingService {
 
     public static SepaDirectDebit toPaymentInfo(@Nullable final AccountData account, final AdyenPaymentMethodsRecord paymentMethodsRecord, final Iterable<PluginProperty> properties) {
-        final SepaDirectDebit sepaDirectDebit = new SepaDirectDebit();
+        final SepaDirectDebit sepaDirectDebit;
 
         final String ddAccountNumber = PluginProperties.getValue(PROPERTY_DD_ACCOUNT_NUMBER, paymentMethodsRecord.getCcNumber(), properties);
-        sepaDirectDebit.setIban(ddAccountNumber);
+
+        final String elvBlz = PluginProperties.findPluginPropertyValue(PROPERTY_ELV_BLZ, properties);
+        if (elvBlz != null) {
+            final ELVDirectDebit elvDirectDebit = new ELVDirectDebit();
+            elvDirectDebit.setBlz(elvBlz);
+            elvDirectDebit.setAccountNumber(ddAccountNumber);
+            sepaDirectDebit = elvDirectDebit;
+        } else {
+            sepaDirectDebit = new SepaDirectDebit();
+            sepaDirectDebit.setIban(ddAccountNumber);
+
+            final String ddBic = PluginProperties.findPluginPropertyValue(PROPERTY_DD_BANK_IDENTIFIER_CODE, properties);
+            sepaDirectDebit.setBic(ddBic);
+        }
 
         final String paymentMethodHolderName = holderName(paymentMethodsRecord.getCcFirstName(), paymentMethodsRecord.getCcLastName());
         final String ddHolderName = PluginProperties.getValue(PROPERTY_DD_HOLDER_NAME, paymentMethodHolderName, properties);
         sepaDirectDebit.setSepaAccountHolder(ddHolderName);
-
-        final String ddBic = PluginProperties.findPluginPropertyValue(PROPERTY_DD_BANK_IDENTIFIER_CODE, properties);
-        sepaDirectDebit.setBic(ddBic);
 
         String countryCode = PluginProperties.getValue(PROPERTY_COUNTRY, paymentMethodsRecord.getCountry(), properties);
         if (countryCode == null && account != null) {

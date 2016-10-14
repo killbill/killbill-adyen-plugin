@@ -42,7 +42,7 @@ import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.PROPER
 import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.PROPERTY_ACQUIRER_MID;
 import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.PROPERTY_CAPTURE_DELAY_HOURS;
 import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.PROPERTY_CONTINUOUS_AUTHENTICATION;
-import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.PROPERTY_DD_BANK_IDENTIFIER_CODE;
+import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.PROPERTY_DD_ACCOUNT_NUMBER;
 import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.PROPERTY_INSTALLMENTS;
 import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.PROPERTY_MD;
 import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.PROPERTY_MPI_DATA_AUTHENTICATION_RESPONSE;
@@ -84,8 +84,8 @@ public abstract class PaymentInfoMappingService {
             if (recurringDetailReference != null) {
                 paymentInfo = RecurringMappingService.toPaymentInfo(paymentMethodsRecord, properties);
             } else {
-                final String ddBic = PluginProperties.findPluginPropertyValue(PROPERTY_DD_BANK_IDENTIFIER_CODE, properties);
-                if (ddBic != null) {
+                final String ddAccountNumber = PluginProperties.findPluginPropertyValue(PROPERTY_DD_ACCOUNT_NUMBER, properties);
+                if (ddAccountNumber != null) {
                     paymentInfo = SepaDirectDebitMappingService.toPaymentInfo(account, paymentMethodsRecord, properties);
                 } else {
                     // Will be used as a fallback

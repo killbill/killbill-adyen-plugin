@@ -61,6 +61,7 @@ import static com.jayway.restassured.RestAssured.given;
 import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.PROPERTY_DD_ACCOUNT_NUMBER;
 import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.PROPERTY_DD_BANK_IDENTIFIER_CODE;
 import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.PROPERTY_DD_HOLDER_NAME;
+import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.PROPERTY_ELV_BLZ;
 import static org.killbill.billing.plugin.api.payment.PluginPaymentPluginApi.PROPERTY_COUNTRY;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertFalse;
@@ -223,6 +224,15 @@ public class TestAdyenPaymentPluginApi extends TestAdyenPaymentPluginApiBase {
     @Test(groups = "slow")
     public void testAuthorizeAndMultipleCapturesSepaDirectDebit() throws Exception {
         adyenPaymentPluginApi.addPaymentMethod(account.getId(), account.getPaymentMethodId(), adyenPaymentMethodPluginSepaDirectDebit(), true, ImmutableList.<PluginProperty>of(), context);
+
+        final Payment payment = doAuthorize(BigDecimal.TEN);
+        doCapture(payment, new BigDecimal("5"));
+        doCapture(payment, new BigDecimal("5"));
+    }
+
+    @Test(groups = "slow")
+    public void testAuthorizeAndMultipleCapturesELV() throws Exception {
+        adyenPaymentPluginApi.addPaymentMethod(account.getId(), account.getPaymentMethodId(), adyenPaymentMethodPluginELV(), true, ImmutableList.<PluginProperty>of(), context);
 
         final Payment payment = doAuthorize(BigDecimal.TEN);
         doCapture(payment, new BigDecimal("5"));
@@ -761,6 +771,14 @@ public class TestAdyenPaymentPluginApi extends TestAdyenPaymentPluginApiBase {
                                                                                  + '"' + PROPERTY_DD_HOLDER_NAME + "\":\"" + DD_HOLDER_NAME + "\","
                                                                                  + '"' + PROPERTY_DD_ACCOUNT_NUMBER + "\":\"" + DD_IBAN + "\","
                                                                                  + '"' + PROPERTY_DD_BANK_IDENTIFIER_CODE + "\":\"" + DD_BIC + '"'
+                                                                                 + '}');
+    }
+
+    private PaymentMethodPlugin adyenPaymentMethodPluginELV() {
+        return adyenPaymentMethodPlugin(account.getPaymentMethodId().toString(), "{"
+                                                                                 + '"' + PROPERTY_DD_HOLDER_NAME + "\":\"" + DD_HOLDER_NAME + "\","
+                                                                                 + '"' + PROPERTY_DD_ACCOUNT_NUMBER + "\":\"" + ELV_KONTONUMMER + "\","
+                                                                                 + '"' + PROPERTY_ELV_BLZ + "\":\"" + ELV_BANKLEITZAHL + '"'
                                                                                  + '}');
     }
 

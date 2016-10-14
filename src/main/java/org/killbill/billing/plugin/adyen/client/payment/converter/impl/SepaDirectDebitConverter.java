@@ -20,6 +20,7 @@ package org.killbill.billing.plugin.adyen.client.payment.converter.impl;
 import org.killbill.adyen.payment.BankAccount;
 import org.killbill.adyen.payment.PaymentRequest;
 import org.killbill.billing.plugin.adyen.client.model.PaymentInfo;
+import org.killbill.billing.plugin.adyen.client.model.paymentinfo.ELVDirectDebit;
 import org.killbill.billing.plugin.adyen.client.model.paymentinfo.SepaDirectDebit;
 import org.killbill.billing.plugin.adyen.client.payment.converter.PaymentInfoConverter;
 
@@ -35,16 +36,29 @@ public class SepaDirectDebitConverter extends PaymentInfoConverter<SepaDirectDeb
     @Override
     public PaymentRequest convertPaymentInfoToPaymentRequest(final SepaDirectDebit sepaDirectDebit) {
         final BankAccount bankAccount = new BankAccount();
-        bankAccount.setIban(sepaDirectDebit.getIban());
-        bankAccount.setBic(sepaDirectDebit.getBic());
+
+        final boolean isELV = sepaDirectDebit instanceof ELVDirectDebit;
+        if (isELV) {
+            final ELVDirectDebit elvDirectDebit = (ELVDirectDebit) sepaDirectDebit;
+            bankAccount.setBankAccountNumber(elvDirectDebit.getAccountNumber());
+            bankAccount.setBankLocationId(elvDirectDebit.getBlz());
+        } else {
+            bankAccount.setIban(sepaDirectDebit.getIban());
+            bankAccount.setBic(sepaDirectDebit.getBic());
+        }
+
         bankAccount.setOwnerName(sepaDirectDebit.getSepaAccountHolder());
         bankAccount.setCountryCode(sepaDirectDebit.getCountryCode());
 
         final PaymentRequest paymentRequest = super.convertPaymentInfoToPaymentRequest(sepaDirectDebit);
         paymentRequest.setBankAccount(bankAccount);
-        // From https://docs.adyen.com/developers/api-manual#sepadirectdebit:
-        // An SDD payment request requires a selectedBrand field whose value needs to be sepadirectdebit
-        paymentRequest.setSelectedBrand(SELECTED_BRAND_SEPA);
+
+        if (!isELV) {
+            // From https://docs.adyen.com/developers/api-manual#sepadirectdebit:
+            // An SDD payment request requires a selectedBrand field whose value needs to be sepadirectdebit
+            paymentRequest.setSelectedBrand(SELECTED_BRAND_SEPA);
+        }
+
         return paymentRequest;
     }
 }

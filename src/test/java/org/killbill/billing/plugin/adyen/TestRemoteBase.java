@@ -69,6 +69,9 @@ public abstract class TestRemoteBase {
     public static final String DD_BIC = "TESTDE01XXX";
     public static final String DD_HOLDER_NAME = "A. Schneider";
 
+    public static final String ELV_KONTONUMMER = "1234567890";
+    public static final String ELV_BANKLEITZAHL = "12345678";
+
     protected AdyenConfigProperties adyenConfigProperties;
     protected AdyenConfigurationHandler adyenConfigurationHandler;
     protected AdyenConfigPropertiesConfigurationHandler adyenConfigPropertiesConfigurationHandler;
