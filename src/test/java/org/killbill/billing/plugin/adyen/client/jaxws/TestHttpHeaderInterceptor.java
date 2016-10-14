@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.cxf.message.Message;
+import org.apache.cxf.phase.Phase;
 import org.mockito.Mockito;
 import org.testng.Assert;
 import org.testng.annotations.Test;
@@ -30,6 +31,7 @@ public class TestHttpHeaderInterceptor {
     @Test(groups = "fast")
     public void testAddRequestId() throws Exception {
         final HttpHeaderInterceptor interceptor = new HttpHeaderInterceptor();
+        Assert.assertEquals(interceptor.getPhase(), Phase.PRE_STREAM);
 
         final Map<String, List<String>> headers = new HashMap<String, List<String>>();
         final Message message = Mockito.mock(Message.class);

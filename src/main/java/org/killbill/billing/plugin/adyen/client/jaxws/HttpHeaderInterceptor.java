@@ -39,7 +39,7 @@ public class HttpHeaderInterceptor extends AbstractPhaseInterceptor<Message> {
     private static final String MDC_REQUEST_ID = "req.requestId";
 
     public HttpHeaderInterceptor() {
-        super(Phase.POST_PROTOCOL);
+        super(Phase.PRE_STREAM);
     }
 
     @Override
