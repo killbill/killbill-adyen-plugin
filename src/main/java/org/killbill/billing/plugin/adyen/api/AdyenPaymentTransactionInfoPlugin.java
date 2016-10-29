@@ -404,7 +404,7 @@ public class AdyenPaymentTransactionInfoPlugin extends PluginPaymentTransactionI
         defaultProperties.put("processorResponse", getGatewayErrorCode(data));
         defaultProperties.put("avsResultCode", data.get("avsResultRaw"));
         defaultProperties.put("cvvResultCode", data.get("cvcResultRaw"));
-        defaultProperties.put("payment_processor_account_id", data.get("merchantAccountCode"));
+        defaultProperties.put("payment_processor_account_id", data.get(AdyenPaymentPluginApi.PROPERTY_MERCHANT_ACCOUNT_CODE));
         // Already populated
         //defaultProperties.put("paymentMethod", data.get("paymentMethod"));
 

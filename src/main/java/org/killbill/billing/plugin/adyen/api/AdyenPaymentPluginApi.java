@@ -620,9 +620,11 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
                                              @Override
                                              public PurchaseResult execute(final String merchantAccount, final PaymentData paymentData, final UserData userData, final SplitSettlementData splitSettlementData) {
                                                  final AdyenPaymentServiceProviderPort adyenPort = adyenConfigurationHandler.getConfigurable(context.getTenantId());
-                                                 if (hasPreviousAdyenRespondseRecord(kbPaymentId, kbTransactionId.toString(), context)) {
+                                                 final AdyenResponsesRecord existingAuth = previousAdyenResponseRecord(kbPaymentId, kbTransactionId.toString(), context);
+                                                 if (existingAuth != null) {
                                                      // We are completing a 3D-S payment
-                                                     return adyenPort.authorize3DSecure(merchantAccount, paymentData, userData, splitSettlementData);
+                                                     final String originalMerchantAccount = null;//getMerchantAccountFromRecord(existingAuth);
+                                                     return adyenPort.authorize3DSecure(originalMerchantAccount != null? originalMerchantAccount: merchantAccount, paymentData, userData, splitSettlementData);
                                                  } else {
                                                      // We are creating a new transaction (AUTHORIZE, PURCHASE or CREDIT)
                                                      if (transactionType == TransactionType.CREDIT) {
@@ -682,7 +684,7 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
                                           PaymentServiceProviderResult.AUTHORISED.getResponses()[0],
                                           paymentData.getPaymentTransactionExternalKey(),
                                           ImmutableMap.<String, String>of("skipGw", "true",
-                                                                          "merchantAccountCode", merchantAccount,
+                                                                          AdyenPaymentPluginApi.PROPERTY_MERCHANT_ACCOUNT_CODE, merchantAccount,
                                                                           "merchantReference", paymentData.getPaymentTransactionExternalKey(),
                                                                           "fromHPPTransactionStatus", "PROCESSED"));
         } else {
@@ -945,13 +947,17 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
                               }).getId();
     }
 
-    private boolean hasPreviousAdyenRespondseRecord(final UUID kbPaymentId, final String kbPaymentTransactionId, final CallContext context) {
+    private AdyenResponsesRecord previousAdyenResponseRecord(final UUID kbPaymentId, final String kbPaymentTransactionId, final CallContext context) {
         try {
             final AdyenResponsesRecord previousAuthorizationResponse = dao.getSuccessfulAuthorizationResponse(kbPaymentId, context.getTenantId());
-            return previousAuthorizationResponse != null && previousAuthorizationResponse.getKbPaymentTransactionId().equals(kbPaymentTransactionId);
+            if (previousAuthorizationResponse != null && previousAuthorizationResponse.getKbPaymentTransactionId().equals(kbPaymentTransactionId)) {
+                return previousAuthorizationResponse;
+            }
+
+            return null;
         } catch (final SQLException e) {
             logService.log(LogService.LOG_ERROR, "Failed to get previous AdyenResponsesRecord", e);
-            return false;
+            return null;
         }
     }
 
@@ -966,14 +972,22 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
         }
 
         if (adyenResponsesRecord != null) {
-            final Map additionalData = AdyenDao.fromAdditionalData(adyenResponsesRecord.getAdditionalData());
-            final Object merchantAccountCode = additionalData.get("merchantAccountCode");
+            final String merchantAccountCode = getMerchantAccountFromRecord(adyenResponsesRecord);
             if (merchantAccountCode != null) {
-                return merchantAccountCode.toString();
+                return merchantAccountCode;
             }
         }
 
         return getConfigProperties(context).getMerchantAccount(countryCode);
+    }
+
+    private String getMerchantAccountFromRecord(final AdyenResponsesRecord adyenResponsesRecord) {
+        final Map additionalData = AdyenDao.fromAdditionalData(adyenResponsesRecord.getAdditionalData());
+        final Object merchantAccountCode = additionalData.get(AdyenPaymentPluginApi.PROPERTY_MERCHANT_ACCOUNT_CODE);
+        if (merchantAccountCode != null) {
+            return merchantAccountCode.toString();
+        }
+        return null;
     }
 
     private AdyenConfigProperties getConfigProperties(final TenantContext context) {
