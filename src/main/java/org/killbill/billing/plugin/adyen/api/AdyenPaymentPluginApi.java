@@ -623,7 +623,7 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
                                                  final AdyenResponsesRecord existingAuth = previousAdyenResponseRecord(kbPaymentId, kbTransactionId.toString(), context);
                                                  if (existingAuth != null) {
                                                      // We are completing a 3D-S payment
-                                                     final String originalMerchantAccount = null;//getMerchantAccountFromRecord(existingAuth);
+                                                     final String originalMerchantAccount = getMerchantAccountFromRecord(existingAuth);
                                                      return adyenPort.authorize3DSecure(originalMerchantAccount != null? originalMerchantAccount: merchantAccount, paymentData, userData, splitSettlementData);
                                                  } else {
                                                      // We are creating a new transaction (AUTHORIZE, PURCHASE or CREDIT)
