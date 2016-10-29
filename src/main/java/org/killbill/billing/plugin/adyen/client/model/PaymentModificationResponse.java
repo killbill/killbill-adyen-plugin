@@ -44,13 +44,8 @@ public class PaymentModificationResponse {
         this(pspReference, response, null, additionalData);
     }
 
-    public PaymentModificationResponse(final String pspReference, final AdyenCallResult<ModificationResult> adyenCallResult) {
-        this(pspReference,
-             null,
-             adyenCallResult.getResponseStatus().isPresent() ? adyenCallResult.getResponseStatus().get() : null,
-             ImmutableMap.<Object, Object>of(ADYEN_CALL_ERROR_STATUS, adyenCallResult.getResponseStatus().isPresent() ? adyenCallResult.getResponseStatus().get().name() : "",
-                                             EXCEPTION_CLASS, adyenCallResult.getExceptionClass().isPresent() ? adyenCallResult.getExceptionClass().get() : UNKNOWN,
-                                             EXCEPTION_MESSAGE, adyenCallResult.getExceptionMessage().isPresent() ? adyenCallResult.getExceptionMessage().get() : UNKNOWN));
+    public PaymentModificationResponse(final String pspReference, final AdyenCallResult<ModificationResult> adyenCallResult, final Map<Object, Object> additionalData) {
+        this(pspReference, null, adyenCallResult.getResponseStatus().orNull(), additionalData);
     }
 
     private PaymentModificationResponse(final String pspReference,

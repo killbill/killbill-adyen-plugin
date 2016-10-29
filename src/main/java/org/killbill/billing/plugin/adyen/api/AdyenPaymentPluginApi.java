@@ -737,7 +737,7 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
         final PaymentModificationResponse response;
         if (shouldSkipAdyen(properties)) {
             response = new PaymentModificationResponse(PaymentServiceProviderResult.PENDING.getResponses()[0],
-                                                       null,
+                                                       (String) null,
                                                        ImmutableMap.<Object, Object>of("skipGw", "true",
                                                                                        "merchantAccountCode", merchantAccount,
                                                                                        "merchantReference", paymentData.getPaymentTransactionExternalKey(),
