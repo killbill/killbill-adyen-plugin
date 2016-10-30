@@ -1,5 +1,8 @@
+0.4.10
+    Lookup original transaction's merchant account when completing a 3-DS transaction
+
 0.4.9
-    add support for ELV
+    Add support for ELV
 
 0.4.8
     Add support for skipGw=true property
