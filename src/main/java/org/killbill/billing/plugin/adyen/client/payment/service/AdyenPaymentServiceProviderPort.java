@@ -41,6 +41,14 @@ import org.killbill.billing.plugin.adyen.client.model.UserData;
 import org.killbill.billing.plugin.adyen.client.payment.builder.AdyenRequestFactory;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Optional;
+import com.google.common.collect.ImmutableMap;
+
+import static org.killbill.billing.plugin.adyen.client.model.PurchaseResult.ADYEN_CALL_ERROR_STATUS;
+import static org.killbill.billing.plugin.adyen.client.model.PurchaseResult.EXCEPTION_CLASS;
+import static org.killbill.billing.plugin.adyen.client.model.PurchaseResult.EXCEPTION_MESSAGE;
+import static org.killbill.billing.plugin.adyen.client.model.PurchaseResult.UNKNOWN;
+
 public class AdyenPaymentServiceProviderPort extends BaseAdyenPaymentServiceProviderPort implements Closeable {
 
     private final AdyenRequestFactory adyenRequestFactory;
@@ -102,7 +110,7 @@ public class AdyenPaymentServiceProviderPort extends BaseAdyenPaymentServiceProv
                                                 result.getRefusalReason(),
                                                 result.getResultCode(),
                                                 paymentData.getPaymentTransactionExternalKey(),
-                                                getAdditionalData(result));
+                                                getAdditionalData(result, merchantAccount));
         } else {
             final Map<String, String> formParams = new HashMap<String, String>();
             formParams.put(AdyenPaymentPluginApi.PROPERTY_PA_REQ, result.getPaRequest());
@@ -122,15 +130,16 @@ public class AdyenPaymentServiceProviderPort extends BaseAdyenPaymentServiceProv
                                                 paymentData.getPaymentTransactionExternalKey(),
                                                 result.getIssuerUrl(),
                                                 formParams,
-                                                getAdditionalData(result));
+                                                getAdditionalData(result, merchantAccount));
         }
 
         logTransaction(operation, userData, merchantAccount, paymentData, purchaseResult, adyenCallResult);
         return purchaseResult;
     }
 
-    private Map<String, String> getAdditionalData(final PaymentResult result) {
+    private Map<String, String> getAdditionalData(final PaymentResult result, final String merchantAccount) {
         final Map<String, String> additionalDataMap = new HashMap<String, String>();
+        additionalDataMap.put(AdyenPaymentPluginApi.PROPERTY_MERCHANT_ACCOUNT_CODE, merchantAccount);
         additionalDataMap.putAll(anyType2AnyTypeMapToStringMap(result.getAdditionalData()));
 
         // Adyen needs to enable it manually
@@ -183,7 +192,7 @@ public class AdyenPaymentServiceProviderPort extends BaseAdyenPaymentServiceProv
                                                 result.getRefusalReason(),
                                                 result.getResultCode(),
                                                 paymentData.getPaymentTransactionExternalKey(),
-                                                getAdditionalData(result));
+                                                getAdditionalData(result, merchantAccount));
         } else {
             final Map<String, String> formParams = new HashMap<String, String>();
             formParams.put("PaReq", result.getPaRequest());
@@ -197,7 +206,7 @@ public class AdyenPaymentServiceProviderPort extends BaseAdyenPaymentServiceProv
                                                 paymentData.getPaymentTransactionExternalKey(),
                                                 result.getIssuerUrl(),
                                                 formParams,
-                                                getAdditionalData(result));
+                                                getAdditionalData(result, merchantAccount));
         }
 
         logTransaction(operation, userData, merchantAccount, paymentData, purchaseResult, adyenCallResult);
@@ -264,17 +273,38 @@ public class AdyenPaymentServiceProviderPort extends BaseAdyenPaymentServiceProv
         final ModificationRequest modificationRequest = adyenRequestFactory.createModificationRequest(merchantAccount, paymentData, pspReference, splitSettlementData);
         final AdyenCallResult<ModificationResult> adyenCall = modificationExecutor.execute(modificationRequest);
 
+        final PaymentModificationResponse response;
         if (!adyenCall.receivedWellFormedResponse()) {
+            response = new PaymentModificationResponse(pspReference, adyenCall, getModificationAdditionalErrorData(adyenCall, merchantAccount));
+
             logTransactionError(operation, pspReference, merchantAccount, paymentData, adyenCall);
-            return new PaymentModificationResponse(pspReference, adyenCall);
         } else {
             final ModificationResult result = adyenCall.getResult().get();
-            final PaymentModificationResponse response = new PaymentModificationResponse(result.getResponse(),
-                                                                                         result.getPspReference(),
-                                                                                         entriesToMap(result.getAdditionalData()));
+            response = new PaymentModificationResponse(result.getResponse(), result.getPspReference(), getModificationAdditionalData(result, merchantAccount));
+
             logTransaction(operation, pspReference, merchantAccount, paymentData, response, adyenCall);
-            return response;
         }
+        response.getAdditionalData().put(AdyenPaymentPluginApi.PROPERTY_MERCHANT_ACCOUNT_CODE, merchantAccount);
+        return response;
+    }
+
+    private Map<Object, Object> getModificationAdditionalData(final ModificationResult modificationResult, final String merchantAccount) {
+        final Map<Object, Object> additionalDataMap = new HashMap<Object, Object>();
+        additionalDataMap.put(AdyenPaymentPluginApi.PROPERTY_MERCHANT_ACCOUNT_CODE, merchantAccount);
+        additionalDataMap.putAll(anyType2AnyTypeMapToStringMap(modificationResult.getAdditionalData()));
+
+        return additionalDataMap;
+    }
+
+    private Map<Object, Object> getModificationAdditionalErrorData(final AdyenCallResult<ModificationResult> adyenCallResult, final String merchantAccount) {
+        final Map<Object, Object> additionalDataMap = new HashMap<Object, Object>();
+        additionalDataMap.put(AdyenPaymentPluginApi.PROPERTY_MERCHANT_ACCOUNT_CODE, merchantAccount);
+        final Optional<AdyenCallErrorStatus> responseStatus = adyenCallResult.getResponseStatus();
+        additionalDataMap.putAll(ImmutableMap.<Object, Object>of(ADYEN_CALL_ERROR_STATUS, responseStatus.isPresent()? responseStatus.get(): "",
+                                                                 EXCEPTION_CLASS, adyenCallResult.getExceptionClass().or(UNKNOWN),
+                                                                 EXCEPTION_MESSAGE, adyenCallResult.getExceptionMessage().or(UNKNOWN)));
+
+        return additionalDataMap;
     }
 
     /**

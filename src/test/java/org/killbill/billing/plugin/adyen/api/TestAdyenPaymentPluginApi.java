@@ -30,6 +30,8 @@ import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 import org.killbill.adyen.recurring.RecurringDetail;
+import org.killbill.billing.account.api.Account;
+import org.killbill.billing.account.api.AccountApiException;
 import org.killbill.billing.payment.api.Payment;
 import org.killbill.billing.payment.api.PaymentApiException;
 import org.killbill.billing.payment.api.PaymentMethodPlugin;
@@ -356,6 +358,10 @@ public class TestAdyenPaymentPluginApi extends TestAdyenPaymentPluginApiBase {
 
         assertEquals(authorizationInfoPlugin1.getGatewayErrorCode(), "RedirectShopper");
         assertEquals(authorizationInfoPlugin1.getStatus(), PaymentPluginStatus.PENDING);
+
+        final String expectedMerchantAccount = getExpectedMerchantAccount(payment);
+        final PaymentTransactionInfoPlugin paymentInfo = Iterables.getLast(adyenPaymentPluginApi.getPaymentInfo(payment.getAccountId(), payment.getId(), null, context));
+        assertEquals(PluginProperties.findPluginPropertyValue("merchantAccountCode", paymentInfo.getProperties()), expectedMerchantAccount);
 
         // Verify GET path
         final List<PaymentTransactionInfoPlugin> paymentTransactionInfoPluginsPreCompletion = adyenPaymentPluginApi.getPaymentInfo(account.getId(),
@@ -684,7 +690,21 @@ public class TestAdyenPaymentPluginApi extends TestAdyenPaymentPluginApiBase {
 
         assertEquals(paymentTransaction.getPaymentInfoPlugin().getStatus(), PaymentPluginStatus.PROCESSED);
 
+        final String expectedMerchantAccount = getExpectedMerchantAccount(payment);
+        final PaymentTransactionInfoPlugin refreshedTransactionInfo = Iterables.getLast(adyenPaymentPluginApi.getPaymentInfo(payment.getAccountId(), payment.getId(), null, context));
+        assertEquals(PluginProperties.findPluginPropertyValue("merchantAccountCode", refreshedTransactionInfo.getProperties()), expectedMerchantAccount);
+
         return payment;
+    }
+
+    private String getExpectedMerchantAccount(final Payment payment) {
+        final Account paymentAccount;
+        try {
+            paymentAccount = this.killbillApi.getAccountUserApi().getAccountById(payment.getAccountId(), context);
+        } catch (AccountApiException e) {
+            throw new RuntimeException(e);
+        }
+        return adyenConfigProperties.getMerchantAccount(paymentAccount.getCountry());
     }
 
     private void verifyPaymentTransactionInfoPlugin(final Payment payment, final PaymentTransaction paymentTransaction, final PaymentTransactionInfoPlugin paymentTransactionInfoPlugin) throws PaymentPluginApiException {
