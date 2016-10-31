@@ -22,6 +22,8 @@ import java.util.Map;
 
 import javax.annotation.Nullable;
 
+import org.killbill.billing.payment.plugin.api.PaymentPluginStatus;
+
 public enum PaymentServiceProviderResult {
 
     INITIALISED("Initialised"), // be careful with this state, it's only here to enable orders from OfflineFundsTransfer to be able to expire in every case after 7 days
@@ -64,6 +66,26 @@ public enum PaymentServiceProviderResult {
         } else {
             // For HPP completion flow (see https://docs.adyen.com/developers/hpp-manual#hpppaymentresponse)
             return PaymentServiceProviderResult.valueOf(id);
+        }
+    }
+
+    public static PaymentServiceProviderResult getPaymentResultForPluginStatus(@Nullable final PaymentPluginStatus paymentPluginStatus) {
+        if (paymentPluginStatus == null) {
+            return null;
+        }
+
+        switch (paymentPluginStatus) {
+            case PROCESSED:
+                return AUTHORISED;
+            case PENDING:
+                return PENDING;
+            case ERROR:
+                return REFUSED;
+            case CANCELED:
+                return ERROR;
+            case UNDEFINED:
+            default:
+                return null;
         }
     }
 

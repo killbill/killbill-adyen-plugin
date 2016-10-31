@@ -38,9 +38,13 @@ import org.killbill.billing.payment.api.PluginProperty;
 import org.killbill.billing.payment.api.TransactionStatus;
 import org.killbill.billing.payment.api.TransactionType;
 import org.killbill.billing.payment.plugin.api.PaymentPluginStatus;
+import org.killbill.billing.payment.plugin.api.PaymentTransactionInfoPlugin;
 import org.killbill.billing.plugin.adyen.api.AdyenCallContext;
 import org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi;
+import org.killbill.billing.plugin.adyen.api.AdyenPaymentTransactionInfoPlugin;
+import org.killbill.billing.plugin.adyen.api.mapping.AdyenPaymentTransaction;
 import org.killbill.billing.plugin.adyen.client.model.NotificationItem;
+import org.killbill.billing.plugin.adyen.client.model.PaymentServiceProviderResult;
 import org.killbill.billing.plugin.adyen.client.notification.AdyenNotificationHandler;
 import org.killbill.billing.plugin.adyen.dao.AdyenDao;
 import org.killbill.billing.plugin.adyen.dao.gen.tables.records.AdyenHppRequestsRecord;
@@ -215,6 +219,7 @@ public class KillbillAdyenNotificationHandler implements AdyenNotificationHandle
             Preconditions.checkArgument(payment.getAccountId().equals(kbAccountId), String.format("kbAccountId='%s' doesn't match payment#accountId='%s'", kbAccountId, payment.getAccountId()));
             final Account account = getAccount(kbAccountId, context);
 
+            AdyenResponsesRecord adyenResponsesRecord = null;
             PaymentTransaction paymentTransaction = null;
             if (kbPaymentTransactionId != null) {
                 paymentTransaction = filterForTransaction(payment, kbPaymentTransactionId);
@@ -227,7 +232,7 @@ public class KillbillAdyenNotificationHandler implements AdyenNotificationHandle
                     paymentTransaction = null;
                 } else {
                     // Update the plugin tables
-                    updateResponse(notification, kbPaymentTransactionId, isHPP, paymentPluginStatus, kbTenantId);
+                    adyenResponsesRecord = updateResponse(notification, kbPaymentTransactionId, isHPP, paymentPluginStatus, kbTenantId);
                 }
             }
 
@@ -238,7 +243,7 @@ public class KillbillAdyenNotificationHandler implements AdyenNotificationHandle
             } else if (paymentTransaction != null && TransactionStatus.PENDING.equals(paymentTransaction.getTransactionStatus())) {
                 return transitionPendingTransaction(account, kbPaymentTransactionId, paymentPluginStatus, context);
             } else if (paymentTransaction != null && paymentTransaction.getPaymentInfoPlugin().getStatus() != paymentPluginStatus) {
-                return fixPaymentTransactionState(payment, paymentTransaction, paymentPluginStatus, context);
+                return fixPaymentTransactionState(payment, paymentTransaction, paymentPluginStatus, adyenResponsesRecord, context);
             } else if (paymentTransaction == null && expectedTransactionType == TransactionType.CHARGEBACK && PaymentPluginStatus.PROCESSED.equals(paymentPluginStatus)) {
                 return createChargeback(account, kbPaymentId, notification, context);
             } else if (paymentTransaction == null && expectedTransactionType == TransactionType.CHARGEBACK && PaymentPluginStatus.ERROR.equals(paymentPluginStatus)) {
@@ -313,8 +318,16 @@ public class KillbillAdyenNotificationHandler implements AdyenNotificationHandle
         }
     }
 
-    private PaymentTransaction fixPaymentTransactionState(final Payment payment, final PaymentTransaction paymentTransaction, final PaymentPluginStatus paymentPluginStatus, final CallContext context) {
-        final String currentPaymentStateName = String.format("%s_%s", paymentTransaction.getTransactionType() == TransactionType.AUTHORIZE ? "AUTH" : paymentTransaction.getTransactionType(), paymentPluginStatus == PaymentPluginStatus.PROCESSED ? "SUCCESS" : "FAILED");
+    private PaymentTransaction fixPaymentTransactionState(final Payment payment, final PaymentTransaction paymentTransaction, final PaymentPluginStatus paymentPluginStatus, @Nullable final AdyenResponsesRecord adyenResponsesRecord, final CallContext context) {
+        final PaymentTransaction updatedPaymentTransaction;
+        if (adyenResponsesRecord == null) {
+            updatedPaymentTransaction = paymentTransaction;
+        } else {
+            final PaymentTransactionInfoPlugin paymentTransactionInfoPlugin = new AdyenPaymentTransactionInfoPlugin(adyenResponsesRecord);
+            updatedPaymentTransaction = new AdyenPaymentTransaction(paymentTransactionInfoPlugin.getGatewayErrorCode(), paymentTransactionInfoPlugin.getGatewayError(), paymentTransaction);
+        }
+
+        final String currentPaymentStateName = String.format("%s_%s", updatedPaymentTransaction.getTransactionType() == TransactionType.AUTHORIZE ? "AUTH" : updatedPaymentTransaction.getTransactionType(), paymentPluginStatus == PaymentPluginStatus.PROCESSED ? "SUCCESS" : "FAILED");
 
         final TransactionStatus transactionStatus;
         switch (paymentPluginStatus) {
@@ -335,15 +348,15 @@ public class KillbillAdyenNotificationHandler implements AdyenNotificationHandle
                 break;
         }
 
-        logger.warn("Forcing transition paymentTransactionExternalKey='{}', oldPaymentPluginStatus='{}', newPaymentPluginStatus='{}'", paymentTransaction.getExternalKey(), paymentTransaction.getPaymentInfoPlugin().getStatus(), paymentPluginStatus);
+        logger.warn("Forcing transition paymentTransactionExternalKey='{}', oldPaymentPluginStatus='{}', newPaymentPluginStatus='{}'", updatedPaymentTransaction.getExternalKey(), updatedPaymentTransaction.getPaymentInfoPlugin().getStatus(), paymentPluginStatus);
 
         try {
-            osgiKillbillAPI.getAdminPaymentApi().fixPaymentTransactionState(payment, paymentTransaction, transactionStatus, null, currentPaymentStateName, ImmutableList.<PluginProperty>of(), context);
+            osgiKillbillAPI.getAdminPaymentApi().fixPaymentTransactionState(payment, updatedPaymentTransaction, transactionStatus, null, currentPaymentStateName, ImmutableList.<PluginProperty>of(), context);
             final Payment fixedPayment = getPayment(payment.getId(), context);
-            return filterForTransaction(fixedPayment, paymentTransaction.getId());
+            return filterForTransaction(fixedPayment, updatedPaymentTransaction.getId());
         } catch (final PaymentApiException e) {
             // Have Adyen retry
-            throw new RuntimeException(String.format("Failed to fix transaction kbPaymentTransactionId='%s'", paymentTransaction.getId()), e);
+            throw new RuntimeException(String.format("Failed to fix transaction kbPaymentTransactionId='%s'", updatedPaymentTransaction.getId()), e);
         }
     }
 
@@ -569,10 +582,11 @@ public class KillbillAdyenNotificationHandler implements AdyenNotificationHandle
         }
     }
 
-    private void updateResponse(final NotificationItem notification, final UUID kbTransactionId, final boolean isHPP, final PaymentPluginStatus paymentPluginStatus, final UUID kbTenantId) {
+    private AdyenResponsesRecord updateResponse(final NotificationItem notification, final UUID kbTransactionId, final boolean isHPP, final PaymentPluginStatus paymentPluginStatus, final UUID kbTenantId) {
+        final PaymentServiceProviderResult paymentServiceProviderResult = PaymentServiceProviderResult.getPaymentResultForPluginStatus(paymentPluginStatus);
         final Iterable<PluginProperty> pluginProperties = toPluginProperties(notification, isHPP, paymentPluginStatus);
         try {
-            dao.updateResponse(kbTransactionId, pluginProperties, kbTenantId);
+            return dao.updateResponse(kbTransactionId, paymentServiceProviderResult, pluginProperties, kbTenantId);
         } catch (final SQLException e) {
             // Have Adyen retry
             throw new RuntimeException(String.format("Unable to update response for kbTransactionId='%s'", kbTransactionId), e);

@@ -31,6 +31,7 @@ import javax.annotation.Nullable;
 import javax.sql.DataSource;
 
 import org.joda.time.DateTime;
+import org.jooq.UpdateSetMoreStep;
 import org.jooq.impl.DSL;
 import org.killbill.billing.catalog.api.Currency;
 import org.killbill.billing.payment.api.PluginProperty;
@@ -38,6 +39,7 @@ import org.killbill.billing.payment.api.TransactionType;
 import org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi;
 import org.killbill.billing.plugin.adyen.client.model.NotificationItem;
 import org.killbill.billing.plugin.adyen.client.model.PaymentModificationResponse;
+import org.killbill.billing.plugin.adyen.client.model.PaymentServiceProviderResult;
 import org.killbill.billing.plugin.adyen.client.model.PurchaseResult;
 import org.killbill.billing.plugin.adyen.dao.gen.tables.AdyenPaymentMethods;
 import org.killbill.billing.plugin.adyen.dao.gen.tables.AdyenResponses;
@@ -56,6 +58,10 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 
+import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.PROPERTY_PSP_REFERENCE;
+import static org.killbill.billing.plugin.adyen.client.model.PurchaseResult.ADYEN_CALL_ERROR_STATUS;
+import static org.killbill.billing.plugin.adyen.client.model.PurchaseResult.EXCEPTION_CLASS;
+import static org.killbill.billing.plugin.adyen.client.model.PurchaseResult.EXCEPTION_MESSAGE;
 import static org.killbill.billing.plugin.adyen.dao.gen.tables.AdyenHppRequests.ADYEN_HPP_REQUESTS;
 import static org.killbill.billing.plugin.adyen.dao.gen.tables.AdyenNotifications.ADYEN_NOTIFICATIONS;
 import static org.killbill.billing.plugin.adyen.dao.gen.tables.AdyenPaymentMethods.ADYEN_PAYMENT_METHODS;
@@ -294,16 +300,21 @@ public class AdyenDao extends PluginPaymentDao<AdyenResponsesRecord, AdyenRespon
                 });
     }
 
+    public AdyenResponsesRecord updateResponse(final UUID kbPaymentTransactionId, final Iterable<PluginProperty> additionalPluginProperties, final UUID kbTenantId) throws SQLException {
+        return updateResponse(kbPaymentTransactionId, null, additionalPluginProperties, kbTenantId);
+    }
+
     /**
      * Update the PSP reference and additional data of the latest response row for a payment transaction
      *
-     * @param kbPaymentTransactionId     Kill Bill payment transaction id
-     * @param additionalPluginProperties Latest properties
-     * @param kbTenantId                 Kill Bill tenant id
+     * @param kbPaymentTransactionId       Kill Bill payment transaction id
+     * @param paymentServiceProviderResult New PSP result (null if unchanged)
+     * @param additionalPluginProperties   Latest properties
+     * @param kbTenantId                   Kill Bill tenant id
      * @return the latest version of the response row, null if one couldn't be found
      * @throws SQLException For any unexpected SQL error
      */
-    public AdyenResponsesRecord updateResponse(final UUID kbPaymentTransactionId, final Iterable<PluginProperty> additionalPluginProperties, final UUID kbTenantId) throws SQLException {
+    public AdyenResponsesRecord updateResponse(final UUID kbPaymentTransactionId, @Nullable final PaymentServiceProviderResult paymentServiceProviderResult, final Iterable<PluginProperty> additionalPluginProperties, final UUID kbTenantId) throws SQLException {
         final Map<String, Object> additionalProperties = PluginProperties.toMap(additionalPluginProperties);
 
         return execute(dataSource.getConnection(),
@@ -324,14 +335,24 @@ public class AdyenDao extends PluginPaymentDao<AdyenResponsesRecord, AdyenRespon
 
                                final Map originalData = new HashMap(fromAdditionalData(response.getAdditionalData()));
                                originalData.putAll(additionalProperties);
+                               final String pspReference = getProperty(PROPERTY_PSP_REFERENCE, additionalProperties);
+                               if (pspReference != null) {
+                                   // If there is a PSP reference, the call went eventually to Adyen. Remove exceptions
+                                   originalData.remove(ADYEN_CALL_ERROR_STATUS);
+                                   originalData.remove(EXCEPTION_CLASS);
+                                   originalData.remove(EXCEPTION_MESSAGE);
+                               }
                                final String mergedAdditionalData = asString(originalData);
 
-                               DSL.using(conn, dialect, settings)
-                                  .update(ADYEN_RESPONSES)
-                                  .set(ADYEN_RESPONSES.PSP_REFERENCE, getProperty(AdyenPaymentPluginApi.PROPERTY_PSP_REFERENCE, additionalProperties))
-                                  .set(ADYEN_RESPONSES.ADDITIONAL_DATA, mergedAdditionalData)
-                                  .where(ADYEN_RESPONSES.RECORD_ID.equal(response.getRecordId()))
-                                  .execute();
+                               UpdateSetMoreStep<AdyenResponsesRecord> step = DSL.using(conn, dialect, settings)
+                                                                                 .update(ADYEN_RESPONSES)
+                                                                                 .set(ADYEN_RESPONSES.PSP_REFERENCE, pspReference)
+                                                                                 .set(ADYEN_RESPONSES.ADDITIONAL_DATA, mergedAdditionalData);
+                               if (paymentServiceProviderResult != null) {
+                                   step = step.set(ADYEN_RESPONSES.PSP_RESULT, paymentServiceProviderResult.toString());
+                               }
+                               step.where(ADYEN_RESPONSES.RECORD_ID.equal(response.getRecordId()))
+                                   .execute();
 
                                return DSL.using(conn, dialect, settings)
                                          .selectFrom(ADYEN_RESPONSES)

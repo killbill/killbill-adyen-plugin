@@ -19,7 +19,11 @@ package org.killbill.billing.plugin.adyen.client.model;
 
 import java.util.Map;
 
+import org.killbill.billing.payment.plugin.api.PaymentPluginStatus;
+
 import com.google.common.base.Strings;
+
+import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.PROPERTY_FROM_HPP_TRANSACTION_STATUS;
 
 public class HppCompletedResult {
 
@@ -73,6 +77,9 @@ public class HppCompletedResult {
         if (requestParameterMap.get("authResult") != null) {
             // If there is an authResult from Adyen, transform it into PaymentServiceProviderResult
             return PaymentServiceProviderResult.getPaymentResultForId(requestParameterMap.get("authResult"));
+        } else if (requestParameterMap.get("pspReference") != null && requestParameterMap.get(PROPERTY_FROM_HPP_TRANSACTION_STATUS) != null) {
+            // The request came from Adyen
+            return PaymentServiceProviderResult.getPaymentResultForPluginStatus(PaymentPluginStatus.valueOf(requestParameterMap.get(PROPERTY_FROM_HPP_TRANSACTION_STATUS)));
         } else {
             // By convention
             return PaymentServiceProviderResult.REDIRECT_SHOPPER;
