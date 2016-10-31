@@ -1,5 +1,6 @@
 0.4.10
     Lookup original transaction's merchant account when completing a 3-DS transaction
+    Populate correctly psp_result for HPP transactions
 
 0.4.9
     Add support for ELV

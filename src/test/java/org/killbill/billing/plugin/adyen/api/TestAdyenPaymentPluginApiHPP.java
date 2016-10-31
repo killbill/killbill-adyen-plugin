@@ -34,6 +34,8 @@ import org.killbill.billing.payment.plugin.api.HostedPaymentPageFormDescriptor;
 import org.killbill.billing.payment.plugin.api.PaymentPluginApiException;
 import org.killbill.billing.payment.plugin.api.PaymentPluginStatus;
 import org.killbill.billing.payment.plugin.api.PaymentTransactionInfoPlugin;
+import org.killbill.billing.plugin.adyen.client.model.PaymentServiceProviderResult;
+import org.killbill.billing.plugin.adyen.dao.gen.tables.records.AdyenResponsesRecord;
 import org.killbill.billing.plugin.api.PluginProperties;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
@@ -141,7 +143,9 @@ public class TestAdyenPaymentPluginApiHPP extends TestAdyenPaymentPluginApiBase 
             assertEquals(accountPayments.size(), 1);
             final Payment payment = accountPayments.get(0);
 
-            assertEquals(dao.getResponses(payment.getId(), context.getTenantId()).size(), 1);
+            final List<AdyenResponsesRecord> responses = dao.getResponses(payment.getId(), context.getTenantId());
+            assertEquals(responses.size(), 1);
+            assertEquals(responses.get(0).getPspResult(), PaymentServiceProviderResult.REDIRECT_SHOPPER.getResponses()[0]);
 
             final List<PaymentTransactionInfoPlugin> pendingPaymentTransactions = adyenPaymentPluginApi.getPaymentInfo(payment.getAccountId(), payment.getId(), ImmutableList.<PluginProperty>of(), context);
             assertEquals(pendingPaymentTransactions.size(), 1);
@@ -165,7 +169,12 @@ public class TestAdyenPaymentPluginApiHPP extends TestAdyenPaymentPluginApiBase 
         assertEquals(accountPayments.size(), 1);
         final Payment payment = accountPayments.get(0);
 
-        assertEquals(dao.getResponses(payment.getId(), context.getTenantId()).size(), 1);
+        final List<AdyenResponsesRecord> responses = dao.getResponses(payment.getId(), context.getTenantId());
+        // Unlike 3D-S redirects which have two rows (2 calls to Adyen), we only have one row per HPP call
+        assertEquals(responses.size(), 1);
+        // After the redirect or processing the notification, we don't update the psp_result, only the additional properties
+        // In case of HPP, psp_result doesn't come from Adyen, we populate it -- it's mainly useful to check for Cancelled (signature mismatches)
+        assertEquals(responses.get(0).getPspResult(), PaymentServiceProviderResult.REDIRECT_SHOPPER.getResponses()[0]);
 
         final List<PaymentTransactionInfoPlugin> processedPaymentTransactions = adyenPaymentPluginApi.getPaymentInfo(payment.getAccountId(), payment.getId(), ImmutableList.<PluginProperty>of(), context);
         assertEquals(processedPaymentTransactions.size(), 1);

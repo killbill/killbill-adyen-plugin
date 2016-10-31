@@ -37,7 +37,7 @@ public class HppCompletedResult {
     public HppCompletedResult(final Map<String, String> requestParameterMap) {
         this(requestParameterMap.get("pspReference"),
              requestParameterMap.get("authResult"),
-             requestParameterMap.get("authResult") != null ? PaymentServiceProviderResult.getPaymentResultForId(requestParameterMap.get("authResult")) : PaymentServiceProviderResult.ERROR,
+             getPspResult(requestParameterMap),
              requestParameterMap.get("merchantReference"),
              requestParameterMap.get("skinCode"),
              requestParameterMap.get("merchantSig"),
@@ -67,6 +67,16 @@ public class HppCompletedResult {
         this.shopperLocale = shopperLocale;
         this.merchantReturnData = merchantReturnData;
         this.additionalData = additionalData;
+    }
+
+    private static PaymentServiceProviderResult getPspResult(final Map<String, String> requestParameterMap) {
+        if (requestParameterMap.get("authResult") != null) {
+            // If there is an authResult from Adyen, transform it into PaymentServiceProviderResult
+            return PaymentServiceProviderResult.getPaymentResultForId(requestParameterMap.get("authResult"));
+        } else {
+            // By convention
+            return PaymentServiceProviderResult.REDIRECT_SHOPPER;
+        }
     }
 
     public String getPspReference() {
