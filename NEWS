@@ -1,4 +1,7 @@
 0.4.10
+    Fix complete call merchant account
+    Enhance error message/code when using admin payment api
+    populate a better default value for psp_result
     Lookup original transaction's merchant account when completing a 3-DS transaction
     Populate correctly psp_result for HPP transactions
 
