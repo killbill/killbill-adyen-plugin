@@ -99,7 +99,7 @@ public class TestAdyenPaymentPluginApi extends TestAdyenPaymentPluginApiBase {
                                                                                                                   .put(AdyenPaymentPluginApi.PROPERTY_CC_NUMBER, CC_3DS_NUMBER)
                                                                                                                   .put(AdyenPaymentPluginApi.PROPERTY_CC_EXPIRATION_MONTH, String.valueOf(CC_EXPIRATION_MONTH))
                                                                                                                   .put(AdyenPaymentPluginApi.PROPERTY_CC_EXPIRATION_YEAR, String.valueOf(CC_EXPIRATION_YEAR))
-                                                                                                                  .put(AdyenPaymentPluginApi.PROPERTY_CC_VERIFICATION_VALUE, CC_VERIFICATION_VALUE)
+                                                                                                                  .put(AdyenPaymentPluginApi.PROPERTY_CC_VERIFICATION_VALUE, CC_3DS_VERIFICATION_VALUE)
                                                                                                                   .put(AdyenPaymentPluginApi.PROPERTY_USER_AGENT, "Java/1.8")
                                                                                                                   .put(AdyenPaymentPluginApi.PROPERTY_ACCEPT_HEADER, "application/json")
                                                                                                                   .put(AdyenPaymentPluginApi.PROPERTY_TERM_URL, "dummy://url")
