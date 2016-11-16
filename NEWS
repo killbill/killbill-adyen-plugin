@@ -1,3 +1,6 @@
+0.5.0
+    Initial release for Kill Bill 0.18.x
+
 0.4.10
     Fix complete call merchant account
     Enhance error message/code when using admin payment api
