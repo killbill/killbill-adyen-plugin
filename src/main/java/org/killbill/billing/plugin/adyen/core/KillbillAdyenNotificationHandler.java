@@ -328,6 +328,7 @@ public class KillbillAdyenNotificationHandler implements AdyenNotificationHandle
         }
 
         final String currentPaymentStateName = String.format("%s_%s", updatedPaymentTransaction.getTransactionType() == TransactionType.AUTHORIZE ? "AUTH" : updatedPaymentTransaction.getTransactionType(), paymentPluginStatus == PaymentPluginStatus.PROCESSED ? "SUCCESS" : "FAILED");
+        final String lastSuccessfulPaymentStateName = paymentPluginStatus == PaymentPluginStatus.PROCESSED? currentPaymentStateName: null;
 
         final TransactionStatus transactionStatus;
         switch (paymentPluginStatus) {
@@ -351,7 +352,7 @@ public class KillbillAdyenNotificationHandler implements AdyenNotificationHandle
         logger.warn("Forcing transition paymentTransactionExternalKey='{}', oldPaymentPluginStatus='{}', newPaymentPluginStatus='{}'", updatedPaymentTransaction.getExternalKey(), updatedPaymentTransaction.getPaymentInfoPlugin().getStatus(), paymentPluginStatus);
 
         try {
-            osgiKillbillAPI.getAdminPaymentApi().fixPaymentTransactionState(payment, updatedPaymentTransaction, transactionStatus, null, currentPaymentStateName, ImmutableList.<PluginProperty>of(), context);
+            osgiKillbillAPI.getAdminPaymentApi().fixPaymentTransactionState(payment, updatedPaymentTransaction, transactionStatus, lastSuccessfulPaymentStateName, currentPaymentStateName, ImmutableList.<PluginProperty>of(), context);
             final Payment fixedPayment = getPayment(payment.getId(), context);
             return filterForTransaction(fixedPayment, updatedPaymentTransaction.getId());
         } catch (final PaymentApiException e) {
