@@ -101,7 +101,7 @@ public class TestAdyenPaymentPluginApiHPP extends TestAdyenPaymentPluginApiBase 
         final Payment payment = triggerBuildFormDescriptor(ImmutableMap.<String, String>of(AdyenPaymentPluginApi.PROPERTY_CREATE_PENDING_PAYMENT, "true",
                                                                                            AdyenPaymentPluginApi.PROPERTY_AUTH_MODE, "true"),
                                                            TransactionType.AUTHORIZE);
-        final Period expirationPeriod = Period.days(adyenConfigProperties.getPendingPaymentExpirationPeriodInDays()).plusMinutes(1);
+        final Period expirationPeriod = Period.minutes(adyenConfigProperties.getPendingPaymentExpirationPeriod()).plusMinutes(1);
         clock.setDeltaFromReality(expirationPeriod.toStandardDuration().getMillis());
 
         final List<PaymentTransactionInfoPlugin> transactions = adyenPaymentPluginApi.getPaymentInfo(account.getId(), payment.getId(), Collections.<PluginProperty>emptyList(), context);

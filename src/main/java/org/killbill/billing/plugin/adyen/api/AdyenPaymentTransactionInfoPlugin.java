@@ -54,6 +54,8 @@ public class AdyenPaymentTransactionInfoPlugin extends PluginPaymentTransactionI
     private static final Pattern REFUSAL_REASON_PATTERN = Pattern.compile("([0-9]+)\\s*:\\s*(.*)");
     private static final String REFUSAL_REASON_RAW = "refusalReasonRaw";
 
+    private final Optional<AdyenResponsesRecord> adyenResponseRecord;
+
     public AdyenPaymentTransactionInfoPlugin(final UUID kbPaymentId,
                                              final UUID kbTransactionPaymentPaymentId,
                                              final TransactionType transactionType,
@@ -74,6 +76,7 @@ public class AdyenPaymentTransactionInfoPlugin extends PluginPaymentTransactionI
               utcNow,
               utcNow,
               PluginProperties.buildPluginProperties(purchaseResult.getFormParameter()));
+        adyenResponseRecord = Optional.absent();
     }
 
     public AdyenPaymentTransactionInfoPlugin(final UUID kbPaymentId,
@@ -97,6 +100,7 @@ public class AdyenPaymentTransactionInfoPlugin extends PluginPaymentTransactionI
               utcNow,
               utcNow,
               buildProperties(paymentModificationResponse.getAdditionalData()));
+        adyenResponseRecord = Optional.absent();
     }
 
     public AdyenPaymentTransactionInfoPlugin(final AdyenResponsesRecord record) {
@@ -113,6 +117,7 @@ public class AdyenPaymentTransactionInfoPlugin extends PluginPaymentTransactionI
               new DateTime(record.getCreatedDate(), DateTimeZone.UTC),
               new DateTime(record.getCreatedDate(), DateTimeZone.UTC),
               buildProperties(toMap(record.getAdditionalData())));
+        adyenResponseRecord = Optional.of(record);
     }
 
     @Override
@@ -132,6 +137,10 @@ public class AdyenPaymentTransactionInfoPlugin extends PluginPaymentTransactionI
         }
 
         return null;
+    }
+
+    public Optional<AdyenResponsesRecord> getAdyenResponseRecord() {
+        return adyenResponseRecord;
     }
 
     private static String getGatewayError(final PurchaseResult purchaseResult) {
