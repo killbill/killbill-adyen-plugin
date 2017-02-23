@@ -161,7 +161,9 @@ public class AdyenConfigProperties {
 
         final String value = properties.getProperty(PROPERTY_PREFIX + "pendingPaymentExpirationPeriod");
         if (value != null) {
-            return Integer.parseInt(value);
+            try {
+                return Integer.parseInt(value);
+            } catch (NumberFormatException e) { /* Ignore */ }
         }
         return DEFAULT_PENDING_PAYMENT_EXPIRATION_PERIOD;
     }
@@ -176,7 +178,9 @@ public class AdyenConfigProperties {
 
         final String value = properties.getProperty(PROPERTY_PREFIX + "pending3DsPaymentExpirationPeriod");
         if (value != null) {
-            return Integer.parseInt(value);
+            try {
+                return Integer.parseInt(value);
+            } catch (NumberFormatException e) { /* Ignore */ }
         }
         return DEFAULT_PENDING_3DS_PAYMENT_EXPIRATION_PERIOD;
     }
