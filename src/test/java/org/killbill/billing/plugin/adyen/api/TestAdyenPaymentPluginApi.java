@@ -474,7 +474,7 @@ public class TestAdyenPaymentPluginApi extends TestAdyenPaymentPluginApiBase {
                                                                                                              context);
         assertEquals(authorizationInfoPlugin.getStatus(), PaymentPluginStatus.PENDING);
 
-        final Period expirationPeriod = Period.days(adyenConfigProperties.getPendingPaymentExpirationPeriodInDays()).plusMinutes(1);
+        final Period expirationPeriod = adyenConfigProperties.getPending3DsPaymentExpirationPeriod().plusMinutes(1);
         clock.setDeltaFromReality(expirationPeriod.toStandardDuration().getMillis());
 
         final List<PaymentTransactionInfoPlugin> expiredPaymentTransactions = adyenPaymentPluginApi.getPaymentInfo(account.getId(),

@@ -21,6 +21,8 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Properties;
 
+import org.joda.time.Period;
+
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Strings;
 
@@ -28,7 +30,8 @@ public class AdyenConfigProperties {
 
     public static final String DEFAULT_HMAC_ALGORITHM = "HmacSHA256";
 
-    public static final int DEFAULT_PENDING_PAYMENT_EXPIRATION_PERIOD_IN_DAYS = 3;
+    public static final String DEFAULT_PENDING_PAYMENT_EXPIRATION_PERIOD = "P3d";
+    public static final String DEFAULT_PENDING_3DS_PAYMENT_EXPIRATION_PERIOD = "PT3h";
 
     private static final String PROPERTY_PREFIX = "org.killbill.billing.plugin.adyen.";
     private static final String ENTRY_DELIMITER = "|";
@@ -65,7 +68,10 @@ public class AdyenConfigProperties {
     private final String acquirersList;
     private final String paymentConnectionTimeout;
     private final String paymentReadTimeout;
-    private final int pendingPaymentExpirationPeriodInDays;
+
+    private final Period pendingPaymentExpirationPeriod;
+
+    private final Period pending3DsPaymentExpirationPeriod;
 
     public AdyenConfigProperties(final Properties properties) {
         this.proxyServer = properties.getProperty(PROPERTY_PREFIX + "proxyServer");
@@ -88,14 +94,8 @@ public class AdyenConfigProperties {
         this.hppSkipDetailsTarget = this.hppTarget != null ? this.hppTarget.replace(this.hppTarget.substring(this.hppTarget.lastIndexOf('/') + 1), "skipDetails.shtml") : null;
         this.hppVariantOverride = properties.getProperty(PROPERTY_PREFIX + "hppVariantOverride");
 
-        int pendingPaymentExpirationPeriodInDays = 0;
-        try {
-            final String pendingPaymentExpirationPeriod = properties.getProperty(PROPERTY_PREFIX + "pendingPaymentExpirationPeriodInDays");
-            pendingPaymentExpirationPeriodInDays = Integer.parseInt(pendingPaymentExpirationPeriod);
-        } catch(NumberFormatException e) {
-            pendingPaymentExpirationPeriodInDays = DEFAULT_PENDING_PAYMENT_EXPIRATION_PERIOD_IN_DAYS;
-        }
-        this.pendingPaymentExpirationPeriodInDays = pendingPaymentExpirationPeriodInDays;
+        this.pendingPaymentExpirationPeriod = readPendingExpirationProperty(properties);
+        this.pending3DsPaymentExpirationPeriod = read3DsPendingExpirationProperty(properties);
 
         this.acquirersList = properties.getProperty(PROPERTY_PREFIX + "acquirersList");
 
@@ -151,6 +151,35 @@ public class AdyenConfigProperties {
             final String secretAlgorithm = countryOrSkinToSecretAlgorithmMap.get(countryOrSkin);
             skinToSecretAlgorithmMap.put(skin, secretAlgorithm);
         }
+    }
+
+    private Period readPendingExpirationProperty(final Properties properties) {
+        final String valueInDays = properties.getProperty(PROPERTY_PREFIX + "pendingPaymentExpirationPeriodInDays");
+        if (valueInDays != null) {
+            try {
+                return Period.days(Integer.parseInt(valueInDays));
+            } catch (NumberFormatException e) { /* Ignore */ }
+        }
+
+        final String value = properties.getProperty(PROPERTY_PREFIX + "pendingPaymentExpirationPeriod");
+        if (value != null) {
+            try {
+                return Period.parse(value);
+            } catch (IllegalArgumentException e) { /* Ignore */ }
+        }
+
+        return Period.parse(DEFAULT_PENDING_PAYMENT_EXPIRATION_PERIOD);
+    }
+
+    private Period read3DsPendingExpirationProperty(final Properties properties) {
+        final String value = properties.getProperty(PROPERTY_PREFIX + "pending3DsPaymentExpirationPeriod");
+        if (value != null) {
+            try {
+                return Period.parse(value);
+            } catch (IllegalArgumentException e) { /* Ignore */ }
+        }
+
+        return Period.parse(DEFAULT_PENDING_3DS_PAYMENT_EXPIRATION_PERIOD);
     }
 
     public String getMerchantAccount(final String countryIsoCode) {
@@ -216,8 +245,12 @@ public class AdyenConfigProperties {
         return hppVariantOverride;
     }
 
-    public int getPendingPaymentExpirationPeriodInDays() {
-        return pendingPaymentExpirationPeriodInDays;
+    public Period getPendingPaymentExpirationPeriod() {
+        return pendingPaymentExpirationPeriod;
+    }
+
+    public Period getPending3DsPaymentExpirationPeriod() {
+        return pending3DsPaymentExpirationPeriod;
     }
 
     public String getAcquirersList() {

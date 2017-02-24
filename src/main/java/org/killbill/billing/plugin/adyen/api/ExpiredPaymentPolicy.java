@@ -24,6 +24,8 @@ import org.killbill.billing.payment.api.TransactionType;
 import org.killbill.billing.payment.plugin.api.PaymentPluginStatus;
 import org.killbill.billing.payment.plugin.api.PaymentTransactionInfoPlugin;
 import org.killbill.billing.plugin.adyen.client.AdyenConfigProperties;
+import org.killbill.billing.plugin.adyen.client.model.PaymentServiceProviderResult;
+import org.killbill.billing.plugin.adyen.dao.gen.tables.records.AdyenResponsesRecord;
 import org.killbill.clock.Clock;
 
 import com.google.common.collect.Iterables;
@@ -34,7 +36,7 @@ public class ExpiredPaymentPolicy {
 
     private final AdyenConfigProperties adyenProperties;
 
-    public ExpiredPaymentPolicy(final Clock clock, AdyenConfigProperties adyenProperties) {
+    public ExpiredPaymentPolicy(final Clock clock, final AdyenConfigProperties adyenProperties) {
         this.clock = clock;
         this.adyenProperties = adyenProperties;
     }
@@ -44,7 +46,7 @@ public class ExpiredPaymentPolicy {
             return false;
         }
 
-        final PaymentTransactionInfoPlugin transaction = latestTransaction(paymentTransactions);
+        final AdyenPaymentTransactionInfoPlugin transaction = (AdyenPaymentTransactionInfoPlugin) latestTransaction(paymentTransactions);
         if (transaction.getCreatedDate() == null) {
             return false;
         }
@@ -71,7 +73,20 @@ public class ExpiredPaymentPolicy {
         return true;
     }
 
-    private DateTime expirationDate(PaymentTransactionInfoPlugin transaction) {
-        return transaction.getCreatedDate().plusDays(adyenProperties.getPendingPaymentExpirationPeriodInDays());
+    private DateTime expirationDate(final AdyenPaymentTransactionInfoPlugin transaction) {
+        if (is3ds(transaction)) {
+            return transaction.getCreatedDate().plus(adyenProperties.getPending3DsPaymentExpirationPeriod());
+        }
+
+        return transaction.getCreatedDate().plus(adyenProperties.getPendingPaymentExpirationPeriod());
+    }
+
+    private boolean is3ds(final AdyenPaymentTransactionInfoPlugin transaction) {
+        if (!transaction.getAdyenResponseRecord().isPresent()) {
+            return false;
+        }
+
+        final AdyenResponsesRecord adyenResponsesRecord = transaction.getAdyenResponseRecord().get();
+        return PaymentServiceProviderResult.REDIRECT_SHOPPER.toString().equals(adyenResponsesRecord.getResultCode());
     }
 }
