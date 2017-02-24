@@ -73,14 +73,20 @@ public class ExpiredPaymentPolicy {
         return true;
     }
 
-    private DateTime expirationDate(AdyenPaymentTransactionInfoPlugin transaction) {
-        if (transaction.getAdyenResponseRecord().isPresent()) {
-            final AdyenResponsesRecord adyenResponsesRecord = transaction.getAdyenResponseRecord().get();
-            if (PaymentServiceProviderResult.REDIRECT_SHOPPER.toString().equals(adyenResponsesRecord.getResultCode())) {
-                return transaction.getCreatedDate().plusMinutes(adyenProperties.getPending3DsPaymentExpirationPeriod());
-            }
+    private DateTime expirationDate(final AdyenPaymentTransactionInfoPlugin transaction) {
+        if (is3ds(transaction)) {
+            return transaction.getCreatedDate().plus(adyenProperties.getPending3DsPaymentExpirationPeriod());
         }
 
-        return transaction.getCreatedDate().plusMinutes(adyenProperties.getPendingPaymentExpirationPeriod());
+        return transaction.getCreatedDate().plus(adyenProperties.getPendingPaymentExpirationPeriod());
+    }
+
+    private boolean is3ds(final AdyenPaymentTransactionInfoPlugin transaction) {
+        if (!transaction.getAdyenResponseRecord().isPresent()) {
+            return false;
+        }
+
+        final AdyenResponsesRecord adyenResponsesRecord = transaction.getAdyenResponseRecord().get();
+        return PaymentServiceProviderResult.REDIRECT_SHOPPER.toString().equals(adyenResponsesRecord.getResultCode());
     }
 }
