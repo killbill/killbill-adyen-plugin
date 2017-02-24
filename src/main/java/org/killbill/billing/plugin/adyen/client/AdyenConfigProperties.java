@@ -21,6 +21,8 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Properties;
 
+import org.joda.time.Period;
+
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Strings;
 
@@ -28,8 +30,8 @@ public class AdyenConfigProperties {
 
     public static final String DEFAULT_HMAC_ALGORITHM = "HmacSHA256";
 
-    public static final int DEFAULT_PENDING_PAYMENT_EXPIRATION_PERIOD = 3 * 24 * 60;
-    public static final int DEFAULT_PENDING_3DS_PAYMENT_EXPIRATION_PERIOD = 3 * 60;
+    public static final String DEFAULT_PENDING_PAYMENT_EXPIRATION_PERIOD = "P3d";
+    public static final String DEFAULT_PENDING_3DS_PAYMENT_EXPIRATION_PERIOD = "PT3h";
 
     private static final String PROPERTY_PREFIX = "org.killbill.billing.plugin.adyen.";
     private static final String ENTRY_DELIMITER = "|";
@@ -67,9 +69,9 @@ public class AdyenConfigProperties {
     private final String paymentConnectionTimeout;
     private final String paymentReadTimeout;
 
-    private final int pendingPaymentExpirationPeriod;
+    private final Period pendingPaymentExpirationPeriod;
 
-    private final int pending3DsPaymentExpirationPeriod;
+    private final Period pending3DsPaymentExpirationPeriod;
 
     public AdyenConfigProperties(final Properties properties) {
         this.proxyServer = properties.getProperty(PROPERTY_PREFIX + "proxyServer");
@@ -151,38 +153,33 @@ public class AdyenConfigProperties {
         }
     }
 
-    private int readPendingExpirationProperty(final Properties properties) {
+    private Period readPendingExpirationProperty(final Properties properties) {
         final String valueInDays = properties.getProperty(PROPERTY_PREFIX + "pendingPaymentExpirationPeriodInDays");
         if (valueInDays != null) {
             try {
-                return Integer.parseInt(valueInDays) * 24 * 60;
+                return Period.days(Integer.parseInt(valueInDays));
             } catch (NumberFormatException e) { /* Ignore */ }
         }
 
         final String value = properties.getProperty(PROPERTY_PREFIX + "pendingPaymentExpirationPeriod");
         if (value != null) {
             try {
-                return Integer.parseInt(value);
-            } catch (NumberFormatException e) { /* Ignore */ }
+                return Period.parse(value);
+            } catch (IllegalArgumentException e) { /* Ignore */ }
         }
-        return DEFAULT_PENDING_PAYMENT_EXPIRATION_PERIOD;
+
+        return Period.parse(DEFAULT_PENDING_PAYMENT_EXPIRATION_PERIOD);
     }
 
-    private int read3DsPendingExpirationProperty(final Properties properties) {
-        final String valueInDays = properties.getProperty(PROPERTY_PREFIX + "pending3DsPaymentExpirationPeriodInDays");
-        if (valueInDays != null) {
-            try {
-                return Integer.parseInt(valueInDays) * 24 * 60;
-            } catch (NumberFormatException e) { /* Ignore */ }
-        }
-
+    private Period read3DsPendingExpirationProperty(final Properties properties) {
         final String value = properties.getProperty(PROPERTY_PREFIX + "pending3DsPaymentExpirationPeriod");
         if (value != null) {
             try {
-                return Integer.parseInt(value);
-            } catch (NumberFormatException e) { /* Ignore */ }
+                return Period.parse(value);
+            } catch (IllegalArgumentException e) { /* Ignore */ }
         }
-        return DEFAULT_PENDING_3DS_PAYMENT_EXPIRATION_PERIOD;
+
+        return Period.parse(DEFAULT_PENDING_3DS_PAYMENT_EXPIRATION_PERIOD);
     }
 
     public String getMerchantAccount(final String countryIsoCode) {
@@ -248,11 +245,11 @@ public class AdyenConfigProperties {
         return hppVariantOverride;
     }
 
-    public int getPendingPaymentExpirationPeriod() {
+    public Period getPendingPaymentExpirationPeriod() {
         return pendingPaymentExpirationPeriod;
     }
 
-    public int getPending3DsPaymentExpirationPeriod() {
+    public Period getPending3DsPaymentExpirationPeriod() {
         return pending3DsPaymentExpirationPeriod;
     }
 
