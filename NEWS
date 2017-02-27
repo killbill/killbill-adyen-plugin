@@ -1,3 +1,6 @@
+0.5.1
+    Add expiration period property for pending 3DS payments
+
 0.5.0
     Initial release for Kill Bill 0.18.x
 
