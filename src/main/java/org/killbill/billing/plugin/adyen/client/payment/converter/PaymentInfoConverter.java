@@ -81,8 +81,16 @@ public class PaymentInfoConverter<T extends PaymentInfo> {
         address.setPostalCode(paymentInfo.getPostalCode());
         address.setStateOrProvince(paymentInfo.getStateOrProvince());
 
-        // Passing UK will result in: validation 134 Billing address problem (Country UK invalid)
-        final String adjustedCountry = "UK".equalsIgnoreCase(paymentInfo.getCountry()) ? "GB" : paymentInfo.getCountry();
+        final String adjustedCountry;
+        if ("UK".equalsIgnoreCase(paymentInfo.getCountry())) {
+            // Passing UK will result in: validation 134 Billing address problem (Country UK invalid)
+            adjustedCountry = "GB";
+        } else if ("QC".equalsIgnoreCase(paymentInfo.getCountry())) {
+            // Passing QC will result in: validation 134 Billing address problem (Country QC invalid)
+            adjustedCountry = "CA";
+        } else {
+            adjustedCountry = paymentInfo.getCountry();
+        }
         address.setCountry(adjustedCountry);
 
         // Required by Adyen

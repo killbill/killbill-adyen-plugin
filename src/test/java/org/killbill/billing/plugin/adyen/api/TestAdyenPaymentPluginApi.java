@@ -208,6 +208,16 @@ public class TestAdyenPaymentPluginApi extends TestAdyenPaymentPluginApiBase {
     }
 
     @Test(groups = "slow")
+    public void testAuthorizeOddCountryCodes() throws Exception {
+        adyenPaymentPluginApi.addPaymentMethod(account.getId(), account.getPaymentMethodId(), adyenEmptyPaymentMethodPlugin(), true, propertiesWithCCInfo, context);
+
+        for (final String countryCode : ImmutableList.<String>of("GB", "UK", "QC", "CA")) {
+            doAuthorize(BigDecimal.TEN, PluginProperties.buildPluginProperties(ImmutableMap.<String, String>of(AdyenPaymentPluginApi.PROPERTY_CC_VERIFICATION_VALUE, CC_VERIFICATION_VALUE,
+                                                                                                               AdyenPaymentPluginApi.PROPERTY_COUNTRY, countryCode)));
+        }
+    }
+
+    @Test(groups = "slow")
     public void testPurchaseAndRefund() throws Exception {
         adyenPaymentPluginApi.addPaymentMethod(account.getId(), account.getPaymentMethodId(), adyenEmptyPaymentMethodPlugin(), true, propertiesWithCCInfo, context);
 

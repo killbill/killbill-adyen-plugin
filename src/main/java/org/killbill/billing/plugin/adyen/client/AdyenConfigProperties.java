@@ -310,7 +310,13 @@ public class AdyenConfigProperties {
             return null;
         }
         final String countryCodeUpperCase = countryIsoCode.toUpperCase();
-        return "GB".equalsIgnoreCase(countryCodeUpperCase) ? "UK" : countryCodeUpperCase;
+        if ("GB".equalsIgnoreCase(countryCodeUpperCase)) {
+            return "UK";
+        } else if ("QC".equalsIgnoreCase(countryCodeUpperCase)) {
+            return "CA";
+        } else {
+            return countryCodeUpperCase;
+        }
     }
 
     private synchronized void refillMap(final Map<String, String> map, final String stringToSplit) {
