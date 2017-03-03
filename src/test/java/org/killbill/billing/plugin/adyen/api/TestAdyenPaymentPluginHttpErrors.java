@@ -75,6 +75,7 @@ import static org.killbill.billing.plugin.adyen.api.TestAdyenPaymentPluginHttpEr
 import static org.killbill.billing.plugin.adyen.api.TestAdyenPaymentPluginHttpErrors.WireMockHelper.wireMockUri;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertNull;
+import static org.testng.Assert.assertTrue;
 
 /**
  * Checks if the plugin could handle technical communication errors (strange responses, read/connect timeouts etc...) and map them to the correct PaymentPluginStatus.
@@ -158,13 +159,15 @@ public class TestAdyenPaymentPluginHttpErrors {
 
         final PaymentTransactionInfoPlugin result = authorizeCall(account, payment, callContext, pluginApi, creditCardPaymentProperties());
         assertEquals(result.getStatus(), PaymentPluginStatus.CANCELED);
-        assertEquals(result.getGatewayError(), "Connection refused");
+        // Exact message depends on the JVM version
+        assertTrue(result.getGatewayError().startsWith("Connection refused"));
         assertEquals(result.getGatewayErrorCode(), "java.net.ConnectException");
 
         final List<PaymentTransactionInfoPlugin> results = pluginApi.getPaymentInfo(account.getId(), payment.getId(), ImmutableList.<PluginProperty>of(), callContext);
         assertEquals(results.size(), 1);
         assertEquals(results.get(0).getStatus(), PaymentPluginStatus.CANCELED);
-        assertEquals(results.get(0).getGatewayError(), "Connection refused");
+        // Exact message depends on the JVM version
+        assertTrue(results.get(0).getGatewayError().startsWith("Connection refused"));
         assertEquals(results.get(0).getGatewayErrorCode(), "java.net.ConnectException");
     }
 
