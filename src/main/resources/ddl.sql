@@ -37,8 +37,8 @@ create table adyen_responses (
 , dcc_currency char(3)
 , dcc_signature varchar(64)
 , issuer_url varchar(1024)
-, md varchar(512)
-, pa_request varchar(512)
+, md text
+, pa_request text
 , additional_data longtext default null
 , created_date datetime not null
 , kb_tenant_id char(36) not null

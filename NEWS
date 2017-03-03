@@ -1,3 +1,8 @@
+0.5.2
+    Add support for QC country code
+    Enlarge md and pa_request columns to TEXT
+    Update to killbill-oss-parent 0.140.14
+
 0.5.1
     Add expiration period property for pending 3DS payments
 
