@@ -26,6 +26,7 @@ import org.killbill.billing.payment.plugin.api.PaymentTransactionInfoPlugin;
 import org.killbill.billing.plugin.adyen.client.AdyenConfigProperties;
 import org.killbill.billing.plugin.adyen.client.model.PaymentServiceProviderResult;
 import org.killbill.billing.plugin.adyen.dao.gen.tables.records.AdyenResponsesRecord;
+import org.killbill.billing.plugin.api.PluginProperties;
 import org.killbill.clock.Clock;
 
 import com.google.common.collect.Iterables;
@@ -78,7 +79,8 @@ public class ExpiredPaymentPolicy {
             return transaction.getCreatedDate().plus(adyenProperties.getPending3DsPaymentExpirationPeriod());
         }
 
-        return transaction.getCreatedDate().plus(adyenProperties.getPendingPaymentExpirationPeriod());
+        final String paymentMethod = getPaymentMethod(transaction);
+        return transaction.getCreatedDate().plus(adyenProperties.getPendingPaymentExpirationPeriod(paymentMethod));
     }
 
     private boolean is3ds(final AdyenPaymentTransactionInfoPlugin transaction) {
@@ -88,5 +90,9 @@ public class ExpiredPaymentPolicy {
 
         final AdyenResponsesRecord adyenResponsesRecord = transaction.getAdyenResponseRecord().get();
         return PaymentServiceProviderResult.REDIRECT_SHOPPER.toString().equals(adyenResponsesRecord.getResultCode());
+    }
+
+    private String getPaymentMethod(final PaymentTransactionInfoPlugin transaction) {
+        return PluginProperties.findPluginPropertyValue("paymentMethod", transaction.getProperties());
     }
 }

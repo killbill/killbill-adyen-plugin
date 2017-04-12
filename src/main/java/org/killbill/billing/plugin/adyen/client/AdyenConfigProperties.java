@@ -17,14 +17,19 @@
 
 package org.killbill.billing.plugin.adyen.client;
 
+import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+
+import javax.annotation.Nullable;
 
 import org.joda.time.Period;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Strings;
+import com.google.common.collect.ImmutableList;
 
 public class AdyenConfigProperties {
 
@@ -32,6 +37,17 @@ public class AdyenConfigProperties {
 
     public static final String DEFAULT_PENDING_PAYMENT_EXPIRATION_PERIOD = "P3d";
     public static final String DEFAULT_PENDING_3DS_PAYMENT_EXPIRATION_PERIOD = "PT3h";
+    // Online (real-time) bank transfers offer merchants payment with immediate online authorisation via a customer’s bank, usually followed by next-day settlement.
+    public static final List<String> DEFAULT_ONLINE_BANK_TRANSFER_PAYMENT_METHODS = ImmutableList.<String>of("giropay", "ideal", "paypal");
+    // Period is a bit generous by default. Decision is synchronous with the redirect, but Adyen might have notification delays.
+    public static final String DEFAULT_ONLINE_BANK_TRANSFER_PENDING_PAYMENT_EXPIRATION_PERIOD = "P1d";
+    // Offine bank transfers: the customer is presented with a reference number, which the customer must then quote to the bank (either online, via telephone or in a branch).
+    public static final List<String> DEFAULT_OFFLINE_BANK_TRANSFER_PAYMENT_METHODS = ImmutableList.<String>of("boletobancario_bradesco",
+                                                                                                              "boletobancario_santander",
+                                                                                                              "directEbanking",
+                                                                                                              "sepadirectdebit");
+    // Period is a bit aggressive by default. SOFORT (directEbanking) payment can take up to 14 days.
+    public static final String DEFAULT_OFFLINE_BANK_TRANSFER_PENDING_PAYMENT_EXPIRATION_PERIOD = "P7d";
 
     private static final String PROPERTY_PREFIX = "org.killbill.billing.plugin.adyen.";
     private static final String ENTRY_DELIMITER = "|";
@@ -45,6 +61,7 @@ public class AdyenConfigProperties {
     private final Map<String, String> merchantAccountToSkinMap = new LinkedHashMap<String, String>();
     private final Map<String, String> skinToSecretMap = new LinkedHashMap<String, String>();
     private final Map<String, String> skinToSecretAlgorithmMap = new LinkedHashMap<String, String>();
+    private final Map<String, Period> paymentMethodToExpirationPeriod = new LinkedHashMap<String, Period>();
 
     private final String merchantAccounts;
     private final String userNames;
@@ -154,18 +171,36 @@ public class AdyenConfigProperties {
     }
 
     private Period readPendingExpirationProperty(final Properties properties) {
+        // Legacy days value has precedence
         final String valueInDays = properties.getProperty(PROPERTY_PREFIX + "pendingPaymentExpirationPeriodInDays");
         if (valueInDays != null) {
             try {
                 return Period.days(Integer.parseInt(valueInDays));
-            } catch (NumberFormatException e) { /* Ignore */ }
+            } catch (final NumberFormatException e) { /* Ignore */ }
         }
 
-        final String value = properties.getProperty(PROPERTY_PREFIX + "pendingPaymentExpirationPeriod");
-        if (value != null) {
+        final String pendingExpirationPeriods = properties.getProperty(PROPERTY_PREFIX + "pendingPaymentExpirationPeriod");
+        final Map<String, String> paymentMethodToExpirationPeriodString = new HashMap<String, String>();
+        refillMap(paymentMethodToExpirationPeriodString, pendingExpirationPeriods);
+        // No per-payment method override, just a global setting
+        if (pendingExpirationPeriods != null && paymentMethodToExpirationPeriodString.isEmpty()) {
             try {
-                return Period.parse(value);
-            } catch (IllegalArgumentException e) { /* Ignore */ }
+                return Period.parse(pendingExpirationPeriods);
+            } catch (final IllegalArgumentException e) { /* Ignore */ }
+        }
+
+        for (final String paymentMethod : DEFAULT_ONLINE_BANK_TRANSFER_PAYMENT_METHODS) {
+            paymentMethodToExpirationPeriod.put(paymentMethod.toLowerCase(), Period.parse(DEFAULT_ONLINE_BANK_TRANSFER_PENDING_PAYMENT_EXPIRATION_PERIOD));
+        }
+        for (final String paymentMethod : DEFAULT_OFFLINE_BANK_TRANSFER_PAYMENT_METHODS) {
+            paymentMethodToExpirationPeriod.put(paymentMethod.toLowerCase(), Period.parse(DEFAULT_OFFLINE_BANK_TRANSFER_PENDING_PAYMENT_EXPIRATION_PERIOD));
+        }
+
+        // User has defined per-payment method overrides
+        for (final String paymentMethod : paymentMethodToExpirationPeriodString.keySet()) {
+            try {
+                paymentMethodToExpirationPeriod.put(paymentMethod.toLowerCase(), Period.parse(paymentMethodToExpirationPeriodString.get(paymentMethod)));
+            } catch (final IllegalArgumentException e) { /* Ignore */ }
         }
 
         return Period.parse(DEFAULT_PENDING_PAYMENT_EXPIRATION_PERIOD);
@@ -245,8 +280,12 @@ public class AdyenConfigProperties {
         return hppVariantOverride;
     }
 
-    public Period getPendingPaymentExpirationPeriod() {
-        return pendingPaymentExpirationPeriod;
+    public Period getPendingPaymentExpirationPeriod(@Nullable final String paymentMethod) {
+        if (paymentMethod != null && paymentMethodToExpirationPeriod.get(paymentMethod.toLowerCase()) != null) {
+            return paymentMethodToExpirationPeriod.get(paymentMethod.toLowerCase());
+        } else {
+            return pendingPaymentExpirationPeriod;
+        }
     }
 
     public Period getPending3DsPaymentExpirationPeriod() {
@@ -321,9 +360,12 @@ public class AdyenConfigProperties {
 
     private synchronized void refillMap(final Map<String, String> map, final String stringToSplit) {
         map.clear();
-        if (!Strings.isNullOrEmpty(stringToSplit) && stringToSplit.contains(ENTRY_DELIMITER)) {
+        if (!Strings.isNullOrEmpty(stringToSplit)) {
             for (final String entry : stringToSplit.split("\\" + ENTRY_DELIMITER)) {
-                map.put(entry.split(KEY_VALUE_DELIMITER)[0], entry.split(KEY_VALUE_DELIMITER)[1]);
+                final String[] split = entry.split(KEY_VALUE_DELIMITER);
+                if (split.length > 1) {
+                    map.put(split[0], split[1]);
+                }
             }
         }
     }
