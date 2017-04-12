@@ -3,10 +3,19 @@
 *.war
 *.ear
 
-.idea/workspace.xml
-.idea/libraries
+# Project Files #
+.idea/libraries/
+.idea/shelf/
 .idea/dictionaries/
-.idea/dbnavigator.xml
+!.idea/copyright/
+!.idea/inspectionProfiles/
+!.idea/runConfigurations/
+.idea/*.xml
+!.idea/codeStyleSettings.xml
+!.idea/compiler.xml
+!.idea/encodings.xml
+!.idea/projectCodeStyle.xml
+.idea/*.ids
 *.ipr
 *.iws
 
