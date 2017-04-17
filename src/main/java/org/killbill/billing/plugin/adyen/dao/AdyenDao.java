@@ -147,6 +147,21 @@ public class AdyenDao extends PluginPaymentDao<AdyenResponsesRecord, AdyenRespon
                        });
     }
 
+    public AdyenHppRequestsRecord getHppRequest(final UUID kbPaymentTransactionId) throws SQLException {
+        return execute(dataSource.getConnection(),
+                       new WithConnectionCallback<AdyenHppRequestsRecord>() {
+                           @Override
+                           public AdyenHppRequestsRecord withConnection(final Connection conn) throws SQLException {
+                               return DSL.using(conn, dialect, settings)
+                                         .selectFrom(ADYEN_HPP_REQUESTS)
+                                         .where(ADYEN_HPP_REQUESTS.KB_PAYMENT_TRANSACTION_ID.equal(kbPaymentTransactionId.toString()))
+                                         .orderBy(ADYEN_HPP_REQUESTS.RECORD_ID.desc())
+                                         .limit(1)
+                                         .fetchOne();
+                           }
+                       });
+    }
+
     // Responses
 
     public AdyenResponsesRecord addResponse(final UUID kbAccountId,

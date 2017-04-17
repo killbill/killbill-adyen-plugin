@@ -14,6 +14,7 @@ create table adyen_hpp_requests (
 ) /*! CHARACTER SET utf8 COLLATE utf8_bin */;
 create index adyen_hpp_requests_kb_account_id on adyen_hpp_requests(kb_account_id);
 create index adyen_hpp_requests_kb_transaction_external_key on adyen_hpp_requests(transaction_external_key);
+create index adyen_hpp_requests_kb_payment_transaction_id on adyen_hpp_requests(kb_payment_transaction_id);
 
 drop table if exists adyen_responses;
 create table adyen_responses (

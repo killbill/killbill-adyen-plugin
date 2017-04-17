@@ -124,7 +124,32 @@ public class TestAdyenPaymentPluginApiHPP extends TestAdyenPaymentPluginApiBase 
         final Payment payment = triggerBuildFormDescriptor(ImmutableMap.<String, String>of(AdyenPaymentPluginApi.PROPERTY_CREATE_PENDING_PAYMENT, "true",
                                                                                            AdyenPaymentPluginApi.PROPERTY_AUTH_MODE, "true"),
                                                            TransactionType.AUTHORIZE);
-        dao.updateResponse(payment.getTransactions().get(0).getId(),PaymentServiceProviderResult.PENDING, ImmutableList.<PluginProperty>of(new PluginProperty("paymentMethod", "paypal", false)), context.getTenantId());
+        dao.updateResponse(payment.getTransactions().get(0).getId(), PaymentServiceProviderResult.PENDING, ImmutableList.<PluginProperty>of(new PluginProperty("paymentMethod", "paypal", false)), context.getTenantId());
+
+        final Period expirationPeriod = adyenConfigProperties.getPendingPaymentExpirationPeriod("paypal");
+        assertEquals(expirationPeriod.toString(), "P1D");
+
+        final Period preExpirationPeriod = expirationPeriod.minusMinutes(1);
+        clock.setDeltaFromReality(preExpirationPeriod.toStandardDuration().getMillis());
+        assertEquals(adyenPaymentPluginApi.getPaymentInfo(account.getId(), payment.getId(), Collections.<PluginProperty>emptyList(), context).get(0).getStatus(), PaymentPluginStatus.PENDING);
+
+        final Period postExpirationPeriod = expirationPeriod.plusMinutes(1);
+        clock.setDeltaFromReality(postExpirationPeriod.toStandardDuration().getMillis());
+
+        final List<PaymentTransactionInfoPlugin> transactions = adyenPaymentPluginApi.getPaymentInfo(account.getId(), payment.getId(), Collections.<PluginProperty>emptyList(), context);
+        final PaymentTransactionInfoPlugin canceledTransaction = transactions.get(0);
+        assertEquals(canceledTransaction.getStatus(), PaymentPluginStatus.CANCELED);
+
+        final PluginProperty updateMessage = PluginProperties.findPluginProperties("message", canceledTransaction.getProperties()).iterator().next();
+        assertEquals(updateMessage.getValue(), "Payment Expired - Cancelled by Janitor");
+    }
+
+    @Test(groups = "slow")
+    public void testCancelExpiredPayPalPaymentNoNotification() throws Exception {
+        final Payment payment = triggerBuildFormDescriptor(ImmutableMap.<String, String>of(AdyenPaymentPluginApi.PROPERTY_CREATE_PENDING_PAYMENT, "true",
+                                                                                           AdyenPaymentPluginApi.PROPERTY_AUTH_MODE, "true",
+                                                                                           AdyenPaymentPluginApi.PROPERTY_BRAND_CODE, "paypal"),
+                                                           TransactionType.AUTHORIZE);
 
         final Period expirationPeriod = adyenConfigProperties.getPendingPaymentExpirationPeriod("paypal");
         assertEquals(expirationPeriod.toString(), "P1D");
@@ -149,7 +174,7 @@ public class TestAdyenPaymentPluginApiHPP extends TestAdyenPaymentPluginApiBase 
         final Payment payment = triggerBuildFormDescriptor(ImmutableMap.<String, String>of(AdyenPaymentPluginApi.PROPERTY_CREATE_PENDING_PAYMENT, "true",
                                                                                            AdyenPaymentPluginApi.PROPERTY_AUTH_MODE, "true"),
                                                            TransactionType.AUTHORIZE);
-        dao.updateResponse(payment.getTransactions().get(0).getId(),PaymentServiceProviderResult.PENDING, ImmutableList.<PluginProperty>of(new PluginProperty("paymentMethod", "boletobancario_santander", false)), context.getTenantId());
+        dao.updateResponse(payment.getTransactions().get(0).getId(), PaymentServiceProviderResult.PENDING, ImmutableList.<PluginProperty>of(new PluginProperty("paymentMethod", "boletobancario_santander", false)), context.getTenantId());
 
         final Period expirationPeriod = adyenConfigProperties.getPendingPaymentExpirationPeriod("boletobancario_santander");
         assertEquals(expirationPeriod.toString(), "P7D");

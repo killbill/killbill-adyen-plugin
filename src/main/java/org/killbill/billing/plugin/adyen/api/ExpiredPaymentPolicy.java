@@ -92,7 +92,9 @@ public class ExpiredPaymentPolicy {
         return PaymentServiceProviderResult.REDIRECT_SHOPPER.toString().equals(adyenResponsesRecord.getResultCode());
     }
 
+    // paymentMethod comes from the notification, brandCode from the HPP request
     private String getPaymentMethod(final PaymentTransactionInfoPlugin transaction) {
-        return PluginProperties.findPluginPropertyValue("paymentMethod", transaction.getProperties());
+        final String paymentMethod = PluginProperties.findPluginPropertyValue("paymentMethod", transaction.getProperties());
+        return paymentMethod != null ? paymentMethod : PluginProperties.findPluginPropertyValue("brandCode", transaction.getProperties());
     }
 }

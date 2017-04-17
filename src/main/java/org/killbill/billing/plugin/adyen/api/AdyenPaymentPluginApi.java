@@ -79,6 +79,7 @@ import org.killbill.billing.plugin.adyen.core.KillbillAdyenNotificationHandler;
 import org.killbill.billing.plugin.adyen.dao.AdyenDao;
 import org.killbill.billing.plugin.adyen.dao.gen.tables.AdyenPaymentMethods;
 import org.killbill.billing.plugin.adyen.dao.gen.tables.AdyenResponses;
+import org.killbill.billing.plugin.adyen.dao.gen.tables.records.AdyenHppRequestsRecord;
 import org.killbill.billing.plugin.adyen.dao.gen.tables.records.AdyenPaymentMethodsRecord;
 import org.killbill.billing.plugin.adyen.dao.gen.tables.records.AdyenResponsesRecord;
 import org.killbill.billing.plugin.api.PluginProperties;
@@ -88,6 +89,8 @@ import org.killbill.billing.util.callcontext.CallContext;
 import org.killbill.billing.util.callcontext.TenantContext;
 import org.killbill.clock.Clock;
 import org.osgi.service.log.LogService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Function;
 import com.google.common.base.MoreObjects;
@@ -197,6 +200,8 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
     public static final String PROPERTY_DCC_SIGNATURE = "dccSignature";
     public static final String PROPERTY_ISSUER_URL = "issuerUrl";
 
+    private static final Logger logger = LoggerFactory.getLogger(AdyenPaymentPluginApi.class);
+
     private final AdyenConfigurationHandler adyenConfigurationHandler;
     private final AdyenHostedPaymentPageConfigurationHandler adyenHppConfigurationHandler;
     private final AdyenRecurringConfigurationHandler adyenRecurringConfigurationHandler;
@@ -266,7 +271,14 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
 
     @Override
     protected PaymentTransactionInfoPlugin buildPaymentTransactionInfoPlugin(final AdyenResponsesRecord adyenResponsesRecord) {
-        return new AdyenPaymentTransactionInfoPlugin(adyenResponsesRecord);
+        AdyenHppRequestsRecord hppRequestsRecord = null;
+        try {
+            hppRequestsRecord = dao.getHppRequest(UUID.fromString(adyenResponsesRecord.getKbPaymentTransactionId()));
+        } catch (final SQLException e) {
+            logger.warn("Unable to retrieve HPP request for paymentTransactionId='{}'", adyenResponsesRecord.getKbPaymentTransactionId(), e);
+        }
+
+        return new AdyenPaymentTransactionInfoPlugin(adyenResponsesRecord, hppRequestsRecord);
     }
 
     @Override

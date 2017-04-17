@@ -37,6 +37,7 @@ import org.killbill.billing.plugin.adyen.client.model.PaymentServiceProviderResu
 import org.killbill.billing.plugin.adyen.client.model.PurchaseResult;
 import org.killbill.billing.plugin.adyen.client.payment.service.AdyenCallErrorStatus;
 import org.killbill.billing.plugin.adyen.dao.AdyenDao;
+import org.killbill.billing.plugin.adyen.dao.gen.tables.records.AdyenHppRequestsRecord;
 import org.killbill.billing.plugin.adyen.dao.gen.tables.records.AdyenResponsesRecord;
 import org.killbill.billing.plugin.api.PluginProperties;
 import org.killbill.billing.plugin.api.payment.PluginPaymentTransactionInfoPlugin;
@@ -104,6 +105,10 @@ public class AdyenPaymentTransactionInfoPlugin extends PluginPaymentTransactionI
     }
 
     public AdyenPaymentTransactionInfoPlugin(final AdyenResponsesRecord record) {
+        this(record, null);
+    }
+
+    public AdyenPaymentTransactionInfoPlugin(final AdyenResponsesRecord record, @Nullable final AdyenHppRequestsRecord adyenHppRequestsRecord) {
         super(UUID.fromString(record.getKbPaymentId()),
               UUID.fromString(record.getKbPaymentTransactionId()),
               TransactionType.valueOf(record.getTransactionType()),
@@ -116,7 +121,7 @@ public class AdyenPaymentTransactionInfoPlugin extends PluginPaymentTransactionI
               record.getAuthCode(),
               new DateTime(record.getCreatedDate(), DateTimeZone.UTC),
               new DateTime(record.getCreatedDate(), DateTimeZone.UTC),
-              buildProperties(toMap(record.getAdditionalData())));
+              buildProperties(record, adyenHppRequestsRecord));
         adyenResponseRecord = Optional.of(record);
     }
 
@@ -400,6 +405,17 @@ public class AdyenPaymentTransactionInfoPlugin extends PluginPaymentTransactionI
 
         final int lastDotIndex = dotCount - 1;
         lengthArray[dotCount] = className.length() - dotArray[lastDotIndex];
+    }
+
+    private static List<PluginProperty> buildProperties(final AdyenResponsesRecord adyenResponsesRecord, @Nullable final AdyenHppRequestsRecord adyenHppRequestsRecord) {
+        final Map mergedMap = new HashMap();
+
+        if (adyenHppRequestsRecord != null) {
+            mergedMap.putAll(toMap(adyenHppRequestsRecord.getAdditionalData()));
+        }
+        mergedMap.putAll(toMap(adyenResponsesRecord.getAdditionalData()));
+
+        return buildProperties(mergedMap);
     }
 
     private static List<PluginProperty> buildProperties(@Nullable final Map data) {
