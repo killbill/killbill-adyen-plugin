@@ -418,8 +418,8 @@ public class TestAdyenPaymentPluginApi extends TestAdyenPaymentPluginApiBase {
         assertFalse(redirectFormParams.isEmpty(), "No FORM found in redirect HTML response");
         assertEquals(termUrl, redirectFormParams.remove("formAction"));
         // simulate url encoding that happens in the KillBill Client
-        redirectFormParams.put("MD", UTF8UrlEncoder.encode(redirectFormParams.get("MD")));
-        redirectFormParams.put("PaRes", UTF8UrlEncoder.encode(redirectFormParams.get("PaRes")));
+        redirectFormParams.put("MD", UTF8UrlEncoder.encodeQueryElement(redirectFormParams.get("MD")));
+        redirectFormParams.put("PaRes", UTF8UrlEncoder.encodeQueryElement(redirectFormParams.get("PaRes")));
 
         final List<PluginProperty> propertiesWithCompleteParams = PluginProperties.buildPluginProperties(redirectFormParams);
 
