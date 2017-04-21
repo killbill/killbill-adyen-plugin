@@ -63,6 +63,7 @@ public class HPPRequestBuilder extends RequestBuilder<Map<String, String>> {
         this.signer = signer;
     }
 
+    @SuppressWarnings("deprecation")
     @Override
     public Map<String, String> build() {
         request.put("merchantAccount", merchantAccount);

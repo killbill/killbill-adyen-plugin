@@ -76,7 +76,7 @@ public class TestModificationRequestBuilder extends BaseTestPaymentRequestBuilde
     private ModificationRequest verifyModificationRequestBuilder(final SplitSettlementData splitSettlementData) {
         final String merchantAccount = UUID.randomUUID().toString();
         final String paymentTransactionExternalKey = UUID.randomUUID().toString();
-        final PaymentData paymentData = new PaymentData(new BigDecimal("20"), Currency.EUR, paymentTransactionExternalKey, new Card());
+        final PaymentData paymentData = new PaymentData<Card>(new BigDecimal("20"), Currency.EUR, paymentTransactionExternalKey, new Card());
         final String originalReference = UUID.randomUUID().toString();
 
         final ModificationRequestBuilder builder = new ModificationRequestBuilder(merchantAccount, paymentData, originalReference, splitSettlementData);

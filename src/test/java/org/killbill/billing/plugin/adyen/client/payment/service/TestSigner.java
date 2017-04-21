@@ -29,19 +29,19 @@ public class TestSigner {
     @Test(groups = "fast")
     public void testSHA1() {
         final Signer signer = new Signer();
-        final String signature = signer.signFormParameters(199L,
-                                                           "EUR",
-                                                           "2015-07-01",
-                                                           "SKINTEST-1435226439255",
-                                                           "X7hsNDWp",
-                                                           "TestMerchant",
-                                                           null,
-                                                           null,
-                                                           null,
-                                                           null,
-                                                           "2015-06-25T10:31:06Z",
-                                                           "testing",
-                                                           "HmacSHA1");
+        @SuppressWarnings("deprecation") final String signature = signer.signFormParameters(199L,
+                                                                                            "EUR",
+                                                                                            "2015-07-01",
+                                                                                            "SKINTEST-1435226439255",
+                                                                                            "X7hsNDWp",
+                                                                                            "TestMerchant",
+                                                                                            null,
+                                                                                            null,
+                                                                                            null,
+                                                                                            null,
+                                                                                            "2015-06-25T10:31:06Z",
+                                                                                            "testing",
+                                                                                            "HmacSHA1");
         Assert.assertEquals(signature, "gluOhhUTvBBQjjr336VCE+qNl1o=");
     }
 

@@ -33,6 +33,7 @@ public class SepaDirectDebitConverter extends PaymentInfoConverter<SepaDirectDeb
         return type instanceof SepaDirectDebit;
     }
 
+    @SuppressWarnings("deprecation")
     @Override
     public PaymentRequest convertPaymentInfoToPaymentRequest(final SepaDirectDebit sepaDirectDebit) {
         final BankAccount bankAccount = new BankAccount();

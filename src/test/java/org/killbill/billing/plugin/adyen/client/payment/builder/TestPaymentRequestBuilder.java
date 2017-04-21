@@ -43,7 +43,7 @@ public class TestPaymentRequestBuilder extends BaseTestPaymentRequestBuilder {
     public void testPaymentRequestBuilderWithEmptyFields() {
         final String merchantAccount = UUID.randomUUID().toString();
         final String paymentTransactionExternalKey = UUID.randomUUID().toString();
-        final PaymentData paymentData = new PaymentData(new BigDecimal("20"), Currency.EUR, paymentTransactionExternalKey, new Card());
+        final PaymentData paymentData = new PaymentData<Card>(new BigDecimal("20"), Currency.EUR, paymentTransactionExternalKey, new Card());
         final UserData userData = new UserData();
         final SplitSettlementData splitSettlementData = null;
         final PaymentInfoConverterService paymentInfoConverterManagement = new PaymentInfoConverterService();
@@ -112,7 +112,7 @@ public class TestPaymentRequestBuilder extends BaseTestPaymentRequestBuilder {
 
         final String merchantAccount = UUID.randomUUID().toString();
         final String paymentTransactionExternalKey = UUID.randomUUID().toString();
-        final PaymentData paymentData = new PaymentData(new BigDecimal("20"), Currency.EUR, paymentTransactionExternalKey, paymentInfo);
+        final PaymentData paymentData = new PaymentData<PaymentInfo>(new BigDecimal("20"), Currency.EUR, paymentTransactionExternalKey, paymentInfo);
 
         final UserData userData = new UserData();
         userData.setShopperIP(UUID.randomUUID().toString());

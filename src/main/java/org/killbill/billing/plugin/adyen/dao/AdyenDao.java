@@ -523,7 +523,7 @@ public class AdyenDao extends PluginPaymentDao<AdyenResponsesRecord, AdyenRespon
                        });
     }
 
-    private String getString(@Nullable final Iterable iterable) {
+    private String getString(@Nullable final Iterable<?> iterable) {
         if (iterable == null || !iterable.iterator().hasNext()) {
             return null;
         } else {

@@ -64,7 +64,7 @@ public class TestHPPRequestBuilder extends BaseTestPaymentRequestBuilder {
         webPaymentFrontend.setResURL(RES_URL);
         webPaymentFrontend.setBrandCode(BRAND_CODE);
         webPaymentFrontend.setAllowedMethods(ALLOWED_METHODS);
-        final PaymentData paymentData = new PaymentData(new BigDecimal("1"), Currency.EUR, paymentTransactionExternalKey, webPaymentFrontend);
+        final PaymentData paymentData = new PaymentData<WebPaymentFrontend>(new BigDecimal("1"), Currency.EUR, paymentTransactionExternalKey, webPaymentFrontend);
 
         final UserData userData = new UserData();
         userData.setShopperEmail(SHOPPER_EMAIL);
@@ -118,6 +118,7 @@ public class TestHPPRequestBuilder extends BaseTestPaymentRequestBuilder {
         Assert.assertEquals(params.get("splitsettlementdata.item3.type"), "travel");
     }
 
+    @SuppressWarnings("deprecation")
     private Signer buildSignerMock() {
         final Signer signer = Mockito.mock(Signer.class);
         Mockito.when(signer.signFormParameters(Mockito.anyLong(),
@@ -133,7 +134,7 @@ public class TestHPPRequestBuilder extends BaseTestPaymentRequestBuilder {
                                                Mockito.anyString(),
                                                Mockito.anyString(),
                                                Mockito.anyString())).thenReturn(MERCHANT_SIG);
-        Mockito.when(signer.signFormParameters(Mockito.<String, String>anyMap(),
+        Mockito.when(signer.signFormParameters(Mockito.<String, String>anyMapOf(String.class, String.class),
                                                Mockito.anyString(),
                                                Mockito.anyString())).thenReturn(MERCHANT_SIG);
         return signer;

@@ -41,7 +41,7 @@ public abstract class SepaDirectDebitMappingService {
 
         final String elvBlz = PluginProperties.findPluginPropertyValue(PROPERTY_ELV_BLZ, properties);
         if (elvBlz != null) {
-            final ELVDirectDebit elvDirectDebit = new ELVDirectDebit();
+            @SuppressWarnings("deprecation") final ELVDirectDebit elvDirectDebit = new ELVDirectDebit();
             elvDirectDebit.setBlz(elvBlz);
             elvDirectDebit.setAccountNumber(ddAccountNumber);
             sepaDirectDebit = elvDirectDebit;

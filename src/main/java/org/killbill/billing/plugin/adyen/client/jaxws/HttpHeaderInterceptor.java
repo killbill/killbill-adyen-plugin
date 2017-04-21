@@ -47,7 +47,7 @@ public class HttpHeaderInterceptor extends AbstractPhaseInterceptor<Message> {
         // We know Kill Bill passed the X-Request-Id from the user in the slf4j MDC. Maybe one day, there will be a real API for it?
         final String xRequestId = MoreObjects.firstNonNull(MDC.get(MDC_REQUEST_ID), UUID.randomUUID().toString());
 
-        final Map<String, List> headers = (Map<String, List>) message.get(Message.PROTOCOL_HEADERS);
+        @SuppressWarnings("unchecked") final Map<String, List> headers = (Map<String, List>) message.get(Message.PROTOCOL_HEADERS);
         try {
             headers.put(X_REQUEST_ID, ImmutableList.<String>of(xRequestId));
         } catch (final Exception e) {
