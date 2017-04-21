@@ -46,19 +46,12 @@
     </properties>
     <dependencies>
         <dependency>
-            <groupId>com.fasterxml.jackson.core</groupId>
-            <artifactId>jackson-annotations</artifactId>
-            <version>2.6.0</version>
-        </dependency>
-        <dependency>
-            <groupId>com.fasterxml.jackson.core</groupId>
-            <artifactId>jackson-core</artifactId>
-            <version>2.6.0</version>
+            <groupId>com.ning</groupId>
+            <artifactId>async-http-client</artifactId>
         </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
-            <version>2.6.0</version>
         </dependency>
         <dependency>
             <groupId>org.joda</groupId>
@@ -296,7 +289,7 @@
                 <configuration>
                     <instructions>
                         <Bundle-Activator>org.killbill.billing.plugin.adyen.core.AdyenActivator</Bundle-Activator>
-                        <Export-Package />
+                        <Export-Package/>
                         <Private-Package>org.killbill.billing.plugin.adyen.*</Private-Package>
                         <!-- Optional resolution because exported by the Felix system bundle -->
                         <Import-Package>
