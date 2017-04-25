@@ -1,3 +1,7 @@
+0.5.3
+    Make janitor cancellation policy configurable per payment method
+    Update to killbill-oss-parent 0.140.25
+
 0.5.2
     Add support for QC country code
     Enlarge md and pa_request columns to TEXT
