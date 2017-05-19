@@ -596,7 +596,7 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
             formParameter.put("directory", MoreObjects.firstNonNull(directory, ImmutableMap.of()));
         }
 
-        final String target = webPaymentFrontend.getBrandCode() != null ? getConfigProperties(context).getHppSkipDetailsTarget() : getConfigProperties(context).getHppTarget();
+        final String target = webPaymentFrontend.getBrandCode() != null && webPaymentFrontend.getIssuerId() != null ? getConfigProperties(context).getHppSkipDetailsTarget() : getConfigProperties(context).getHppTarget();
         final String hppTarget = PluginProperties.getValue(PROPERTY_HPP_TARGET, target, properties);
         return new AdyenHostedPaymentPageFormDescriptor(kbAccountId, hppTarget, PluginProperties.buildPluginProperties(formParameter));
     }
