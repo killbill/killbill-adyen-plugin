@@ -1,3 +1,6 @@
+0.5.4
+    [HPP] Only redirect to skipDetails when issuerId is present
+
 0.5.3
     Make janitor cancellation policy configurable per payment method
     Update to killbill-oss-parent 0.140.25
