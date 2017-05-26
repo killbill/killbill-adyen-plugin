@@ -314,6 +314,106 @@ There are 3 different use cases:
 2. Use Adyen's recurring payment feature with contract `ONECLICK`: CVV is always required
 3. Use you own card-on-file system + `contAuth` to simulate option 1. Instead of providing Adyen's `recurringDetailId`, the merchant retrieves stored payment data from its store and populates the fields like a normal payment request. `contAuth` is needed to turn Adyen's (not needed) validations off.
 
+#### Client-Side Encryption (CSE)
+
+Take a look at the end-to-end [demo](https://github.com/killbill/killbill-adyen-demo) to understand how to use CSE. At a high level, the steps are:
+
+1. Create account
+
+```
+curl -v \
+     -u admin:password \
+     -H "X-Killbill-ApiKey: bob" \
+     -H "X-Killbill-ApiSecret: lazar" \
+     -H "Content-Type: application/json" \
+     -H "X-Killbill-CreatedBy: demo" \
+     -X POST \
+     --data-binary '{}' \
+     "http://127.0.0.1:8080/1.0/kb/accounts"
+```
+
+2. Create an empty payment method
+
+```
+curl -v \
+     -u admin:password \
+     -H "X-Killbill-ApiKey: bob" \
+     -H "X-Killbill-ApiSecret: lazar" \
+     -H "Content-Type: application/json" \
+     -H "X-Killbill-CreatedBy: demo" \
+     -X POST \
+     --data-binary '{
+       "pluginName": "killbill-adyen",
+       "pluginInfo": {
+         "properties": []
+       }
+     }' \
+     "http://127.0.0.1:8080/1.0/kb/accounts/<ACCOUNT_ID>/paymentMethods?isDefault=true&pluginProperty=skip_gw=true"
+```
+
+3. Trigger a $1 auth using the encrypted JSON (Adyen requires a payment to tokenize the card)
+
+```
+curl -v \
+     -u admin:password \
+     -H "X-Killbill-ApiKey: bob" \
+     -H "X-Killbill-ApiSecret: lazar" \
+     -H "Content-Type: application/json" \
+     -H "X-Killbill-CreatedBy: demo" \
+     -X POST \
+     --data-binary '{
+       "transactionType":"AUTHORIZE",
+       "amount":"1",
+       "currency":"USD",
+       "properties": [
+         {
+           "key": "recurringType",
+           "value": "RECURRING"
+         },
+         {
+           "key": "contAuth",
+           "value": "false"
+         },
+         {
+           "key": "encryptedJson",
+           "value": <ENCRYPTED_JSON>
+         }
+       ]
+    }' \
+    "http://127.0.0.1:8080/1.0/kb/accounts/<ACCOUNT_ID>/payments"
+```
+
+4. Void the auth
+
+```
+curl -v \
+     -u admin:password \
+     -H "X-Killbill-ApiKey: bob" \
+     -H "X-Killbill-ApiSecret: lazar" \
+     -H "Content-Type: application/json" \
+     -H "X-Killbill-CreatedBy: demo" \
+     -X DELETE \
+     --data-binary '{}' \
+     "http://127.0.0.1:8080/1.0/kb/payments/<PAYMENT_ID>"
+```
+
+5. Sync the payment methods to get the freshly created Adyen token
+
+```
+curl -v \
+     -u admin:password \
+     -H "X-Killbill-ApiKey: bob" \
+     -H "X-Killbill-ApiSecret: lazar" \
+     -H "Content-Type: application/json" \
+     -H "X-Killbill-CreatedBy: demo" \
+     -X POST \
+     --data-binary '{}' \
+    "http://127.0.0.1:8080/1.0/kb/accounts/<ACCOUNT_ID>/paymentMethods/refresh"
+
+```
+
+At this point, the payment method is ready for recurring payments.
+
 Plugin properties
 -----------------
 
