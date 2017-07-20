@@ -29,8 +29,13 @@ import org.killbill.billing.plugin.adyen.client.AdyenConfigProperties;
 import org.killbill.billing.plugin.adyen.client.payment.service.AdyenPaymentServiceProviderHostedPaymentPagePort;
 import org.killbill.billing.plugin.adyen.client.payment.service.AdyenPaymentServiceProviderPort;
 import org.killbill.billing.plugin.adyen.client.recurring.AdyenRecurringClient;
+import org.killbill.billing.plugin.adyen.core.resources.AdyenHealthcheckServlet;
+import org.killbill.billing.plugin.adyen.core.resources.AdyenServlet;
 import org.killbill.billing.plugin.adyen.dao.AdyenDao;
 import org.killbill.billing.plugin.api.notification.PluginConfigurationEventHandler;
+import org.killbill.billing.plugin.core.resources.jooby.PluginApp;
+import org.killbill.billing.plugin.core.resources.jooby.PluginAppBuilder;
+import org.killbill.billing.plugin.service.Healthcheck;
 import org.killbill.clock.Clock;
 import org.killbill.clock.DefaultClock;
 import org.osgi.framework.BundleContext;
@@ -51,10 +56,6 @@ public class AdyenActivator extends KillbillActivatorBase {
         final Clock clock = new DefaultClock();
         final AdyenDao dao = new AdyenDao(dataSource.getDataSource());
 
-        // Register the servlet
-        final AdyenServlet adyenServlet = new AdyenServlet();
-        registerServlet(context, adyenServlet);
-
         adyenConfigurationHandler = new AdyenConfigurationHandler(PLUGIN_NAME, killbillAPI, logService, configProperties);
         adyenConfigPropertiesConfigurationHandler = new AdyenConfigPropertiesConfigurationHandler(PLUGIN_NAME, killbillAPI, logService, configProperties);
         adyenHostedPaymentPageConfigurationHandler = new AdyenHostedPaymentPageConfigurationHandler(PLUGIN_NAME, killbillAPI, logService, configProperties);
@@ -71,6 +72,23 @@ public class AdyenActivator extends KillbillActivatorBase {
 
         final AdyenRecurringClient globalAdyenRecurringClient = adyenRecurringConfigurationHandler.createConfigurable(configProperties.getProperties());
         adyenRecurringConfigurationHandler.setDefaultConfigurable(globalAdyenRecurringClient);
+
+        // Expose the healthcheck, so other plugins can check on the Adyen status
+        final AdyenHealthcheck adyenHealthcheck = new AdyenHealthcheck(adyenConfigPropertiesConfigurationHandler);
+        registerHealthcheck(context, adyenHealthcheck);
+
+        // Register the servlet
+        final PluginApp pluginApp = new PluginAppBuilder(PLUGIN_NAME,
+                                                         killbillAPI,
+                                                         logService,
+                                                         dataSource,
+                                                         super.clock,
+                                                         configProperties).withRouteClass(AdyenServlet.class)
+                                                                          .withRouteClass(AdyenHealthcheckServlet.class)
+                                                                          .withService(adyenHealthcheck)
+                                                                          .build();
+        final HttpServlet adyenServlet = PluginApp.createServlet(pluginApp);
+        registerServlet(context, adyenServlet);
 
         // Register the payment plugin
         final AdyenPaymentPluginApi pluginApi = new AdyenPaymentPluginApi(adyenConfigurationHandler,
@@ -101,5 +119,11 @@ public class AdyenActivator extends KillbillActivatorBase {
         final Hashtable<String, String> props = new Hashtable<String, String>();
         props.put(OSGIPluginProperties.PLUGIN_NAME_PROP, PLUGIN_NAME);
         registrar.registerService(context, PaymentPluginApi.class, api, props);
+    }
+
+    private void registerHealthcheck(final BundleContext context, final AdyenHealthcheck healthcheck) {
+        final Hashtable<String, String> props = new Hashtable<String, String>();
+        props.put(OSGIPluginProperties.PLUGIN_NAME_PROP, PLUGIN_NAME);
+        registrar.registerService(context, Healthcheck.class, healthcheck, props);
     }
 }
