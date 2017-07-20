@@ -19,6 +19,7 @@ package org.killbill.billing.plugin.adyen.core;
 
 import java.util.Properties;
 
+import org.killbill.billing.osgi.libs.killbill.OSGIConfigPropertiesService;
 import org.killbill.billing.osgi.libs.killbill.OSGIKillbillAPI;
 import org.killbill.billing.osgi.libs.killbill.OSGIKillbillLogService;
 import org.killbill.billing.plugin.adyen.client.AdyenConfigProperties;
@@ -26,12 +27,18 @@ import org.killbill.billing.plugin.api.notification.PluginTenantConfigurableConf
 
 public class AdyenConfigPropertiesConfigurationHandler extends PluginTenantConfigurableConfigurationHandler<AdyenConfigProperties> {
 
-    public AdyenConfigPropertiesConfigurationHandler(final String pluginName, final OSGIKillbillAPI osgiKillbillAPI, final OSGIKillbillLogService osgiKillbillLogService) {
+    private final OSGIConfigPropertiesService osgiConfigPropertiesService;
+
+    public AdyenConfigPropertiesConfigurationHandler(final String pluginName,
+                                                     final OSGIKillbillAPI osgiKillbillAPI,
+                                                     final OSGIKillbillLogService osgiKillbillLogService,
+                                                     final OSGIConfigPropertiesService osgiConfigPropertiesService) {
         super(pluginName, osgiKillbillAPI, osgiKillbillLogService);
+        this.osgiConfigPropertiesService = osgiConfigPropertiesService;
     }
 
     @Override
     protected AdyenConfigProperties createConfigurable(final Properties properties) {
-        return new AdyenConfigProperties(properties);
+        return new AdyenConfigProperties(properties, osgiConfigPropertiesService.getProperties());
     }
 }

@@ -19,6 +19,7 @@ package org.killbill.billing.plugin.adyen.core;
 
 import java.util.Properties;
 
+import org.killbill.billing.osgi.libs.killbill.OSGIConfigPropertiesService;
 import org.killbill.billing.osgi.libs.killbill.OSGIKillbillAPI;
 import org.killbill.billing.osgi.libs.killbill.OSGIKillbillLogService;
 import org.killbill.billing.plugin.adyen.client.AdyenConfigProperties;
@@ -30,10 +31,14 @@ import org.killbill.billing.plugin.api.notification.PluginTenantConfigurableConf
 
 public class AdyenRecurringConfigurationHandler extends PluginTenantConfigurableConfigurationHandler<AdyenRecurringClient> {
 
+    private final OSGIConfigPropertiesService osgiConfigPropertiesService;
+
     public AdyenRecurringConfigurationHandler(final String pluginName,
                                               final OSGIKillbillAPI osgiKillbillAPI,
-                                              final OSGIKillbillLogService osgiKillbillLogService) {
+                                              final OSGIKillbillLogService osgiKillbillLogService,
+                                              final OSGIConfigPropertiesService osgiConfigPropertiesService) {
         super(pluginName, osgiKillbillAPI, osgiKillbillLogService);
+        this.osgiConfigPropertiesService = osgiConfigPropertiesService;
     }
 
     @Override
@@ -42,7 +47,7 @@ public class AdyenRecurringConfigurationHandler extends PluginTenantConfigurable
         final LoggingOutInterceptor loggingOutInterceptor = new LoggingOutInterceptor();
         final HttpHeaderInterceptor httpHeaderInterceptor = new HttpHeaderInterceptor();
 
-        final AdyenConfigProperties adyenConfigProperties = new AdyenConfigProperties(properties);
+        final AdyenConfigProperties adyenConfigProperties = new AdyenConfigProperties(properties, osgiConfigPropertiesService.getProperties());
         return new AdyenRecurringClient(adyenConfigProperties, loggingInInterceptor, loggingOutInterceptor, httpHeaderInterceptor);
     }
 }

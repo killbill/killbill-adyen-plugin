@@ -79,7 +79,7 @@ public class TestHPPRequestBuilder extends BaseTestPaymentRequestBuilder {
 
         final Signer signer = buildSignerMock();
 
-        final Map<String, String> params = new HPPRequestBuilder(merchantAccount, paymentData, userData, splitSettlementData, new AdyenConfigProperties(new Properties()), signer).build();
+        final Map<String, String> params = new HPPRequestBuilder(merchantAccount, paymentData, userData, splitSettlementData, new AdyenConfigProperties(new Properties(), new Properties()), signer).build();
 
         Assert.assertFalse(params.isEmpty(), "HPP Params map should not be empty");
         Assert.assertEquals(params.get("countryCode"), COUNTRY_CODE, "Wrong value for 'countryCode'");
@@ -156,7 +156,7 @@ public class TestHPPRequestBuilder extends BaseTestPaymentRequestBuilder {
         userData.setShopperLocale(Locale.UK);
 
         final Signer signer = buildSignerMock();
-        final Map<String, String> params = new HPPRequestBuilder(merchantAccount, paymentData, userData, null, new AdyenConfigProperties(new Properties()), signer).build();
+        final Map<String, String> params = new HPPRequestBuilder(merchantAccount, paymentData, userData, null, new AdyenConfigProperties(new Properties(), new Properties()), signer).build();
         Assert.assertEquals(params.get("countryCode"), "GB");
         Assert.assertEquals(params.get("currencyCode"), "GBP");
         Assert.assertEquals(params.get("shopperLocale"), "en_GB");

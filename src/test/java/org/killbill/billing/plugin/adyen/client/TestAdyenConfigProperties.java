@@ -33,7 +33,10 @@ public class TestAdyenConfigProperties {
         properties.put("org.killbill.billing.plugin.adyen.skin", "DefaultSkin");
         properties.put("org.killbill.billing.plugin.adyen.hmac.secret", "DefaultSecret");
         properties.put("org.killbill.billing.plugin.adyen.pendingPaymentExpirationPeriod", "P2D");
-        final AdyenConfigProperties adyenConfigProperties = new AdyenConfigProperties(properties);
+        properties.put("org.killbill.billing.plugin.adyen.paymentUrl", "http://paymentUrl.com");
+        properties.put("org.killbill.billing.plugin.adyen.recurringUrl", "http://recurringUrl.com");
+        properties.put("org.killbill.billing.plugin.adyen.directoryUrl", "http://directoryUrl.com");
+        final AdyenConfigProperties adyenConfigProperties = new AdyenConfigProperties(properties, new Properties());
 
         Assert.assertEquals(adyenConfigProperties.getMerchantAccount("UK"), "DefaultAccount");
         Assert.assertEquals(adyenConfigProperties.getMerchantAccount("DE"), "DefaultAccount");
@@ -54,6 +57,10 @@ public class TestAdyenConfigProperties {
         // Don't use per-payment method default since user specified a global setting
         Assert.assertEquals(adyenConfigProperties.getPendingPaymentExpirationPeriod("paypal").toString(), "P2D");
         Assert.assertEquals(adyenConfigProperties.getPendingPaymentExpirationPeriod("boletobancario_santander").toString(), "P2D");
+
+        Assert.assertEquals(adyenConfigProperties.getPaymentUrl(), "http://paymentUrl.com");
+        Assert.assertEquals(adyenConfigProperties.getRecurringUrl(), "http://recurringUrl.com");
+        Assert.assertEquals(adyenConfigProperties.getDirectoryUrl(), "http://directoryUrl.com");
     }
 
     @Test(groups = "fast")
@@ -66,7 +73,7 @@ public class TestAdyenConfigProperties {
         properties.put("org.killbill.billing.plugin.adyen.hmac.secret", "UK#DefaultSecretUK|US#DefaultSecretUS|DE#DefaultSecretDE");
         properties.put("org.killbill.billing.plugin.adyen.hmac.algorithm", "UK#DefaultAlgorithmUK|US#DefaultAlgorithmUS|DE#DefaultAlgorithmDE");
         properties.put("org.killbill.billing.plugin.adyen.pendingPaymentExpirationPeriod", "paypal#P4D");
-        final AdyenConfigProperties adyenConfigProperties = new AdyenConfigProperties(properties);
+        final AdyenConfigProperties adyenConfigProperties = new AdyenConfigProperties(properties, new Properties());
 
         Assert.assertEquals(adyenConfigProperties.getMerchantAccount("UK"), "DefaultAccountUK");
         Assert.assertEquals(adyenConfigProperties.getMerchantAccount("DE"), "DefaultAccountDE");
@@ -109,7 +116,7 @@ public class TestAdyenConfigProperties {
         properties.put("org.killbill.billing.plugin.adyen.hmac.secret", "UK#DefaultSecretUK|OverrideSkinUK#OverrideSecretUK|US#DefaultSecretUS|DE#DefaultSecretDE");
         properties.put("org.killbill.billing.plugin.adyen.hmac.algorithm", "UK#DefaultAlgorithmUK|OverrideSkinUK#OverrideAlgorithmUK|US#DefaultAlgorithmUS|DE#DefaultAlgorithmDE");
         properties.put("org.killbill.billing.plugin.adyen.pendingPaymentExpirationPeriod", "paypal#P4D|boletobancario_santander#P12D");
-        final AdyenConfigProperties adyenConfigProperties = new AdyenConfigProperties(properties);
+        final AdyenConfigProperties adyenConfigProperties = new AdyenConfigProperties(properties, new Properties());
 
         Assert.assertEquals(adyenConfigProperties.getMerchantAccount("UK"), "DefaultAccountUK");
         Assert.assertEquals(adyenConfigProperties.getMerchantAccount("DE"), "DefaultAccountDE");
@@ -144,5 +151,34 @@ public class TestAdyenConfigProperties {
         Assert.assertEquals(adyenConfigProperties.getPendingPaymentExpirationPeriod(null).toString(), "P3D");
         Assert.assertEquals(adyenConfigProperties.getPendingPaymentExpirationPeriod("paypal").toString(), "P4D");
         Assert.assertEquals(adyenConfigProperties.getPendingPaymentExpirationPeriod("boletobancario_santander").toString(), "P12D");
+    }
+
+    @Test(groups = "fast")
+    public void testConfigurationWithMultiRegions() throws Exception {
+        final Properties properties = new Properties();
+        properties.put("org.killbill.billing.plugin.adyen.paymentUrl", "us-east-1#http://paymentUrl1.com|eu-west-1#http://paymentUrl2.com");
+        properties.put("org.killbill.billing.plugin.adyen.recurringUrl", "us-east-1#http://recurringUrl1.com|eu-west-1#http://recurringUrl2.com");
+        properties.put("org.killbill.billing.plugin.adyen.directoryUrl", "us-east-1#http://directoryUrl1.com|eu-west-1#http://directoryUrl2.com");
+
+        final Properties globalProperties = new Properties();
+
+        globalProperties.put("org.killbill.server.region", "us-east-1");
+        final AdyenConfigProperties adyenConfigPropertiesEast = new AdyenConfigProperties(properties, globalProperties);
+        globalProperties.put("org.killbill.server.region", "eu-west-1");
+        final AdyenConfigProperties adyenConfigPropertiesWest = new AdyenConfigProperties(properties, globalProperties);
+        globalProperties.put("org.killbill.server.region", "local");
+        final AdyenConfigProperties adyenConfigPropertiesOther = new AdyenConfigProperties(properties, globalProperties);
+
+        Assert.assertEquals(adyenConfigPropertiesEast.getPaymentUrl(), "http://paymentUrl1.com");
+        Assert.assertEquals(adyenConfigPropertiesEast.getRecurringUrl(), "http://recurringUrl1.com");
+        Assert.assertEquals(adyenConfigPropertiesEast.getDirectoryUrl(), "http://directoryUrl1.com");
+
+        Assert.assertEquals(adyenConfigPropertiesWest.getPaymentUrl(), "http://paymentUrl2.com");
+        Assert.assertEquals(adyenConfigPropertiesWest.getRecurringUrl(), "http://recurringUrl2.com");
+        Assert.assertEquals(adyenConfigPropertiesWest.getDirectoryUrl(), "http://directoryUrl2.com");
+
+        Assert.assertNull(adyenConfigPropertiesOther.getPaymentUrl());
+        Assert.assertNull(adyenConfigPropertiesOther.getRecurringUrl());
+        Assert.assertNull(adyenConfigPropertiesOther.getDirectoryUrl());
     }
 }
