@@ -19,7 +19,7 @@ package org.killbill.billing.plugin.adyen.core;
 
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.util.Dictionary;
+import java.util.Map;
 
 import javax.annotation.Nullable;
 
@@ -40,7 +40,7 @@ public class AdyenHealthcheck implements Healthcheck {
     }
 
     @Override
-    public HealthStatus getHealthStatus(@Nullable final Tenant tenant, @Nullable final Dictionary dictionary) {
+    public HealthStatus getHealthStatus(@Nullable final Tenant tenant, @Nullable final Map properties) {
         final AdyenConfigProperties adyenConfigProperties = adyenConfigPropertiesConfigurationHandler.getConfigurable(tenant == null ? null : tenant.getId());
         return pingAdyen(adyenConfigProperties);
     }
