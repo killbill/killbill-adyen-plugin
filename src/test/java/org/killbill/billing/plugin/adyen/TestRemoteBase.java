@@ -115,25 +115,23 @@ public abstract class TestRemoteBase {
         final Account account = TestUtils.buildAccount(Currency.BTC, "US");
         final OSGIKillbillAPI killbillAPI = TestUtils.buildOSGIKillbillAPI(account);
         final OSGIKillbillLogService logService = TestUtils.buildLogService();
-        final OSGIConfigPropertiesService osgiConfigPropertiesService = Mockito.mock(OSGIConfigPropertiesService.class);
-        Mockito.when(osgiConfigPropertiesService.getProperties()).thenReturn(properties);
 
-        adyenConfigurationHandler = new AdyenConfigurationHandler(AdyenActivator.PLUGIN_NAME, killbillAPI, logService, osgiConfigPropertiesService);
+        adyenConfigurationHandler = new AdyenConfigurationHandler(AdyenActivator.PLUGIN_NAME, killbillAPI, logService, null);
         adyenConfigurationHandler.setDefaultConfigurable(adyenPaymentServiceProviderPort);
 
-        adyenConfigPropertiesConfigurationHandler = new AdyenConfigPropertiesConfigurationHandler(AdyenActivator.PLUGIN_NAME, killbillAPI, logService, osgiConfigPropertiesService);
+        adyenConfigPropertiesConfigurationHandler = new AdyenConfigPropertiesConfigurationHandler(AdyenActivator.PLUGIN_NAME, killbillAPI, logService, null);
         adyenConfigPropertiesConfigurationHandler.setDefaultConfigurable(adyenConfigProperties);
 
-        adyenHostedPaymentPageConfigurationHandler = new AdyenHostedPaymentPageConfigurationHandler(AdyenActivator.PLUGIN_NAME, killbillAPI, logService, osgiConfigPropertiesService);
+        adyenHostedPaymentPageConfigurationHandler = new AdyenHostedPaymentPageConfigurationHandler(AdyenActivator.PLUGIN_NAME, killbillAPI, logService, null);
         adyenHostedPaymentPageConfigurationHandler.setDefaultConfigurable(adyenPaymentServiceProviderHostedPaymentPagePort);
 
-        adyenRecurringConfigurationHandler = new AdyenRecurringConfigurationHandler(AdyenActivator.PLUGIN_NAME, killbillAPI, logService, osgiConfigPropertiesService);
+        adyenRecurringConfigurationHandler = new AdyenRecurringConfigurationHandler(AdyenActivator.PLUGIN_NAME, killbillAPI, logService, null);
         adyenRecurringConfigurationHandler.setDefaultConfigurable(adyenRecurringClient);
 
         merchantAccount = adyenConfigProperties.getMerchantAccount(DEFAULT_COUNTRY);
     }
 
     private AdyenConfigProperties getAdyenConfigProperties() throws IOException {
-        return new AdyenConfigProperties(properties, properties);
+        return new AdyenConfigProperties(properties);
     }
 }

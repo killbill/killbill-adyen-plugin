@@ -98,7 +98,7 @@ public class AdyenPluginMockBuilder {
     }
 
     public AdyenPaymentPluginApi build() throws Exception {
-        final AdyenConfigProperties adyenConfigProperties = new AdyenConfigProperties(adyenProperties, adyenProperties);
+        final AdyenConfigProperties adyenConfigProperties = new AdyenConfigProperties(adyenProperties);
 
         final PaymentInfoConverterManagement paymentInfoConverterManagement = new PaymentInfoConverterService();
 
@@ -116,19 +116,17 @@ public class AdyenPluginMockBuilder {
         final AdyenRecurringClient adyenRecurringClient = new AdyenRecurringClient(adyenConfigProperties, loggingInInterceptor, loggingOutInterceptor, httpHeaderInterceptor);
 
         final OSGIKillbillLogService logService = TestUtils.buildLogService();
-        final OSGIConfigPropertiesService osgiConfigPropertiesService = Mockito.mock(OSGIConfigPropertiesService.class);
-        Mockito.when(osgiConfigPropertiesService.getProperties()).thenReturn(adyenProperties);
 
-        final AdyenConfigurationHandler adyenConfigurationHandler = new AdyenConfigurationHandler(AdyenActivator.PLUGIN_NAME, killbillAPI, logService, osgiConfigPropertiesService);
+        final AdyenConfigurationHandler adyenConfigurationHandler = new AdyenConfigurationHandler(AdyenActivator.PLUGIN_NAME, killbillAPI, logService, null);
         adyenConfigurationHandler.setDefaultConfigurable(adyenPaymentServiceProviderPort);
 
-        final AdyenConfigPropertiesConfigurationHandler adyenConfigPropertiesConfigurationHandler = new AdyenConfigPropertiesConfigurationHandler(AdyenActivator.PLUGIN_NAME, killbillAPI, logService, osgiConfigPropertiesService);
+        final AdyenConfigPropertiesConfigurationHandler adyenConfigPropertiesConfigurationHandler = new AdyenConfigPropertiesConfigurationHandler(AdyenActivator.PLUGIN_NAME, killbillAPI, logService, null);
         adyenConfigPropertiesConfigurationHandler.setDefaultConfigurable(adyenConfigProperties);
 
-        final AdyenHostedPaymentPageConfigurationHandler adyenHostedPaymentPageConfigurationHandler = new AdyenHostedPaymentPageConfigurationHandler(AdyenActivator.PLUGIN_NAME, killbillAPI, logService, osgiConfigPropertiesService);
+        final AdyenHostedPaymentPageConfigurationHandler adyenHostedPaymentPageConfigurationHandler = new AdyenHostedPaymentPageConfigurationHandler(AdyenActivator.PLUGIN_NAME, killbillAPI, logService, null);
         adyenHostedPaymentPageConfigurationHandler.setDefaultConfigurable(adyenPaymentServiceProviderHostedPaymentPagePort);
 
-        final AdyenRecurringConfigurationHandler adyenRecurringConfigurationHandler = new AdyenRecurringConfigurationHandler(AdyenActivator.PLUGIN_NAME, killbillAPI, logService, osgiConfigPropertiesService);
+        final AdyenRecurringConfigurationHandler adyenRecurringConfigurationHandler = new AdyenRecurringConfigurationHandler(AdyenActivator.PLUGIN_NAME, killbillAPI, logService, null);
         adyenRecurringConfigurationHandler.setDefaultConfigurable(adyenRecurringClient);
 
         final Clock clock = new DefaultClock();

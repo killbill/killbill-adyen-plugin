@@ -36,7 +36,7 @@ public class TestAdyenConfigProperties {
         properties.put("org.killbill.billing.plugin.adyen.paymentUrl", "http://paymentUrl.com");
         properties.put("org.killbill.billing.plugin.adyen.recurringUrl", "http://recurringUrl.com");
         properties.put("org.killbill.billing.plugin.adyen.directoryUrl", "http://directoryUrl.com");
-        final AdyenConfigProperties adyenConfigProperties = new AdyenConfigProperties(properties, new Properties());
+        final AdyenConfigProperties adyenConfigProperties = new AdyenConfigProperties(properties);
 
         Assert.assertEquals(adyenConfigProperties.getMerchantAccount("UK"), "DefaultAccount");
         Assert.assertEquals(adyenConfigProperties.getMerchantAccount("DE"), "DefaultAccount");
@@ -73,7 +73,7 @@ public class TestAdyenConfigProperties {
         properties.put("org.killbill.billing.plugin.adyen.hmac.secret", "UK#DefaultSecretUK|US#DefaultSecretUS|DE#DefaultSecretDE");
         properties.put("org.killbill.billing.plugin.adyen.hmac.algorithm", "UK#DefaultAlgorithmUK|US#DefaultAlgorithmUS|DE#DefaultAlgorithmDE");
         properties.put("org.killbill.billing.plugin.adyen.pendingPaymentExpirationPeriod", "paypal#P4D");
-        final AdyenConfigProperties adyenConfigProperties = new AdyenConfigProperties(properties, new Properties());
+        final AdyenConfigProperties adyenConfigProperties = new AdyenConfigProperties(properties);
 
         Assert.assertEquals(adyenConfigProperties.getMerchantAccount("UK"), "DefaultAccountUK");
         Assert.assertEquals(adyenConfigProperties.getMerchantAccount("DE"), "DefaultAccountDE");
@@ -116,7 +116,7 @@ public class TestAdyenConfigProperties {
         properties.put("org.killbill.billing.plugin.adyen.hmac.secret", "UK#DefaultSecretUK|OverrideSkinUK#OverrideSecretUK|US#DefaultSecretUS|DE#DefaultSecretDE");
         properties.put("org.killbill.billing.plugin.adyen.hmac.algorithm", "UK#DefaultAlgorithmUK|OverrideSkinUK#OverrideAlgorithmUK|US#DefaultAlgorithmUS|DE#DefaultAlgorithmDE");
         properties.put("org.killbill.billing.plugin.adyen.pendingPaymentExpirationPeriod", "paypal#P4D|boletobancario_santander#P12D");
-        final AdyenConfigProperties adyenConfigProperties = new AdyenConfigProperties(properties, new Properties());
+        final AdyenConfigProperties adyenConfigProperties = new AdyenConfigProperties(properties);
 
         Assert.assertEquals(adyenConfigProperties.getMerchantAccount("UK"), "DefaultAccountUK");
         Assert.assertEquals(adyenConfigProperties.getMerchantAccount("DE"), "DefaultAccountDE");
@@ -160,14 +160,9 @@ public class TestAdyenConfigProperties {
         properties.put("org.killbill.billing.plugin.adyen.recurringUrl", "us-east-1#http://recurringUrl1.com|eu-west-1#http://recurringUrl2.com");
         properties.put("org.killbill.billing.plugin.adyen.directoryUrl", "us-east-1#http://directoryUrl1.com|eu-west-1#http://directoryUrl2.com");
 
-        final Properties globalProperties = new Properties();
-
-        globalProperties.put("org.killbill.server.region", "us-east-1");
-        final AdyenConfigProperties adyenConfigPropertiesEast = new AdyenConfigProperties(properties, globalProperties);
-        globalProperties.put("org.killbill.server.region", "eu-west-1");
-        final AdyenConfigProperties adyenConfigPropertiesWest = new AdyenConfigProperties(properties, globalProperties);
-        globalProperties.put("org.killbill.server.region", "local");
-        final AdyenConfigProperties adyenConfigPropertiesOther = new AdyenConfigProperties(properties, globalProperties);
+        final AdyenConfigProperties adyenConfigPropertiesEast = new AdyenConfigProperties(properties, "us-east-1");
+        final AdyenConfigProperties adyenConfigPropertiesWest = new AdyenConfigProperties(properties, "eu-west-1");
+        final AdyenConfigProperties adyenConfigPropertiesOther = new AdyenConfigProperties(properties, "local");
 
         Assert.assertEquals(adyenConfigPropertiesEast.getPaymentUrl(), "http://paymentUrl1.com");
         Assert.assertEquals(adyenConfigPropertiesEast.getRecurringUrl(), "http://recurringUrl1.com");

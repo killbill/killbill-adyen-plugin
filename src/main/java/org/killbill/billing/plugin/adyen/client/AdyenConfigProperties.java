@@ -96,8 +96,12 @@ public class AdyenConfigProperties {
 
     private final String currentRegion;
 
-    public AdyenConfigProperties(final Properties properties, final Properties globalProperties) {
-        this.currentRegion = PluginEnvironmentConfig.getRegion(globalProperties);
+    public AdyenConfigProperties(final Properties properties) {
+        this(properties, null);
+    }
+
+    public AdyenConfigProperties(final Properties properties, final String currentRegion) {
+        this.currentRegion = currentRegion;
 
         this.proxyServer = properties.getProperty(PROPERTY_PREFIX + "proxyServer");
         this.proxyPort = properties.getProperty(PROPERTY_PREFIX + "proxyPort");
