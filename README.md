@@ -69,10 +69,7 @@ To configure Hosted Payment Pages (HPP):
 
 The format for secrets and skins is the same as above if you support multiple countries.
 
-The URLs can also be configured on a per region basis as `XX#YY|XX#YY|...` where:
-
-* `XX` is the region (value matching the `org.killbill.server.region` property)
-* `YY` is the url (e.g. `https://pal-test.adyen-proxy.com/pal/servlet/Payment/v12`)
+The URLs can also be configured on a per region basis by specifying the region as a prefix, e.g. `XX.org.killbill.billing.plugin.adyen.paymentUrl=...` where `XX` is the region (value matching the `org.killbill.server.region` property).
 
 These properties can be specified globally via System Properties or on a per tenant basis:
 

@@ -17,6 +17,7 @@
 
 package org.killbill.billing.plugin.adyen.client;
 
+import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -26,7 +27,6 @@ import java.util.Properties;
 import javax.annotation.Nullable;
 
 import org.joda.time.Period;
-import org.killbill.billing.plugin.core.config.PluginEnvironmentConfig;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Strings;
@@ -73,9 +73,9 @@ public class AdyenConfigProperties {
     private final String skins;
     private final String hmacSecrets;
     private final String hmacAlgorithms;
-    private final String paymentUrls;
-    private final String recurringUrls;
-    private final String directoryUrls;
+    private final String defaultPaymentUrl;
+    private final String defaultRecurringUrl;
+    private final String defaultDirectoryUrl;
     private final String recurringConnectionTimeout;
     private final String recurringReadTimeout;
     private final String hppTarget;
@@ -109,18 +109,20 @@ public class AdyenConfigProperties {
         this.trustAllCertificates = properties.getProperty(PROPERTY_PREFIX + "trustAllCertificates", "false");
         this.allowChunking = properties.getProperty(PROPERTY_PREFIX + "allowChunking", "false");
 
-        this.paymentUrls = properties.getProperty(PROPERTY_PREFIX + "paymentUrl");
-        refillMap(regionToPaymentUrlMap, paymentUrls);
+        this.defaultPaymentUrl = properties.getProperty(PROPERTY_PREFIX + "paymentUrl");
+        refillUrlMap(regionToPaymentUrlMap, properties, "paymentUrl");
+
         this.paymentConnectionTimeout = properties.getProperty(PROPERTY_PREFIX + "paymentConnectionTimeout", DEFAULT_CONNECTION_TIMEOUT);
         this.paymentReadTimeout = properties.getProperty(PROPERTY_PREFIX + "paymentReadTimeout", DEFAULT_READ_TIMEOUT);
 
-        this.recurringUrls = properties.getProperty(PROPERTY_PREFIX + "recurringUrl");
-        refillMap(regionToRecurringUrlMap, recurringUrls);
+        this.defaultRecurringUrl = properties.getProperty(PROPERTY_PREFIX + "recurringUrl");
+        refillUrlMap(regionToRecurringUrlMap, properties, "recurringUrl");
+
         this.recurringConnectionTimeout = properties.getProperty(PROPERTY_PREFIX + "recurringConnectionTimeout", DEFAULT_CONNECTION_TIMEOUT);
         this.recurringReadTimeout = properties.getProperty(PROPERTY_PREFIX + "recurringReadTimeout", DEFAULT_READ_TIMEOUT);
 
-        this.directoryUrls = properties.getProperty(PROPERTY_PREFIX + "directoryUrl");
-        refillMap(regionToDirectoryUrlMap, directoryUrls);
+        this.defaultDirectoryUrl = properties.getProperty(PROPERTY_PREFIX + "directoryUrl");
+        refillUrlMap(regionToDirectoryUrlMap, properties, "directoryUrl");
 
         this.hppTarget = properties.getProperty(PROPERTY_PREFIX + "hpp.target");
         this.hppSkipDetailsTarget = this.hppTarget != null ? this.hppTarget.replace(this.hppTarget.substring(this.hppTarget.lastIndexOf('/') + 1), "skipDetails.shtml") : null;
@@ -332,11 +334,8 @@ public class AdyenConfigProperties {
     }
 
     public String getPaymentUrl() {
-        if (regionToPaymentUrlMap.isEmpty()) {
-            return paymentUrls;
-        } else {
-            return regionToPaymentUrlMap.get(currentRegion);
-        }
+        final String perRegionUrl = currentRegion == null ? null : regionToPaymentUrlMap.get(currentRegion);
+        return perRegionUrl != null ? perRegionUrl : defaultPaymentUrl;
     }
 
     public String getPaymentConnectionTimeout() {
@@ -348,19 +347,13 @@ public class AdyenConfigProperties {
     }
 
     public String getRecurringUrl() {
-        if (regionToRecurringUrlMap.isEmpty()) {
-            return recurringUrls;
-        } else {
-            return regionToRecurringUrlMap.get(currentRegion);
-        }
+        final String perRegionUrl = currentRegion == null ? null : regionToRecurringUrlMap.get(currentRegion);
+        return perRegionUrl != null ? perRegionUrl : defaultRecurringUrl;
     }
 
     public String getDirectoryUrl() {
-        if (regionToDirectoryUrlMap.isEmpty()) {
-            return directoryUrls;
-        } else {
-            return regionToDirectoryUrlMap.get(currentRegion);
-        }
+        final String perRegionUrl = currentRegion == null ? null : regionToDirectoryUrlMap.get(currentRegion);
+        return perRegionUrl != null ? perRegionUrl : defaultDirectoryUrl;
     }
 
     public String getRecurringConnectionTimeout() {
@@ -382,6 +375,21 @@ public class AdyenConfigProperties {
             return "CA";
         } else {
             return countryCodeUpperCase;
+        }
+    }
+
+    private synchronized void refillUrlMap(final Map<String, String> map, final Properties properties, final String suffix) {
+        for (final Enumeration<?> e = properties.propertyNames(); e.hasMoreElements(); ) {
+            final String key = e.nextElement().toString();
+            final int idx = key.indexOf("." + PROPERTY_PREFIX + suffix);
+            if (idx == -1) {
+                continue;
+            }
+
+            final String region = key.substring(0, idx);
+            final String url = properties.get(key).toString();
+
+            map.put(region, url);
         }
     }
 

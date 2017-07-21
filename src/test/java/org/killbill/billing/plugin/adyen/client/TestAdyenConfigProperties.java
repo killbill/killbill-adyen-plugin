@@ -156,9 +156,12 @@ public class TestAdyenConfigProperties {
     @Test(groups = "fast")
     public void testConfigurationWithMultiRegions() throws Exception {
         final Properties properties = new Properties();
-        properties.put("org.killbill.billing.plugin.adyen.paymentUrl", "us-east-1#http://paymentUrl1.com|eu-west-1#http://paymentUrl2.com");
-        properties.put("org.killbill.billing.plugin.adyen.recurringUrl", "us-east-1#http://recurringUrl1.com|eu-west-1#http://recurringUrl2.com");
-        properties.put("org.killbill.billing.plugin.adyen.directoryUrl", "us-east-1#http://directoryUrl1.com|eu-west-1#http://directoryUrl2.com");
+        properties.put("us-east-1.org.killbill.billing.plugin.adyen.paymentUrl", "http://paymentUrl1.com");
+        properties.put("eu-west-1.org.killbill.billing.plugin.adyen.paymentUrl", "http://paymentUrl2.com");
+        properties.put("us-east-1.org.killbill.billing.plugin.adyen.recurringUrl", "http://recurringUrl1.com");
+        properties.put("eu-west-1.org.killbill.billing.plugin.adyen.recurringUrl", "http://recurringUrl2.com");
+        properties.put("us-east-1.org.killbill.billing.plugin.adyen.directoryUrl", "http://directoryUrl1.com");
+        properties.put("eu-west-1.org.killbill.billing.plugin.adyen.directoryUrl", "http://directoryUrl2.com");
 
         final AdyenConfigProperties adyenConfigPropertiesEast = new AdyenConfigProperties(properties, "us-east-1");
         final AdyenConfigProperties adyenConfigPropertiesWest = new AdyenConfigProperties(properties, "eu-west-1");
