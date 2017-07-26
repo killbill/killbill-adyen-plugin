@@ -36,15 +36,19 @@ public class AdyenHostedPaymentPageConfigurationHandler extends PluginTenantConf
 
     private static final Logger logger = LoggerFactory.getLogger(AdyenHostedPaymentPageConfigurationHandler.class);
 
+    private final String region;
+
     public AdyenHostedPaymentPageConfigurationHandler(final String pluginName,
                                                       final OSGIKillbillAPI osgiKillbillAPI,
-                                                      final OSGIKillbillLogService osgiKillbillLogService) {
+                                                      final OSGIKillbillLogService osgiKillbillLogService,
+                                                      final String region) {
         super(pluginName, osgiKillbillAPI, osgiKillbillLogService);
+        this.region = region;
     }
 
     @Override
     protected AdyenPaymentServiceProviderHostedPaymentPagePort createConfigurable(final Properties properties) {
-        final AdyenConfigProperties adyenConfigProperties = new AdyenConfigProperties(properties);
+        final AdyenConfigProperties adyenConfigProperties = new AdyenConfigProperties(properties, region);
         return initializeHppAdyenClient(adyenConfigProperties);
     }
 

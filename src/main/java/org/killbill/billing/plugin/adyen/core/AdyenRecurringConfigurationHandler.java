@@ -30,10 +30,14 @@ import org.killbill.billing.plugin.api.notification.PluginTenantConfigurableConf
 
 public class AdyenRecurringConfigurationHandler extends PluginTenantConfigurableConfigurationHandler<AdyenRecurringClient> {
 
+    private final String region;
+
     public AdyenRecurringConfigurationHandler(final String pluginName,
                                               final OSGIKillbillAPI osgiKillbillAPI,
-                                              final OSGIKillbillLogService osgiKillbillLogService) {
+                                              final OSGIKillbillLogService osgiKillbillLogService,
+                                              final String region) {
         super(pluginName, osgiKillbillAPI, osgiKillbillLogService);
+        this.region = region;
     }
 
     @Override
@@ -42,7 +46,7 @@ public class AdyenRecurringConfigurationHandler extends PluginTenantConfigurable
         final LoggingOutInterceptor loggingOutInterceptor = new LoggingOutInterceptor();
         final HttpHeaderInterceptor httpHeaderInterceptor = new HttpHeaderInterceptor();
 
-        final AdyenConfigProperties adyenConfigProperties = new AdyenConfigProperties(properties);
+        final AdyenConfigProperties adyenConfigProperties = new AdyenConfigProperties(properties, region);
         return new AdyenRecurringClient(adyenConfigProperties, loggingInInterceptor, loggingOutInterceptor, httpHeaderInterceptor);
     }
 }

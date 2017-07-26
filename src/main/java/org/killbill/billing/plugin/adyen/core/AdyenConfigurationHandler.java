@@ -37,15 +37,19 @@ import org.killbill.billing.plugin.api.notification.PluginTenantConfigurableConf
 
 public class AdyenConfigurationHandler extends PluginTenantConfigurableConfigurationHandler<AdyenPaymentServiceProviderPort> {
 
+    private final String region;
+
     public AdyenConfigurationHandler(final String pluginName,
                                      final OSGIKillbillAPI osgiKillbillAPI,
-                                     final OSGIKillbillLogService osgiKillbillLogService) {
+                                     final OSGIKillbillLogService osgiKillbillLogService,
+                                     final String region) {
         super(pluginName, osgiKillbillAPI, osgiKillbillLogService);
+        this.region = region;
     }
 
     @Override
     protected AdyenPaymentServiceProviderPort createConfigurable(final Properties properties) {
-        final AdyenConfigProperties adyenConfigProperties = new AdyenConfigProperties(properties);
+        final AdyenConfigProperties adyenConfigProperties = new AdyenConfigProperties(properties, region);
         return initializeAdyenClient(adyenConfigProperties);
     }
 
