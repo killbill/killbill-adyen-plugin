@@ -42,6 +42,7 @@ import org.killbill.billing.plugin.adyen.dao.gen.tables.records.AdyenResponsesRe
 import org.killbill.billing.plugin.api.PluginProperties;
 import org.killbill.billing.plugin.api.payment.PluginPaymentTransactionInfoPlugin;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Optional;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
@@ -169,15 +170,17 @@ public class AdyenPaymentTransactionInfoPlugin extends PluginPaymentTransactionI
     }
 
     private static String getGatewayError(final AdyenResponsesRecord record) {
+        final String errorMessage;
         final Map additionalData = AdyenDao.fromAdditionalData(record.getAdditionalData());
         final String refusalResponseMessage = getGatewayError(additionalData);
         if (refusalResponseMessage != null) {
-            return refusalResponseMessage;
+            errorMessage = refusalResponseMessage;
         } else if (record.getRefusalReason() != null) {
-            return record.getRefusalReason();
+            errorMessage = record.getRefusalReason();
         } else {
-            return toString(additionalData.get(PurchaseResult.EXCEPTION_MESSAGE));
+            errorMessage = toString(additionalData.get(PurchaseResult.EXCEPTION_MESSAGE));
         }
+        return formatErrorMessage(errorMessage);
     }
 
     private static String getGatewayError(@Nullable final Map additionalData) {
@@ -435,5 +438,14 @@ public class AdyenPaymentTransactionInfoPlugin extends PluginPaymentTransactionI
 
         final Iterable<PluginProperty> propertiesWithDefaults = PluginProperties.merge(defaultProperties, originalProperties);
         return ImmutableList.<PluginProperty>copyOf(propertiesWithDefaults);
+    }
+
+    @VisibleForTesting
+    static String formatErrorMessage(final String gatewayError) {
+        if(Strings.isNullOrEmpty(gatewayError)) {
+            return gatewayError;
+        }
+        //Remove any extra spaces between word and convert all to lower-case
+        return gatewayError.replaceAll("\\s+", " ").trim().toLowerCase();
     }
 }
