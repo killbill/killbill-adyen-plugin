@@ -92,7 +92,15 @@ public class TestAdyenPaymentTransactionInfoPlugin {
                                                                               new Timestamp(1242L),
                                                                               UUID.randomUUID().toString());
         final PaymentTransactionInfoPlugin paymentTransactionInfoPlugin = new AdyenPaymentTransactionInfoPlugin(responsesRecord);
-        Assert.assertEquals(paymentTransactionInfoPlugin.getGatewayError(), "Do not honor");
+        Assert.assertEquals(paymentTransactionInfoPlugin.getGatewayError(), "do not honor");
         Assert.assertEquals(paymentTransactionInfoPlugin.getGatewayErrorCode(), "05");
+    }
+
+    @Test(groups = "fast")
+    public void testGatewayErrorFormat() {
+        Assert.assertEquals("fraud reject",
+                            AdyenPaymentTransactionInfoPlugin.formatErrorMessage(" FRAUD reject"));
+        Assert.assertEquals("not supported",
+                            AdyenPaymentTransactionInfoPlugin.formatErrorMessage(" NOT  Supported "));
     }
 }
