@@ -173,9 +173,9 @@ public class AdyenPaymentTransactionInfoPlugin extends PluginPaymentTransactionI
         final Map additionalData = AdyenDao.fromAdditionalData(record.getAdditionalData());
         final String refusalResponseMessage = getGatewayError(additionalData);
         if (refusalResponseMessage != null) {
-            return formatErrorMessage(refusalResponseMessage);
+            return refusalResponseMessage;
         } else if (record.getRefusalReason() != null) {
-            return formatErrorMessage(record.getRefusalReason());
+            return record.getRefusalReason();
         } else {
             return toString(additionalData.get(PurchaseResult.EXCEPTION_MESSAGE));
         }
@@ -411,14 +411,5 @@ public class AdyenPaymentTransactionInfoPlugin extends PluginPaymentTransactionI
 
         final Iterable<PluginProperty> propertiesWithDefaults = PluginProperties.merge(defaultProperties, originalProperties);
         return ImmutableList.<PluginProperty>copyOf(propertiesWithDefaults);
-    }
-
-    @VisibleForTesting
-    static String formatErrorMessage(final String gatewayError) {
-        if(Strings.isNullOrEmpty(gatewayError)) {
-            return gatewayError;
-        }
-        //Remove any extra spaces between word and convert all to lower-case
-        return gatewayError.replaceAll("\\s+", " ").trim().toLowerCase();
     }
 }

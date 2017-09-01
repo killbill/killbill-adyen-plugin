@@ -91,7 +91,7 @@ public class TestAdyenPaymentTransactionInfoPlugin {
                                                                               new Timestamp(1242L),
                                                                               UUID.randomUUID().toString());
         final PaymentTransactionInfoPlugin paymentTransactionInfoPlugin = new AdyenPaymentTransactionInfoPlugin(responsesRecord);
-        Assert.assertEquals(paymentTransactionInfoPlugin.getGatewayError(), "do not honor");
+        Assert.assertEquals(paymentTransactionInfoPlugin.getGatewayError(), "Do not honor");
         Assert.assertEquals(paymentTransactionInfoPlugin.getGatewayErrorCode(), "05");
     }
 
@@ -123,15 +123,7 @@ public class TestAdyenPaymentTransactionInfoPlugin {
                                                                               new Timestamp(1242L),
                                                                               UUID.randomUUID().toString());
         final PaymentTransactionInfoPlugin paymentTransactionInfoPlugin = new AdyenPaymentTransactionInfoPlugin(responsesRecord);
-        Assert.assertEquals(paymentTransactionInfoPlugin.getGatewayError(), "not enough balance");
+        Assert.assertEquals(paymentTransactionInfoPlugin.getGatewayError(), "Not enough balance");
         Assert.assertNull(paymentTransactionInfoPlugin.getGatewayErrorCode());
-    }
-
-    @Test(groups = "fast")
-    public void testGatewayErrorFormat() {
-        Assert.assertEquals("fraud reject",
-                            AdyenPaymentTransactionInfoPlugin.formatErrorMessage(" FRAUD reject"));
-        Assert.assertEquals("not supported",
-                            AdyenPaymentTransactionInfoPlugin.formatErrorMessage(" NOT  Supported "));
     }
 }
