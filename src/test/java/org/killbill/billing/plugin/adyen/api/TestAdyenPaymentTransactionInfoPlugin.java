@@ -60,8 +60,7 @@ public class TestAdyenPaymentTransactionInfoPlugin {
                                                                               new Timestamp(1242L),
                                                                               UUID.randomUUID().toString());
         final PaymentTransactionInfoPlugin paymentTransactionInfoPlugin = new AdyenPaymentTransactionInfoPlugin(responsesRecord);
-        Assert.assertEquals(paymentTransactionInfoPlugin.getGatewayErrorCode(), "configuration 905 Payment detail");
-        Assert.assertEquals(paymentTransactionInfoPlugin.getGatewayErrorCode().length(), 32);
+        Assert.assertNull(paymentTransactionInfoPlugin.getGatewayErrorCode());
     }
 
     @Test(groups = "fast")
@@ -94,5 +93,37 @@ public class TestAdyenPaymentTransactionInfoPlugin {
         final PaymentTransactionInfoPlugin paymentTransactionInfoPlugin = new AdyenPaymentTransactionInfoPlugin(responsesRecord);
         Assert.assertEquals(paymentTransactionInfoPlugin.getGatewayError(), "Do not honor");
         Assert.assertEquals(paymentTransactionInfoPlugin.getGatewayErrorCode(), "05");
+    }
+
+    @Test(groups = "fast")
+    public void testNullGatewayErrorCode() throws Exception {
+        final AdyenResponsesRecord responsesRecord = new AdyenResponsesRecord(UInteger.valueOf(1),
+                                                                              UUID.randomUUID().toString(),
+                                                                              UUID.randomUUID().toString(),
+                                                                              UUID.randomUUID().toString(),
+                                                                              TransactionType.AUTHORIZE.toString(),
+                                                                              BigDecimal.TEN,
+                                                                              Currency.USD.toString(),
+                                                                              null,
+                                                                              UUID.randomUUID().toString(),
+                                                                              UUID.randomUUID().toString(),
+                                                                              UUID.randomUUID().toString(),
+                                                                              "Not enough balance",
+                                                                              UUID.randomUUID().toString(),
+                                                                              UUID.randomUUID().toString(),
+                                                                              UUID.randomUUID().toString(),
+                                                                              UUID.randomUUID().toString(),
+                                                                              BigDecimal.ZERO,
+                                                                              Currency.USD.toString(),
+                                                                              UUID.randomUUID().toString(),
+                                                                              UUID.randomUUID().toString(),
+                                                                              UUID.randomUUID().toString(),
+                                                                              UUID.randomUUID().toString(),
+                                                                              "{\"refusalReasonRaw\":\"ill-formatted raw refusal reason\"}",
+                                                                              new Timestamp(1242L),
+                                                                              UUID.randomUUID().toString());
+        final PaymentTransactionInfoPlugin paymentTransactionInfoPlugin = new AdyenPaymentTransactionInfoPlugin(responsesRecord);
+        Assert.assertEquals(paymentTransactionInfoPlugin.getGatewayError(), "Not enough balance");
+        Assert.assertNull(paymentTransactionInfoPlugin.getGatewayErrorCode());
     }
 }

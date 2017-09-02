@@ -42,6 +42,7 @@ import org.killbill.billing.plugin.adyen.dao.gen.tables.records.AdyenResponsesRe
 import org.killbill.billing.plugin.api.PluginProperties;
 import org.killbill.billing.plugin.api.payment.PluginPaymentTransactionInfoPlugin;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Optional;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
@@ -200,40 +201,15 @@ public class AdyenPaymentTransactionInfoPlugin extends PluginPaymentTransactionI
     }
 
     private static String getGatewayErrorCode(final PurchaseResult purchaseResult) {
-        final String refusalResponseCode = getGatewayErrorCode(purchaseResult.getAdditionalData());
-        if (refusalResponseCode != null) {
-            return refusalResponseCode;
-        } else if (purchaseResult.getResultCode() != null) {
-            return purchaseResult.getResultCode();
-        } else {
-            return getExceptionClass(purchaseResult.getAdditionalData());
-        }
+        return getGatewayErrorCode(purchaseResult.getAdditionalData());
     }
 
     private static String getGatewayErrorCode(final PaymentModificationResponse paymentModificationResponse) {
-        final String refusalResponseCode = getGatewayErrorCode(paymentModificationResponse.getAdditionalData());
-        if (refusalResponseCode != null) {
-            return refusalResponseCode;
-        } else if (paymentModificationResponse.getResponse() != null) {
-            return paymentModificationResponse.getResponse();
-        } else {
-            return getExceptionClass(paymentModificationResponse.getAdditionalData());
-        }
+        return getGatewayErrorCode(paymentModificationResponse.getAdditionalData());
     }
 
     private static String getGatewayErrorCode(final AdyenResponsesRecord record) {
-        final Map additionalData = AdyenDao.fromAdditionalData(record.getAdditionalData());
-        final String refusalResponseCode = getGatewayErrorCode(additionalData);
-        if (refusalResponseCode != null) {
-            return refusalResponseCode;
-        } else if (record.getResultCode() != null) {
-            return record.getResultCode();
-        } else if (record.getPspResult() != null) {
-            // PaymentModificationResponse
-            return record.getPspResult();
-        } else {
-            return getExceptionClass(additionalData);
-        }
+        return getGatewayErrorCode(AdyenDao.fromAdditionalData(record.getAdditionalData()));
     }
 
     private static String getGatewayErrorCode(@Nullable final Map additionalData) {
