@@ -156,7 +156,9 @@ public class AdyenPaymentTransactionInfoPlugin extends PluginPaymentTransactionI
         } else if (purchaseResult.getReason() != null) {
             return purchaseResult.getReason();
         } else {
-            return purchaseResult.getAdditionalData().get(PurchaseResult.EXCEPTION_MESSAGE);
+            final Map<String, String> additionalData = purchaseResult.getAdditionalData();
+            return String.format("%s: %s", additionalData.get(PurchaseResult.EXCEPTION_MESSAGE),
+                                 getExceptionClass(additionalData));
         }
     }
 
@@ -165,7 +167,9 @@ public class AdyenPaymentTransactionInfoPlugin extends PluginPaymentTransactionI
         if (refusalResponseMessage != null) {
             return refusalResponseMessage;
         } else {
-            return toString(paymentModificationResponse.getAdditionalData().get(PurchaseResult.EXCEPTION_MESSAGE));
+            final Map<Object, Object> additionalData = paymentModificationResponse.getAdditionalData();
+            return String.format("%s: %s", additionalData.get(PurchaseResult.EXCEPTION_MESSAGE),
+                                 getExceptionClass(additionalData));
         }
     }
 
@@ -177,7 +181,8 @@ public class AdyenPaymentTransactionInfoPlugin extends PluginPaymentTransactionI
         } else if (record.getRefusalReason() != null) {
             return record.getRefusalReason();
         } else {
-            return toString(additionalData.get(PurchaseResult.EXCEPTION_MESSAGE));
+            return String.format("%s: %s", additionalData.get(PurchaseResult.EXCEPTION_MESSAGE),
+                                 getExceptionClass(additionalData));
         }
     }
 
