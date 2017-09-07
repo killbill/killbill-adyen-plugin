@@ -100,7 +100,7 @@ public class TestKillbillAdyenNotificationHandler extends TestAdyenPaymentPlugin
 
         final PaymentTransactionInfoPlugin adyenPaymentTransactionInfoPlugin1 = new AdyenPaymentTransactionInfoPlugin(dao.getResponse(authItem.getPspReference()));
         Assert.assertNull(adyenPaymentTransactionInfoPlugin1.getGatewayError());
-        Assert.assertEquals(adyenPaymentTransactionInfoPlugin1.getGatewayErrorCode(), "Authorised");
+        Assert.assertNull(adyenPaymentTransactionInfoPlugin1.getGatewayErrorCode());
 
         killbillAdyenNotificationHandler.handleNotification(authItem);
         verifyLastNotificationRecorded(1);
@@ -111,7 +111,7 @@ public class TestKillbillAdyenNotificationHandler extends TestAdyenPaymentPlugin
 
         final PaymentTransactionInfoPlugin adyenPaymentTransactionInfoPlugin2 = new AdyenPaymentTransactionInfoPlugin(dao.getResponse(authItem.getPspReference()));
         Assert.assertNull(adyenPaymentTransactionInfoPlugin2.getGatewayError());
-        Assert.assertEquals(adyenPaymentTransactionInfoPlugin2.getGatewayErrorCode(), "Authorised");
+        Assert.assertNull(adyenPaymentTransactionInfoPlugin2.getGatewayErrorCode());
 
         // Capture done outside of Kill Bill
         final NotificationRequestItem captureItem = getNotificationRequestItem(authItem, "CAPTURE", success);
@@ -139,7 +139,7 @@ public class TestKillbillAdyenNotificationHandler extends TestAdyenPaymentPlugin
 
         final PaymentTransactionInfoPlugin adyenPaymentTransactionInfoPlugin1 = new AdyenPaymentTransactionInfoPlugin(dao.getResponse(item.getPspReference()));
         Assert.assertNull(adyenPaymentTransactionInfoPlugin1.getGatewayError());
-        Assert.assertEquals(adyenPaymentTransactionInfoPlugin1.getGatewayErrorCode(), "Received");
+        Assert.assertNull(adyenPaymentTransactionInfoPlugin1.getGatewayErrorCode());
 
         killbillAdyenNotificationHandler.handleNotification(item);
         verifyLastNotificationRecorded(1);
@@ -150,7 +150,7 @@ public class TestKillbillAdyenNotificationHandler extends TestAdyenPaymentPlugin
 
         final PaymentTransactionInfoPlugin adyenPaymentTransactionInfoPlugin2 = new AdyenPaymentTransactionInfoPlugin(dao.getResponse(item.getPspReference()));
         Assert.assertNull(adyenPaymentTransactionInfoPlugin2.getGatewayError());
-        Assert.assertEquals(adyenPaymentTransactionInfoPlugin2.getGatewayErrorCode(), "Refused");
+        Assert.assertNull(adyenPaymentTransactionInfoPlugin2.getGatewayErrorCode());
     }
 
     @Test(groups = "slow")
@@ -213,7 +213,7 @@ public class TestKillbillAdyenNotificationHandler extends TestAdyenPaymentPlugin
 
         final PaymentTransactionInfoPlugin adyenPaymentTransactionInfoPlugin1 = new AdyenPaymentTransactionInfoPlugin(dao.getResponse(refundItem.getPspReference()));
         Assert.assertNull(adyenPaymentTransactionInfoPlugin1.getGatewayError());
-        Assert.assertEquals(adyenPaymentTransactionInfoPlugin1.getGatewayErrorCode(), "Authorised");
+        Assert.assertNull(adyenPaymentTransactionInfoPlugin1.getGatewayErrorCode());
 
         // The PSP reference of the refund is re-used
         final NotificationRequestItem refundFailedItem = getNotificationRequestItem(authItem, refundItem.getPspReference(), "REFUND_FAILED", success);
@@ -231,7 +231,7 @@ public class TestKillbillAdyenNotificationHandler extends TestAdyenPaymentPlugin
 
         final PaymentTransactionInfoPlugin adyenPaymentTransactionInfoPlugin2 = new AdyenPaymentTransactionInfoPlugin(dao.getResponse(refundItem.getPspReference()));
         Assert.assertNull(adyenPaymentTransactionInfoPlugin2.getGatewayError());
-        Assert.assertEquals(adyenPaymentTransactionInfoPlugin2.getGatewayErrorCode(), "Refused");
+        Assert.assertNull(adyenPaymentTransactionInfoPlugin2.getGatewayErrorCode());
     }
 
     @Test(groups = "slow")
@@ -294,7 +294,7 @@ public class TestKillbillAdyenNotificationHandler extends TestAdyenPaymentPlugin
 
         final PaymentTransactionInfoPlugin adyenPaymentTransactionInfoPlugin1 = new AdyenPaymentTransactionInfoPlugin(dao.getResponse(refundItem.getPspReference()));
         Assert.assertNull(adyenPaymentTransactionInfoPlugin1.getGatewayError());
-        Assert.assertEquals(adyenPaymentTransactionInfoPlugin1.getGatewayErrorCode(), "Authorised");
+        Assert.assertNull(adyenPaymentTransactionInfoPlugin1.getGatewayErrorCode());
 
         // The PSP reference of the refund is re-used and success is set to false
         final NotificationRequestItem refundFailedItem = getNotificationRequestItem(authItem, refundItem.getPspReference(), "REFUNDED_REVERSED", false);
@@ -312,7 +312,7 @@ public class TestKillbillAdyenNotificationHandler extends TestAdyenPaymentPlugin
 
         final PaymentTransactionInfoPlugin adyenPaymentTransactionInfoPlugin2 = new AdyenPaymentTransactionInfoPlugin(dao.getResponse(refundItem.getPspReference()));
         Assert.assertNull(adyenPaymentTransactionInfoPlugin2.getGatewayError());
-        Assert.assertEquals(adyenPaymentTransactionInfoPlugin2.getGatewayErrorCode(), "Refused");
+        Assert.assertNull(adyenPaymentTransactionInfoPlugin2.getGatewayErrorCode());
     }
 
     @Test(groups = "slow")

@@ -366,7 +366,7 @@ public class TestAdyenPaymentPluginApi extends TestAdyenPaymentPluginApiBase {
                                                                                                              propertiesWith3DSInfo,
                                                                                                              context);
 
-        assertEquals(authorizationInfoPlugin1.getGatewayErrorCode(), "RedirectShopper");
+        assertNull(authorizationInfoPlugin1.getGatewayErrorCode());
         assertEquals(authorizationInfoPlugin1.getStatus(), PaymentPluginStatus.PENDING);
 
         final String expectedMerchantAccount = getExpectedMerchantAccount(payment);
@@ -746,43 +746,35 @@ public class TestAdyenPaymentPluginApi extends TestAdyenPaymentPluginApiBase {
         assertNotNull(paymentTransactionInfoPlugin.getCreatedDate());
         assertNotNull(paymentTransactionInfoPlugin.getEffectiveDate());
 
-        final List<String> expectedGatewayErrorCodes;
         final List<PaymentPluginStatus> expectedPaymentPluginStatus;
         switch (paymentTransaction.getTransactionType()) {
             case PURCHASE:
             case AUTHORIZE:
-                expectedGatewayErrorCodes = authorizedProcessed
-                                            ? ImmutableList.of("Authorised")
-                                            : ImmutableList.of("Authorised", "Received");
                 expectedPaymentPluginStatus = authorizedProcessed
                                               ? ImmutableList.of(PaymentPluginStatus.PROCESSED)
                                               : ImmutableList.of(PaymentPluginStatus.PROCESSED, PaymentPluginStatus.PENDING);
                 break;
             case CAPTURE:
-                expectedGatewayErrorCodes = ImmutableList.of("[capture-received]");
                 expectedPaymentPluginStatus = ImmutableList.of(PaymentPluginStatus.PENDING);
                 break;
             case REFUND:
-                expectedGatewayErrorCodes = ImmutableList.of("[refund-received]");
                 expectedPaymentPluginStatus = ImmutableList.of(PaymentPluginStatus.PENDING);
                 break;
             case VOID:
-                expectedGatewayErrorCodes = ImmutableList.of("[cancel-received]");
                 expectedPaymentPluginStatus = ImmutableList.of(PaymentPluginStatus.PENDING);
                 break;
             default:
-                expectedGatewayErrorCodes = ImmutableList.of();
                 expectedPaymentPluginStatus = ImmutableList.of(PaymentPluginStatus.PENDING);
                 break;
         }
 
         if ("skip_gw".equals(paymentTransactionInfoPlugin.getGatewayError()) ||
             "true".equals(PluginProperties.findPluginPropertyValue("skipGw", paymentTransactionInfoPlugin.getProperties()))) {
-            assertEquals(paymentTransactionInfoPlugin.getGatewayErrorCode(), TransactionType.AUTHORIZE.equals(paymentTransaction.getTransactionType()) ? "Authorised" : "Pending");
+            assertNull(paymentTransactionInfoPlugin.getGatewayErrorCode());
             assertEquals(paymentTransactionInfoPlugin.getStatus(), PaymentPluginStatus.PROCESSED);
             assertNull(paymentTransactionInfoPlugin.getFirstPaymentReferenceId());
         } else {
-            assertTrue(expectedGatewayErrorCodes.contains(paymentTransactionInfoPlugin.getGatewayErrorCode()), "was: " + paymentTransactionInfoPlugin.getGatewayErrorCode());
+            assertNull(paymentTransactionInfoPlugin.getGatewayErrorCode());
             assertTrue(expectedPaymentPluginStatus.contains(paymentTransactionInfoPlugin.getStatus()), "was: " + paymentTransactionInfoPlugin.getStatus());
 
             assertNull(paymentTransactionInfoPlugin.getGatewayError());
