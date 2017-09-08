@@ -130,13 +130,13 @@ public class TestAdyenPaymentPluginHttpErrors {
 
         final PaymentTransactionInfoPlugin result = authorizeCall(account, payment, callContext, pluginApi, creditCardPaymentProperties());
         assertEquals(result.getStatus(), PaymentPluginStatus.CANCELED);
-        assertEquals(result.getGatewayError(), "nothing-here.to");
+        assertEquals(result.getGatewayError(), "java.net.UnknownHostException: nothing-here.to");
         assertNull(result.getGatewayErrorCode());
 
         final List<PaymentTransactionInfoPlugin> results = pluginApi.getPaymentInfo(account.getId(), payment.getId(), ImmutableList.<PluginProperty>of(), callContext);
         assertEquals(results.size(), 1);
         assertEquals(results.get(0).getStatus(), PaymentPluginStatus.CANCELED);
-        assertEquals(results.get(0).getGatewayError(), "nothing-here.to");
+        assertEquals(results.get(0).getGatewayError(), "java.net.UnknownHostException: nothing-here.to");
         assertNull(result.getGatewayErrorCode());
     }
 
@@ -160,14 +160,14 @@ public class TestAdyenPaymentPluginHttpErrors {
         final PaymentTransactionInfoPlugin result = authorizeCall(account, payment, callContext, pluginApi, creditCardPaymentProperties());
         assertEquals(result.getStatus(), PaymentPluginStatus.CANCELED);
         // Exact message depends on the JVM version
-        assertTrue(result.getGatewayError().startsWith("Connection refused"));
+        assertTrue(result.getGatewayError().startsWith("java.net.ConnectException: Connection refused"));
         assertNull(result.getGatewayErrorCode());
 
         final List<PaymentTransactionInfoPlugin> results = pluginApi.getPaymentInfo(account.getId(), payment.getId(), ImmutableList.<PluginProperty>of(), callContext);
         assertEquals(results.size(), 1);
         assertEquals(results.get(0).getStatus(), PaymentPluginStatus.CANCELED);
         // Exact message depends on the JVM version
-        assertTrue(results.get(0).getGatewayError().startsWith("Connection refused"));
+        assertTrue(results.get(0).getGatewayError().startsWith("java.net.ConnectException: Connection refused"));
         assertNull(results.get(0).getGatewayErrorCode());
     }
 
@@ -259,13 +259,13 @@ public class TestAdyenPaymentPluginHttpErrors {
             }
         });
         assertEquals(result.getStatus(), PaymentPluginStatus.UNDEFINED);
-        assertEquals(result.getGatewayError(), "Read timed out");
+        assertEquals(result.getGatewayError(), "java.net.SocketTimeoutException: Read timed out");
         assertNull(result.getGatewayErrorCode());
 
         final List<PaymentTransactionInfoPlugin> results = pluginApi.getPaymentInfo(account.getId(), payment.getId(), ImmutableList.<PluginProperty>of(), callContext);
         assertEquals(results.size(), 1);
         assertEquals(results.get(0).getStatus(), PaymentPluginStatus.UNDEFINED);
-        assertEquals(results.get(0).getGatewayError(), "Read timed out");
+        assertEquals(results.get(0).getGatewayError(), "java.net.SocketTimeoutException: Read timed out");
         assertNull(result.getGatewayErrorCode());
     }
 
@@ -296,13 +296,13 @@ public class TestAdyenPaymentPluginHttpErrors {
             }
         });
         assertEquals(result.getStatus(), PaymentPluginStatus.UNDEFINED);
-        assertEquals(result.getGatewayError(), "Invalid Http response");
+        assertEquals(result.getGatewayError(), "java.io.IOException: Invalid Http response");
         assertNull(result.getGatewayErrorCode());
 
         final List<PaymentTransactionInfoPlugin> results = pluginApi.getPaymentInfo(account.getId(), payment.getId(), ImmutableList.<PluginProperty>of(), callContext);
         assertEquals(results.size(), 1);
         assertEquals(results.get(0).getStatus(), PaymentPluginStatus.UNDEFINED);
-        assertEquals(results.get(0).getGatewayError(), "Invalid Http response");
+        assertEquals(results.get(0).getGatewayError(), "java.io.IOException: Invalid Http response");
         assertNull(result.getGatewayErrorCode());
     }
 
@@ -350,7 +350,7 @@ public class TestAdyenPaymentPluginHttpErrors {
             }
         });
         assertEquals(result.getStatus(), PaymentPluginStatus.UNDEFINED);
-        assertEquals(result.getGatewayError(), "Invalid Http response");
+        assertEquals(result.getGatewayError(), "java.io.IOException: Invalid Http response");
         assertNull(result.getGatewayErrorCode());
 
         final List<PaymentTransactionInfoPlugin> results = refundApi.getPaymentInfo(account.getId(), payment.getId(), ImmutableList.<PluginProperty>of(), callContext);
@@ -359,7 +359,7 @@ public class TestAdyenPaymentPluginHttpErrors {
         assertNull(result.getGatewayErrorCode());
         assertNull(results.get(0).getGatewayError());
         assertEquals(results.get(1).getStatus(), PaymentPluginStatus.UNDEFINED);
-        assertEquals(results.get(1).getGatewayError(), "Invalid Http response");
+        assertEquals(results.get(1).getGatewayError(), "java.io.IOException: Invalid Http response");
         assertNull(result.getGatewayErrorCode());
     }
 
@@ -390,13 +390,13 @@ public class TestAdyenPaymentPluginHttpErrors {
             }
         });
         assertEquals(result.getStatus(), PaymentPluginStatus.UNDEFINED);
-        assertEquals(result.getGatewayError(), "Unexpected end of file from server");
+        assertEquals(result.getGatewayError(), "java.net.SocketException: Unexpected end of file from server");
         assertNull(result.getGatewayErrorCode());
 
         final List<PaymentTransactionInfoPlugin> results = pluginApi.getPaymentInfo(account.getId(), payment.getId(), ImmutableList.<PluginProperty>of(), callContext);
         assertEquals(results.size(), 1);
         assertEquals(results.get(0).getStatus(), PaymentPluginStatus.UNDEFINED);
-        assertEquals(results.get(0).getGatewayError(), "Unexpected end of file from server");
+        assertEquals(results.get(0).getGatewayError(), "java.net.SocketException: Unexpected end of file from server");
         assertNull(result.getGatewayErrorCode());
     }
 
@@ -427,13 +427,13 @@ public class TestAdyenPaymentPluginHttpErrors {
             }
         });
         assertEquals(result.getStatus(), PaymentPluginStatus.UNDEFINED);
-        assertEquals(result.getGatewayError(), "Premature EOF");
+        assertEquals(result.getGatewayError(), "java.io.IOException: Premature EOF");
         assertNull(result.getGatewayErrorCode());
 
         final List<PaymentTransactionInfoPlugin> results = pluginApi.getPaymentInfo(account.getId(), payment.getId(), ImmutableList.<PluginProperty>of(), callContext);
         assertEquals(results.size(), 1);
         assertEquals(results.get(0).getStatus(), PaymentPluginStatus.UNDEFINED);
-        assertEquals(results.get(0).getGatewayError(), "Premature EOF");
+        assertEquals(results.get(0).getGatewayError(), "java.io.IOException: Premature EOF");
         assertNull(result.getGatewayErrorCode());
     }
 
@@ -462,13 +462,13 @@ public class TestAdyenPaymentPluginHttpErrors {
             }
         });
         assertEquals(result.getStatus(), PaymentPluginStatus.CANCELED);
-        assertEquals(result.getGatewayError(), "HTTP response '401: Unauthorized' when communicating with " + wireMockUri(ADYEN_PATH));
+        assertEquals(result.getGatewayError(), "o.a.c.t.http.HTTPException: HTTP response '401: Unauthorized' when communicating with " + wireMockUri(ADYEN_PATH));
         assertNull(result.getGatewayErrorCode());
 
         final List<PaymentTransactionInfoPlugin> results = pluginApi.getPaymentInfo(account.getId(), payment.getId(), ImmutableList.<PluginProperty>of(), callContext);
         assertEquals(results.size(), 1);
         assertEquals(results.get(0).getStatus(), PaymentPluginStatus.CANCELED);
-        assertEquals(results.get(0).getGatewayError(), "HTTP response '401: Unauthorized' when communicating with " + wireMockUri(ADYEN_PATH));
+        assertEquals(results.get(0).getGatewayError(), "o.a.c.t.http.HTTPException: HTTP response '401: Unauthorized' when communicating with " + wireMockUri(ADYEN_PATH));
         assertNull(result.getGatewayErrorCode());
     }
 
@@ -498,13 +498,13 @@ public class TestAdyenPaymentPluginHttpErrors {
             }
         });
         assertEquals(result.getStatus(), PaymentPluginStatus.UNDEFINED);
-        assertEquals(result.getGatewayError(), "HTTP response '404: Not Found' when communicating with " + wireMockUri(ADYEN_PATH));
+        assertEquals(result.getGatewayError(), "o.a.c.t.http.HTTPException: HTTP response '404: Not Found' when communicating with " + wireMockUri(ADYEN_PATH));
         assertNull(result.getGatewayErrorCode());
 
         final List<PaymentTransactionInfoPlugin> results = pluginApi.getPaymentInfo(account.getId(), payment.getId(), ImmutableList.<PluginProperty>of(), callContext);
         assertEquals(results.size(), 1);
         assertEquals(results.get(0).getStatus(), PaymentPluginStatus.UNDEFINED);
-        assertEquals(results.get(0).getGatewayError(), "HTTP response '404: Not Found' when communicating with " + wireMockUri(ADYEN_PATH));
+        assertEquals(results.get(0).getGatewayError(), "o.a.c.t.http.HTTPException: HTTP response '404: Not Found' when communicating with " + wireMockUri(ADYEN_PATH));
         assertNull(result.getGatewayErrorCode());
     }
 
@@ -535,14 +535,14 @@ public class TestAdyenPaymentPluginHttpErrors {
             }
         });
         assertEquals(result.getStatus(), PaymentPluginStatus.UNDEFINED);
-        assertEquals(result.getGatewayError(), "Unexpected EOF in prolog\n" +
+        assertEquals(result.getGatewayError(), "c.ctc.wstx.exc.WstxEOFException: Unexpected EOF in prolog\n" +
                                                " at [row,col {unknown-source}]: [1,0]");
         assertNull(result.getGatewayErrorCode());
 
         final List<PaymentTransactionInfoPlugin> results = pluginApi.getPaymentInfo(account.getId(), payment.getId(), ImmutableList.<PluginProperty>of(), callContext);
         assertEquals(results.size(), 1);
         assertEquals(results.get(0).getStatus(), PaymentPluginStatus.UNDEFINED);
-        assertEquals(results.get(0).getGatewayError(), "Unexpected EOF in prolog\n" +
+        assertEquals(results.get(0).getGatewayError(), "c.ctc.wstx.exc.WstxEOFException: Unexpected EOF in prolog\n" +
                                                        " at [row,col {unknown-source}]: [1,0]");
         assertNull(result.getGatewayErrorCode());
     }
@@ -574,13 +574,13 @@ public class TestAdyenPaymentPluginHttpErrors {
             }
         });
         assertEquals(result.getStatus(), PaymentPluginStatus.UNDEFINED);
-        assertEquals(result.getGatewayError(), "HTTP response '503: Service Unavailable' when communicating with " + wireMockUri(ADYEN_PATH));
+        assertEquals(result.getGatewayError(), "o.a.c.t.http.HTTPException: HTTP response '503: Service Unavailable' when communicating with " + wireMockUri(ADYEN_PATH));
         assertNull(result.getGatewayErrorCode());
 
         final List<PaymentTransactionInfoPlugin> results = pluginApi.getPaymentInfo(account.getId(), payment.getId(), ImmutableList.<PluginProperty>of(), callContext);
         assertEquals(results.size(), 1);
         assertEquals(results.get(0).getStatus(), PaymentPluginStatus.UNDEFINED);
-        assertEquals(results.get(0).getGatewayError(), "HTTP response '503: Service Unavailable' when communicating with " + wireMockUri(ADYEN_PATH));
+        assertEquals(results.get(0).getGatewayError(), "o.a.c.t.http.HTTPException: HTTP response '503: Service Unavailable' when communicating with " + wireMockUri(ADYEN_PATH));
         assertNull(result.getGatewayErrorCode());
     }
 

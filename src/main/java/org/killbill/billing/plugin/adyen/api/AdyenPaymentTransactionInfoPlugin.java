@@ -157,7 +157,7 @@ public class AdyenPaymentTransactionInfoPlugin extends PluginPaymentTransactionI
             return purchaseResult.getReason();
         } else {
             final Map<String, String> additionalData = purchaseResult.getAdditionalData();
-            return String.format("%s: %s", additionalData.get(PurchaseResult.EXCEPTION_MESSAGE),
+            return getAndFormatExceptionMessage(additionalData.get(PurchaseResult.EXCEPTION_MESSAGE),
                                  getExceptionClass(additionalData));
         }
     }
@@ -168,8 +168,8 @@ public class AdyenPaymentTransactionInfoPlugin extends PluginPaymentTransactionI
             return refusalResponseMessage;
         } else {
             final Map<Object, Object> additionalData = paymentModificationResponse.getAdditionalData();
-            return String.format("%s: %s", additionalData.get(PurchaseResult.EXCEPTION_MESSAGE),
-                                 getExceptionClass(additionalData));
+            return getAndFormatExceptionMessage((String)additionalData.get(PurchaseResult.EXCEPTION_MESSAGE),
+                                                getExceptionClass(additionalData));
         }
     }
 
@@ -181,9 +181,22 @@ public class AdyenPaymentTransactionInfoPlugin extends PluginPaymentTransactionI
         } else if (record.getRefusalReason() != null) {
             return record.getRefusalReason();
         } else {
-            return String.format("%s: %s", additionalData.get(PurchaseResult.EXCEPTION_MESSAGE),
-                                 getExceptionClass(additionalData));
+            return getAndFormatExceptionMessage((String)additionalData.get(PurchaseResult.EXCEPTION_MESSAGE),
+                                                getExceptionClass(additionalData));
         }
+    }
+
+    private static String getAndFormatExceptionMessage(final String exceptionMessage, final String exceptionClass) {
+        if (Strings.isNullOrEmpty(exceptionClass) && Strings.isNullOrEmpty(exceptionClass)) {
+            return null;
+        }
+        if(Strings.isNullOrEmpty(exceptionClass)) {
+            return exceptionMessage;
+        }
+        if(Strings.isNullOrEmpty(exceptionMessage)) {
+            return exceptionClass;
+        }
+        return String.format("%s: %s", exceptionClass, exceptionMessage);
     }
 
     private static String getGatewayError(@Nullable final Map additionalData) {
