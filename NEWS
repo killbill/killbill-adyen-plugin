@@ -1,3 +1,6 @@
+0.5.6
+    Standardize error messages, do not return non-numeric string as error code
+
 0.5.5
     jdk1.8+ only
     URLs are now configurable per region
