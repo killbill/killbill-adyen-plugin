@@ -46,6 +46,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Optional;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static org.killbill.billing.plugin.adyen.api.AdyenModelPluginBase.toMap;
@@ -55,8 +56,40 @@ public class AdyenPaymentTransactionInfoPlugin extends PluginPaymentTransactionI
     private static final int ERROR_CODE_MAX_LENGTH = 32;
     private static final Pattern REFUSAL_REASON_PATTERN = Pattern.compile("([0-9]+)\\s*:\\s*(.*)");
     private static final String REFUSAL_REASON_RAW = "refusalReasonRaw";
+    private static final Pattern AVS_RESULT_PATTERN = Pattern.compile("([0-9]+)\\s*:\\s*(.*)");
 
     private final Optional<AdyenResponsesRecord> adyenResponseRecord;
+
+    private final static Map<String, String> CONVERT_AVS_CODE = new ImmutableMap.Builder()
+            .put("-1", "I")  // Not sent => Address not verified
+            .put("0", "I")   // Unknown => Address not verified
+            .put("1", "A")   // Address matches, but the postal code does not match => Street address matches, but 5-digit and 9-digit postal code do not match
+            .put("2", "N")   // Neither postal code nor address match => Street address and ZIP code do not match
+            .put("3", "R")   // AVS unavailable => System unavailable
+            .put("4", "E")   // AVS not supported for this card type => AVS data is invalid or AVS is not allowed for this card type
+            .put("5", "U")   // No AVS data provided => Address information unavailable
+            .put("6", "Z")   // Postal code matches, but the address does not match => Street address does not match, but 5-digit postal code matches
+            .put("7", "Y")   // Both postal code and address match => Street address and 5-digit postal code match
+            .put("8", "I")   // Address not checked, postal code unknown => Address not verified
+            .put("9", "B")   // Address matches, postal code unknown => Street address matches, but postal code not verified
+            .put("10", "N")  // Address doesn't match, postal code unknown => Street address and ZIP code do not match
+            .put("11", "C")  // Postal code not checked, address unknown => Street address and postal code do not match
+            .put("12", "B")  // Address matches, postal code not checked => Street address matches, but postal code not verified
+            .put("13", "N")  // Address doesn't match, postal code not checked => Street address and ZIP code do not match
+            .put("14", "P")  // Postal code matches, address unknown => Postal code matches, but street address not verified
+            .put("15", "P")  // Postal code matches, address not checked => Postal code matches, but street address not verified
+            .put("16", "Z")  // Postal code doesn't match, address unknown => Street address does not match, but 5-digit postal code matches
+            .put("17", "Z")  // Postal code doesn't match, address not checked => Street address does not match, but 5-digit postal code matches
+            .put("18", "I")  // Neither postal code nor address were checked => Address not verified
+            .put("19", "L")  // Name and postal code matches => Card member's name and billing postal code match, but billing address does not match
+            .put("20", "V")  // Name, address and postal code matches => Card member's name, billing address, and billing postal code match
+            .put("21", "O")  // Name and address matches => Card member's name and billing address match, but billing postal code does not match
+            .put("22", "K")  // Name matches => Card member's name matches but billing address and billing postal code do not match
+            .put("23", "F")  // Postal code matches, name doesn't match => Card member's name does not match, but billing postal code matches
+            .put("24", "H")  // Both postal code and address matches, name doesn't match => Card member's name does not match. Street address and postal code match
+            .put("25", "T")  // Address matches, name doesn't match => Card member's name does not match, but street address matches
+            .put("26", "C")  // Neither postal code, address nor name matches => Street address and postal code do not match
+            .build();
 
     public AdyenPaymentTransactionInfoPlugin(final UUID kbPaymentId,
                                              final UUID kbTransactionPaymentPaymentId,
@@ -77,7 +110,7 @@ public class AdyenPaymentTransactionInfoPlugin extends PluginPaymentTransactionI
               purchaseResult.getAuthCode(),
               utcNow,
               utcNow,
-              PluginProperties.buildPluginProperties(purchaseResult.getFormParameter()));
+              extractPluginProperties(purchaseResult));
         adyenResponseRecord = Optional.absent();
     }
 
@@ -313,6 +346,38 @@ public class AdyenPaymentTransactionInfoPlugin extends PluginPaymentTransactionI
             default:
                 return PaymentPluginStatus.UNDEFINED;
         }
+    }
+
+    private static List<PluginProperty> extractPluginProperties(PurchaseResult purchaseResult) {
+        ImmutableMap.Builder<String, String> builder = ImmutableMap.builder();
+        if (purchaseResult.getFormParameter() != null) {
+            builder.putAll(purchaseResult.getFormParameter());
+        }
+
+        Map<String, String> additionalData = purchaseResult.getAdditionalData();
+
+        if (additionalData != null) {
+            String avsResultRaw = additionalData.get("avsResultRaw");
+            String avsResult = additionalData.get("avsResult");
+            String cvcResultRaw = additionalData.get("cvcResultRaw");
+            String cvcResult = additionalData.get("cvcResult");
+
+            if (avsResultRaw != null) {
+                //use Unknown (UK) as default
+                builder.put("avsResultCode", CONVERT_AVS_CODE.getOrDefault(avsResultRaw, "UK"));
+            }
+            if (avsResult != null) {
+                builder.put("avsResult", avsResult);
+            }
+            if (cvcResultRaw != null) {
+                builder.put("cvcResultCode", cvcResultRaw);
+            }
+            if (cvcResult != null) {
+                builder.put("cvcResult", cvcResult);
+            }
+        }
+
+        return PluginProperties.buildPluginProperties(builder.build());
     }
 
     private static String toString(final Object obj) {
