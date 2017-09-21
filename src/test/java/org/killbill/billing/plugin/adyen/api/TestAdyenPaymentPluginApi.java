@@ -384,7 +384,7 @@ public class TestAdyenPaymentPluginApi extends TestAdyenPaymentPluginApiBase {
         doRefund(payment, BigDecimal.TEN);
     }
 
-    @Test
+    @Test(groups = "slow")
     public void testAuthorizeAndCheckAVSResult() throws Exception {
         adyenPaymentPluginApi.addPaymentMethod(account.getId(), account.getPaymentMethodId(), adyenEmptyPaymentMethodPlugin(), true, propertiesWithAVSInfo, context);
         final Payment payment = TestUtils.buildPayment(account.getId(), account.getPaymentMethodId(), account.getCurrency(), killbillApi);
@@ -408,7 +408,7 @@ public class TestAdyenPaymentPluginApi extends TestAdyenPaymentPluginApiBase {
         assertEquals(avsResult, "7 Both postal code and address match");
     }
 
-    @Test
+    @Test(groups = "slow")
     public void testAuthorizeAndCheckBadAVSResult() throws Exception {
         adyenPaymentPluginApi.addPaymentMethod(account.getId(), account.getPaymentMethodId(), adyenEmptyPaymentMethodPlugin(), true, propertiesWithAVSInfo, context);
         final Payment payment = TestUtils.buildPayment(account.getId(), account.getPaymentMethodId(), account.getCurrency(), killbillApi);
