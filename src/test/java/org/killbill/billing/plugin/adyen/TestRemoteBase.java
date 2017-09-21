@@ -68,6 +68,9 @@ public abstract class TestRemoteBase {
     public static final String CC_3DS_NUMBER = "5212345678901234";
     public static final String CC_3DS_VERIFICATION_VALUE = "737";
 
+    public static final String CC_AVS_NUMBER = "5500000000000004";
+    public static final String CC_CVV_VERIFICATION_VALUE = "737";
+
     public static final String DD_IBAN = "DE87123456781234567890";
     public static final String DD_BIC = "TESTDE01XXX";
     public static final String DD_HOLDER_NAME = "A. Schneider";

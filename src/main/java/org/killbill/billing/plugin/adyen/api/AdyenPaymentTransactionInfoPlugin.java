@@ -60,6 +60,8 @@ public class AdyenPaymentTransactionInfoPlugin extends PluginPaymentTransactionI
 
     private final Optional<AdyenResponsesRecord> adyenResponseRecord;
 
+    // This is a map of values from https://docs.adyen.com/developers/risk-management/avs#resultvalues
+    // to values from https://en.wikipedia.org/wiki/Address_Verification_System
     private final static Map<String, String> CONVERT_AVS_CODE = new ImmutableMap.Builder()
             .put("-1", "I")  // Not sent => Address not verified
             .put("0", "I")   // Unknown => Address not verified
@@ -88,7 +90,7 @@ public class AdyenPaymentTransactionInfoPlugin extends PluginPaymentTransactionI
             .put("23", "F")  // Postal code matches, name doesn't match => Card member's name does not match, but billing postal code matches
             .put("24", "H")  // Both postal code and address matches, name doesn't match => Card member's name does not match. Street address and postal code match
             .put("25", "T")  // Address matches, name doesn't match => Card member's name does not match, but street address matches
-            .put("26", "C")  // Neither postal code, address nor name matches => Street address and postal code do not match
+            .put("26", "N")  // Neither postal code, address nor name matches => Street address and postal code do not match
             .build();
 
     public AdyenPaymentTransactionInfoPlugin(final UUID kbPaymentId,
@@ -349,9 +351,9 @@ public class AdyenPaymentTransactionInfoPlugin extends PluginPaymentTransactionI
     }
 
     private static List<PluginProperty> extractPluginProperties(PurchaseResult purchaseResult) {
-        ImmutableMap.Builder<String, String> builder = ImmutableMap.builder();
+        Map<String, String> propertiesMap = new HashMap<>();
         if (purchaseResult.getFormParameter() != null) {
-            builder.putAll(purchaseResult.getFormParameter());
+            propertiesMap.putAll(purchaseResult.getFormParameter());
         }
 
         Map<String, String> additionalData = purchaseResult.getAdditionalData();
@@ -364,20 +366,20 @@ public class AdyenPaymentTransactionInfoPlugin extends PluginPaymentTransactionI
 
             if (avsResultRaw != null) {
                 //use Unknown (UK) as default
-                builder.put("avsResultCode", CONVERT_AVS_CODE.getOrDefault(avsResultRaw, "UK"));
+                propertiesMap.put("avsResultCode", CONVERT_AVS_CODE.getOrDefault(avsResultRaw, "UK"));
             }
             if (avsResult != null) {
-                builder.put("avsResult", avsResult);
+                propertiesMap.put("avsResult", avsResult);
             }
             if (cvcResultRaw != null) {
-                builder.put("cvcResultCode", cvcResultRaw);
+                propertiesMap.put("cvcResultCode", cvcResultRaw);
             }
             if (cvcResult != null) {
-                builder.put("cvcResult", cvcResult);
+                propertiesMap.put("cvcResult", cvcResult);
             }
         }
 
-        return PluginProperties.buildPluginProperties(builder.build());
+        return PluginProperties.buildPluginProperties(propertiesMap);
     }
 
     private static String toString(final Object obj) {
