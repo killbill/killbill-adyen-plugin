@@ -117,7 +117,7 @@ public class TestAdyenPaymentPluginApi extends TestAdyenPaymentPluginApiBase {
                                                                                                                   .put(AdyenPaymentPluginApi.PROPERTY_CITY, "Washington")
                                                                                                                   .put(AdyenPaymentPluginApi.PROPERTY_STATE, "DC")
                                                                                                                   .put(AdyenPaymentPluginApi.PROPERTY_ZIP, "20500")
-                                                                                                                  .put(AdyenPaymentPluginApi.PROPERTY_COUNTRY, "US")
+                                                                                                                  .put(AdyenPaymentPluginApi.PROPERTY_COUNTRY, DEFAULT_COUNTRY)
                                                                                                                   .put(AdyenPaymentPluginApi.PROPERTY_USER_AGENT, "Java/1.8")
                                                                                                                   .put(AdyenPaymentPluginApi.PROPERTY_ACCEPT_HEADER, "application/json")
                                                                                                                   .put(AdyenPaymentPluginApi.PROPERTY_TERM_URL, "dummy://url")
@@ -134,7 +134,7 @@ public class TestAdyenPaymentPluginApi extends TestAdyenPaymentPluginApiBase {
                                                                                                                   .put(AdyenPaymentPluginApi.PROPERTY_CITY, "Washington")
                                                                                                                   .put(AdyenPaymentPluginApi.PROPERTY_STATE, "DC")
                                                                                                                   .put(AdyenPaymentPluginApi.PROPERTY_ZIP, "20501")  // zip is wrong
-                                                                                                                  .put(AdyenPaymentPluginApi.PROPERTY_COUNTRY, "US")
+                                                                                                                  .put(AdyenPaymentPluginApi.PROPERTY_COUNTRY, DEFAULT_COUNTRY)
                                                                                                                   .put(AdyenPaymentPluginApi.PROPERTY_USER_AGENT, "Java/1.8")
                                                                                                                   .put(AdyenPaymentPluginApi.PROPERTY_ACCEPT_HEADER, "application/json")
                                                                                                                   .put(AdyenPaymentPluginApi.PROPERTY_TERM_URL, "dummy://url")
