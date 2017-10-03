@@ -41,6 +41,6 @@ jobs:
       - deploy:
           name: Maybe release
           command: |
-            if [ "${CIRCLE_BRANCH}" == "release" ]; then
+            if [ "${CIRCLE_BRANCH}" == "release" ] && [ "${CIRCLE_USERNAME}" != "killbillio" ]; then
               eval ${DO_RELEASE}
             fi
