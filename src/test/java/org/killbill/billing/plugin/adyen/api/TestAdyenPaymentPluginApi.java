@@ -140,7 +140,19 @@ public class TestAdyenPaymentPluginApi extends TestAdyenPaymentPluginApiBase {
                                                                                                                   .put(AdyenPaymentPluginApi.PROPERTY_TERM_URL, "dummy://url")
                                                                                                                   .build());
 
-
+    private final Iterable<PluginProperty> propertiesWithZipCodeOnlyAVSInfo = PluginProperties.buildPluginProperties(ImmutableMap.<String, String>builder()
+                                                                                                                     .put(AdyenPaymentPluginApi.PROPERTY_CC_TYPE, CC_TYPE)
+                                                                                                                     .put(AdyenPaymentPluginApi.PROPERTY_CC_LAST_NAME, "Avschecker")
+                                                                                                                     .put(AdyenPaymentPluginApi.PROPERTY_CC_NUMBER, CC_AVS_NUMBER)
+                                                                                                                     .put(AdyenPaymentPluginApi.PROPERTY_CC_EXPIRATION_MONTH, String.valueOf(CC_EXPIRATION_MONTH))
+                                                                                                                     .put(AdyenPaymentPluginApi.PROPERTY_CC_EXPIRATION_YEAR, String.valueOf(CC_EXPIRATION_YEAR))
+                                                                                                                     .put(AdyenPaymentPluginApi.PROPERTY_CC_VERIFICATION_VALUE, CC_CVV_VERIFICATION_VALUE)
+                                                                                                                     .put(AdyenPaymentPluginApi.PROPERTY_ZIP, "20500") // only sending the zip code
+                                                                                                                     .put(AdyenPaymentPluginApi.PROPERTY_COUNTRY, DEFAULT_COUNTRY)
+                                                                                                                     .put(AdyenPaymentPluginApi.PROPERTY_USER_AGENT, "Java/1.8")
+                                                                                                                     .put(AdyenPaymentPluginApi.PROPERTY_ACCEPT_HEADER, "application/json")
+                                                                                                                     .put(AdyenPaymentPluginApi.PROPERTY_TERM_URL, "dummy://url")
+                                                                                                                     .build());
     private Map<String, String> propertiesForRecurring;
 
     @Override
@@ -430,6 +442,31 @@ public class TestAdyenPaymentPluginApi extends TestAdyenPaymentPluginApiBase {
 
         assertEquals(avsResultCode, "A");
         assertEquals(avsResult, "1 Address matches, postal code doesn't");
+    }
+
+    @Test(groups = "slow")
+    public void testAuthorizeWithZipCodeOnlyAVSCheck() throws Exception {
+        adyenPaymentPluginApi.addPaymentMethod(account.getId(), account.getPaymentMethodId(), adyenEmptyPaymentMethodPlugin(), true, propertiesWithZipCodeOnlyAVSInfo, context);
+        final Payment payment = TestUtils.buildPayment(account.getId(), account.getPaymentMethodId(), account.getCurrency(), killbillApi);
+        final PaymentTransaction authorizationTransaction = TestUtils.buildPaymentTransaction(payment, TransactionType.AUTHORIZE, new BigDecimal("1000"), account.getCurrency());
+
+        final PaymentTransactionInfoPlugin authorizationInfoPlugin1 = adyenPaymentPluginApi.authorizePayment(account.getId(),
+                                                                                                             payment.getId(),
+                                                                                                             authorizationTransaction.getId(),
+                                                                                                             account.getPaymentMethodId(),
+                                                                                                             authorizationTransaction.getAmount(),
+                                                                                                             authorizationTransaction.getCurrency(),
+                                                                                                             propertiesWithZipCodeOnlyAVSInfo,
+                                                                                                             context);
+        assertNull(authorizationInfoPlugin1.getGatewayErrorCode());
+        assertEquals(authorizationInfoPlugin1.getStatus(), PaymentPluginStatus.PROCESSED);
+
+        final String avsResult = PluginProperties.findPluginPropertyValue("avsResult", authorizationInfoPlugin1.getProperties());
+        final String avsResultCode = PluginProperties.findPluginPropertyValue("avsResultCode", authorizationInfoPlugin1.getProperties());
+
+        assertEquals(avsResultCode, "Z");
+        assertEquals(avsResult, "6 Postal code matches, address doesn't match");
+
     }
 
     @Test(groups = "slow")
