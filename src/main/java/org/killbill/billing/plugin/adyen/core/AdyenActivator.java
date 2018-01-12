@@ -107,7 +107,7 @@ public class AdyenActivator extends KillbillActivatorBase {
     }
 
     public void registerHandlers() {
-        final PluginConfigurationEventHandler handler = new PluginConfigurationEventHandler(adyenConfigurationHandler, adyenHostedPaymentPageConfigurationHandler, adyenRecurringConfigurationHandler);
+        final PluginConfigurationEventHandler handler = new PluginConfigurationEventHandler(adyenConfigPropertiesConfigurationHandler, adyenConfigurationHandler, adyenHostedPaymentPageConfigurationHandler, adyenRecurringConfigurationHandler);
         dispatcher.registerEventHandlers(handler);
     }
 
