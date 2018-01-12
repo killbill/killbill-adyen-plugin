@@ -1,3 +1,6 @@
+0.5.8
+    Add missing config property handler registration
+
 0.5.7
     Add support for AVS checks in the US
     Standardize AVS codes
