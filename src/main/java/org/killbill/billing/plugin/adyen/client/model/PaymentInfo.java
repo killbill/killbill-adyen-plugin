@@ -218,7 +218,8 @@ public class PaymentInfo {
     }
 
     public void setHouseNumberOrName(final String houseNumberOrName) {
-        this.houseNumberOrName = houseNumberOrName;
+        // Adyen needs houseNumberOrName to not be blank in US https://docs.adyen.com/developers/api-reference/common-api/address
+        this.houseNumberOrName = houseNumberOrName != null ? houseNumberOrName : "";
     }
 
     public String getCity() {

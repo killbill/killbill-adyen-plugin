@@ -93,8 +93,9 @@ public class PaymentInfoConverter<T extends PaymentInfo> {
         }
         address.setCountry(adjustedCountry);
 
-        // Required by Adyen
-        if (address.getHouseNumberOrName() != null && address.getCity() != null) {
+        // Required by Adyen: house number and city
+        // house number can be passed in the street or in the houseNumberOrName field
+        if ((address.getStreet() != null || address.getHouseNumberOrName() != null) && address.getCity() != null) {
             paymentRequest.setBillingAddress(address);
         }
     }

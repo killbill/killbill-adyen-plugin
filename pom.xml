@@ -21,12 +21,12 @@
     <parent>
         <artifactId>killbill-oss-parent</artifactId>
         <groupId>org.kill-bill.billing</groupId>
-        <version>0.140.38</version>
+        <version>0.140.41</version>
     </parent>
     <groupId>org.kill-bill.billing.plugin.java</groupId>
     <artifactId>adyen-plugin</artifactId>
     <name>Kill Bill OSGI Adyen plugin</name>
-    <version>0.5.7-SNAPSHOT</version>
+    <version>0.5.8-SNAPSHOT</version>
     <packaging>bundle</packaging>
     <description>Kill Bill Adyen plugin</description>
     <url>http://github.com/killbill/killbill-adyen-plugin</url>
