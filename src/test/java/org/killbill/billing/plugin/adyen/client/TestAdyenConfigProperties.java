@@ -154,6 +154,25 @@ public class TestAdyenConfigProperties {
     }
 
     @Test(groups = "fast")
+    public void testConfigurationWithFallbacks() throws Exception {
+        final Properties properties = new Properties();
+        properties.put("org.killbill.billing.plugin.adyen.merchantAccount", "UK#DefaultAccountUK|FALLBACK#FALLBACKAccountDE");
+        properties.put("org.killbill.billing.plugin.adyen.username", "UK#DefaultUsernameUK|FALLBACKAccountDE#DefaultUsernameDE");
+        properties.put("org.killbill.billing.plugin.adyen.password", "UK#DefaultPasswordUK|FALLBACKAccountDE#DefaultPasswordDE");
+        properties.put("org.killbill.billing.plugin.adyen.skin", "UK#DefaultSkinUK|FALLBACKAccountDE#FALLBACKSkinDE");
+        properties.put("org.killbill.billing.plugin.adyen.hmac.secret", "UK#DefaultSecretUK|FALLBACKAccountDE#FALLBACKHmacDE");
+        properties.put("org.killbill.billing.plugin.adyen.hmac.algorithm", "UK#DefaultAlgorithmUK|FALLBACKAccountDE#FALLBACKAlgorithmUK");
+        final AdyenConfigProperties adyenConfigProperties = new AdyenConfigProperties(properties);
+
+        Assert.assertEquals(adyenConfigProperties.getMerchantAccount("United States"), "FALLBACKAccountDE");
+        Assert.assertEquals(adyenConfigProperties.getUserName("FALLBACKAccountDE"), "DefaultUsernameDE");
+        Assert.assertEquals(adyenConfigProperties.getPassword("FALLBACKAccountDE"), "DefaultPasswordDE");
+        Assert.assertEquals(adyenConfigProperties.getSkin("FALLBACKAccountDE"), "FALLBACKSkinDE");
+        Assert.assertEquals(adyenConfigProperties.getHmacSecret("FALLBACKAccountDE"), "FALLBACKHmacDE");
+        Assert.assertEquals(adyenConfigProperties.getHmacAlgorithm("FALLBACKAccountDE"), "FALLBACKAlgorithmUK");
+    }
+
+    @Test(groups = "fast")
     public void testConfigurationWithMultiRegions() throws Exception {
         final Properties properties = new Properties();
         properties.put("us-east-1.org.killbill.billing.plugin.adyen.paymentUrl", "http://paymentUrl1.com");

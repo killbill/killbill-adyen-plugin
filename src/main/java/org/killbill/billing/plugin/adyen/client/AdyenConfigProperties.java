@@ -49,6 +49,7 @@ public class AdyenConfigProperties {
                                                                                                               "sepadirectdebit");
     // Period is a bit aggressive by default. SOFORT (directEbanking) payment can take up to 14 days.
     public static final String DEFAULT_OFFLINE_BANK_TRANSFER_PENDING_PAYMENT_EXPIRATION_PERIOD = "P7d";
+    public static final String FALL_BACK_MERCHANT_ACCOUNT_KEY = "FALLBACK";
 
     private static final String PROPERTY_PREFIX = "org.killbill.billing.plugin.adyen.";
     private static final String ENTRY_DELIMITER = "|";
@@ -89,6 +90,7 @@ public class AdyenConfigProperties {
     private final String acquirersList;
     private final String paymentConnectionTimeout;
     private final String paymentReadTimeout;
+    private final String fallBackMerchantAccount;
 
     private final Period pendingPaymentExpirationPeriod;
 
@@ -135,6 +137,15 @@ public class AdyenConfigProperties {
 
         this.merchantAccounts = properties.getProperty(PROPERTY_PREFIX + "merchantAccount");
         refillMap(countryToMerchantAccountMap, merchantAccounts);
+        if(this.countryToMerchantAccountMap.containsKey(FALL_BACK_MERCHANT_ACCOUNT_KEY))
+        {
+            this.fallBackMerchantAccount = this.countryToMerchantAccountMap.get(FALL_BACK_MERCHANT_ACCOUNT_KEY);
+            this.countryToMerchantAccountMap.remove(FALL_BACK_MERCHANT_ACCOUNT_KEY);
+        }
+        else
+        {
+            this.fallBackMerchantAccount = null;
+        }
 
         this.userNames = properties.getProperty(PROPERTY_PREFIX + "username");
         final Map<String, String> countryOrMerchantAccountToUsernameMap = new LinkedHashMap<String, String>();
@@ -238,10 +249,10 @@ public class AdyenConfigProperties {
         if (countryToMerchantAccountMap.isEmpty()) {
             return merchantAccounts;
         } else if (countryIsoCode == null) {
-            // In case no country is specified, but the user configured the merchant accounts per country, take the first one
-            return countryToMerchantAccountMap.values().iterator().next();
+            // In case no country is specified, but the user configured the merchant accounts per country, take the fallback one or the first one.
+            return MoreObjects.firstNonNull(fallBackMerchantAccount, countryToMerchantAccountMap.values().iterator().next());
         } else {
-            return countryToMerchantAccountMap.get(adjustCountryCode(countryIsoCode));
+            return MoreObjects.firstNonNull(countryToMerchantAccountMap.get(adjustCountryCode(countryIsoCode)), fallBackMerchantAccount);
         }
     }
 
@@ -403,5 +414,9 @@ public class AdyenConfigProperties {
                 }
             }
         }
+    }
+
+    public String getFallBackMerchantAccount() {
+        return fallBackMerchantAccount;
     }
 }
