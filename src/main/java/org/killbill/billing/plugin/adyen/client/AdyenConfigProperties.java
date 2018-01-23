@@ -415,8 +415,4 @@ public class AdyenConfigProperties {
             }
         }
     }
-
-    public String getFallBackMerchantAccount() {
-        return fallBackMerchantAccount;
-    }
 }
