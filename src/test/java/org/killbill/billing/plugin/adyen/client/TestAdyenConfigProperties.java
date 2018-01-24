@@ -172,6 +172,16 @@ public class TestAdyenConfigProperties {
         Assert.assertEquals(adyenConfigProperties.getHmacAlgorithm("FALLBACKAccountDE"), "FALLBACKAlgorithmUK");
     }
 
+    @Test(groups = "fast",
+          expectedExceptions = IllegalStateException.class,
+          expectedExceptionsMessageRegExp = "Failed to find merchant account for countryCode='United States'")
+    public void testConfigurationWithoutFallbackWithoutCountryCodeMatch() throws Exception {
+        final Properties properties = new Properties();
+        properties.put("org.killbill.billing.plugin.adyen.merchantAccount", "UK#DefaultAccountUK");
+        final AdyenConfigProperties adyenConfigProperties = new AdyenConfigProperties(properties);
+        adyenConfigProperties.getMerchantAccount("United States");
+    }
+
     @Test(groups = "fast")
     public void testConfigurationWithMultiRegions() throws Exception {
         final Properties properties = new Properties();
