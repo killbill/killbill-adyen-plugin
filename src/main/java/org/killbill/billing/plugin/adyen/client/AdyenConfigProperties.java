@@ -247,10 +247,14 @@ public class AdyenConfigProperties {
         if (countryToMerchantAccountMap.isEmpty()) {
             return merchantAccounts;
         } else if (countryIsoCode == null) {
-            // In case no country is specified, but the user configured the merchant accounts per country, take the fallback one or the first one.
+            // In case no country is specified, but the user configured the merchant accounts per country, take the fallback one if configured. Otherwise, take the first one.
             return MoreObjects.firstNonNull(fallBackMerchantAccount, countryToMerchantAccountMap.values().iterator().next());
         } else {
-            return MoreObjects.firstNonNull(countryToMerchantAccountMap.get(adjustCountryCode(countryIsoCode)), fallBackMerchantAccount);
+            try {
+                return MoreObjects.firstNonNull(countryToMerchantAccountMap.get(adjustCountryCode(countryIsoCode)), fallBackMerchantAccount);
+            } catch (NullPointerException exception) {
+                throw new IllegalStateException(String.format("Failed to find merchant account for countryCode='%s'", countryIsoCode), exception);
+            }
         }
     }
 
