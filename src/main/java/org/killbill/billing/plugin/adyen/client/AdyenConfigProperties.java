@@ -137,13 +137,11 @@ public class AdyenConfigProperties {
 
         this.merchantAccounts = properties.getProperty(PROPERTY_PREFIX + "merchantAccount");
         refillMap(countryToMerchantAccountMap, merchantAccounts);
-        if(this.countryToMerchantAccountMap.containsKey(FALL_BACK_MERCHANT_ACCOUNT_KEY))
-        {
+        if (this.countryToMerchantAccountMap.containsKey(FALL_BACK_MERCHANT_ACCOUNT_KEY)) {
             this.fallBackMerchantAccount = this.countryToMerchantAccountMap.get(FALL_BACK_MERCHANT_ACCOUNT_KEY);
             this.countryToMerchantAccountMap.remove(FALL_BACK_MERCHANT_ACCOUNT_KEY);
         }
-        else
-        {
+        else {
             this.fallBackMerchantAccount = null;
         }
 
