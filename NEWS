@@ -1,3 +1,6 @@
+0.5.9
+    Add fallback merchant account
+
 0.5.8
     Add missing config property handler registration
 
