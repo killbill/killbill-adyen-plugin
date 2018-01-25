@@ -59,6 +59,7 @@ Notes:
   * `XX#YY` in the password property where `XX` is the username
   * `XX#YY` in the skin property where `XX` is the merchant account
   * `XX#YY` in the hmac secret property where `XX` is the skin name
+* You can also configure a FALLBACK merchant account like `FALLBACK#FallBackMerchantAccount`, which will be chosen if no matched merchant account is found based on the country code.
 
 To configure Hosted Payment Pages (HPP):
 
