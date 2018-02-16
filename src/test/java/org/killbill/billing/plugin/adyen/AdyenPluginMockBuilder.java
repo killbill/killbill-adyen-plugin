@@ -1,7 +1,8 @@
 /*
- * Copyright 2015-2016 Groupon, Inc
+ * Copyright 2014-2018 Groupon, Inc
+ * Copyright 2014-2018 The Billing Project, LLC
  *
- * Groupon licenses this file to you under the Apache License, version 2.0
+ * The Billing Project licenses this file to you under the Apache License, version 2.0
  * (the "License"); you may not use this file except in compliance with the
  * License.  You may obtain a copy of the License at:
  *
@@ -60,11 +61,7 @@ import static org.mockito.Mockito.mock;
  */
 public class AdyenPluginMockBuilder {
 
-    // To run these tests, you need a properties file in the classpath (e.g. src/test/resources/adyen.properties)
-    // See README.md for details on the required properties
-    private static final String PROPERTIES_FILE_NAME = "adyen.properties";
     private final Properties adyenProperties;
-    private Account account;
     private OSGIKillbillAPI killbillAPI;
     private AdyenDao dao;
 
@@ -79,16 +76,14 @@ public class AdyenPluginMockBuilder {
     }
 
     private static Properties getDefaultAdyenConfigProperties() throws IOException {
-        return TestUtils.loadProperties(PROPERTIES_FILE_NAME);
+        final Properties properties = new Properties();
+        properties.put("org.killbill.billing.plugin.adyen.username", "username");
+        properties.put("org.killbill.billing.plugin.adyen.password", "password");
+        return properties;
     }
 
     public AdyenPluginMockBuilder withAdyenProperty(final String key, final String value) {
         adyenProperties.setProperty(key, value);
-        return this;
-    }
-
-    public AdyenPluginMockBuilder withAccount(final Account account) {
-        this.account = account;
         return this;
     }
 

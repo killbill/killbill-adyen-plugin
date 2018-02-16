@@ -1,7 +1,8 @@
 /*
- * Copyright 2014-2016 Groupon, Inc
+ * Copyright 2014-2018 Groupon, Inc
+ * Copyright 2014-2018 The Billing Project, LLC
  *
- * Groupon licenses this file to you under the Apache License, version 2.0
+ * The Billing Project licenses this file to you under the Apache License, version 2.0
  * (the "License"); you may not use this file except in compliance with the
  * License.  You may obtain a copy of the License at:
  *
@@ -90,7 +91,7 @@ public abstract class TestRemoteBase {
     protected Properties properties;
     protected String merchantAccount;
 
-    @BeforeClass(groups = "slow")
+    @BeforeClass(groups = "integration")
     public void setUpBeforeClass() throws Exception {
         properties = TestUtils.loadProperties(PROPERTIES_FILE_NAME);
         adyenConfigProperties = getAdyenConfigProperties();

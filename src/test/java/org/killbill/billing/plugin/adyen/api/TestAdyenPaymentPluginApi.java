@@ -1,7 +1,8 @@
 /*
- * Copyright 2014-2016 Groupon, Inc
+ * Copyright 2014-2018 Groupon, Inc
+ * Copyright 2014-2018 The Billing Project, LLC
  *
- * Groupon licenses this file to you under the Apache License, version 2.0
+ * The Billing Project licenses this file to you under the Apache License, version 2.0
  * (the "License"); you may not use this file except in compliance with the
  * License.  You may obtain a copy of the License at:
  *
@@ -156,9 +157,9 @@ public class TestAdyenPaymentPluginApi extends TestAdyenPaymentPluginApiBase {
     private Map<String, String> propertiesForRecurring;
 
     @Override
-    @BeforeMethod(groups = "slow")
-    public void setUp() throws Exception {
-        super.setUp();
+    @BeforeMethod(groups = "integration")
+    public void setUpRemote() throws Exception {
+        super.setUpRemote();
 
         propertiesForRecurring = ImmutableMap.of(AdyenPaymentPluginApi.PROPERTY_CUSTOMER_ID, UUID.randomUUID().toString(),
                                                  AdyenPaymentPluginApi.PROPERTY_EMAIL, UUID.randomUUID().toString() + "@example.com");
@@ -167,7 +168,7 @@ public class TestAdyenPaymentPluginApi extends TestAdyenPaymentPluginApiBase {
         assertEquals(adyenPaymentPluginApi.getPaymentMethods(account.getId(), true, ImmutableList.<PluginProperty>of(), context).size(), 0);
     }
 
-    @Test(groups = "slow")
+    @Test(groups = "integration")
     public void testPaymentMethodManagement() throws Exception {
         final Iterable<PluginProperty> propertiesForAddPaymentMethod = PluginProperties.buildPluginProperties(propertiesForRecurring);
         adyenPaymentPluginApi.addPaymentMethod(account.getId(), account.getPaymentMethodId(), adyenEmptyPaymentMethodPlugin(), true, propertiesForAddPaymentMethod, context);
@@ -222,7 +223,7 @@ public class TestAdyenPaymentPluginApi extends TestAdyenPaymentPluginApiBase {
         assertEquals(adyenPaymentPluginApi.getPaymentMethods(account.getId(), true, ImmutableList.<PluginProperty>of(), context).size(), 0);
     }
 
-    @Test(groups = "slow")
+    @Test(groups = "integration")
     public void testUnknownPayment() throws Exception {
         assertTrue(adyenPaymentPluginApi.getPaymentInfo(account.getId(),
                                                         UUID.randomUUID(),
@@ -230,7 +231,7 @@ public class TestAdyenPaymentPluginApi extends TestAdyenPaymentPluginApiBase {
                                                         context).isEmpty());
     }
 
-    @Test(groups = "slow")
+    @Test(groups = "integration")
     public void testAuthorizeAndCaptureSkipGw() throws Exception {
         adyenPaymentPluginApi.addPaymentMethod(account.getId(), account.getPaymentMethodId(), adyenEmptyPaymentMethodPlugin(), true, propertiesWithCCInfo, context);
 
@@ -238,7 +239,7 @@ public class TestAdyenPaymentPluginApi extends TestAdyenPaymentPluginApiBase {
         doCapture(payment, new BigDecimal("5"), ImmutableList.<PluginProperty>of(new PluginProperty("skip_gw", "true", false)));
     }
 
-    @Test(groups = "slow")
+    @Test(groups = "integration")
     public void testAuthorizeAndMultipleCaptures() throws Exception {
         adyenPaymentPluginApi.addPaymentMethod(account.getId(), account.getPaymentMethodId(), adyenEmptyPaymentMethodPlugin(), true, propertiesWithCCInfo, context);
 
@@ -247,7 +248,7 @@ public class TestAdyenPaymentPluginApi extends TestAdyenPaymentPluginApiBase {
         doCapture(payment, new BigDecimal("5"), ImmutableList.<PluginProperty>of(new PluginProperty(PROPERTY_COUNTRY, "bogus", false)));
     }
 
-    @Test(groups = "slow")
+    @Test(groups = "integration")
     public void testAuthorizeAndVoid() throws Exception {
         adyenPaymentPluginApi.addPaymentMethod(account.getId(), account.getPaymentMethodId(), adyenEmptyPaymentMethodPlugin(), true, propertiesWithCCInfo, context);
 
@@ -255,7 +256,7 @@ public class TestAdyenPaymentPluginApi extends TestAdyenPaymentPluginApiBase {
         doVoid(payment);
     }
 
-    @Test(groups = "slow")
+    @Test(groups = "integration")
     public void testAuthorizeOddCountryCodes() throws Exception {
         adyenPaymentPluginApi.addPaymentMethod(account.getId(), account.getPaymentMethodId(), adyenEmptyPaymentMethodPlugin(), true, propertiesWithCCInfo, context);
 
@@ -265,7 +266,7 @@ public class TestAdyenPaymentPluginApi extends TestAdyenPaymentPluginApiBase {
         }
     }
 
-    @Test(groups = "slow")
+    @Test(groups = "integration")
     public void testPurchaseAndRefund() throws Exception {
         adyenPaymentPluginApi.addPaymentMethod(account.getId(), account.getPaymentMethodId(), adyenEmptyPaymentMethodPlugin(), true, propertiesWithCCInfo, context);
 
@@ -274,14 +275,14 @@ public class TestAdyenPaymentPluginApi extends TestAdyenPaymentPluginApiBase {
     }
 
     // Disabled by default since Card fund transfer (CFT) isn't enabled automatically on the sandbox
-    @Test(groups = "slow", enabled = false)
+    @Test(groups = "integration", enabled = false)
     public void testCredit() throws Exception {
         adyenPaymentPluginApi.addPaymentMethod(account.getId(), account.getPaymentMethodId(), adyenEmptyPaymentMethodPlugin(), true, propertiesWithCCInfo, context);
 
         doCredit(BigDecimal.TEN, PluginProperties.buildPluginProperties(ImmutableMap.<String, String>of(AdyenPaymentPluginApi.PROPERTY_CC_VERIFICATION_VALUE, CC_VERIFICATION_VALUE)));
     }
 
-    @Test(groups = "slow")
+    @Test(groups = "integration")
     public void testAuthorizeAndMultipleCapturesSepaDirectDebit() throws Exception {
         adyenPaymentPluginApi.addPaymentMethod(account.getId(), account.getPaymentMethodId(), adyenPaymentMethodPluginSepaDirectDebit(), true, ImmutableList.<PluginProperty>of(), context);
 
@@ -290,7 +291,7 @@ public class TestAdyenPaymentPluginApi extends TestAdyenPaymentPluginApiBase {
         doCapture(payment, new BigDecimal("5"));
     }
 
-    @Test(groups = "slow")
+    @Test(groups = "integration")
     public void testAuthorizeAndMultipleCapturesELV() throws Exception {
         adyenPaymentPluginApi.addPaymentMethod(account.getId(), account.getPaymentMethodId(), adyenPaymentMethodPluginELV(), true, ImmutableList.<PluginProperty>of(), context);
 
@@ -299,7 +300,7 @@ public class TestAdyenPaymentPluginApi extends TestAdyenPaymentPluginApiBase {
         doCapture(payment, new BigDecimal("5"));
     }
 
-    @Test(groups = "slow")
+    @Test(groups = "integration")
     public void testAuthorizeFailingInvalidCVV() throws Exception {
         adyenPaymentPluginApi.addPaymentMethod(account.getId(), account.getPaymentMethodId(), adyenEmptyPaymentMethodPlugin(), true, propertiesWithCCInfo, context);
 
@@ -321,7 +322,7 @@ public class TestAdyenPaymentPluginApi extends TestAdyenPaymentPluginApiBase {
         assertEquals(fromDBList.get(0).getGatewayError(), "CVC Declined");
     }
 
-    @Test(groups = "slow")
+    @Test(groups = "integration")
     public void testAuthorizeRecurringDetailRecurring() throws Exception {
         final Iterable<PluginProperty> propertiesWithCCForRecurring = PluginProperties.buildPluginProperties(propertiesForRecurring);
         adyenPaymentPluginApi.addPaymentMethod(account.getId(), account.getPaymentMethodId(), adyenEmptyPaymentMethodPlugin(), true, propertiesWithCCForRecurring, context);
@@ -352,7 +353,7 @@ public class TestAdyenPaymentPluginApi extends TestAdyenPaymentPluginApiBase {
         doRefund(payment2, BigDecimal.TEN);
     }
 
-    @Test(groups = "slow")
+    @Test(groups = "integration")
     public void testAuthorizeRecurringDetailOneClick() throws Exception {
         adyenPaymentPluginApi.addPaymentMethod(account.getId(), account.getPaymentMethodId(), adyenEmptyPaymentMethodPlugin(), true, ImmutableList.<PluginProperty>of(), context);
 
@@ -387,7 +388,7 @@ public class TestAdyenPaymentPluginApi extends TestAdyenPaymentPluginApiBase {
         doRefund(payment2, BigDecimal.TEN);
     }
 
-    @Test(groups = "slow")
+    @Test(groups = "integration")
     public void testAuthorizeWithContinuousAuthentication() throws Exception {
         adyenPaymentPluginApi.addPaymentMethod(account.getId(), account.getPaymentMethodId(), adyenEmptyPaymentMethodPlugin(), true, propertiesWithCCInfo, context);
 
@@ -396,7 +397,7 @@ public class TestAdyenPaymentPluginApi extends TestAdyenPaymentPluginApiBase {
         doRefund(payment, BigDecimal.TEN);
     }
 
-    @Test(groups = "slow")
+    @Test(groups = "integration")
     public void testAuthorizeAndCheckAVSResult() throws Exception {
         adyenPaymentPluginApi.addPaymentMethod(account.getId(), account.getPaymentMethodId(), adyenEmptyPaymentMethodPlugin(), true, propertiesWithAVSInfo, context);
         final Payment payment = TestUtils.buildPayment(account.getId(), account.getPaymentMethodId(), account.getCurrency(), killbillApi);
@@ -420,7 +421,7 @@ public class TestAdyenPaymentPluginApi extends TestAdyenPaymentPluginApiBase {
         assertEquals(avsResult, "7 Both postal code and address match");
     }
 
-    @Test(groups = "slow")
+    @Test(groups = "integration")
     public void testAuthorizeAndCheckBadAVSResult() throws Exception {
         adyenPaymentPluginApi.addPaymentMethod(account.getId(), account.getPaymentMethodId(), adyenEmptyPaymentMethodPlugin(), true, propertiesWithAVSInfo, context);
         final Payment payment = TestUtils.buildPayment(account.getId(), account.getPaymentMethodId(), account.getCurrency(), killbillApi);
@@ -444,7 +445,7 @@ public class TestAdyenPaymentPluginApi extends TestAdyenPaymentPluginApiBase {
         assertEquals(avsResult, "1 Address matches, postal code doesn't");
     }
 
-    @Test(groups = "slow")
+    @Test(groups = "integration")
     public void testAuthorizeWithZipCodeOnlyAVSCheck() throws Exception {
         adyenPaymentPluginApi.addPaymentMethod(account.getId(), account.getPaymentMethodId(), adyenEmptyPaymentMethodPlugin(), true, propertiesWithZipCodeOnlyAVSInfo, context);
         final Payment payment = TestUtils.buildPayment(account.getId(), account.getPaymentMethodId(), account.getCurrency(), killbillApi);
@@ -469,7 +470,7 @@ public class TestAdyenPaymentPluginApi extends TestAdyenPaymentPluginApiBase {
 
     }
 
-    @Test(groups = "slow")
+    @Test(groups = "integration")
     public void testAuthorizeAndComplete3DSecure() throws Exception {
         adyenPaymentPluginApi.addPaymentMethod(account.getId(), account.getPaymentMethodId(), adyenEmptyPaymentMethodPlugin(), true, propertiesWith3DSInfo, context);
 
@@ -588,7 +589,7 @@ public class TestAdyenPaymentPluginApi extends TestAdyenPaymentPluginApiBase {
         assertEquals(paymentTransactionInfoPluginsPostCapture.get(1).getStatus(), PaymentPluginStatus.PENDING);
     }
 
-    @Test(groups = "slow")
+    @Test(groups = "integration")
     public void testAuthorizeAndExpire3DSecure() throws Exception {
         adyenPaymentPluginApi.addPaymentMethod(account.getId(), account.getPaymentMethodId(), adyenEmptyPaymentMethodPlugin(), true, propertiesWith3DSInfo, context);
 
@@ -618,7 +619,7 @@ public class TestAdyenPaymentPluginApi extends TestAdyenPaymentPluginApiBase {
         assertEquals(canceledTransaction.getStatus(), PaymentPluginStatus.CANCELED);
     }
 
-    @Test(groups = "slow")
+    @Test(groups = "integration")
     public void testAuthorizeAndCaptureWithSplitSettlements() throws Exception {
         adyenPaymentPluginApi.addPaymentMethod(account.getId(), account.getPaymentMethodId(), adyenEmptyPaymentMethodPlugin(), true, propertiesWithCCInfo, context);
 

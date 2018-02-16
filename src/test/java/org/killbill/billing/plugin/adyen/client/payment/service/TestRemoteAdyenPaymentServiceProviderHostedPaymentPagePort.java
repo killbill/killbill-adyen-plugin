@@ -1,6 +1,6 @@
 /*
- * Copyright 2014-2016 Groupon, Inc
- * Copyright 2014-2016 The Billing Project, LLC
+ * Copyright 2014-2018 Groupon, Inc
+ * Copyright 2014-2018 The Billing Project, LLC
  *
  * The Billing Project licenses this file to you under the Apache License, version 2.0
  * (the "License"); you may not use this file except in compliance with the
@@ -35,7 +35,7 @@ import org.testng.annotations.Test;
 
 public class TestRemoteAdyenPaymentServiceProviderHostedPaymentPagePort extends TestRemoteBase {
 
-    @Test(groups = "slow")
+    @Test(groups = "integration")
     public void testRedirectHPP() throws Exception {
         final WebPaymentFrontend paymentInfo = new WebPaymentFrontend();
         paymentInfo.setCountry(DEFAULT_COUNTRY);
@@ -67,7 +67,7 @@ public class TestRemoteAdyenPaymentServiceProviderHostedPaymentPagePort extends 
         System.out.flush();
     }
 
-    @Test(groups = "slow")
+    @Test(groups = "integration")
     public void testDirectory() throws Exception {
         final Map directory = adyenPaymentServiceProviderHostedPaymentPagePort.getDirectory(merchantAccount,
                                                                                             new BigDecimal("1.99"),

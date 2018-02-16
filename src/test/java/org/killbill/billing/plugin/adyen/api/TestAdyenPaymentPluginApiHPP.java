@@ -1,6 +1,6 @@
 /*
- * Copyright 2014-2016 Groupon, Inc
- * Copyright 2014-2016 The Billing Project, LLC
+ * Copyright 2014-2018 Groupon, Inc
+ * Copyright 2014-2018 The Billing Project, LLC
  *
  * The Billing Project licenses this file to you under the Apache License, version 2.0
  * (the "License"); you may not use this file except in compliance with the
@@ -57,15 +57,15 @@ public class TestAdyenPaymentPluginApiHPP extends TestAdyenPaymentPluginApiBase 
     private String pspReference;
 
     @Override
-    @BeforeMethod(groups = "slow")
-    public void setUp() throws Exception {
-        super.setUp();
+    @BeforeMethod(groups = "integration")
+    public void setUpRemote() throws Exception {
+        super.setUpRemote();
 
         paymentTransactionExternalKey = UUID.randomUUID().toString();
         pspReference = UUID.randomUUID().toString();
     }
 
-    @Test(groups = "slow")
+    @Test(groups = "integration")
     public void testHPPNoPendingPayment() throws Exception {
         triggerBuildFormDescriptor(ImmutableMap.<String, String>of(), null);
 
@@ -74,7 +74,7 @@ public class TestAdyenPaymentPluginApiHPP extends TestAdyenPaymentPluginApiBase 
         verifyPayment(TransactionType.AUTHORIZE);
     }
 
-    @Test(groups = "slow")
+    @Test(groups = "integration")
     public void testHPPWithPendingPurchase() throws Exception {
         // Trigger buildFormDescriptor (and create a PENDING purchase)
         triggerBuildFormDescriptor(ImmutableMap.<String, String>of(AdyenPaymentPluginApi.PROPERTY_CREATE_PENDING_PAYMENT, "true"), TransactionType.PURCHASE);
@@ -84,7 +84,7 @@ public class TestAdyenPaymentPluginApiHPP extends TestAdyenPaymentPluginApiBase 
         verifyPayment(TransactionType.PURCHASE);
     }
 
-    @Test(groups = "slow")
+    @Test(groups = "integration")
     public void testHPPWithPendingAuthorization() throws Exception {
         // Trigger buildFormDescriptor (and create a PENDING authorization)
         triggerBuildFormDescriptor(ImmutableMap.<String, String>of(AdyenPaymentPluginApi.PROPERTY_CREATE_PENDING_PAYMENT, "true",
@@ -96,7 +96,7 @@ public class TestAdyenPaymentPluginApiHPP extends TestAdyenPaymentPluginApiBase 
         verifyPayment(TransactionType.AUTHORIZE);
     }
 
-    @Test(groups = "slow")
+    @Test(groups = "integration")
     public void testCancelExpiredPayment() throws Exception {
         final Payment payment = triggerBuildFormDescriptor(ImmutableMap.<String, String>of(AdyenPaymentPluginApi.PROPERTY_CREATE_PENDING_PAYMENT, "true",
                                                                                            AdyenPaymentPluginApi.PROPERTY_AUTH_MODE, "true"),
@@ -119,7 +119,7 @@ public class TestAdyenPaymentPluginApiHPP extends TestAdyenPaymentPluginApiBase 
         assertEquals(updateMessage.getValue(), "Payment Expired - Cancelled by Janitor");
     }
 
-    @Test(groups = "slow")
+    @Test(groups = "integration")
     public void testCancelExpiredPayPalPayment() throws Exception {
         final Payment payment = triggerBuildFormDescriptor(ImmutableMap.<String, String>of(AdyenPaymentPluginApi.PROPERTY_CREATE_PENDING_PAYMENT, "true",
                                                                                            AdyenPaymentPluginApi.PROPERTY_AUTH_MODE, "true"),
@@ -144,7 +144,7 @@ public class TestAdyenPaymentPluginApiHPP extends TestAdyenPaymentPluginApiBase 
         assertEquals(updateMessage.getValue(), "Payment Expired - Cancelled by Janitor");
     }
 
-    @Test(groups = "slow")
+    @Test(groups = "integration")
     public void testCancelExpiredPayPalPaymentNoNotification() throws Exception {
         final Payment payment = triggerBuildFormDescriptor(ImmutableMap.<String, String>of(AdyenPaymentPluginApi.PROPERTY_CREATE_PENDING_PAYMENT, "true",
                                                                                            AdyenPaymentPluginApi.PROPERTY_AUTH_MODE, "true",
@@ -169,7 +169,7 @@ public class TestAdyenPaymentPluginApiHPP extends TestAdyenPaymentPluginApiBase 
         assertEquals(updateMessage.getValue(), "Payment Expired - Cancelled by Janitor");
     }
 
-    @Test(groups = "slow")
+    @Test(groups = "integration")
     public void testCancelExpiredBoletoPayment() throws Exception {
         final Payment payment = triggerBuildFormDescriptor(ImmutableMap.<String, String>of(AdyenPaymentPluginApi.PROPERTY_CREATE_PENDING_PAYMENT, "true",
                                                                                            AdyenPaymentPluginApi.PROPERTY_AUTH_MODE, "true"),
