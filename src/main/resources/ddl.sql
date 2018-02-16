@@ -25,7 +25,7 @@ create table adyen_responses (
 , transaction_type varchar(32) not null
 , amount numeric(15,9)
 , currency char(3)
-, psp_result char(64)
+, psp_result varchar(64)
 , psp_reference varchar(64)
 , auth_code varchar(64)
 , result_code varchar(64)

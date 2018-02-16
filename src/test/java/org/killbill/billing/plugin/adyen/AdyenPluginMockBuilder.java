@@ -21,7 +21,6 @@ import java.io.IOException;
 import java.sql.SQLException;
 import java.util.Properties;
 
-import org.killbill.billing.account.api.Account;
 import org.killbill.billing.osgi.libs.killbill.OSGIConfigPropertiesService;
 import org.killbill.billing.osgi.libs.killbill.OSGIKillbillAPI;
 import org.killbill.billing.osgi.libs.killbill.OSGIKillbillLogService;
@@ -49,7 +48,6 @@ import org.killbill.billing.plugin.adyen.core.AdyenRecurringConfigurationHandler
 import org.killbill.billing.plugin.adyen.dao.AdyenDao;
 import org.killbill.clock.Clock;
 import org.killbill.clock.DefaultClock;
-import org.mockito.Mockito;
 
 import static org.mockito.Mockito.mock;
 
@@ -65,20 +63,25 @@ public class AdyenPluginMockBuilder {
     private OSGIKillbillAPI killbillAPI;
     private AdyenDao dao;
 
-    private AdyenPluginMockBuilder() throws IOException, SQLException {
-        adyenProperties = getDefaultAdyenConfigProperties();
+    private AdyenPluginMockBuilder(final Properties adyenProperties) throws IOException, SQLException {
+        this.adyenProperties = adyenProperties;
         dao = mock(AdyenDao.class);
 
     }
 
     public static AdyenPluginMockBuilder newPlugin() throws Exception {
-        return new AdyenPluginMockBuilder();
+        return new AdyenPluginMockBuilder(getDefaultAdyenConfigProperties());
+    }
+
+    public static AdyenPluginMockBuilder newPlugin(final Properties adyenProperties) throws Exception {
+        return new AdyenPluginMockBuilder(adyenProperties);
     }
 
     private static Properties getDefaultAdyenConfigProperties() throws IOException {
         final Properties properties = new Properties();
         properties.put("org.killbill.billing.plugin.adyen.username", "username");
         properties.put("org.killbill.billing.plugin.adyen.password", "password");
+        properties.put("org.killbill.billing.plugin.adyen.paymentUrl", "http://example.com/paymentUrl");
         return properties;
     }
 

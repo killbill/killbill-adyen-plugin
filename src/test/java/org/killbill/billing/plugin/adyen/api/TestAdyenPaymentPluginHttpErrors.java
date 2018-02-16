@@ -145,7 +145,7 @@ public class TestAdyenPaymentPluginHttpErrors extends TestWithEmbeddedDBBase {
     /**
      * Sanity check that a refused purchase (wrong cc data) still results in an error.
      */
-    @Test(groups = "slow")
+    @Test(groups = "integration")
     public void testAuthorizeWithIncorrectValues() throws Exception {
         final String expectedGatewayError = "CVC Declined";
         final Account account = defaultAccount();
@@ -153,7 +153,7 @@ public class TestAdyenPaymentPluginHttpErrors extends TestWithEmbeddedDBBase {
         final Payment payment = killBillPayment(account, killbillAPI);
         final AdyenCallContext callContext = newCallContext();
 
-        final AdyenPaymentPluginApi pluginApi = AdyenPluginMockBuilder.newPlugin()
+        final AdyenPaymentPluginApi pluginApi = AdyenPluginMockBuilder.newPlugin(properties)
                                                                       .withOSGIKillbillAPI(killbillAPI)
                                                                       .withDatabaseAccess(dao)
                                                                       .build();
@@ -273,7 +273,7 @@ public class TestAdyenPaymentPluginHttpErrors extends TestWithEmbeddedDBBase {
         assertNull(result.getGatewayErrorCode());
     }
 
-    @Test(groups = "slow")
+    @Test(groups = "integration")
     public void testRefundAdyenBadResponse() throws Exception {
 
         final Account account = defaultAccount();
@@ -281,7 +281,7 @@ public class TestAdyenPaymentPluginHttpErrors extends TestWithEmbeddedDBBase {
         final Payment payment = killBillPayment(account, killbillAPI);
         final AdyenCallContext callContext = newCallContext();
 
-        final AdyenPaymentPluginApi authorizeApi = AdyenPluginMockBuilder.newPlugin()
+        final AdyenPaymentPluginApi authorizeApi = AdyenPluginMockBuilder.newPlugin(properties)
                                                                          .withOSGIKillbillAPI(killbillAPI)
                                                                          .withDatabaseAccess(dao)
                                                                          .build();
