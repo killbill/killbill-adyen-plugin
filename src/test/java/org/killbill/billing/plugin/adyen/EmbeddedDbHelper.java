@@ -17,11 +17,13 @@
 
 package org.killbill.billing.plugin.adyen;
 
+import java.io.IOException;
+import java.sql.SQLException;
+
 import org.killbill.billing.platform.test.PlatformDBTestingHelper;
 import org.killbill.billing.plugin.TestUtils;
 import org.killbill.billing.plugin.adyen.dao.AdyenDao;
 import org.killbill.commons.embeddeddb.EmbeddedDB;
-import org.killbill.commons.embeddeddb.mysql.MySQLEmbeddedDB;
 
 public class EmbeddedDbHelper {
 
@@ -34,7 +36,7 @@ public class EmbeddedDbHelper {
         return INSTANCE;
     }
 
-    public AdyenDao startDb() throws Exception {
+    public void startDb() throws Exception {
         embeddedDB = PlatformDBTestingHelper.get().getInstance();
         embeddedDB.initialize();
         embeddedDB.start();
@@ -49,7 +51,9 @@ public class EmbeddedDbHelper {
         final String ddl = TestUtils.toString(DDL_FILE_NAME);
         embeddedDB.executeScript(ddl);
         embeddedDB.refreshTableNames();
+    }
 
+    public AdyenDao getAdyenDao() throws IOException, SQLException {
         return new AdyenDao(embeddedDB.getDataSource());
     }
 
