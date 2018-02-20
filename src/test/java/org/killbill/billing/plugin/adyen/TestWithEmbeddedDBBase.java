@@ -1,7 +1,8 @@
 /*
- * Copyright 2014 Groupon, Inc
+ * Copyright 2014-2018 Groupon, Inc
+ * Copyright 2014-2018 The Billing Project, LLC
  *
- * Groupon licenses this file to you under the Apache License, version 2.0
+ * The Billing Project licenses this file to you under the Apache License, version 2.0
  * (the "License"); you may not use this file except in compliance with the
  * License.  You may obtain a copy of the License at:
  *
@@ -17,30 +18,27 @@
 package org.killbill.billing.plugin.adyen;
 
 import org.killbill.billing.plugin.adyen.dao.AdyenDao;
-import org.testng.annotations.AfterClass;
-import org.testng.annotations.BeforeClass;
+import org.testng.annotations.AfterSuite;
 import org.testng.annotations.BeforeMethod;
+import org.testng.annotations.BeforeSuite;
 
-// Assume all "slow" tests are integration (remote) tests. This is suboptimal and not true
-// (see TestAdyenDao), but it's a quick workaround for unsupported multiple inheritance
 public abstract class TestWithEmbeddedDBBase extends TestRemoteBase {
 
     protected AdyenDao dao;
 
-    @BeforeClass(groups = "slow")
-    public void setUpBeforeClass() throws Exception {
-        super.setUpBeforeClass();
-
-        dao = EmbeddedDbHelper.instance().startDb();
+    @BeforeSuite(groups = {"slow", "integration"})
+    public void setUpBeforeSuite() throws Exception {
+        EmbeddedDbHelper.instance().startDb();
     }
 
-    @BeforeMethod(groups = "slow")
+    @BeforeMethod(groups = {"slow", "integration"})
     public void setUpBeforeMethod() throws Exception {
         EmbeddedDbHelper.instance().resetDB();
+        dao = EmbeddedDbHelper.instance().getAdyenDao();
     }
 
-    @AfterClass(groups = "slow")
-    public void tearDownAfterClass() throws Exception {
+    @AfterSuite(groups = {"slow", "integration"})
+    public void tearDownAfterSuite() throws Exception {
         EmbeddedDbHelper.instance().stopDB();
     }
 }

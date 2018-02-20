@@ -57,8 +57,6 @@ public class TestAdyenPaymentPluginApiBase extends TestWithEmbeddedDBBase {
         account = TestUtils.buildAccount(DEFAULT_CURRENCY, DEFAULT_COUNTRY);
         killbillApi = TestUtils.buildOSGIKillbillAPI(account);
 
-        defaultMerchantAccount = adyenConfigPropertiesConfigurationHandler.getConfigurable(context.getTenantId()).getMerchantAccount(DEFAULT_COUNTRY);
-
         TestUtils.buildPaymentMethod(account.getId(), account.getPaymentMethodId(), AdyenActivator.PLUGIN_NAME, killbillApi);
 
         final OSGIKillbillLogService logService = TestUtils.buildLogService();
@@ -75,6 +73,12 @@ public class TestAdyenPaymentPluginApiBase extends TestWithEmbeddedDBBase {
                                                           dao);
 
         TestUtils.updateOSGIKillbillAPI(killbillApi, adyenPaymentPluginApi);
+    }
+
+    @BeforeMethod(groups = "integration")
+    public void setUpRemote() throws Exception {
+        setUp();
+        defaultMerchantAccount = adyenConfigPropertiesConfigurationHandler.getConfigurable(context.getTenantId()).getMerchantAccount(DEFAULT_COUNTRY);
     }
 
     protected void processNotification(final String eventCode, final boolean success, final String merchantReference, final String pspReference) throws PaymentPluginApiException {

@@ -1,7 +1,8 @@
 /*
- * Copyright 2014 Groupon, Inc
+ * Copyright 2014-2018 Groupon, Inc
+ * Copyright 2014-2018 The Billing Project, LLC
  *
- * Groupon licenses this file to you under the Apache License, version 2.0
+ * The Billing Project licenses this file to you under the Apache License, version 2.0
  * (the "License"); you may not use this file except in compliance with the
  * License.  You may obtain a copy of the License at:
  *
@@ -72,7 +73,7 @@ public class TestAdyenDao extends TestWithEmbeddedDBBase {
         final TransactionType transactionType = TransactionType.AUTHORIZE;
         final BigDecimal amount = BigDecimal.TEN;
         final Currency currency = Currency.EUR;
-        final DateTime dateTime = new DateTime(DateTimeZone.UTC);
+        final DateTime dateTime = DefaultClock.truncateMs(new DateTime(DateTimeZone.UTC));
         final UUID kbTenantId = UUID.randomUUID();
         final Map<String, String> expectedAdditionalData = ImmutableMap.<String, String>builder()
                                                                        .putAll(purchaseResult.getAdditionalData())
@@ -90,7 +91,7 @@ public class TestAdyenDao extends TestWithEmbeddedDBBase {
         Assert.assertEquals(record.getTransactionType(), transactionType.toString());
         Assert.assertEquals(record.getAmount().compareTo(amount), 0);
         Assert.assertEquals(record.getCurrency(), currency.toString());
-        Assert.assertEquals(new DateTime(record.getCreatedDate(), DateTimeZone.UTC).compareTo(DefaultClock.truncateMs(dateTime)), 0);
+        Assert.assertEquals(new DateTime(record.getCreatedDate(), DateTimeZone.UTC).compareTo(dateTime), 0);
         Assert.assertEquals(record.getKbTenantId(), kbTenantId.toString());
         Assert.assertEquals(record.getDccAmount().compareTo(BigDecimal.TEN), 0);
         Assert.assertEquals(record.getDccCurrency(), "EUR");
@@ -125,7 +126,7 @@ public class TestAdyenDao extends TestWithEmbeddedDBBase {
         final UUID kbPaymentId = UUID.randomUUID();
         final UUID kbPaymentTransactionId = UUID.randomUUID();
         final TransactionType transactionType = TransactionType.AUTHORIZE;
-        final DateTime dateTime = new DateTime(DateTimeZone.UTC);
+        final DateTime dateTime = DefaultClock.truncateMs(new DateTime(DateTimeZone.UTC));
         final UUID kbTenantId = UUID.randomUUID();
         dao.addNotification(kbAccountId, kbPaymentId, kbPaymentTransactionId, transactionType, notificationItem, dateTime, kbTenantId);
 
@@ -146,7 +147,7 @@ public class TestAdyenDao extends TestWithEmbeddedDBBase {
         Assert.assertEquals(record.getPspReference(), notificationItem.getPspReference());
         Assert.assertEquals(record.getReason(), notificationItem.getReason());
         Assert.assertTrue(record.getSuccess() == '1');
-        Assert.assertEquals(new DateTime(record.getCreatedDate(), DateTimeZone.UTC).compareTo(DefaultClock.truncateMs(dateTime)), 0);
+        Assert.assertEquals(new DateTime(record.getCreatedDate(), DateTimeZone.UTC).compareTo(dateTime), 0);
         Assert.assertEquals(record.getKbTenantId(), kbTenantId.toString());
     }
 }

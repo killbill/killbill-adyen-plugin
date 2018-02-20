@@ -2,7 +2,7 @@
 
 drop table if exists adyen_hpp_requests;
 create table adyen_hpp_requests (
-  record_id int(11) unsigned not null auto_increment
+  record_id serial
 , kb_account_id char(36) not null
 , kb_payment_id char(36) default null
 , kb_payment_transaction_id char(36) default null
@@ -18,14 +18,14 @@ create index adyen_hpp_requests_kb_payment_transaction_id on adyen_hpp_requests(
 
 drop table if exists adyen_responses;
 create table adyen_responses (
-  record_id int(11) unsigned not null auto_increment
+  record_id serial
 , kb_account_id char(36) not null
 , kb_payment_id char(36) not null
 , kb_payment_transaction_id char(36) not null
 , transaction_type varchar(32) not null
 , amount numeric(15,9)
 , currency char(3)
-, psp_result char(64)
+, psp_result varchar(64)
 , psp_reference varchar(64)
 , auth_code varchar(64)
 , result_code varchar(64)
@@ -51,7 +51,7 @@ create index psp_reference_idx on adyen_responses(psp_reference);
 
 drop table if exists adyen_notifications;
 create table adyen_notifications (
-  record_id int(11) unsigned not null auto_increment
+  record_id serial
 , kb_account_id char(36)
 , kb_payment_id char(36)
 , kb_payment_transaction_id char(36)
@@ -67,7 +67,7 @@ create table adyen_notifications (
 , payment_method varchar(64)
 , psp_reference varchar(64)
 , reason text
-, success boolean not null default false
+, success smallint not null default 0
 , additional_data longtext default null
 , created_date datetime not null
 , kb_tenant_id char(36)
@@ -80,7 +80,7 @@ create index adyen_notifications_kb_payment_transaction_id on adyen_notification
 
 drop table if exists adyen_payment_methods;
 create table adyen_payment_methods (
-  record_id int(11) unsigned not null auto_increment
+  record_id serial
 , kb_account_id char(36) not null
 , kb_payment_method_id char(36) not null
 , token varchar(255) default null
@@ -102,8 +102,8 @@ create table adyen_payment_methods (
 , state varchar(255) default null
 , zip varchar(255) default null
 , country varchar(255) default null
-, is_default boolean not null default false
-, is_deleted boolean not null default false
+, is_default smallint not null default 0
+, is_deleted smallint not null default 0
 , additional_data longtext default null
 , created_date datetime not null
 , updated_date datetime not null

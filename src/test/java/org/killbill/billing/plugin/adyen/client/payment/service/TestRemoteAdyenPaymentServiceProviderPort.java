@@ -39,7 +39,7 @@ import static org.testng.Assert.assertFalse;
 
 public class TestRemoteAdyenPaymentServiceProviderPort extends TestRemoteBase {
 
-    @Test(groups = "slow")
+    @Test(groups = "integration")
     public void testAuthorizeAndMultiplePartialCaptures() throws Exception {
         final PaymentData<Card> paymentData = new PaymentData<Card>(BigDecimal.TEN, DEFAULT_CURRENCY, UUID.randomUUID().toString(), getCreditCard());
         final UserData userData = new UserData();
@@ -71,7 +71,7 @@ public class TestRemoteAdyenPaymentServiceProviderPort extends TestRemoteBase {
         Assert.assertEquals(capture2Result.getResponse(), "[capture-received]");
     }
 
-    @Test(groups = "slow")
+    @Test(groups = "integration")
     public void testAuthorizeAndVoid() throws Exception {
         final PaymentData<Card> paymentData = new PaymentData<Card>(BigDecimal.TEN, DEFAULT_CURRENCY, UUID.randomUUID().toString(), getCreditCard());
         final UserData userData = new UserData();
@@ -91,7 +91,7 @@ public class TestRemoteAdyenPaymentServiceProviderPort extends TestRemoteBase {
         Assert.assertEquals(voidResult.getResponse(), "[cancel-received]");
     }
 
-    @Test(groups = "slow")
+    @Test(groups = "integration")
     public void testAuthorizeCaptureAndRefund() throws Exception {
         final PaymentData<Card> paymentData = new PaymentData<Card>(BigDecimal.TEN, DEFAULT_CURRENCY, UUID.randomUUID().toString(), getCreditCard());
         final UserData userData = new UserData();
@@ -122,7 +122,7 @@ public class TestRemoteAdyenPaymentServiceProviderPort extends TestRemoteBase {
         Assert.assertEquals(refundResult.getResponse(), "[refund-received]");
     }
 
-    @Test(groups = "slow")
+    @Test(groups = "integration")
     public void testAuthorizeAndBadVoid() throws Exception {
         final PaymentData<Card> paymentData = new PaymentData<Card>(BigDecimal.TEN, DEFAULT_CURRENCY, UUID.randomUUID().toString(), getCreditCard());
         final UserData userData = new UserData();
@@ -142,7 +142,7 @@ public class TestRemoteAdyenPaymentServiceProviderPort extends TestRemoteBase {
     }
 
     // Disabled by default since Apple Pay isn't enabled automatically on the sandbox
-    @Test(groups = "slow", enabled = false)
+    @Test(groups = "integration", enabled = false)
     public void testAutoCaptureWithApplePay() throws Exception {
         final Card creditCard = new Card();
         creditCard.setCountry(DEFAULT_COUNTRY);
@@ -163,7 +163,7 @@ public class TestRemoteAdyenPaymentServiceProviderPort extends TestRemoteBase {
     }
 
     // Disabled by default since Boleto isn't enabled automatically on the sandbox
-    @Test(groups = "slow", enabled = false)
+    @Test(groups = "integration", enabled = false)
     public void testBoleto() throws Exception {
         final PaymentInfo boleto = new PaymentInfo();
         boleto.setCountry("BR");
