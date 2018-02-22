@@ -1,6 +1,6 @@
 /*
- * Copyright 2014-2016 Groupon, Inc
- * Copyright 2014-2016 The Billing Project, LLC
+ * Copyright 2014-2018 Groupon, Inc
+ * Copyright 2014-2018 The Billing Project, LLC
  *
  * The Billing Project licenses this file to you under the Apache License, version 2.0
  * (the "License"); you may not use this file except in compliance with the
@@ -98,12 +98,16 @@ public class AdyenConfigProperties {
 
     private final String currentRegion;
 
+    private final String invoicePaymentEnabled;
+
     public AdyenConfigProperties(final Properties properties) {
         this(properties, null);
     }
 
     public AdyenConfigProperties(final Properties properties, final String currentRegion) {
         this.currentRegion = currentRegion;
+
+        this.invoicePaymentEnabled = properties.getProperty(PROPERTY_PREFIX + "invoicePaymentEnabled", "false");
 
         this.proxyServer = properties.getProperty(PROPERTY_PREFIX + "proxyServer");
         this.proxyPort = properties.getProperty(PROPERTY_PREFIX + "proxyPort");
@@ -241,6 +245,10 @@ public class AdyenConfigProperties {
         }
 
         return Period.parse(DEFAULT_PENDING_3DS_PAYMENT_EXPIRATION_PERIOD);
+    }
+
+    public Boolean getInvoicePaymentEnabled() {
+        return Boolean.valueOf(invoicePaymentEnabled);
     }
 
     public String getMerchantAccount(final String countryIsoCode) {

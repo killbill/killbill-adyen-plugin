@@ -1,7 +1,8 @@
 /*
- * Copyright 2014-2016 Groupon, Inc
+ * Copyright 2014-2018 Groupon, Inc
+ * Copyright 2014-2018 The Billing Project, LLC
  *
- * Groupon licenses this file to you under the Apache License, version 2.0
+ * The Billing Project licenses this file to you under the Apache License, version 2.0
  * (the "License"); you may not use this file except in compliance with the
  * License.  You may obtain a copy of the License at:
  *
@@ -19,6 +20,7 @@ package org.killbill.billing.plugin.adyen.core;
 import java.math.BigDecimal;
 import java.sql.SQLException;
 import java.util.List;
+import java.util.Properties;
 import java.util.UUID;
 
 import javax.annotation.Nullable;
@@ -28,6 +30,7 @@ import org.killbill.adyen.notification.NotificationRequestItem;
 import org.killbill.billing.account.api.Account;
 import org.killbill.billing.account.api.AccountApiException;
 import org.killbill.billing.catalog.api.Currency;
+import org.killbill.billing.osgi.libs.killbill.OSGIKillbillLogService;
 import org.killbill.billing.payment.api.Payment;
 import org.killbill.billing.payment.api.PaymentApiException;
 import org.killbill.billing.payment.api.PaymentTransaction;
@@ -38,6 +41,7 @@ import org.killbill.billing.payment.plugin.api.PaymentTransactionInfoPlugin;
 import org.killbill.billing.plugin.TestUtils;
 import org.killbill.billing.plugin.adyen.api.AdyenPaymentTransactionInfoPlugin;
 import org.killbill.billing.plugin.adyen.api.TestAdyenPaymentPluginApiBase;
+import org.killbill.billing.plugin.adyen.client.AdyenConfigProperties;
 import org.killbill.billing.plugin.adyen.client.model.PaymentServiceProviderResult;
 import org.killbill.billing.plugin.adyen.client.model.PurchaseResult;
 import org.killbill.billing.plugin.adyen.dao.gen.tables.records.AdyenNotificationsRecord;
@@ -84,7 +88,11 @@ public class TestKillbillAdyenNotificationHandler extends TestAdyenPaymentPlugin
         TestUtils.buildPaymentMethod(account.getId(), account.getPaymentMethodId(), AdyenActivator.PLUGIN_NAME, killbillApi);
         payment = TestUtils.buildPayment(account.getId(), account.getPaymentMethodId(), account.getCurrency(), killbillApi);
 
-        killbillAdyenNotificationHandler = new KillbillAdyenNotificationHandler(killbillApi, dao, clock);
+        final OSGIKillbillLogService logService = TestUtils.buildLogService();
+        adyenConfigPropertiesConfigurationHandler = new AdyenConfigPropertiesConfigurationHandler(AdyenActivator.PLUGIN_NAME, killbillApi, logService, null);
+        adyenConfigPropertiesConfigurationHandler.setDefaultConfigurable(new AdyenConfigProperties(new Properties()));
+
+        killbillAdyenNotificationHandler = new KillbillAdyenNotificationHandler(adyenConfigPropertiesConfigurationHandler, killbillApi, dao, clock);
     }
 
     @Test(groups = "slow")
