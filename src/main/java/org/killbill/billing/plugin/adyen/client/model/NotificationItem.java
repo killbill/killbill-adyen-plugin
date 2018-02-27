@@ -1,7 +1,8 @@
 /*
- * Copyright 2014 Groupon, Inc
+ * Copyright 2014-2018 Groupon, Inc
+ * Copyright 2014-2018 The Billing Project, LLC
  *
- * Groupon licenses this file to you under the Apache License, version 2.0
+ * The Billing Project licenses this file to you under the Apache License, version 2.0
  * (the "License"); you may not use this file except in compliance with the
  * License.  You may obtain a copy of the License at:
  *
@@ -63,6 +64,34 @@ public class NotificationItem {
         this.pspReference = notificationRequestItem.getPspReference();
         this.reason = notificationRequestItem.getReason();
         this.success = notificationRequestItem.isSuccess();
+    }
+
+    public NotificationItem(final Map additionalData,
+                            final BigDecimal amount,
+                            final String currency,
+                            final String eventCode,
+                            final DateTime eventDate,
+                            final String merchantAccountCode,
+                            final String merchantReference,
+                            final List<String> operations,
+                            final String originalReference,
+                            final String paymentMethod,
+                            final String pspReference,
+                            final String reason,
+                            final Boolean success) {
+        this.additionalData = additionalData;
+        this.amount = amount;
+        this.currency = currency;
+        this.eventCode = eventCode;
+        this.eventDate = eventDate;
+        this.merchantAccountCode = merchantAccountCode;
+        this.merchantReference = merchantReference;
+        this.operations = operations;
+        this.originalReference = originalReference;
+        this.paymentMethod = paymentMethod;
+        this.pspReference = pspReference;
+        this.reason = reason;
+        this.success = success;
     }
 
     public Map getAdditionalData() {

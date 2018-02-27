@@ -17,12 +17,10 @@
 
 package org.killbill.billing.plugin.adyen;
 
-import java.io.IOException;
 import java.util.Properties;
 
 import org.killbill.billing.account.api.Account;
 import org.killbill.billing.catalog.api.Currency;
-import org.killbill.billing.osgi.libs.killbill.OSGIConfigPropertiesService;
 import org.killbill.billing.osgi.libs.killbill.OSGIKillbillAPI;
 import org.killbill.billing.osgi.libs.killbill.OSGIKillbillLogService;
 import org.killbill.billing.plugin.TestUtils;
@@ -46,7 +44,6 @@ import org.killbill.billing.plugin.adyen.core.AdyenConfigPropertiesConfiguration
 import org.killbill.billing.plugin.adyen.core.AdyenConfigurationHandler;
 import org.killbill.billing.plugin.adyen.core.AdyenHostedPaymentPageConfigurationHandler;
 import org.killbill.billing.plugin.adyen.core.AdyenRecurringConfigurationHandler;
-import org.mockito.Mockito;
 import org.testng.annotations.BeforeClass;
 
 public abstract class TestRemoteBase {
@@ -87,9 +84,15 @@ public abstract class TestRemoteBase {
     protected AdyenPaymentServiceProviderPort adyenPaymentServiceProviderPort;
     protected AdyenPaymentServiceProviderHostedPaymentPagePort adyenPaymentServiceProviderHostedPaymentPagePort;
     protected AdyenRecurringClient adyenRecurringClient;
+    protected OSGIKillbillLogService logService;
 
     protected Properties properties;
     protected String merchantAccount;
+
+    @BeforeClass(groups = {"slow", "integration"})
+    public void setUpBeforeClassCommon() throws Exception {
+        logService = TestUtils.buildLogService();
+    }
 
     @BeforeClass(groups = "integration")
     public void setUpBeforeClass() throws Exception {
@@ -118,7 +121,6 @@ public abstract class TestRemoteBase {
 
         final Account account = TestUtils.buildAccount(Currency.BTC, "US");
         final OSGIKillbillAPI killbillAPI = TestUtils.buildOSGIKillbillAPI(account);
-        final OSGIKillbillLogService logService = TestUtils.buildLogService();
 
         adyenConfigurationHandler = new AdyenConfigurationHandler(AdyenActivator.PLUGIN_NAME, killbillAPI, logService, null);
         adyenConfigurationHandler.setDefaultConfigurable(adyenPaymentServiceProviderPort);
@@ -135,7 +137,7 @@ public abstract class TestRemoteBase {
         merchantAccount = adyenConfigProperties.getMerchantAccount(DEFAULT_COUNTRY);
     }
 
-    private AdyenConfigProperties getAdyenConfigProperties() throws IOException {
+    private AdyenConfigProperties getAdyenConfigProperties() {
         return new AdyenConfigProperties(properties);
     }
 }

@@ -117,7 +117,7 @@ public class KillbillAdyenNotificationHandler implements AdyenNotificationHandle
         boolean isHpp = false;
         try {
             // Check if we have a record for that pspReference (PENDING auth, capture, refund, etc.)
-            final AdyenResponsesRecord record = getResponseRecord(item.getPspReference());
+            final AdyenResponsesRecord record = getResponseRecord(notification.getPspReference());
             if (record != null) {
                 kbAccountId = UUID.fromString(record.getKbAccountId());
                 kbTenantId = UUID.fromString(record.getKbTenantId());
@@ -125,7 +125,7 @@ public class KillbillAdyenNotificationHandler implements AdyenNotificationHandle
                 kbPaymentTransactionId = UUID.fromString(record.getKbPaymentTransactionId());
             } else {
                 // Check if we have a record for the original pspReference (e.g. chargeback notification)
-                final AdyenResponsesRecord originalRecord = getResponseRecord(item.getOriginalReference());
+                final AdyenResponsesRecord originalRecord = getResponseRecord(notification.getOriginalReference());
                 if (originalRecord != null) {
                     kbAccountId = UUID.fromString(originalRecord.getKbAccountId());
                     kbTenantId = UUID.fromString(originalRecord.getKbTenantId());
@@ -155,7 +155,16 @@ public class KillbillAdyenNotificationHandler implements AdyenNotificationHandle
                 }
             }
 
-            final PaymentTransaction updatedPaymentTransaction = updateKillbill(notification, kbAccountId, kbPaymentId, kbPaymentTransactionId, isHpp, authMode, utcNow, kbTenantId);
+            final CallContext context = new AdyenCallContext(clock.getUTCNow(), kbTenantId);
+            final AdyenConfigProperties tenantConfiguration = adyenConfigPropertiesConfigurationHandler.getConfigurable(context.getTenantId());
+            final NotificationItem transformedNotification = transformNotificationItemIfNeeded(notification, tenantConfiguration);
+            if (transformedNotification != null) {
+                // Find the original transaction
+                final AdyenResponsesRecord linkedOriginalRecord = getResponseRecord(transformedNotification.getPspReference());
+                Preconditions.checkNotNull(linkedOriginalRecord, "Unable to retrieve record for pspReference='%s'", transformedNotification.getPspReference());
+                kbPaymentTransactionId = UUID.fromString(linkedOriginalRecord.getKbPaymentTransactionId());
+            }
+            final PaymentTransaction updatedPaymentTransaction = updateKillbill(MoreObjects.firstNonNull(transformedNotification, notification), kbAccountId, kbPaymentId, kbPaymentTransactionId, isHpp, authMode, tenantConfiguration, context);
             if (updatedPaymentTransaction != null) {
                 kbPaymentId = updatedPaymentTransaction.getPaymentId();
                 kbPaymentTransactionId = updatedPaymentTransaction.getId();
@@ -167,14 +176,39 @@ public class KillbillAdyenNotificationHandler implements AdyenNotificationHandle
         }
     }
 
+    private NotificationItem transformNotificationItemIfNeeded(final NotificationItem notification, final AdyenConfigProperties tenantConfiguration) {
+        if ("CHARGEBACK".equals(notification.getEventCode())) {
+            if (tenantConfiguration.getChargebackAsFailurePaymentMethods().contains(notification.getPaymentMethod())) {
+                // A SEPA payment failure can be communicated via a CHARGEBACK notification for instance:
+                // transform the event into a failed AUTHORISATION instead, for Kill Bill to fix the transaction state
+                return new NotificationItem(notification.getAdditionalData(),
+                                            notification.getAmount(),
+                                            notification.getCurrency(),
+                                            "AUTHORISATION",
+                                            notification.getEventDate(),
+                                            notification.getMerchantAccountCode(),
+                                            notification.getMerchantReference(),
+                                            notification.getOperations(),
+                                            null,
+                                            notification.getPaymentMethod(),
+                                            // The original reference is the PSP reference
+                                            notification.getOriginalReference(),
+                                            notification.getReason(),
+                                            false);
+            }
+        }
+
+        return null;
+    }
+
     private PaymentTransaction updateKillbill(final NotificationItem notification,
                                               @Nullable final UUID kbAccountId,
                                               @Nullable final UUID kbPaymentId,
                                               @Nullable final UUID kbPaymentTransactionId,
                                               final boolean isHPP,
                                               final boolean authMode,
-                                              final DateTime utcNow,
-                                              @Nullable final UUID kbTenantId) {
+                                              final AdyenConfigProperties tenantConfiguration,
+                                              final CallContext context) {
         final TransactionType transactionType = EVENT_CODES_TO_TRANSACTION_TYPE.get(notification.getEventCode());
 
         final PaymentPluginStatus paymentPluginStatus;
@@ -205,7 +239,7 @@ public class KillbillAdyenNotificationHandler implements AdyenNotificationHandle
             paymentPluginStatus = PaymentPluginStatus.UNDEFINED;
         }
 
-        return updateKillbill(notification, kbAccountId, kbPaymentId, kbPaymentTransactionId, isHPP, authMode, paymentPluginStatus, transactionType, utcNow, kbTenantId);
+        return updateKillbill(notification, kbAccountId, kbPaymentId, kbPaymentTransactionId, isHPP, authMode, paymentPluginStatus, transactionType, tenantConfiguration, context);
     }
 
     private PaymentTransaction updateKillbill(final NotificationItem notification,
@@ -216,12 +250,10 @@ public class KillbillAdyenNotificationHandler implements AdyenNotificationHandle
                                               final boolean authMode,
                                               final PaymentPluginStatus paymentPluginStatus,
                                               @Nullable final TransactionType expectedTransactionType,
-                                              final DateTime utcNow,
-                                              @Nullable final UUID kbTenantId) {
+                                              final AdyenConfigProperties tenantConfiguration,
+                                              final CallContext context) {
         if (kbPaymentId != null) {
-            Preconditions.checkNotNull(kbTenantId, String.format("kbTenantId null for kbPaymentId='%s'", kbPaymentId));
-            final CallContext context = new AdyenCallContext(utcNow, kbTenantId);
-
+            Preconditions.checkNotNull(context.getTenantId(), String.format("kbTenantId null for kbPaymentId='%s'", kbPaymentId));
             final Payment payment = getPayment(kbPaymentId, context);
 
             Preconditions.checkArgument(payment.getAccountId().equals(kbAccountId), String.format("kbAccountId='%s' doesn't match payment#accountId='%s'", kbAccountId, payment.getAccountId()));
@@ -240,7 +272,7 @@ public class KillbillAdyenNotificationHandler implements AdyenNotificationHandle
                     paymentTransaction = null;
                 } else {
                     // Update the plugin tables
-                    adyenResponsesRecord = updateResponse(notification, kbPaymentTransactionId, isHPP, paymentPluginStatus, kbTenantId);
+                    adyenResponsesRecord = updateResponse(notification, kbPaymentTransactionId, isHPP, paymentPluginStatus, context.getTenantId());
                 }
             }
 
@@ -249,31 +281,30 @@ public class KillbillAdyenNotificationHandler implements AdyenNotificationHandle
                 // We cannot do anything
                 return paymentTransaction;
             } else if (paymentTransaction != null && TransactionStatus.PENDING.equals(paymentTransaction.getTransactionStatus())) {
-                return transitionPendingTransaction(account, kbPaymentId, kbPaymentTransactionId, paymentPluginStatus, context);
+                return transitionPendingTransaction(account, kbPaymentId, kbPaymentTransactionId, paymentPluginStatus, tenantConfiguration, context);
             } else if (paymentTransaction != null && paymentTransaction.getPaymentInfoPlugin().getStatus() != paymentPluginStatus) {
-                return fixPaymentTransactionState(payment, paymentTransaction, paymentPluginStatus, adyenResponsesRecord, context);
+                return fixPaymentTransactionState(payment, paymentTransaction, paymentPluginStatus, adyenResponsesRecord, tenantConfiguration, context);
             } else if (paymentTransaction == null && expectedTransactionType == TransactionType.CHARGEBACK && PaymentPluginStatus.PROCESSED.equals(paymentPluginStatus)) {
-                return createChargeback(account, kbPaymentId, notification, context);
+                return createChargeback(account, kbPaymentId, notification, tenantConfiguration, context);
             } else if (paymentTransaction == null && expectedTransactionType == TransactionType.CHARGEBACK && PaymentPluginStatus.ERROR.equals(paymentPluginStatus)) {
                 // There should only be one chargeback in Kill Bill, see https://github.com/killbill/killbill/issues/477
                 final PaymentTransaction chargeback = filterForTransaction(payment, TransactionType.CHARGEBACK);
-                return createChargebackReversal(account, kbPaymentId, chargeback, context);
+                return createChargebackReversal(account, kbPaymentId, chargeback, tenantConfiguration, context);
             } else if (paymentTransaction == null) {
                 // HPP not associated with a pending payment
-                return createPayment(account, payment, notification, authMode, expectedTransactionType, paymentPluginStatus, context);
+                return createPayment(account, payment, notification, authMode, expectedTransactionType, paymentPluginStatus, tenantConfiguration, context);
             } else {
                 // Payment in Kill Bill has the latest state, nothing to do (we simply updated our plugin tables in case Adyen had extra information for us)
                 return paymentTransaction;
             }
         } else if (isHPP) {
-            Preconditions.checkNotNull(kbTenantId, "kbTenantId null for HPP request");
-            final CallContext context = new AdyenCallContext(utcNow, kbTenantId);
+            Preconditions.checkNotNull(context.getTenantId(), "kbTenantId null for HPP request");
 
             Preconditions.checkNotNull(kbAccountId, "kbAccountId null for HPP request");
             final Account account = getAccount(kbAccountId, context);
 
             // HPP not associated with a pending payment
-            return createPayment(account, null, notification, authMode, expectedTransactionType, paymentPluginStatus, context);
+            return createPayment(account, null, notification, authMode, expectedTransactionType, paymentPluginStatus, tenantConfiguration, context);
         } else {
             // API payment unknown to Kill Bill, does it belong to a different system?
             // Note that we could decide to record a new payment here, this would be useful to migrate data for instance
@@ -316,8 +347,8 @@ public class KillbillAdyenNotificationHandler implements AdyenNotificationHandle
         }
     }
 
-    private PaymentTransaction transitionPendingTransaction(final Account account, final UUID kbPaymentId, final UUID kbPaymentTransactionId, final PaymentPluginStatus paymentPluginStatus, final CallContext context) {
-        final PaymentApiWrapper paymentApiWrapper = getPaymentApiWrapper(context);
+    private PaymentTransaction transitionPendingTransaction(final Account account, final UUID kbPaymentId, final UUID kbPaymentTransactionId, final PaymentPluginStatus paymentPluginStatus, final AdyenConfigProperties tenantConfiguration, final CallContext context) {
+        final PaymentApiWrapper paymentApiWrapper = getPaymentApiWrapper(tenantConfiguration);
         try {
             return paymentApiWrapper.transitionPendingTransaction(account, kbPaymentId, kbPaymentTransactionId, paymentPluginStatus, context);
         } catch (final PaymentApiException e) {
@@ -326,7 +357,7 @@ public class KillbillAdyenNotificationHandler implements AdyenNotificationHandle
         }
     }
 
-    private PaymentTransaction fixPaymentTransactionState(final Payment payment, final PaymentTransaction paymentTransaction, final PaymentPluginStatus paymentPluginStatus, @Nullable final AdyenResponsesRecord adyenResponsesRecord, final CallContext context) {
+    private PaymentTransaction fixPaymentTransactionState(final Payment payment, final PaymentTransaction paymentTransaction, final PaymentPluginStatus paymentPluginStatus, @Nullable final AdyenResponsesRecord adyenResponsesRecord, final AdyenConfigProperties tenantConfiguration, final CallContext context) {
         final PaymentTransaction updatedPaymentTransaction;
         if (adyenResponsesRecord == null) {
             updatedPaymentTransaction = paymentTransaction;
@@ -335,7 +366,7 @@ public class KillbillAdyenNotificationHandler implements AdyenNotificationHandle
             updatedPaymentTransaction = new AdyenPaymentTransaction(paymentTransactionInfoPlugin.getGatewayErrorCode(), paymentTransactionInfoPlugin.getGatewayError(), paymentTransaction);
         }
 
-        final PaymentApiWrapper paymentApiWrapper = getPaymentApiWrapper(context);
+        final PaymentApiWrapper paymentApiWrapper = getPaymentApiWrapper(tenantConfiguration);
         try {
             return paymentApiWrapper.fixPaymentTransactionState(payment, paymentPluginStatus, updatedPaymentTransaction, context);
         } catch (final PaymentApiException e) {
@@ -344,7 +375,7 @@ public class KillbillAdyenNotificationHandler implements AdyenNotificationHandle
         }
     }
 
-    private PaymentTransaction createPayment(final Account account, @Nullable final Payment payment, final NotificationItem notification, final boolean authMode, final TransactionType expectedTransactionType, final PaymentPluginStatus paymentPluginStatus, final CallContext context) {
+    private PaymentTransaction createPayment(final Account account, @Nullable final Payment payment, final NotificationItem notification, final boolean authMode, final TransactionType expectedTransactionType, final PaymentPluginStatus paymentPluginStatus, final AdyenConfigProperties tenantConfiguration, final CallContext context) {
         final UUID kbPaymentMethodId = payment != null ? payment.getPaymentMethodId() : getAdyenKbPaymentMethodId(account.getId(), context);
         final UUID kbPaymentId = payment != null ? payment.getId() : null;
         final BigDecimal amount = notification.getAmount();
@@ -375,7 +406,7 @@ public class KillbillAdyenNotificationHandler implements AdyenNotificationHandle
                 break;
         }
 
-        final PaymentApiWrapper paymentApiWrapper = getPaymentApiWrapper(context);
+        final PaymentApiWrapper paymentApiWrapper = getPaymentApiWrapper(tenantConfiguration);
         try {
             return paymentApiWrapper.createPayment(transactionType, account, kbPaymentMethodId, kbPaymentId, amount, currency, paymentExternalKey, paymentTransactionExternalKey, pluginProperties, context);
         } catch (final PaymentApiException e) {
@@ -384,14 +415,14 @@ public class KillbillAdyenNotificationHandler implements AdyenNotificationHandle
         }
     }
 
-    private PaymentTransaction createChargeback(final Account account, final UUID kbPaymentId, final NotificationItem notification, final CallContext context) {
+    private PaymentTransaction createChargeback(final Account account, final UUID kbPaymentId, final NotificationItem notification, final AdyenConfigProperties tenantConfiguration, final CallContext context) {
         final BigDecimal amount = notification.getAmount();
         final Currency currency = Currency.valueOf(notification.getCurrency());
         // We cannot use the merchant reference here, because it's the one associated with the auth.
         // We cannot use the PSP reference either as it may be the one from the capture.
         final String paymentTransactionExternalKey = null;
 
-        final PaymentApiWrapper paymentApiWrapper = getPaymentApiWrapper(context);
+        final PaymentApiWrapper paymentApiWrapper = getPaymentApiWrapper(tenantConfiguration);
         try {
             return paymentApiWrapper.createChargeback(account, kbPaymentId, amount, currency, paymentTransactionExternalKey, context);
         } catch (final PaymentApiException e) {
@@ -400,14 +431,13 @@ public class KillbillAdyenNotificationHandler implements AdyenNotificationHandle
         }
     }
 
-    private PaymentApiWrapper getPaymentApiWrapper(final TenantContext context) {
-        final AdyenConfigProperties tenantConfiguration = adyenConfigPropertiesConfigurationHandler.getConfigurable(context.getTenantId());
+    private PaymentApiWrapper getPaymentApiWrapper(final AdyenConfigProperties tenantConfiguration) {
         final Boolean invoicePaymentEnabled = tenantConfiguration != null && tenantConfiguration.getInvoicePaymentEnabled();
         return new PaymentApiWrapper(osgiKillbillAPI, invoicePaymentEnabled);
     }
 
-    private PaymentTransaction createChargebackReversal(final Account account, final UUID kbPaymentId, final PaymentTransaction chargeback, final CallContext context) {
-        final PaymentApiWrapper paymentApiWrapper = getPaymentApiWrapper(context);
+    private PaymentTransaction createChargebackReversal(final Account account, final UUID kbPaymentId, final PaymentTransaction chargeback, final AdyenConfigProperties tenantConfiguration, final CallContext context) {
+        final PaymentApiWrapper paymentApiWrapper = getPaymentApiWrapper(tenantConfiguration);
         try {
             return paymentApiWrapper.createChargebackReversal(account, kbPaymentId, chargeback, context);
         } catch (final PaymentApiException e) {

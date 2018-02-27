@@ -30,7 +30,6 @@ import org.killbill.adyen.notification.NotificationRequestItem;
 import org.killbill.billing.account.api.Account;
 import org.killbill.billing.account.api.AccountApiException;
 import org.killbill.billing.catalog.api.Currency;
-import org.killbill.billing.osgi.libs.killbill.OSGIKillbillLogService;
 import org.killbill.billing.payment.api.Payment;
 import org.killbill.billing.payment.api.PaymentApiException;
 import org.killbill.billing.payment.api.PaymentTransaction;
@@ -44,6 +43,7 @@ import org.killbill.billing.plugin.adyen.api.TestAdyenPaymentPluginApiBase;
 import org.killbill.billing.plugin.adyen.client.AdyenConfigProperties;
 import org.killbill.billing.plugin.adyen.client.model.PaymentServiceProviderResult;
 import org.killbill.billing.plugin.adyen.client.model.PurchaseResult;
+import org.killbill.billing.plugin.adyen.client.notification.AdyenNotificationHandler;
 import org.killbill.billing.plugin.adyen.dao.gen.tables.records.AdyenNotificationsRecord;
 import org.killbill.billing.util.callcontext.CallContext;
 import org.mockito.Mockito;
@@ -88,7 +88,6 @@ public class TestKillbillAdyenNotificationHandler extends TestAdyenPaymentPlugin
         TestUtils.buildPaymentMethod(account.getId(), account.getPaymentMethodId(), AdyenActivator.PLUGIN_NAME, killbillApi);
         payment = TestUtils.buildPayment(account.getId(), account.getPaymentMethodId(), account.getCurrency(), killbillApi);
 
-        final OSGIKillbillLogService logService = TestUtils.buildLogService();
         adyenConfigPropertiesConfigurationHandler = new AdyenConfigPropertiesConfigurationHandler(AdyenActivator.PLUGIN_NAME, killbillApi, logService, null);
         adyenConfigPropertiesConfigurationHandler.setDefaultConfigurable(new AdyenConfigProperties(new Properties()));
 
@@ -345,7 +344,7 @@ public class TestKillbillAdyenNotificationHandler extends TestAdyenPaymentPlugin
         final NotificationRequestItem notificationOfChargebackItem = getNotificationRequestItem(purchaseItem, "NOTIFICATION_OF_CHARGEBACK", success);
 
         killbillAdyenNotificationHandler.handleNotification(notificationOfChargebackItem);
-        // We'll find the payment, but there is not associated transaction (yet)
+        // We'll find the payment, but there is no associated transaction (yet)
         verifyLastNotificationRecorded(2, null);
 
         Assert.assertEquals(payment.getTransactions().size(), 1);
@@ -356,7 +355,7 @@ public class TestKillbillAdyenNotificationHandler extends TestAdyenPaymentPlugin
         final NotificationRequestItem requestForInformationItem = getNotificationRequestItem(purchaseItem, "REQUEST_FOR_INFORMATION", success);
 
         killbillAdyenNotificationHandler.handleNotification(requestForInformationItem);
-        // We'll find the payment, but there is not associated transaction (yet)
+        // We'll find the payment, but there is no associated transaction (yet)
         verifyLastNotificationRecorded(3, null);
 
         Assert.assertEquals(payment.getTransactions().size(), 1);
@@ -471,6 +470,43 @@ public class TestKillbillAdyenNotificationHandler extends TestAdyenPaymentPlugin
         Assert.assertEquals(payment.getTransactions().get(1).getTransactionStatus(), TransactionStatus.SUCCESS);
         Assert.assertEquals(payment.getTransactions().get(2).getTransactionType(), TransactionType.CHARGEBACK);
         Assert.assertEquals(payment.getTransactions().get(2).getTransactionStatus(), TransactionStatus.SUCCESS);
+    }
+
+    @Test(groups = "slow")
+    public void testHandleSEPAChargebackForPURCHASE() throws Exception {
+        final Properties propertiesForSEPA = new Properties(properties);
+        propertiesForSEPA.put("org.killbill.billing.plugin.adyen.chargebackAsFailurePaymentMethods", "ach,sepadirectdebit");
+        final AdyenConfigPropertiesConfigurationHandler configurationHandlerForSEPA = new AdyenConfigPropertiesConfigurationHandler(AdyenActivator.PLUGIN_NAME,
+                                                                                                                                    killbillApi,
+                                                                                                                                    logService,
+                                                                                                                                    null);
+        configurationHandlerForSEPA.setDefaultConfigurable(new AdyenConfigProperties(propertiesForSEPA));
+        final AdyenNotificationHandler handlerForSEPA = new KillbillAdyenNotificationHandler(configurationHandlerForSEPA,
+                                                                                             killbillApi,
+                                                                                             dao,
+                                                                                             clock);
+
+        final boolean success = true;
+
+        final NotificationRequestItem authItem = getNotificationRequestItem("AUTHORISATION", success);
+        setupTransaction(TransactionType.PURCHASE, authItem);
+
+        handlerForSEPA.handleNotification(authItem);
+        verifyLastNotificationRecorded(1);
+
+        Assert.assertEquals(payment.getTransactions().size(), 1);
+        Assert.assertEquals(payment.getTransactions().get(0).getTransactionType(), TransactionType.PURCHASE);
+        Assert.assertEquals(payment.getTransactions().get(0).getTransactionStatus(), TransactionStatus.SUCCESS);
+
+        final NotificationRequestItem chargebackItem = getNotificationRequestItem(authItem, "CHARGEBACK", success);
+        chargebackItem.setPaymentMethod("sepadirectdebit");
+
+        handlerForSEPA.handleNotification(chargebackItem);
+        verifyLastNotificationRecorded(2);
+
+        Assert.assertEquals(payment.getTransactions().size(), 1);
+        Assert.assertEquals(payment.getTransactions().get(0).getTransactionType(), TransactionType.PURCHASE);
+        Assert.assertEquals(payment.getTransactions().get(0).getTransactionStatus(), TransactionStatus.PAYMENT_FAILURE);
     }
 
     @Test(groups = "slow")
