@@ -1,6 +1,6 @@
 /*
- * Copyright 2014-2016 Groupon, Inc
- * Copyright 2014-2016 The Billing Project, LLC
+ * Copyright 2014-2018 Groupon, Inc
+ * Copyright 2014-2018 The Billing Project, LLC
  *
  * The Billing Project licenses this file to you under the Apache License, version 2.0
  * (the "License"); you may not use this file except in compliance with the
@@ -43,6 +43,7 @@ import org.killbill.billing.plugin.adyen.api.AdyenCallContext;
 import org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi;
 import org.killbill.billing.plugin.adyen.api.AdyenPaymentTransactionInfoPlugin;
 import org.killbill.billing.plugin.adyen.api.mapping.AdyenPaymentTransaction;
+import org.killbill.billing.plugin.adyen.client.AdyenConfigProperties;
 import org.killbill.billing.plugin.adyen.client.model.NotificationItem;
 import org.killbill.billing.plugin.adyen.client.model.PaymentServiceProviderResult;
 import org.killbill.billing.plugin.adyen.client.notification.AdyenNotificationHandler;
@@ -50,6 +51,7 @@ import org.killbill.billing.plugin.adyen.dao.AdyenDao;
 import org.killbill.billing.plugin.adyen.dao.gen.tables.records.AdyenHppRequestsRecord;
 import org.killbill.billing.plugin.adyen.dao.gen.tables.records.AdyenResponsesRecord;
 import org.killbill.billing.plugin.api.PluginProperties;
+import org.killbill.billing.plugin.api.core.PaymentApiWrapper;
 import org.killbill.billing.util.callcontext.CallContext;
 import org.killbill.billing.util.callcontext.TenantContext;
 import org.killbill.clock.Clock;
@@ -65,6 +67,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 
 import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.PROPERTY_AUTH_MODE;
+import static org.killbill.billing.plugin.api.core.PaymentApiWrapper.filterForTransaction;
 
 public class KillbillAdyenNotificationHandler implements AdyenNotificationHandler {
 
@@ -79,11 +82,16 @@ public class KillbillAdyenNotificationHandler implements AdyenNotificationHandle
                                                                                                                                        .put("CHARGEBACK_REVERSED", TransactionType.CHARGEBACK)
                                                                                                                                        .build();
 
+    private final AdyenConfigPropertiesConfigurationHandler adyenConfigPropertiesConfigurationHandler;
     private final OSGIKillbillAPI osgiKillbillAPI;
     private final AdyenDao dao;
     private final Clock clock;
 
-    public KillbillAdyenNotificationHandler(final OSGIKillbillAPI osgiKillbillAPI, final AdyenDao dao, final Clock clock) {
+    public KillbillAdyenNotificationHandler(final AdyenConfigPropertiesConfigurationHandler adyenConfigPropertiesConfigurationHandler,
+                                            final OSGIKillbillAPI osgiKillbillAPI,
+                                            final AdyenDao dao,
+                                            final Clock clock) {
+        this.adyenConfigPropertiesConfigurationHandler = adyenConfigPropertiesConfigurationHandler;
         this.osgiKillbillAPI = osgiKillbillAPI;
         this.dao = dao;
         this.clock = clock;
@@ -241,7 +249,7 @@ public class KillbillAdyenNotificationHandler implements AdyenNotificationHandle
                 // We cannot do anything
                 return paymentTransaction;
             } else if (paymentTransaction != null && TransactionStatus.PENDING.equals(paymentTransaction.getTransactionStatus())) {
-                return transitionPendingTransaction(account, kbPaymentTransactionId, paymentPluginStatus, context);
+                return transitionPendingTransaction(account, kbPaymentId, kbPaymentTransactionId, paymentPluginStatus, context);
             } else if (paymentTransaction != null && paymentTransaction.getPaymentInfoPlugin().getStatus() != paymentPluginStatus) {
                 return fixPaymentTransactionState(payment, paymentTransaction, paymentPluginStatus, adyenResponsesRecord, context);
             } else if (paymentTransaction == null && expectedTransactionType == TransactionType.CHARGEBACK && PaymentPluginStatus.PROCESSED.equals(paymentPluginStatus)) {
@@ -308,10 +316,10 @@ public class KillbillAdyenNotificationHandler implements AdyenNotificationHandle
         }
     }
 
-    private PaymentTransaction transitionPendingTransaction(final Account account, final UUID kbPaymentTransactionId, final PaymentPluginStatus paymentPluginStatus, final CallContext context) {
+    private PaymentTransaction transitionPendingTransaction(final Account account, final UUID kbPaymentId, final UUID kbPaymentTransactionId, final PaymentPluginStatus paymentPluginStatus, final CallContext context) {
+        final PaymentApiWrapper paymentApiWrapper = getPaymentApiWrapper(context);
         try {
-            final Payment payment = osgiKillbillAPI.getPaymentApi().notifyPendingTransactionOfStateChanged(account, kbPaymentTransactionId, paymentPluginStatus == PaymentPluginStatus.PROCESSED, context);
-            return filterForTransaction(payment, kbPaymentTransactionId);
+            return paymentApiWrapper.transitionPendingTransaction(account, kbPaymentId, kbPaymentTransactionId, paymentPluginStatus, context);
         } catch (final PaymentApiException e) {
             // Have Adyen retry
             throw new RuntimeException(String.format("Failed to transition pending transaction kbPaymentTransactionId='%s'", kbPaymentTransactionId), e);
@@ -327,34 +335,9 @@ public class KillbillAdyenNotificationHandler implements AdyenNotificationHandle
             updatedPaymentTransaction = new AdyenPaymentTransaction(paymentTransactionInfoPlugin.getGatewayErrorCode(), paymentTransactionInfoPlugin.getGatewayError(), paymentTransaction);
         }
 
-        final String currentPaymentStateName = String.format("%s_%s", updatedPaymentTransaction.getTransactionType() == TransactionType.AUTHORIZE ? "AUTH" : updatedPaymentTransaction.getTransactionType(), paymentPluginStatus == PaymentPluginStatus.PROCESSED ? "SUCCESS" : "FAILED");
-        final String lastSuccessfulPaymentStateName = paymentPluginStatus == PaymentPluginStatus.PROCESSED? currentPaymentStateName: null;
-
-        final TransactionStatus transactionStatus;
-        switch (paymentPluginStatus) {
-            case PROCESSED:
-                transactionStatus = TransactionStatus.SUCCESS;
-                break;
-            case PENDING:
-                transactionStatus = TransactionStatus.PENDING;
-                break;
-            case ERROR:
-                transactionStatus = TransactionStatus.PAYMENT_FAILURE;
-                break;
-            case CANCELED:
-                transactionStatus = TransactionStatus.PLUGIN_FAILURE;
-                break;
-            default:
-                transactionStatus = TransactionStatus.UNKNOWN;
-                break;
-        }
-
-        logger.warn("Forcing transition paymentTransactionExternalKey='{}', oldPaymentPluginStatus='{}', newPaymentPluginStatus='{}'", updatedPaymentTransaction.getExternalKey(), updatedPaymentTransaction.getPaymentInfoPlugin().getStatus(), paymentPluginStatus);
-
+        final PaymentApiWrapper paymentApiWrapper = getPaymentApiWrapper(context);
         try {
-            osgiKillbillAPI.getAdminPaymentApi().fixPaymentTransactionState(payment, updatedPaymentTransaction, transactionStatus, lastSuccessfulPaymentStateName, currentPaymentStateName, ImmutableList.<PluginProperty>of(), context);
-            final Payment fixedPayment = getPayment(payment.getId(), context);
-            return filterForTransaction(fixedPayment, updatedPaymentTransaction.getId());
+            return paymentApiWrapper.fixPaymentTransactionState(payment, paymentPluginStatus, updatedPaymentTransaction, context);
         } catch (final PaymentApiException e) {
             // Have Adyen retry
             throw new RuntimeException(String.format("Failed to fix transaction kbPaymentTransactionId='%s'", updatedPaymentTransaction.getId()), e);
@@ -392,79 +375,9 @@ public class KillbillAdyenNotificationHandler implements AdyenNotificationHandle
                 break;
         }
 
+        final PaymentApiWrapper paymentApiWrapper = getPaymentApiWrapper(context);
         try {
-            final Payment createdPayment;
-            switch (transactionType) {
-                case AUTHORIZE:
-                    createdPayment = osgiKillbillAPI.getPaymentApi().createAuthorization(account,
-                                                                                         kbPaymentMethodId,
-                                                                                         kbPaymentId,
-                                                                                         amount,
-                                                                                         currency,
-                                                                                         paymentExternalKey,
-                                                                                         paymentTransactionExternalKey,
-                                                                                         pluginProperties,
-                                                                                         context);
-                    break;
-                case CAPTURE:
-                    createdPayment = osgiKillbillAPI.getPaymentApi().createCapture(account,
-                                                                                   kbPaymentId,
-                                                                                   amount,
-                                                                                   currency,
-                                                                                   paymentTransactionExternalKey,
-                                                                                   pluginProperties,
-                                                                                   context);
-                    break;
-                case CHARGEBACK:
-                    createdPayment = osgiKillbillAPI.getPaymentApi().createChargeback(account,
-                                                                                      kbPaymentId,
-                                                                                      amount,
-                                                                                      currency,
-                                                                                      paymentTransactionExternalKey,
-                                                                                      context);
-                    break;
-                case CREDIT:
-                    createdPayment = osgiKillbillAPI.getPaymentApi().createCredit(account,
-                                                                                  kbPaymentMethodId,
-                                                                                  kbPaymentId,
-                                                                                  amount,
-                                                                                  currency,
-                                                                                  paymentExternalKey,
-                                                                                  paymentTransactionExternalKey,
-                                                                                  pluginProperties,
-                                                                                  context);
-                    break;
-                case PURCHASE:
-                    createdPayment = osgiKillbillAPI.getPaymentApi().createPurchase(account,
-                                                                                    kbPaymentMethodId,
-                                                                                    kbPaymentId,
-                                                                                    amount,
-                                                                                    currency,
-                                                                                    paymentExternalKey,
-                                                                                    paymentTransactionExternalKey,
-                                                                                    pluginProperties,
-                                                                                    context);
-                    break;
-                case REFUND:
-                    createdPayment = osgiKillbillAPI.getPaymentApi().createRefund(account,
-                                                                                  kbPaymentId,
-                                                                                  amount,
-                                                                                  currency,
-                                                                                  paymentTransactionExternalKey,
-                                                                                  pluginProperties,
-                                                                                  context);
-                    break;
-                case VOID:
-                    createdPayment = osgiKillbillAPI.getPaymentApi().createVoid(account,
-                                                                                kbPaymentId,
-                                                                                paymentTransactionExternalKey,
-                                                                                pluginProperties,
-                                                                                context);
-                    break;
-                default:
-                    throw new IllegalStateException("Should never happen");
-            }
-            return filterForLastTransaction(createdPayment);
+            return paymentApiWrapper.createPayment(transactionType, account, kbPaymentMethodId, kbPaymentId, amount, currency, paymentExternalKey, paymentTransactionExternalKey, pluginProperties, context);
         } catch (final PaymentApiException e) {
             // Have Adyen retry
             throw new RuntimeException("Failed to record payment", e);
@@ -478,29 +391,25 @@ public class KillbillAdyenNotificationHandler implements AdyenNotificationHandle
         // We cannot use the PSP reference either as it may be the one from the capture.
         final String paymentTransactionExternalKey = null;
 
+        final PaymentApiWrapper paymentApiWrapper = getPaymentApiWrapper(context);
         try {
-            final Payment chargeback = osgiKillbillAPI.getPaymentApi().createChargeback(account,
-                                                                                        kbPaymentId,
-                                                                                        amount,
-                                                                                        currency,
-                                                                                        paymentTransactionExternalKey,
-                                                                                        context);
-            return filterForLastTransaction(chargeback);
+            return paymentApiWrapper.createChargeback(account, kbPaymentId, amount, currency, paymentTransactionExternalKey, context);
         } catch (final PaymentApiException e) {
             // Have Adyen retry
             throw new RuntimeException("Failed to record chargeback", e);
         }
     }
 
-    private PaymentTransaction createChargebackReversal(final Account account, final UUID kbPaymentId, final PaymentTransaction chargeback, final CallContext context) {
-        final String paymentTransactionExternalKey = chargeback.getExternalKey();
+    private PaymentApiWrapper getPaymentApiWrapper(final TenantContext context) {
+        final AdyenConfigProperties tenantConfiguration = adyenConfigPropertiesConfigurationHandler.getConfigurable(context.getTenantId());
+        final Boolean invoicePaymentEnabled = tenantConfiguration != null && tenantConfiguration.getInvoicePaymentEnabled();
+        return new PaymentApiWrapper(osgiKillbillAPI, invoicePaymentEnabled);
+    }
 
+    private PaymentTransaction createChargebackReversal(final Account account, final UUID kbPaymentId, final PaymentTransaction chargeback, final CallContext context) {
+        final PaymentApiWrapper paymentApiWrapper = getPaymentApiWrapper(context);
         try {
-            final Payment chargebackReversal = osgiKillbillAPI.getPaymentApi().createChargebackReversal(account,
-                                                                                                        kbPaymentId,
-                                                                                                        paymentTransactionExternalKey,
-                                                                                                        context);
-            return filterForLastTransaction(chargebackReversal);
+            return paymentApiWrapper.createChargebackReversal(account, kbPaymentId, chargeback, context);
         } catch (final PaymentApiException e) {
             // Have Adyen retry
             throw new RuntimeException("Failed to record chargeback reversal", e);
@@ -592,28 +501,5 @@ public class KillbillAdyenNotificationHandler implements AdyenNotificationHandle
             // Have Adyen retry
             throw new RuntimeException(String.format("Unable to update response for kbTransactionId='%s'", kbTransactionId), e);
         }
-    }
-
-    private PaymentTransaction filterForLastTransaction(final Payment payment) {
-        final int numberOfTransaction = payment.getTransactions().size();
-        return payment.getTransactions().get(numberOfTransaction - 1);
-    }
-
-    private PaymentTransaction filterForTransaction(final Payment payment, final UUID kbTransactionId) {
-        for (final PaymentTransaction paymentTransaction : payment.getTransactions()) {
-            if (paymentTransaction.getId().equals(kbTransactionId)) {
-                return paymentTransaction;
-            }
-        }
-        return null;
-    }
-
-    private PaymentTransaction filterForTransaction(final Payment payment, final TransactionType transactionType) {
-        for (final PaymentTransaction paymentTransaction : payment.getTransactions()) {
-            if (paymentTransaction.getTransactionType().equals(transactionType)) {
-                return paymentTransaction;
-            }
-        }
-        return null;
     }
 }
