@@ -57,9 +57,12 @@ public abstract class SepaDirectDebitMappingService {
         final String ddHolderName = PluginProperties.getValue(PROPERTY_DD_HOLDER_NAME, paymentMethodHolderName, properties);
         sepaDirectDebit.setSepaAccountHolder(ddHolderName);
 
-        String countryCode = PluginProperties.getValue(PROPERTY_COUNTRY, paymentMethodsRecord.getCountry(), properties);
-        if (countryCode == null && account != null) {
-            countryCode = account.getCountry();
+        String countryCode = PluginProperties.findPluginPropertyValue("sepaCountryCode", properties);
+        if(countryCode == null) {
+            countryCode = PluginProperties.getValue(PROPERTY_COUNTRY, paymentMethodsRecord.getCountry(), properties);
+            if (countryCode == null && account != null) {
+                countryCode = account.getCountry();
+            }
         }
         sepaDirectDebit.setCountryCode(countryCode);
 

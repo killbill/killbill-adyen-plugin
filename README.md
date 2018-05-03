@@ -445,6 +445,7 @@ Plugin properties
 | zip                      | Billing address zip code                      |
 | state                    | Billing address state                         |
 | country                  | Billing address country                       |
+| sepaCountryCode          | Billing address country code for SEPA requests. If absent, it will use country instead |
 | PaReq                    | 3D-Secure Pa Request                          |
 | PaRes                    | 3D-Secure Pa Response                         |
 | MD                       | 3D-Secure Message Digest                      |
