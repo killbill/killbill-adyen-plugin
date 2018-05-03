@@ -151,7 +151,7 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
     public static final String PROPERTY_DD_BANK_IDENTIFIER_CODE = "ddBic";
     // ELV only (processed as SEPA)
     public static final String PROPERTY_ELV_BLZ = "elvBlz";
-    public static final String PROPERTY_SPEA_COUNTRY_CODE = "sepaCountryCode";
+    public static final String PROPERTY_SEPA_COUNTRY_CODE = "sepaCountryCode";
 
     // User data
     public static final String PROPERTY_FIRST_NAME = "firstName";

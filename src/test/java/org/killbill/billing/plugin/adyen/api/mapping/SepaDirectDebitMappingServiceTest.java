@@ -35,7 +35,7 @@ public class SepaDirectDebitMappingServiceTest {
     private AccountData accountData;
     private AdyenPaymentMethodsRecord paymentMethodRecord;
 
-    @BeforeMethod(alwaysRun = true)
+    @BeforeMethod(groups = "fast")
     public void initialize() {
         accountData = mock(AccountData.class);
         paymentMethodRecord = mock(AdyenPaymentMethodsRecord.class);

@@ -30,7 +30,7 @@ import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.PROPER
 import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.PROPERTY_DD_BANK_IDENTIFIER_CODE;
 import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.PROPERTY_DD_HOLDER_NAME;
 import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.PROPERTY_ELV_BLZ;
-import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.PROPERTY_SPEA_COUNTRY_CODE;
+import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.PROPERTY_SEPA_COUNTRY_CODE;
 import static org.killbill.billing.plugin.api.payment.PluginPaymentPluginApi.PROPERTY_COUNTRY;
 
 public abstract class SepaDirectDebitMappingService {
@@ -58,7 +58,7 @@ public abstract class SepaDirectDebitMappingService {
         final String ddHolderName = PluginProperties.getValue(PROPERTY_DD_HOLDER_NAME, paymentMethodHolderName, properties);
         sepaDirectDebit.setSepaAccountHolder(ddHolderName);
 
-        String countryCode = PluginProperties.findPluginPropertyValue(PROPERTY_SPEA_COUNTRY_CODE, properties);
+        String countryCode = PluginProperties.findPluginPropertyValue(PROPERTY_SEPA_COUNTRY_CODE, properties);
         if(countryCode == null) {
             countryCode = PluginProperties.getValue(PROPERTY_COUNTRY, paymentMethodsRecord.getCountry(), properties);
             if (countryCode == null && account != null) {
