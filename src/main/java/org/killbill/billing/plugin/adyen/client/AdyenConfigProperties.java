@@ -23,6 +23,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 
 import javax.annotation.Nullable;
 
@@ -31,6 +32,7 @@ import org.joda.time.Period;
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 
 public class AdyenConfigProperties {
 
@@ -99,6 +101,7 @@ public class AdyenConfigProperties {
     private final String currentRegion;
 
     private final String invoicePaymentEnabled;
+    private final Set<String> chargebackAsFailurePaymentMethods;
 
     public AdyenConfigProperties(final Properties properties) {
         this(properties, null);
@@ -108,6 +111,7 @@ public class AdyenConfigProperties {
         this.currentRegion = currentRegion;
 
         this.invoicePaymentEnabled = properties.getProperty(PROPERTY_PREFIX + "invoicePaymentEnabled", "false");
+        this.chargebackAsFailurePaymentMethods = ImmutableSet.<String>copyOf(properties.getProperty(PROPERTY_PREFIX + "chargebackAsFailurePaymentMethods", "").split(","));
 
         this.proxyServer = properties.getProperty(PROPERTY_PREFIX + "proxyServer");
         this.proxyPort = properties.getProperty(PROPERTY_PREFIX + "proxyPort");
@@ -249,6 +253,10 @@ public class AdyenConfigProperties {
 
     public Boolean getInvoicePaymentEnabled() {
         return Boolean.valueOf(invoicePaymentEnabled);
+    }
+
+    public Set<String> getChargebackAsFailurePaymentMethods() {
+        return chargebackAsFailurePaymentMethods;
     }
 
     public String getMerchantAccount(final String countryIsoCode) {
