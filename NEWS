@@ -1,3 +1,9 @@
+0.5.10
+    PostgreSQL support
+    Invoicing system integration
+    Add option to transform CHARGEBACK into payment failure
+    Add SEPA country code for SEPA requests
+
 0.5.9
     Add fallback merchant account
 
