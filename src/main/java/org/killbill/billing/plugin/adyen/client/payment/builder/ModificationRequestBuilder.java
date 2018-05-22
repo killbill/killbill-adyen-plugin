@@ -1,6 +1,6 @@
 /*
- * Copyright 2014-2016 Groupon, Inc
- * Copyright 2014-2016 The Billing Project, LLC
+ * Copyright 2014-2018 Groupon, Inc
+ * Copyright 2014-2018 The Billing Project, LLC
  *
  * The Billing Project licenses this file to you under the Apache License, version 2.0
  * (the "License"); you may not use this file except in compliance with the
@@ -18,6 +18,7 @@
 package org.killbill.billing.plugin.adyen.client.payment.builder;
 
 import java.util.List;
+import java.util.Map;
 
 import javax.annotation.Nullable;
 
@@ -33,11 +34,13 @@ public class ModificationRequestBuilder extends RequestBuilder<ModificationReque
     private final PaymentData paymentData;
     private final String originalReference;
     private final SplitSettlementData splitSettlementData;
+    private final Map<String, String> additionalData;
 
     public ModificationRequestBuilder(final String merchantAccount,
                                       final PaymentData paymentData,
                                       final String originalReference,
-                                      @Nullable final SplitSettlementData splitSettlementData) {
+                                      @Nullable final SplitSettlementData splitSettlementData,
+                                      @Nullable final Map<String, String> additionalData) {
         super(new ModificationRequest());
         final AnyType2AnyTypeMap map = new AnyType2AnyTypeMap();
         request.setAdditionalData(map);
@@ -46,6 +49,7 @@ public class ModificationRequestBuilder extends RequestBuilder<ModificationReque
         this.paymentData = paymentData;
         this.originalReference = originalReference;
         this.splitSettlementData = splitSettlementData;
+        this.additionalData = additionalData;
     }
 
     @Override
@@ -56,6 +60,7 @@ public class ModificationRequestBuilder extends RequestBuilder<ModificationReque
 
         setAmount();
         setSplitSettlementData();
+        addAdditionalData(request.getAdditionalData(), additionalData);
 
         return request;
     }

@@ -70,24 +70,27 @@ public class AdyenPaymentServiceProviderPort extends BaseAdyenPaymentServiceProv
     public PurchaseResult authorise(final String merchantAccount,
                                     final PaymentData paymentData,
                                     final UserData userData,
-                                    final SplitSettlementData splitSettlementData) {
-        return authoriseOrCredit(true, merchantAccount, paymentData, userData, splitSettlementData);
+                                    final SplitSettlementData splitSettlementData,
+                                    final Map<String, String> additionalData) {
+        return authoriseOrCredit(true, merchantAccount, paymentData, userData, splitSettlementData, additionalData);
     }
 
     public PurchaseResult credit(final String merchantAccount,
                                  final PaymentData paymentData,
                                  final UserData userData,
-                                 final SplitSettlementData splitSettlementData) {
-        return authoriseOrCredit(false, merchantAccount, paymentData, userData, splitSettlementData);
+                                 final SplitSettlementData splitSettlementData,
+                                 final Map<String, String> additionalData) {
+        return authoriseOrCredit(false, merchantAccount, paymentData, userData, splitSettlementData, additionalData);
     }
 
     private PurchaseResult authoriseOrCredit(final boolean authorize,
                                              final String merchantAccount,
                                              final PaymentData paymentData,
                                              final UserData userData,
-                                             final SplitSettlementData splitSettlementData) {
+                                             final SplitSettlementData splitSettlementData,
+                                             final Map<String, String> additionalData) {
         final String operation = authorize ? "authorize" : "credit";
-        final PaymentRequest request = adyenRequestFactory.createPaymentRequest(merchantAccount, paymentData, userData, splitSettlementData);
+        final PaymentRequest request = adyenRequestFactory.createPaymentRequest(merchantAccount, paymentData, userData, splitSettlementData, additionalData);
 
         final AdyenCallResult<PaymentResult> adyenCallResult;
         if (authorize) {
@@ -170,12 +173,14 @@ public class AdyenPaymentServiceProviderPort extends BaseAdyenPaymentServiceProv
     public PurchaseResult authorize3DSecure(final String merchantAccount,
                                             final PaymentData paymentData,
                                             final UserData userData,
-                                            final SplitSettlementData splitSettlementData) {
+                                            final SplitSettlementData splitSettlementData,
+                                            final Map<String, String> additionalData) {
         final String operation = "authorize3DSecure";
         final PaymentRequest3D request = adyenRequestFactory.paymentRequest3d(merchantAccount,
                                                                               paymentData,
                                                                               userData,
-                                                                              splitSettlementData);
+                                                                              splitSettlementData,
+                                                                              additionalData);
         final AdyenCallResult<PaymentResult> adyenCallResult = adyenPaymentRequestSender.authorise3D(merchantAccount, request);
 
         if (!adyenCallResult.receivedWellFormedResponse()) {
@@ -216,7 +221,8 @@ public class AdyenPaymentServiceProviderPort extends BaseAdyenPaymentServiceProv
     public PaymentModificationResponse refund(final String merchantAccount,
                                               final PaymentData paymentData,
                                               final String pspReference,
-                                              final SplitSettlementData splitSettlementData) {
+                                              final SplitSettlementData splitSettlementData,
+                                              final Map<String, String> additionalData) {
         return modify("refund",
                       new ModificationExecutor() {
                           @Override
@@ -227,13 +233,15 @@ public class AdyenPaymentServiceProviderPort extends BaseAdyenPaymentServiceProv
                       merchantAccount,
                       paymentData,
                       pspReference,
-                      splitSettlementData);
+                      splitSettlementData,
+                      additionalData);
     }
 
     public PaymentModificationResponse cancel(final String merchantAccount,
                                               final PaymentData paymentData,
                                               final String pspReference,
-                                              final SplitSettlementData splitSettlementData) {
+                                              final SplitSettlementData splitSettlementData,
+                                              final Map<String, String> additionalData) {
         return modify("cancel",
                       new ModificationExecutor() {
                           @Override
@@ -244,13 +252,15 @@ public class AdyenPaymentServiceProviderPort extends BaseAdyenPaymentServiceProv
                       merchantAccount,
                       paymentData,
                       pspReference,
-                      splitSettlementData);
+                      splitSettlementData,
+                      additionalData);
     }
 
     public PaymentModificationResponse capture(final String merchantAccount,
                                                final PaymentData paymentData,
                                                final String pspReference,
-                                               final SplitSettlementData splitSettlementData) {
+                                               final SplitSettlementData splitSettlementData,
+                                               final Map<String, String> additionalData) {
         return modify("capture",
                       new ModificationExecutor() {
                           @Override
@@ -261,7 +271,8 @@ public class AdyenPaymentServiceProviderPort extends BaseAdyenPaymentServiceProv
                       merchantAccount,
                       paymentData,
                       pspReference,
-                      splitSettlementData);
+                      splitSettlementData,
+                      additionalData);
     }
 
     private PaymentModificationResponse modify(final String operation,
@@ -269,8 +280,9 @@ public class AdyenPaymentServiceProviderPort extends BaseAdyenPaymentServiceProv
                                                final String merchantAccount,
                                                final PaymentData paymentData,
                                                final String pspReference,
-                                               final SplitSettlementData splitSettlementData) {
-        final ModificationRequest modificationRequest = adyenRequestFactory.createModificationRequest(merchantAccount, paymentData, pspReference, splitSettlementData);
+                                               final SplitSettlementData splitSettlementData,
+                                               final Map<String, String> additionalData) {
+        final ModificationRequest modificationRequest = adyenRequestFactory.createModificationRequest(merchantAccount, paymentData, pspReference, splitSettlementData, additionalData);
         final AdyenCallResult<ModificationResult> adyenCall = modificationExecutor.execute(modificationRequest);
 
         final PaymentModificationResponse response;
@@ -345,17 +357,6 @@ public class AdyenPaymentServiceProviderPort extends BaseAdyenPaymentServiceProv
             }
         }
         return additionalDataMap;
-    }
-
-    private Map<Object, Object> entriesToMap(final AnyType2AnyTypeMap dataMap) {
-        final Map<Object, Object> map = new HashMap<Object, Object>();
-        if (dataMap != null) {
-            final List<AnyType2AnyTypeMap.Entry> result = dataMap.getEntry();
-            for (final AnyType2AnyTypeMap.Entry entry : result) {
-                map.put(entry.getKey(), entry.getValue());
-            }
-        }
-        return map;
     }
 
     private abstract static class ModificationExecutor {

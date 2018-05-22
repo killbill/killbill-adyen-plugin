@@ -640,6 +640,35 @@ public class TestAdyenPaymentPluginApi extends TestAdyenPaymentPluginApiBase {
         doCapture(payment, BigDecimal.TEN);
     }
 
+    @Test(groups = "integration")
+    public void testAuthorizeWithAdditionalData() throws Exception {
+        adyenPaymentPluginApi.addPaymentMethod(account.getId(), account.getPaymentMethodId(), adyenEmptyPaymentMethodPlugin(), true, propertiesWithCCInfo, context);
+
+        final ImmutableMap.Builder<String, String> builder = new ImmutableMap.Builder<String, String>();
+        builder.put(AdyenPaymentPluginApi.PROPERTY_CC_VERIFICATION_VALUE, CC_VERIFICATION_VALUE);
+        builder.put(String.format("%s.1.key", AdyenPaymentPluginApi.ADDITIONAL_DATA_ITEM), "RequestedTestAcquirerResponseCode");
+        builder.put(String.format("%s.1.value", AdyenPaymentPluginApi.ADDITIONAL_DATA_ITEM), "6");
+        final Map<String, String> pluginPropertiesMap = builder.build();
+        final List<PluginProperty> pluginProperties = PluginProperties.buildPluginProperties(pluginPropertiesMap);
+
+        final Payment payment = TestUtils.buildPayment(account.getId(), account.getPaymentMethodId(), account.getCurrency(), killbillApi);
+        final PaymentTransaction authorizationTransaction = TestUtils.buildPaymentTransaction(payment, TransactionType.AUTHORIZE, new BigDecimal("1000"), account.getCurrency());
+        final PaymentTransactionInfoPlugin authorizationInfoPlugin = adyenPaymentPluginApi.authorizePayment(account.getId(),
+                                                                                                            payment.getId(),
+                                                                                                            authorizationTransaction.getId(),
+                                                                                                            account.getPaymentMethodId(),
+                                                                                                            authorizationTransaction.getAmount(),
+                                                                                                            authorizationTransaction.getCurrency(),
+                                                                                                            pluginProperties,
+                                                                                                            context);
+
+        assertEquals(authorizationInfoPlugin.getStatus(), PaymentPluginStatus.ERROR);
+        assertEquals(authorizationInfoPlugin.getGatewayError(), "Expired Card");
+        final List<PaymentTransactionInfoPlugin> fromDBList = adyenPaymentPluginApi.getPaymentInfo(account.getId(), payment.getId(), ImmutableList.<PluginProperty>of(), context);
+        assertFalse(fromDBList.isEmpty());
+        assertEquals(fromDBList.get(0).getGatewayError(), "Expired Card");
+    }
+
     private Map<String, String> extractForm(final String html) {
         final Map<String, String> fields = new HashMap<String, String>();
         final Document doc = Jsoup.parse(html);

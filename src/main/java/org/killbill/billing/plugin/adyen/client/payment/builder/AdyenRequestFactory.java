@@ -46,18 +46,18 @@ public class AdyenRequestFactory {
         this.signer = signer;
     }
 
-    public PaymentRequest createPaymentRequest(final String merchantAccount, final PaymentData paymentData, final UserData userData, @Nullable final SplitSettlementData splitSettlementData) {
-        final PaymentRequestBuilder paymentRequestBuilder = new PaymentRequestBuilder(merchantAccount, paymentData, userData, splitSettlementData, paymentInfoConverterManagement);
+    public PaymentRequest createPaymentRequest(final String merchantAccount, final PaymentData paymentData, final UserData userData, @Nullable final SplitSettlementData splitSettlementData, final Map<String, String> additionalData) {
+        final PaymentRequestBuilder paymentRequestBuilder = new PaymentRequestBuilder(merchantAccount, paymentData, userData, splitSettlementData, additionalData, paymentInfoConverterManagement);
         return paymentRequestBuilder.build();
     }
 
-    public PaymentRequest3D paymentRequest3d(final String merchantAccount, final PaymentData paymentData, final UserData userData, @Nullable final SplitSettlementData splitSettlementData) {
-        final PaymentRequest3DBuilder paymentRequest3DBuilder = new PaymentRequest3DBuilder(merchantAccount, paymentData, userData, splitSettlementData);
+    public PaymentRequest3D paymentRequest3d(final String merchantAccount, final PaymentData paymentData, final UserData userData, @Nullable final SplitSettlementData splitSettlementData, final Map<String, String> additionalData) {
+        final PaymentRequest3DBuilder paymentRequest3DBuilder = new PaymentRequest3DBuilder(merchantAccount, paymentData, userData, splitSettlementData, additionalData);
         return paymentRequest3DBuilder.build();
     }
 
-    public ModificationRequest createModificationRequest(final String merchantAccount, final PaymentData paymentData, final String pspReference, @Nullable final SplitSettlementData splitSettlementData) {
-        final ModificationRequestBuilder modificationRequestBuilder = new ModificationRequestBuilder(merchantAccount, paymentData, pspReference, splitSettlementData);
+    public ModificationRequest createModificationRequest(final String merchantAccount, final PaymentData paymentData, final String pspReference, @Nullable final SplitSettlementData splitSettlementData, final Map<String, String> additionalData) {
+        final ModificationRequestBuilder modificationRequestBuilder = new ModificationRequestBuilder(merchantAccount, paymentData, pspReference, splitSettlementData, additionalData);
         return modificationRequestBuilder.build();
     }
 

@@ -89,13 +89,15 @@ public abstract class TestRemoteBase {
     protected Properties properties;
     protected String merchantAccount;
 
-    @BeforeClass(groups = {"slow", "integration"})
+    @BeforeClass(groups = "slow")
     public void setUpBeforeClassCommon() throws Exception {
         logService = TestUtils.buildLogService();
     }
 
     @BeforeClass(groups = "integration")
     public void setUpBeforeClass() throws Exception {
+        setUpBeforeClassCommon();
+
         properties = TestUtils.loadProperties(PROPERTIES_FILE_NAME);
         adyenConfigProperties = getAdyenConfigProperties();
 
