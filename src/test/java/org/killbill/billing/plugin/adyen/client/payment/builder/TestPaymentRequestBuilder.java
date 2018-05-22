@@ -1,6 +1,6 @@
 /*
- * Copyright 2014-2016 Groupon, Inc
- * Copyright 2014-2016 The Billing Project, LLC
+ * Copyright 2014-2018 Groupon, Inc
+ * Copyright 2014-2018 The Billing Project, LLC
  *
  * The Billing Project licenses this file to you under the Apache License, version 2.0
  * (the "License"); you may not use this file except in compliance with the
@@ -19,6 +19,7 @@ package org.killbill.billing.plugin.adyen.client.payment.builder;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import org.killbill.adyen.payment.AnyType2AnyTypeMap;
@@ -46,9 +47,10 @@ public class TestPaymentRequestBuilder extends BaseTestPaymentRequestBuilder {
         final PaymentData paymentData = new PaymentData<Card>(new BigDecimal("20"), Currency.EUR, paymentTransactionExternalKey, new Card());
         final UserData userData = new UserData();
         final SplitSettlementData splitSettlementData = null;
+        final Map<String, String> additionalData = null;
         final PaymentInfoConverterService paymentInfoConverterManagement = new PaymentInfoConverterService();
 
-        final PaymentRequestBuilder builder = new PaymentRequestBuilder(merchantAccount, paymentData, userData, splitSettlementData, paymentInfoConverterManagement);
+        final PaymentRequestBuilder builder = new PaymentRequestBuilder(merchantAccount, paymentData, userData, splitSettlementData, additionalData, paymentInfoConverterManagement);
         final PaymentRequest paymentRequest = builder.build();
 
         Assert.assertEquals(paymentRequest.getMerchantAccount(), merchantAccount);
@@ -125,9 +127,11 @@ public class TestPaymentRequestBuilder extends BaseTestPaymentRequestBuilder {
                                                                                                                            new SplitSettlementData.Item(750, "deal1", "voucherId2", "voucher"),
                                                                                                                            new SplitSettlementData.Item(750, "deal2", "travelId", "travel")));
 
+        final Map<String, String> additionalData = null;
+
         final PaymentInfoConverterService paymentInfoConverterManagement = new PaymentInfoConverterService();
 
-        final PaymentRequestBuilder builder = new PaymentRequestBuilder(merchantAccount, paymentData, userData, splitSettlementData, paymentInfoConverterManagement);
+        final PaymentRequestBuilder builder = new PaymentRequestBuilder(merchantAccount, paymentData, userData, splitSettlementData, additionalData, paymentInfoConverterManagement);
         final PaymentRequest paymentRequest = builder.build();
 
         Assert.assertEquals(paymentRequest.getMerchantAccount(), merchantAccount);

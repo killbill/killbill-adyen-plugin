@@ -1,7 +1,8 @@
 /*
- * Copyright 2014 Groupon, Inc
+ * Copyright 2014-2018 Groupon, Inc
+ * Copyright 2014-2018 The Billing Project, LLC
  *
- * Groupon licenses this file to you under the Apache License, version 2.0
+ * The Billing Project licenses this file to you under the Apache License, version 2.0
  * (the "License"); you may not use this file except in compliance with the
  * License.  You may obtain a copy of the License at:
  *
@@ -18,6 +19,7 @@ package org.killbill.billing.plugin.adyen.client.payment.builder;
 
 import java.math.BigDecimal;
 import java.util.Collection;
+import java.util.Map;
 
 import javax.annotation.Nullable;
 
@@ -49,5 +51,13 @@ public abstract class RequestBuilder<R> {
             return null;
         }
         return KillBillMoney.toMinorUnits(currencyIsoCode, amountBD);
+    }
+
+    protected void addAdditionalData(final AnyType2AnyTypeMap additionalDataEntries, @Nullable final Map<String, String> additionalData) {
+        if (additionalData != null) {
+            for (final String key : additionalData.keySet()) {
+                addAdditionalDataEntry(additionalDataEntries.getEntry(), key, additionalData.get(key));
+            }
+        }
     }
 }
