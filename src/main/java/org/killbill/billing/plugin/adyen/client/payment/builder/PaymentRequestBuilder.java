@@ -1,6 +1,6 @@
 /*
- * Copyright 2014-2016 Groupon, Inc
- * Copyright 2014-2016 The Billing Project, LLC
+ * Copyright 2014-2018 Groupon, Inc
+ * Copyright 2014-2018 The Billing Project, LLC
  *
  * The Billing Project licenses this file to you under the Apache License, version 2.0
  * (the "License"); you may not use this file except in compliance with the
@@ -19,6 +19,7 @@ package org.killbill.billing.plugin.adyen.client.payment.builder;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 
 import javax.annotation.Nullable;
 import javax.xml.datatype.DatatypeConfigurationException;
@@ -47,17 +48,20 @@ public class PaymentRequestBuilder extends RequestBuilder<PaymentRequest> {
     private final PaymentData paymentData;
     private final UserData userData;
     private final SplitSettlementData splitSettlementData;
+    private final Map<String, String> additionalData;
 
     public PaymentRequestBuilder(final String merchantAccount,
                                  final PaymentData paymentData,
                                  final UserData userData,
                                  @Nullable final SplitSettlementData splitSettlementData,
+                                 @Nullable final Map<String, String> additionalData,
                                  final PaymentInfoConverterManagement paymentInfoConverterManagement) {
         super(paymentInfoConverterManagement.convertPaymentInfoToPaymentRequest(paymentData.getPaymentInfo()));
         this.merchantAccount = merchantAccount;
         this.paymentData = paymentData;
         this.userData = userData;
         this.splitSettlementData = splitSettlementData;
+        this.additionalData = additionalData;
     }
 
     @Override
@@ -70,6 +74,7 @@ public class PaymentRequestBuilder extends RequestBuilder<PaymentRequest> {
         setShopperData();
         set3DSecureFields();
         setSplitSettlementData();
+        addAdditionalData(request.getAdditionalData(), additionalData);
 
         return request;
     }

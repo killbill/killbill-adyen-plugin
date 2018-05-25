@@ -1,6 +1,6 @@
 /*
- * Copyright 2014-2016 Groupon, Inc
- * Copyright 2014-2016 The Billing Project, LLC
+ * Copyright 2014-2018 Groupon, Inc
+ * Copyright 2014-2018 The Billing Project, LLC
  *
  * The Billing Project licenses this file to you under the Apache License, version 2.0
  * (the "License"); you may not use this file except in compliance with the
@@ -19,6 +19,7 @@ package org.killbill.billing.plugin.adyen.client.payment.builder;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import org.killbill.adyen.payment.AnyType2AnyTypeMap.Entry;
@@ -78,8 +79,9 @@ public class TestModificationRequestBuilder extends BaseTestPaymentRequestBuilde
         final String paymentTransactionExternalKey = UUID.randomUUID().toString();
         final PaymentData paymentData = new PaymentData<Card>(new BigDecimal("20"), Currency.EUR, paymentTransactionExternalKey, new Card());
         final String originalReference = UUID.randomUUID().toString();
+        final Map<String, String> additionalData = null;
 
-        final ModificationRequestBuilder builder = new ModificationRequestBuilder(merchantAccount, paymentData, originalReference, splitSettlementData);
+        final ModificationRequestBuilder builder = new ModificationRequestBuilder(merchantAccount, paymentData, originalReference, splitSettlementData, additionalData);
         final ModificationRequest modificationRequest = builder.build();
 
         Assert.assertEquals(modificationRequest.getMerchantAccount(), merchantAccount);
