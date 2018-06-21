@@ -65,7 +65,7 @@ create table adyen_notifications (
 , operations varchar(1024)
 , original_reference varchar(64)
 , payment_method varchar(64)
-, psp_reference varchar(64)
+, psp_reference varchar(255)
 , reason text
 , success smallint not null default 0
 , additional_data longtext default null
