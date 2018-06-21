@@ -29,6 +29,11 @@ import org.killbill.billing.tenant.api.Tenant;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/*
+ * For the healthcheck to work with the main Kill Bill healthcheck, make sure to set in your global killbill.properties file:
+ *
+ *    org.killbill.billing.plugin.adyen.paymentUrl=https://pal-test.adyen.com/pal/servlet/Payment/v12
+ */
 public class AdyenHealthcheck implements Healthcheck {
 
     private static final Logger logger = LoggerFactory.getLogger(AdyenHealthcheck.class);
