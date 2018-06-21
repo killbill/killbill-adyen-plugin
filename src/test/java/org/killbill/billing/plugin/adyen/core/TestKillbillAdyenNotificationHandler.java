@@ -25,6 +25,7 @@ import java.util.UUID;
 
 import javax.annotation.Nullable;
 
+import org.joda.time.DateTime;
 import org.killbill.adyen.common.Amount;
 import org.killbill.adyen.notification.NotificationRequestItem;
 import org.killbill.billing.account.api.Account;
@@ -69,6 +70,7 @@ public class TestKillbillAdyenNotificationHandler extends TestAdyenPaymentPlugin
                                                                Mockito.<UUID>any(),
                                                                Mockito.<BigDecimal>any(),
                                                                Mockito.<Currency>any(),
+                                                               Mockito.<DateTime>any(),
                                                                Mockito.<String>any(),
                                                                Mockito.<Iterable<PluginProperty>>any(),
                                                                Mockito.<CallContext>any()))

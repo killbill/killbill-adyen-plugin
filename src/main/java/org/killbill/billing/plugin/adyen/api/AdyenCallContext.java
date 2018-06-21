@@ -25,7 +25,7 @@ public class AdyenCallContext extends PluginCallContext {
 
     private static final String ADYEN_PLUGIN = "Adyen plugin";
 
-    public AdyenCallContext(final DateTime utcNow, final UUID kbTenantId) {
-        super(ADYEN_PLUGIN, utcNow, kbTenantId);
+    public AdyenCallContext(final DateTime utcNow, final UUID kbAccountId, final UUID kbTenantId) {
+        super(ADYEN_PLUGIN, utcNow, kbAccountId, kbTenantId);
     }
 }

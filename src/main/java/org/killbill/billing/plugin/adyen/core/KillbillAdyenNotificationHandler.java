@@ -155,7 +155,7 @@ public class KillbillAdyenNotificationHandler implements AdyenNotificationHandle
                 }
             }
 
-            final CallContext context = new AdyenCallContext(clock.getUTCNow(), kbTenantId);
+            final CallContext context = new AdyenCallContext(clock.getUTCNow(), kbAccountId, kbTenantId);
             final AdyenConfigProperties tenantConfiguration = adyenConfigPropertiesConfigurationHandler.getConfigurable(context.getTenantId());
             final NotificationItem transformedNotification = transformNotificationItemIfNeeded(notification, tenantConfiguration);
             if (transformedNotification != null) {
@@ -325,7 +325,7 @@ public class KillbillAdyenNotificationHandler implements AdyenNotificationHandle
 
     private UUID getAdyenKbPaymentMethodId(final UUID kbAccountId, final TenantContext context) {
         try {
-            return Iterables.<PaymentMethod>find(osgiKillbillAPI.getPaymentApi().getAccountPaymentMethods(kbAccountId, false, ImmutableList.<PluginProperty>of(), context),
+            return Iterables.<PaymentMethod>find(osgiKillbillAPI.getPaymentApi().getAccountPaymentMethods(kbAccountId, false, false, ImmutableList.<PluginProperty>of(), context),
                                                  new Predicate<PaymentMethod>() {
                                                      @Override
                                                      public boolean apply(final PaymentMethod paymentMethod) {
