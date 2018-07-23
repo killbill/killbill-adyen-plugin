@@ -25,6 +25,7 @@ import java.util.UUID;
 
 import javax.annotation.Nullable;
 
+import org.joda.time.DateTime;
 import org.killbill.adyen.common.Amount;
 import org.killbill.adyen.notification.NotificationRequestItem;
 import org.killbill.billing.account.api.Account;
@@ -69,6 +70,7 @@ public class TestKillbillAdyenNotificationHandler extends TestAdyenPaymentPlugin
                                                                Mockito.<UUID>any(),
                                                                Mockito.<BigDecimal>any(),
                                                                Mockito.<Currency>any(),
+                                                               Mockito.<DateTime>any(),
                                                                Mockito.<String>any(),
                                                                Mockito.<Iterable<PluginProperty>>any(),
                                                                Mockito.<CallContext>any()))
@@ -77,7 +79,7 @@ public class TestKillbillAdyenNotificationHandler extends TestAdyenPaymentPlugin
                    public Payment answer(final InvocationOnMock invocation) throws Throwable {
                        final BigDecimal amount = (BigDecimal) invocation.getArguments()[2];
                        final Currency currency = (Currency) invocation.getArguments()[3];
-                       final String paymentTransactionExternalKey = MoreObjects.firstNonNull((String) invocation.getArguments()[4], UUID.randomUUID().toString());
+                       final String paymentTransactionExternalKey = MoreObjects.firstNonNull((String) invocation.getArguments()[5], UUID.randomUUID().toString());
 
                        TestUtils.buildPaymentTransaction(payment, paymentTransactionExternalKey, TransactionType.CAPTURE, TransactionStatus.SUCCESS, amount, currency);
 

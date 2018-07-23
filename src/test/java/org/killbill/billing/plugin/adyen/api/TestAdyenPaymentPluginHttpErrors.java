@@ -92,7 +92,7 @@ public class TestAdyenPaymentPluginHttpErrors extends TestWithEmbeddedDBBase {
         final Account account = defaultAccount();
         final OSGIKillbillAPI killbillAPI = TestUtils.buildOSGIKillbillAPI(account);
         final Payment payment = killBillPayment(account, killbillAPI);
-        final AdyenCallContext callContext = newCallContext();
+        final AdyenCallContext callContext = newCallContext(account);
 
         final AdyenPaymentPluginApi pluginApi = AdyenPluginMockBuilder.newPlugin()
                                                                       .withAdyenProperty("org.killbill.billing.plugin.adyen.paymentUrl", unReachableUri)
@@ -120,7 +120,7 @@ public class TestAdyenPaymentPluginHttpErrors extends TestWithEmbeddedDBBase {
         final Account account = defaultAccount();
         final OSGIKillbillAPI killbillAPI = TestUtils.buildOSGIKillbillAPI(account);
         final Payment payment = killBillPayment(account, killbillAPI);
-        final AdyenCallContext callContext = newCallContext();
+        final AdyenCallContext callContext = newCallContext(account);
 
         final AdyenPaymentPluginApi pluginApi = AdyenPluginMockBuilder.newPlugin()
                                                                       .withAdyenProperty("org.killbill.billing.plugin.adyen.paymentUrl", freeLocalPort)
@@ -151,7 +151,7 @@ public class TestAdyenPaymentPluginHttpErrors extends TestWithEmbeddedDBBase {
         final Account account = defaultAccount();
         final OSGIKillbillAPI killbillAPI = TestUtils.buildOSGIKillbillAPI(account);
         final Payment payment = killBillPayment(account, killbillAPI);
-        final AdyenCallContext callContext = newCallContext();
+        final AdyenCallContext callContext = newCallContext(account);
 
         final AdyenPaymentPluginApi pluginApi = AdyenPluginMockBuilder.newPlugin(properties)
                                                                       .withOSGIKillbillAPI(killbillAPI)
@@ -177,7 +177,7 @@ public class TestAdyenPaymentPluginHttpErrors extends TestWithEmbeddedDBBase {
         final Account account = defaultAccount();
         final OSGIKillbillAPI killbillAPI = TestUtils.buildOSGIKillbillAPI(account);
         final Payment payment = killBillPayment(account, killbillAPI);
-        final AdyenCallContext callContext = newCallContext();
+        final AdyenCallContext callContext = newCallContext(account);
 
         final AdyenPaymentPluginApi pluginApi = AdyenPluginMockBuilder.newPlugin()
                                                                       .withOSGIKillbillAPI(killbillAPI)
@@ -205,7 +205,7 @@ public class TestAdyenPaymentPluginHttpErrors extends TestWithEmbeddedDBBase {
         final Account account = defaultAccount();
         final OSGIKillbillAPI killbillAPI = TestUtils.buildOSGIKillbillAPI(account);
         final Payment payment = killBillPayment(account, killbillAPI);
-        final AdyenCallContext callContext = newCallContext();
+        final AdyenCallContext callContext = newCallContext(account);
 
         final AdyenPaymentPluginApi pluginApi = AdyenPluginMockBuilder.newPlugin()
                                                                       .withAdyenProperty("org.killbill.billing.plugin.adyen.paymentUrl", wireMockUri(ADYEN_PATH))
@@ -243,7 +243,7 @@ public class TestAdyenPaymentPluginHttpErrors extends TestWithEmbeddedDBBase {
         final Account account = defaultAccount();
         final OSGIKillbillAPI killbillAPI = TestUtils.buildOSGIKillbillAPI(account);
         final Payment payment = killBillPayment(account, killbillAPI);
-        final AdyenCallContext callContext = newCallContext();
+        final AdyenCallContext callContext = newCallContext(account);
 
         final AdyenPaymentPluginApi pluginApi = AdyenPluginMockBuilder.newPlugin()
                                                                       .withAdyenProperty("org.killbill.billing.plugin.adyen.paymentUrl", wireMockUri(ADYEN_PATH))
@@ -279,7 +279,7 @@ public class TestAdyenPaymentPluginHttpErrors extends TestWithEmbeddedDBBase {
         final Account account = defaultAccount();
         final OSGIKillbillAPI killbillAPI = TestUtils.buildOSGIKillbillAPI(account);
         final Payment payment = killBillPayment(account, killbillAPI);
-        final AdyenCallContext callContext = newCallContext();
+        final AdyenCallContext callContext = newCallContext(account);
 
         final AdyenPaymentPluginApi authorizeApi = AdyenPluginMockBuilder.newPlugin(properties)
                                                                          .withOSGIKillbillAPI(killbillAPI)
@@ -334,7 +334,7 @@ public class TestAdyenPaymentPluginHttpErrors extends TestWithEmbeddedDBBase {
         final Account account = defaultAccount();
         final OSGIKillbillAPI killbillAPI = TestUtils.buildOSGIKillbillAPI(account);
         final Payment payment = killBillPayment(account, killbillAPI);
-        final AdyenCallContext callContext = newCallContext();
+        final AdyenCallContext callContext = newCallContext(account);
 
         final AdyenPaymentPluginApi pluginApi = AdyenPluginMockBuilder.newPlugin()
                                                                       .withAdyenProperty("org.killbill.billing.plugin.adyen.paymentUrl", wireMockUri(ADYEN_PATH))
@@ -370,7 +370,7 @@ public class TestAdyenPaymentPluginHttpErrors extends TestWithEmbeddedDBBase {
         final Account account = defaultAccount();
         final OSGIKillbillAPI killbillAPI = TestUtils.buildOSGIKillbillAPI(account);
         final Payment payment = killBillPayment(account, killbillAPI);
-        final AdyenCallContext callContext = newCallContext();
+        final AdyenCallContext callContext = newCallContext(account);
 
         final AdyenPaymentPluginApi pluginApi = AdyenPluginMockBuilder.newPlugin()
                                                                       .withAdyenProperty("org.killbill.billing.plugin.adyen.paymentUrl", wireMockUri(ADYEN_PATH))
@@ -405,7 +405,7 @@ public class TestAdyenPaymentPluginHttpErrors extends TestWithEmbeddedDBBase {
         final Account account = defaultAccount();
         final OSGIKillbillAPI killbillAPI = TestUtils.buildOSGIKillbillAPI(account);
         final Payment payment = killBillPayment(account, killbillAPI);
-        final AdyenCallContext callContext = newCallContext();
+        final AdyenCallContext callContext = newCallContext(account);
 
         final AdyenPaymentPluginApi pluginApi = AdyenPluginMockBuilder.newPlugin()
                                                                       .withAdyenProperty("org.killbill.billing.plugin.adyen.paymentUrl", wireMockUri(ADYEN_PATH))
@@ -440,7 +440,7 @@ public class TestAdyenPaymentPluginHttpErrors extends TestWithEmbeddedDBBase {
         final Account account = defaultAccount();
         final OSGIKillbillAPI killbillAPI = TestUtils.buildOSGIKillbillAPI(account);
         final Payment payment = killBillPayment(account, killbillAPI);
-        final AdyenCallContext callContext = newCallContext();
+        final AdyenCallContext callContext = newCallContext(account);
 
         final AdyenPaymentPluginApi pluginApi = AdyenPluginMockBuilder.newPlugin()
                                                                       .withAdyenProperty("org.killbill.billing.plugin.adyen.paymentUrl", wireMockUri(ADYEN_PATH))
@@ -475,7 +475,7 @@ public class TestAdyenPaymentPluginHttpErrors extends TestWithEmbeddedDBBase {
         final Account account = defaultAccount();
         final OSGIKillbillAPI killbillAPI = TestUtils.buildOSGIKillbillAPI(account);
         final Payment payment = killBillPayment(account, killbillAPI);
-        final AdyenCallContext callContext = newCallContext();
+        final AdyenCallContext callContext = newCallContext(account);
 
         final AdyenPaymentPluginApi pluginApi = AdyenPluginMockBuilder.newPlugin()
                                                                       .withAdyenProperty("org.killbill.billing.plugin.adyen.paymentUrl", wireMockUri(ADYEN_PATH))
@@ -513,7 +513,7 @@ public class TestAdyenPaymentPluginHttpErrors extends TestWithEmbeddedDBBase {
         final Account account = defaultAccount();
         final OSGIKillbillAPI killbillAPI = TestUtils.buildOSGIKillbillAPI(account);
         final Payment payment = killBillPayment(account, killbillAPI);
-        final AdyenCallContext callContext = newCallContext();
+        final AdyenCallContext callContext = newCallContext(account);
 
         final AdyenPaymentPluginApi pluginApi = AdyenPluginMockBuilder.newPlugin()
                                                                       .withAdyenProperty("org.killbill.billing.plugin.adyen.paymentUrl", wireMockUri(ADYEN_PATH))
@@ -557,8 +557,8 @@ public class TestAdyenPaymentPluginHttpErrors extends TestWithEmbeddedDBBase {
         return toProperties(invalidCreditCardData);
     }
 
-    private AdyenCallContext newCallContext() {
-        return new AdyenCallContext(DateTime.now(), UUID.randomUUID());
+    private AdyenCallContext newCallContext(final Account account) {
+        return new AdyenCallContext(DateTime.now(), account.getId(), UUID.randomUUID());
     }
 
     private Payment killBillPayment(final Account account, final OSGIKillbill killbillAPI) throws PaymentApiException {
