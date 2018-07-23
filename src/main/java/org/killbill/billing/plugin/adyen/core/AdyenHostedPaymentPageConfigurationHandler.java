@@ -64,7 +64,9 @@ public class AdyenHostedPaymentPageConfigurationHandler extends PluginTenantConf
                 directoryClient = new DirectoryClient(adyenConfigProperties.getDirectoryUrl(),
                                                       adyenConfigProperties.getProxyServer(),
                                                       adyenConfigProperties.getProxyPort(),
-                                                      !adyenConfigProperties.getTrustAllCertificates());
+                                                      !adyenConfigProperties.getTrustAllCertificates(),
+                                                      Integer.valueOf(adyenConfigProperties.getPaymentConnectionTimeout()),
+                                                      Integer.valueOf(adyenConfigProperties.getPaymentReadTimeout()));
             } catch (final GeneralSecurityException e) {
                 logger.warn("Unable to configure the directory client", e);
             }
