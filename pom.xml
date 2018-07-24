@@ -26,7 +26,7 @@
     <groupId>org.kill-bill.billing.plugin.java</groupId>
     <artifactId>adyen-plugin</artifactId>
     <name>Kill Bill OSGI Adyen plugin</name>
-    <version>0.7.0-SNAPSHOT</version>
+    <version>0.7.0</version>
     <packaging>bundle</packaging>
     <description>Kill Bill Adyen plugin</description>
     <url>http://github.com/killbill/killbill-adyen-plugin</url>
