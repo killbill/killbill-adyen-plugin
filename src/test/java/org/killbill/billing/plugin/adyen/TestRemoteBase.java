@@ -116,7 +116,9 @@ public abstract class TestRemoteBase {
         final DirectoryClient directoryClient = new DirectoryClient(adyenConfigProperties.getDirectoryUrl(),
                                                                     adyenConfigProperties.getProxyServer(),
                                                                     adyenConfigProperties.getProxyPort(),
-                                                                    !adyenConfigProperties.getTrustAllCertificates());
+                                                                    !adyenConfigProperties.getTrustAllCertificates(),
+                                                                    Integer.valueOf(adyenConfigProperties.getPaymentConnectionTimeout()),
+                                                                    Integer.valueOf(adyenConfigProperties.getPaymentReadTimeout()));
         adyenPaymentServiceProviderHostedPaymentPagePort = new AdyenPaymentServiceProviderHostedPaymentPagePort(adyenConfigProperties, adyenRequestFactory, directoryClient);
 
         adyenRecurringClient = new AdyenRecurringClient(adyenConfigProperties, loggingInInterceptor, loggingOutInterceptor, httpHeaderInterceptor);
