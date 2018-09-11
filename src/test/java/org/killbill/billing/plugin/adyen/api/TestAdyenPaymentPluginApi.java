@@ -238,7 +238,7 @@ public class TestAdyenPaymentPluginApi extends TestAdyenPaymentPluginApiBase {
 
         final Payment payment = doAuthorize(BigDecimal.TEN, PluginProperties.buildPluginProperties(ImmutableMap.<String, String>of(AdyenPaymentPluginApi.PROPERTY_CC_VERIFICATION_VALUE, CC_VERIFICATION_VALUE, "skip_gw", "true", AdyenPaymentPluginApi.PROPERTY_PSP_REFERENCE, "test_psp_ref")));
         PaymentTransactionInfoPlugin paymentTransactionInfoPlugin = adyenPaymentPluginApi.getPaymentInfo(account.getId(), payment.getId(), ImmutableList.of(), context).get(0);
-        Assert.assertEquals("test_psp_ref", paymentTransactionInfoPlugin.getFirstPaymentReferenceId());
+        assertEquals(paymentTransactionInfoPlugin.getFirstPaymentReferenceId(), "test_psp_ref");
 
         doCapture(payment, new BigDecimal("5"), ImmutableList.<PluginProperty>of(new PluginProperty("skip_gw", "true", false)));
     }
