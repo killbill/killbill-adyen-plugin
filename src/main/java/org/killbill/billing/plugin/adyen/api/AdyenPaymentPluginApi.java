@@ -695,7 +695,7 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
         if (shouldSkipAdyen(properties)) {
             response = new PurchaseResult(PaymentServiceProviderResult.AUTHORISED,
                                           null,
-                                          null,
+                                          PluginProperties.findPluginPropertyValue(PROPERTY_PSP_REFERENCE, properties),
                                           "skip_gw",
                                           PaymentServiceProviderResult.AUTHORISED.getResponses()[0],
                                           paymentData.getPaymentTransactionExternalKey(),
@@ -754,7 +754,7 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
         final PaymentModificationResponse response;
         if (shouldSkipAdyen(properties)) {
             response = new PaymentModificationResponse(PaymentServiceProviderResult.PENDING.getResponses()[0],
-                                                       (String) null,
+                                                       PluginProperties.findPluginPropertyValue(PROPERTY_PSP_REFERENCE, properties),
                                                        ImmutableMap.<Object, Object>of("skipGw", "true",
                                                                                        "merchantAccountCode", merchantAccount,
                                                                                        "merchantReference", paymentData.getPaymentTransactionExternalKey(),
