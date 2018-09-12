@@ -47,6 +47,7 @@ import org.killbill.billing.plugin.TestUtils;
 import org.killbill.billing.plugin.adyen.dao.AdyenDao;
 import org.killbill.billing.plugin.adyen.dao.gen.tables.records.AdyenPaymentMethodsRecord;
 import org.killbill.billing.plugin.api.PluginProperties;
+import org.testng.Assert;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
@@ -235,7 +236,10 @@ public class TestAdyenPaymentPluginApi extends TestAdyenPaymentPluginApiBase {
     public void testAuthorizeAndCaptureSkipGw() throws Exception {
         adyenPaymentPluginApi.addPaymentMethod(account.getId(), account.getPaymentMethodId(), adyenEmptyPaymentMethodPlugin(), true, propertiesWithCCInfo, context);
 
-        final Payment payment = doAuthorize(BigDecimal.TEN, PluginProperties.buildPluginProperties(ImmutableMap.<String, String>of(AdyenPaymentPluginApi.PROPERTY_CC_VERIFICATION_VALUE, CC_VERIFICATION_VALUE, "skip_gw", "true")));
+        final Payment payment = doAuthorize(BigDecimal.TEN, PluginProperties.buildPluginProperties(ImmutableMap.<String, String>of(AdyenPaymentPluginApi.PROPERTY_CC_VERIFICATION_VALUE, CC_VERIFICATION_VALUE, "skip_gw", "true", AdyenPaymentPluginApi.PROPERTY_PSP_REFERENCE, "test_psp_ref")));
+        PaymentTransactionInfoPlugin paymentTransactionInfoPlugin = adyenPaymentPluginApi.getPaymentInfo(account.getId(), payment.getId(), ImmutableList.of(), context).get(0);
+        assertEquals(paymentTransactionInfoPlugin.getFirstPaymentReferenceId(), "test_psp_ref");
+
         doCapture(payment, new BigDecimal("5"), ImmutableList.<PluginProperty>of(new PluginProperty("skip_gw", "true", false)));
     }
 
@@ -894,7 +898,6 @@ public class TestAdyenPaymentPluginApi extends TestAdyenPaymentPluginApiBase {
             "true".equals(PluginProperties.findPluginPropertyValue("skipGw", paymentTransactionInfoPlugin.getProperties()))) {
             assertNull(paymentTransactionInfoPlugin.getGatewayErrorCode());
             assertEquals(paymentTransactionInfoPlugin.getStatus(), PaymentPluginStatus.PROCESSED);
-            assertNull(paymentTransactionInfoPlugin.getFirstPaymentReferenceId());
         } else {
             assertNull(paymentTransactionInfoPlugin.getGatewayErrorCode());
             assertTrue(expectedPaymentPluginStatus.contains(paymentTransactionInfoPlugin.getStatus()), "was: " + paymentTransactionInfoPlugin.getStatus());
