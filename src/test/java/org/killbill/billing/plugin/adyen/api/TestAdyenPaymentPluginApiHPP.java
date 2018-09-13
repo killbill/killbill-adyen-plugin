@@ -97,6 +97,73 @@ public class TestAdyenPaymentPluginApiHPP extends TestAdyenPaymentPluginApiBase 
     }
 
     @Test(groups = "integration")
+    public void testAuthorizeAndExpireHppWithoutCompletition() throws Exception {
+        Payment payment = triggerBuildFormDescriptor(ImmutableMap.<String, String>of(AdyenPaymentPluginApi.PROPERTY_CREATE_PENDING_PAYMENT, "true",
+                                                                   AdyenPaymentPluginApi.PROPERTY_AUTH_MODE, "true"),
+                                   TransactionType.AUTHORIZE);
+        Period expirationPeriod = adyenConfigProperties.getPendingHppPaymentWithouCompletionExpirationPeriod().minusMinutes(1);
+        clock.setDeltaFromReality(expirationPeriod.toStandardDuration().getMillis());
+
+        List<PaymentTransactionInfoPlugin> expiredPaymentTransactions = adyenPaymentPluginApi.getPaymentInfo(account.getId(),
+                                                                                                                   payment.getId(),
+                                                                                                                   ImmutableList.<PluginProperty>of(),
+                                                                                                                   context);
+        assertEquals(expiredPaymentTransactions.size(), 1);
+        final PaymentTransactionInfoPlugin pendingTrx = expiredPaymentTransactions.get(0);
+        assertEquals(pendingTrx.getTransactionType(), TransactionType.AUTHORIZE);
+        assertEquals(pendingTrx.getStatus(), PaymentPluginStatus.PENDING);
+
+        expirationPeriod = adyenConfigProperties.getPendingHppPaymentWithouCompletionExpirationPeriod().plusMinutes(1);
+        clock.setDeltaFromReality(expirationPeriod.toStandardDuration().getMillis());
+
+        expiredPaymentTransactions = adyenPaymentPluginApi.getPaymentInfo(account.getId(),
+                                                                          payment.getId(),
+                                                                          ImmutableList.<PluginProperty>of(),
+                                                                          context);
+        assertEquals(expiredPaymentTransactions.size(), 1);
+        final PaymentTransactionInfoPlugin canceledTransaction = expiredPaymentTransactions.get(0);
+        assertEquals(canceledTransaction.getTransactionType(), TransactionType.AUTHORIZE);
+        assertEquals(canceledTransaction.getStatus(), PaymentPluginStatus.CANCELED);
+    }
+
+    @Test(groups = "integration")
+    public void testAuthorizeAndExpireHppWithompletition() throws Exception {
+        Payment payment = triggerBuildFormDescriptor(ImmutableMap.<String, String>of(AdyenPaymentPluginApi.PROPERTY_CREATE_PENDING_PAYMENT, "true",
+                                                                                     AdyenPaymentPluginApi.PROPERTY_AUTH_MODE, "true"),
+                                                     TransactionType.AUTHORIZE);
+        adyenPaymentPluginApi.authorizePayment(payment.getAccountId(),
+                                               payment.getId(),
+                                               payment.getTransactions().get(0).getId(),
+                                               payment.getPaymentMethodId(),
+                                               payment.getAuthAmount(),
+                                               payment.getCurrency(),
+                                               ImmutableList.of(),
+                                               context);
+        Period expirationPeriod = adyenConfigProperties.getPendingHppPaymentWithouCompletionExpirationPeriod().plusMinutes(1);
+        clock.setDeltaFromReality(expirationPeriod.toStandardDuration().getMillis());
+
+        List<PaymentTransactionInfoPlugin> paymentTransactions = adyenPaymentPluginApi.getPaymentInfo(account.getId(),
+                                                                                                             payment.getId(),
+                                                                                                             ImmutableList.<PluginProperty>of(),
+                                                                                                             context);
+        assertEquals(paymentTransactions.size(), 1);
+        final PaymentTransactionInfoPlugin pendingTrx = paymentTransactions.get(0);
+        assertEquals(pendingTrx.getTransactionType(), TransactionType.AUTHORIZE);
+        assertEquals(pendingTrx.getStatus(), PaymentPluginStatus.PENDING);
+
+        expirationPeriod = adyenConfigProperties.getPendingPaymentExpirationPeriod(null).plusMinutes(1);
+        clock.setDeltaFromReality(expirationPeriod.toStandardDuration().getMillis());
+        List<PaymentTransactionInfoPlugin> expiredPaymentTransactions = adyenPaymentPluginApi.getPaymentInfo(account.getId(),
+                                                                                                             payment.getId(),
+                                                                                                             ImmutableList.<PluginProperty>of(),
+                                                                                                             context);
+        assertEquals(expiredPaymentTransactions.size(), 1);
+        final PaymentTransactionInfoPlugin canceledTrx = expiredPaymentTransactions.get(0);
+        assertEquals(canceledTrx.getTransactionType(), TransactionType.AUTHORIZE);
+        assertEquals(canceledTrx.getStatus(), PaymentPluginStatus.CANCELED);
+    }
+
+    @Test(groups = "integration")
     public void testCancelExpiredPayment() throws Exception {
         final Payment payment = triggerBuildFormDescriptor(ImmutableMap.<String, String>of(AdyenPaymentPluginApi.PROPERTY_CREATE_PENDING_PAYMENT, "true",
                                                                                            AdyenPaymentPluginApi.PROPERTY_AUTH_MODE, "true"),
