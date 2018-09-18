@@ -97,11 +97,11 @@ public class TestAdyenPaymentPluginApiHPP extends TestAdyenPaymentPluginApiBase 
     }
 
     @Test(groups = "integration")
-    public void testAuthorizeAndExpireHppWithoutCompletition() throws Exception {
+    public void testAuthorizeAndExpireHppWithoutCompletion() throws Exception {
         Payment payment = triggerBuildFormDescriptor(ImmutableMap.<String, String>of(AdyenPaymentPluginApi.PROPERTY_CREATE_PENDING_PAYMENT, "true",
                                                                    AdyenPaymentPluginApi.PROPERTY_AUTH_MODE, "true"),
                                    TransactionType.AUTHORIZE);
-        Period expirationPeriod = adyenConfigProperties.getPendingHppPaymentWithouCompletionExpirationPeriod().minusMinutes(1);
+        Period expirationPeriod = adyenConfigProperties.getPendingHppPaymentWithoutCompletionExpirationPeriod().minusMinutes(1);
         clock.setDeltaFromReality(expirationPeriod.toStandardDuration().getMillis());
 
         List<PaymentTransactionInfoPlugin> expiredPaymentTransactions = adyenPaymentPluginApi.getPaymentInfo(account.getId(),
@@ -113,7 +113,7 @@ public class TestAdyenPaymentPluginApiHPP extends TestAdyenPaymentPluginApiBase 
         assertEquals(pendingTrx.getTransactionType(), TransactionType.AUTHORIZE);
         assertEquals(pendingTrx.getStatus(), PaymentPluginStatus.PENDING);
 
-        expirationPeriod = adyenConfigProperties.getPendingHppPaymentWithouCompletionExpirationPeriod().plusMinutes(1);
+        expirationPeriod = adyenConfigProperties.getPendingHppPaymentWithoutCompletionExpirationPeriod().plusMinutes(1);
         clock.setDeltaFromReality(expirationPeriod.toStandardDuration().getMillis());
 
         expiredPaymentTransactions = adyenPaymentPluginApi.getPaymentInfo(account.getId(),
@@ -139,7 +139,7 @@ public class TestAdyenPaymentPluginApiHPP extends TestAdyenPaymentPluginApiBase 
                                                payment.getCurrency(),
                                                ImmutableList.of(),
                                                context);
-        Period expirationPeriod = adyenConfigProperties.getPendingHppPaymentWithouCompletionExpirationPeriod().plusMinutes(1);
+        Period expirationPeriod = adyenConfigProperties.getPendingHppPaymentWithoutCompletionExpirationPeriod().plusMinutes(1);
         clock.setDeltaFromReality(expirationPeriod.toStandardDuration().getMillis());
 
         List<PaymentTransactionInfoPlugin> paymentTransactions = adyenPaymentPluginApi.getPaymentInfo(account.getId(),

@@ -781,8 +781,8 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
 
     private AdyenResponsesRecord fetchResponseIfExist(final UUID kbPaymentId, final UUID tenantId) throws PaymentPluginApiException {
         try {
-            return dao.getResponses(kbPaymentId, tenantId).stream().findFirst().orElse(null);
-        } catch (SQLException e) {
+            return dao.getSuccessfulAuthorizationResponse(kbPaymentId, tenantId);
+        } catch (final SQLException e) {
             throw new PaymentPluginApiException("SQL exception when fetching response", e);
         }
     }

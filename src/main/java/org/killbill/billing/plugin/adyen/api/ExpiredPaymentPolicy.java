@@ -83,7 +83,7 @@ public class ExpiredPaymentPolicy {
         if (is3ds(transaction)) {
             return transaction.getCreatedDate().plus(adyenProperties.getPending3DsPaymentExpirationPeriod());
         } else if(isHppBuildFormTransaction(transaction)) {
-            return transaction.getCreatedDate().plus(adyenProperties.getPendingHppPaymentWithouCompletionExpirationPeriod());
+            return transaction.getCreatedDate().plus(adyenProperties.getPendingHppPaymentWithoutCompletionExpirationPeriod());
         }
 
         final String paymentMethod = getPaymentMethod(transaction);

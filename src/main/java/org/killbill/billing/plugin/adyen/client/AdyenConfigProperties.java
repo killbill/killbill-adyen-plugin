@@ -95,7 +95,7 @@ public class AdyenConfigProperties {
 
     private final Period pendingPaymentExpirationPeriod;
 
-    private final Period pendingHppPaymentWithouCompletionExpirationPeriod;
+    private final Period pendingHppPaymentWithoutCompletionExpirationPeriod;
 
     private final Period pending3DsPaymentExpirationPeriod;
 
@@ -139,7 +139,7 @@ public class AdyenConfigProperties {
 
         this.pendingPaymentExpirationPeriod = readPendingExpirationProperty(properties);
         this.pending3DsPaymentExpirationPeriod = read3DsPendingExpirationProperty(properties);
-        this.pendingHppPaymentWithouCompletionExpirationPeriod = readPendingHppPaymentWithouCompletionExpirationPeriod(properties);
+        this.pendingHppPaymentWithoutCompletionExpirationPeriod = readPendingHppPaymentWithoutCompletionExpirationPeriod(properties);
 
         this.acquirersList = properties.getProperty(PROPERTY_PREFIX + "acquirersList");
 
@@ -204,12 +204,12 @@ public class AdyenConfigProperties {
         }
     }
 
-    private Period readPendingHppPaymentWithouCompletionExpirationPeriod(final Properties properties) {
+    private Period readPendingHppPaymentWithoutCompletionExpirationPeriod(final Properties properties) {
         final String value = properties.getProperty(PROPERTY_PREFIX + "pendingHppPaymentWithoutCompletionExpirationPeriod");
         if (value != null) {
             try {
                 return Period.parse(value);
-            } catch (IllegalArgumentException e) { /* Ignore */ }
+            } catch (final IllegalArgumentException e) { /* Ignore */ }
         }
 
         return Period.parse(DEFAULT_PENDING_HPP_PAYMENT_WITHOUT_COMPLETION_EXPIRATION_PERIOD);
@@ -441,7 +441,7 @@ public class AdyenConfigProperties {
         }
     }
 
-    public Period getPendingHppPaymentWithouCompletionExpirationPeriod() {
-        return pendingHppPaymentWithouCompletionExpirationPeriod;
+    public Period getPendingHppPaymentWithoutCompletionExpirationPeriod() {
+        return pendingHppPaymentWithoutCompletionExpirationPeriod;
     }
 }
