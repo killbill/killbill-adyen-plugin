@@ -5,6 +5,13 @@
     Initial release for Kill Bill 0.19.x
     Enlarge adyen_notifications.psp_reference to 255
 
+0.5.12
+    Introduce fromHPPCompletion plugin property
+    Fix 3DS / HPP payment expiry policy
+
+0.5.11
+    Persist PSP reference when skipGw=true (useful for migrations)
+
 0.5.10
     PostgreSQL support
     Invoicing system integration
