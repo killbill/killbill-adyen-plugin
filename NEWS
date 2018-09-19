@@ -1,3 +1,7 @@
+0.5.12
+    Introduce fromHPPCompletion plugin property
+    Fix 3DS / HPP payment expiry policy
+
 0.5.11
     Persist PSP reference when skipGw=true (useful for migrations)
 
