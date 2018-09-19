@@ -25,11 +25,16 @@ import org.killbill.billing.payment.plugin.api.PaymentPluginStatus;
 import org.killbill.billing.payment.plugin.api.PaymentTransactionInfoPlugin;
 import org.killbill.billing.plugin.adyen.client.AdyenConfigProperties;
 import org.killbill.billing.plugin.adyen.client.model.PaymentServiceProviderResult;
+import org.killbill.billing.plugin.adyen.dao.AdyenDao;
 import org.killbill.billing.plugin.adyen.dao.gen.tables.records.AdyenResponsesRecord;
 import org.killbill.billing.plugin.api.PluginProperties;
 import org.killbill.clock.Clock;
 
+import com.google.common.base.MoreObjects;
 import com.google.common.collect.Iterables;
+
+import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.PROPERTY_FROM_HPP;
+import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.PROPERTY_HPP_COMPLETION;
 
 public class ExpiredPaymentPolicy {
 
@@ -53,7 +58,7 @@ public class ExpiredPaymentPolicy {
         }
 
         if (transaction.getStatus() == PaymentPluginStatus.PENDING) {
-            final DateTime expirationDate = expirationDate(transaction);
+            final DateTime expirationDate = expirationDateForInitialTransactionType(transaction);
             return clock.getNow(expirationDate.getZone()).isAfter(expirationDate);
         }
 
@@ -74,13 +79,24 @@ public class ExpiredPaymentPolicy {
         return true;
     }
 
-    private DateTime expirationDate(final AdyenPaymentTransactionInfoPlugin transaction) {
+    private DateTime expirationDateForInitialTransactionType(final AdyenPaymentTransactionInfoPlugin transaction) {
         if (is3ds(transaction)) {
             return transaction.getCreatedDate().plus(adyenProperties.getPending3DsPaymentExpirationPeriod());
+        } else if(isHppBuildFormTransaction(transaction)) {
+            return transaction.getCreatedDate().plus(adyenProperties.getPendingHppPaymentWithoutCompletionExpirationPeriod());
         }
 
         final String paymentMethod = getPaymentMethod(transaction);
         return transaction.getCreatedDate().plus(adyenProperties.getPendingPaymentExpirationPeriod(paymentMethod));
+    }
+
+    private boolean isHppBuildFormTransaction(final AdyenPaymentTransactionInfoPlugin transaction) {
+        if (!transaction.getAdyenResponseRecord().isPresent()) {
+            return false;
+        }
+
+        final AdyenResponsesRecord adyenResponsesRecord = transaction.getAdyenResponseRecord().get();
+        return isHppPayment(adyenResponsesRecord) && !isHppCompletionTransaction(adyenResponsesRecord);
     }
 
     private boolean is3ds(final AdyenPaymentTransactionInfoPlugin transaction) {
@@ -89,7 +105,17 @@ public class ExpiredPaymentPolicy {
         }
 
         final AdyenResponsesRecord adyenResponsesRecord = transaction.getAdyenResponseRecord().get();
-        return PaymentServiceProviderResult.REDIRECT_SHOPPER.toString().equals(adyenResponsesRecord.getResultCode());
+        //Redirect shopper response can exist for both 3-DS or HPP pending payment.
+        return PaymentServiceProviderResult.REDIRECT_SHOPPER.toString().equals(adyenResponsesRecord.getResultCode())
+               && !isHppPayment(adyenResponsesRecord);
+    }
+
+    private boolean isHppCompletionTransaction(final AdyenResponsesRecord adyenResponsesRecord) {
+        return Boolean.valueOf(MoreObjects.firstNonNull(AdyenDao.fromAdditionalData(adyenResponsesRecord.getAdditionalData()).get(PROPERTY_HPP_COMPLETION), false).toString());
+    }
+
+    private boolean isHppPayment(final AdyenResponsesRecord adyenResponsesRecord) {
+        return Boolean.valueOf(MoreObjects.firstNonNull(AdyenDao.fromAdditionalData(adyenResponsesRecord.getAdditionalData()).get(PROPERTY_FROM_HPP), false).toString());
     }
 
     // paymentMethod comes from the notification, brandCode from the HPP request
