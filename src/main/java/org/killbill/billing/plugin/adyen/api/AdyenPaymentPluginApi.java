@@ -196,6 +196,7 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
     public static final String PROPERTY_REASON = "reason";
     public static final String PROPERTY_SUCCESS = "success";
     public static final String PROPERTY_FROM_HPP = "fromHPP";
+    public static final String PROPERTY_HPP_COMPLETION = "fromHPPCompletion";
     public static final String PROPERTY_FROM_HPP_TRANSACTION_STATUS = "fromHPPTransactionStatus";
     public static final String PROPERTY_PA_REQ = "PaReq";
     public static final String PROPERTY_DCC_AMOUNT_VALUE = "dccAmount";
@@ -421,20 +422,16 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
 
     @Override
     public PaymentTransactionInfoPlugin authorizePayment(final UUID kbAccountId, final UUID kbPaymentId, final UUID kbTransactionId, final UUID kbPaymentMethodId, final BigDecimal amount, final Currency currency, final Iterable<PluginProperty> properties, final CallContext context) throws PaymentPluginApiException {
-        final AdyenResponsesRecord adyenResponsesRecord;
-        try {
-            adyenResponsesRecord = dao.updateResponse(kbTransactionId, properties, context.getTenantId());
-        } catch (final SQLException e) {
-            throw new PaymentPluginApiException("HPP notification came through, but we encountered a database error", e);
-        }
-
+        final AdyenResponsesRecord adyenResponsesRecord = fetchResponseIfExist(kbPaymentId, context.getTenantId());
         final boolean isHPPCompletion = adyenResponsesRecord != null && Boolean.valueOf(MoreObjects.firstNonNull(AdyenDao.fromAdditionalData(adyenResponsesRecord.getAdditionalData()).get(PROPERTY_FROM_HPP), false).toString());
         if (!isHPPCompletion) {
+            updateResponseWithAdditionalProperties(kbTransactionId, properties, context.getTenantId());
             // We don't have any record for that payment: we want to trigger an actual authorization call (or complete a 3D-S authorization)
             return executeInitialTransaction(TransactionType.AUTHORIZE, kbAccountId, kbPaymentId, kbTransactionId, kbPaymentMethodId, amount, currency, properties, context);
         } else {
             // We already have a record for that payment transaction and we just updated the response row with additional properties
             // (the API can be called for instance after the user is redirected back from the HPP to store the PSP reference)
+            updateResponseWithAdditionalProperties(kbTransactionId, PluginProperties.merge(ImmutableMap.of(PROPERTY_HPP_COMPLETION, true), properties), context.getTenantId());
         }
 
         return buildPaymentTransactionInfoPlugin(adyenResponsesRecord);
@@ -775,6 +772,22 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
             return new AdyenPaymentTransactionInfoPlugin(kbPaymentId, kbTransactionId, transactionType, amount, currency, paymentServiceProviderResult, utcNow, response);
         } catch (final SQLException e) {
             throw new PaymentPluginApiException("Payment went through, but we encountered a database error. Payment details: " + (response.toString()), e);
+        }
+    }
+
+    private void updateResponseWithAdditionalProperties(final UUID kbTransactionId, final Iterable<PluginProperty> properties, final UUID tenantId) throws PaymentPluginApiException {
+        try {
+            dao.updateResponse(kbTransactionId, properties, tenantId);
+        } catch (final SQLException e) {
+            throw new PaymentPluginApiException("SQL exception when updating response", e);
+        }
+    }
+
+    private AdyenResponsesRecord fetchResponseIfExist(final UUID kbPaymentId, final UUID tenantId) throws PaymentPluginApiException {
+        try {
+            return dao.getSuccessfulAuthorizationResponse(kbPaymentId, tenantId);
+        } catch (final SQLException e) {
+            throw new PaymentPluginApiException("SQL exception when fetching response", e);
         }
     }
 

@@ -40,6 +40,7 @@ public class AdyenConfigProperties {
 
     public static final String DEFAULT_PENDING_PAYMENT_EXPIRATION_PERIOD = "P3d";
     public static final String DEFAULT_PENDING_3DS_PAYMENT_EXPIRATION_PERIOD = "PT3h";
+    public static final String DEFAULT_PENDING_HPP_PAYMENT_WITHOUT_COMPLETION_EXPIRATION_PERIOD = "PT3h";
     // Online (real-time) bank transfers offer merchants payment with immediate online authorisation via a customer’s bank, usually followed by next-day settlement.
     public static final List<String> DEFAULT_ONLINE_BANK_TRANSFER_PAYMENT_METHODS = ImmutableList.<String>of("giropay", "ideal", "paypal");
     // Period is a bit generous by default. Decision is synchronous with the redirect, but Adyen might have notification delays.
@@ -96,6 +97,8 @@ public class AdyenConfigProperties {
 
     private final Period pendingPaymentExpirationPeriod;
 
+    private final Period pendingHppPaymentWithoutCompletionExpirationPeriod;
+
     private final Period pending3DsPaymentExpirationPeriod;
 
     private final String currentRegion;
@@ -140,6 +143,7 @@ public class AdyenConfigProperties {
 
         this.pendingPaymentExpirationPeriod = readPendingExpirationProperty(properties);
         this.pending3DsPaymentExpirationPeriod = read3DsPendingExpirationProperty(properties);
+        this.pendingHppPaymentWithoutCompletionExpirationPeriod = readPendingHppPaymentWithoutCompletionExpirationPeriod(properties);
 
         this.acquirersList = properties.getProperty(PROPERTY_PREFIX + "acquirersList");
 
@@ -202,6 +206,17 @@ public class AdyenConfigProperties {
             final String secretAlgorithm = countryOrSkinToSecretAlgorithmMap.get(countryOrSkin);
             skinToSecretAlgorithmMap.put(skin, secretAlgorithm);
         }
+    }
+
+    private Period readPendingHppPaymentWithoutCompletionExpirationPeriod(final Properties properties) {
+        final String value = properties.getProperty(PROPERTY_PREFIX + "pendingHppPaymentWithoutCompletionExpirationPeriod");
+        if (value != null) {
+            try {
+                return Period.parse(value);
+            } catch (final IllegalArgumentException e) { /* Ignore */ }
+        }
+
+        return Period.parse(DEFAULT_PENDING_HPP_PAYMENT_WITHOUT_COMPLETION_EXPIRATION_PERIOD);
     }
 
     private Period readPendingExpirationProperty(final Properties properties) {
@@ -432,5 +447,9 @@ public class AdyenConfigProperties {
                 }
             }
         }
+    }
+
+    public Period getPendingHppPaymentWithoutCompletionExpirationPeriod() {
+        return pendingHppPaymentWithoutCompletionExpirationPeriod;
     }
 }
