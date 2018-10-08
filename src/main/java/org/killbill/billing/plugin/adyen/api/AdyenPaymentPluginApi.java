@@ -110,7 +110,6 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
 
     // Shared properties
     public static final String PROPERTY_PAYMENT_PROCESSOR_ACCOUNT_ID = "paymentProcessorAccountId";
-    public static final String PROPERTY_PAYMENT_PROCESSOR_MERCHANT_ACCOUNT_DESCRIPTOR = "paymentProcessorMerchantAccountDescriptor";
     public static final String PROPERTY_ACQUIRER = "acquirer";
     public static final String PROPERTY_ACQUIRER_MID = "acquirerMID";
     public static final String PROPERTY_SELECTED_BRAND = "selectedBrand";
@@ -992,16 +991,19 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
         return getMerchantAccount(countryCode, null, properties, context);
     }
 
-    private String getMerchantAccount(final String countryCode, @Nullable final AdyenResponsesRecord adyenResponsesRecord, final Iterable<PluginProperty> properties, final TenantContext context) {
-        final String pluginPropertyMerchantAccountDescriptor =
-                PluginProperties.findPluginPropertyValue(PROPERTY_PAYMENT_PROCESSOR_MERCHANT_ACCOUNT_DESCRIPTOR, properties);
-        if (pluginPropertyMerchantAccountDescriptor != null) {
-            return getConfigProperties(context).getMerchantAccountOfDescriptor(pluginPropertyMerchantAccountDescriptor);
-        }
-
-        final String pluginPropertyMerchantAccount = PluginProperties.findPluginPropertyValue(PROPERTY_PAYMENT_PROCESSOR_ACCOUNT_ID, properties);
-        if (pluginPropertyMerchantAccount != null) {
-            return pluginPropertyMerchantAccount;
+    private String getMerchantAccount(final String countryCode,
+                                      @Nullable final AdyenResponsesRecord adyenResponsesRecord,
+                                      final Iterable<PluginProperty> properties,
+                                      final TenantContext context) {
+        final String paymentProcessorAccountId =
+                PluginProperties.findPluginPropertyValue(PROPERTY_PAYMENT_PROCESSOR_ACCOUNT_ID, properties);
+        if (paymentProcessorAccountId != null) {
+            return getConfigProperties(context)
+                    .getMerchantAccountOfPaymentProcessorAccountId(paymentProcessorAccountId)
+                    .orElseGet(() -> {
+                        logger.info("Cannot find a mapping for '{}', fallback to use it directly", paymentProcessorAccountId);
+                        return paymentProcessorAccountId;
+                    });
         }
 
         if (adyenResponsesRecord != null) {

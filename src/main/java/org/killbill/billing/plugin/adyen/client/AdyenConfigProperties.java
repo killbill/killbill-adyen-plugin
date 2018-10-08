@@ -61,7 +61,7 @@ public class AdyenConfigProperties {
     private static final String DEFAULT_CONNECTION_TIMEOUT = "30000";
     private static final String DEFAULT_READ_TIMEOUT = "60000";
 
-    private final Map<String, String> descriptorToMerchantAccountMap = new LinkedHashMap<>();
+    private final Map<String, String> paymentProcessorAccountIdToMerchantAccountMap = new LinkedHashMap<>();
     private final Map<String, String> countryToMerchantAccountMap = new LinkedHashMap<String, String>();
     private final Map<String, String> merchantAccountToUsernameMap = new LinkedHashMap<String, String>();
     private final Map<String, String> usernameToPasswordMap = new LinkedHashMap<String, String>();
@@ -73,7 +73,7 @@ public class AdyenConfigProperties {
     private final Map<String, String> regionToRecurringUrlMap = new LinkedHashMap<String, String>();
     private final Map<String, String> regionToDirectoryUrlMap = new LinkedHashMap<String, String>();
 
-    private final String descriptorToMerchantAccount;
+    private final String paymentProcessorAccountIdToMerchantAccount;
     private final String merchantAccounts;
     private final String userNames;
     private final String passwords;
@@ -150,8 +150,8 @@ public class AdyenConfigProperties {
 
         this.acquirersList = properties.getProperty(PROPERTY_PREFIX + "acquirersList");
 
-        this.descriptorToMerchantAccount = properties.getProperty(PROPERTY_PREFIX + "descriptorToMerchantAccount");
-        refillMap(descriptorToMerchantAccountMap, descriptorToMerchantAccount);
+        this.paymentProcessorAccountIdToMerchantAccount = properties.getProperty(PROPERTY_PREFIX + "paymentProcessorAccountIdToMerchantAccount");
+        refillMap(paymentProcessorAccountIdToMerchantAccountMap, paymentProcessorAccountIdToMerchantAccount);
 
         this.merchantAccounts = properties.getProperty(PROPERTY_PREFIX + "merchantAccount");
         refillMap(countryToMerchantAccountMap, merchantAccounts);
@@ -280,9 +280,8 @@ public class AdyenConfigProperties {
         return chargebackAsFailurePaymentMethods;
     }
 
-    public String getMerchantAccountOfDescriptor(final String descriptor) {
-        return Optional.ofNullable(descriptorToMerchantAccountMap.get(descriptor))
-                       .orElseThrow(() -> new IllegalStateException(String.format("Failed to find merchant account for descriptor='%s'", descriptor)));
+    public Optional<String> getMerchantAccountOfPaymentProcessorAccountId(final String paymentProcessorAccountId) {
+        return Optional.ofNullable(paymentProcessorAccountIdToMerchantAccountMap.get(paymentProcessorAccountId));
     }
 
     public String getMerchantAccount(final String countryIsoCode) {
