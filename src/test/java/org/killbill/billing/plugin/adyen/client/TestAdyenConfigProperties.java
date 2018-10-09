@@ -22,6 +22,8 @@ import java.util.Properties;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
+import com.google.common.collect.ImmutableList;
+
 public class TestAdyenConfigProperties {
 
     @Test(groups = "fast")
@@ -36,6 +38,7 @@ public class TestAdyenConfigProperties {
         properties.put("org.killbill.billing.plugin.adyen.paymentUrl", "http://paymentUrl.com");
         properties.put("org.killbill.billing.plugin.adyen.recurringUrl", "http://recurringUrl.com");
         properties.put("org.killbill.billing.plugin.adyen.directoryUrl", "http://directoryUrl.com");
+        properties.put("org.killbill.billing.plugin.adyen.sensitiveProperties", "ip|username|email");
         final AdyenConfigProperties adyenConfigProperties = new AdyenConfigProperties(properties);
 
         Assert.assertEquals(adyenConfigProperties.getMerchantAccount("UK"), "DefaultAccount");
@@ -62,6 +65,8 @@ public class TestAdyenConfigProperties {
         Assert.assertEquals(adyenConfigProperties.getPaymentUrl(), "http://paymentUrl.com");
         Assert.assertEquals(adyenConfigProperties.getRecurringUrl(), "http://recurringUrl.com");
         Assert.assertEquals(adyenConfigProperties.getDirectoryUrl(), "http://directoryUrl.com");
+
+        Assert.assertEquals(adyenConfigProperties.getSensitivePropertyKeys(), ImmutableList.of("ip", "username", "email"));
     }
 
     @Test(groups = "fast")
