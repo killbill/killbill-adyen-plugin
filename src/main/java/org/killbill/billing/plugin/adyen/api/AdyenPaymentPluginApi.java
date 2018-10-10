@@ -618,10 +618,9 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
 
     private final Map<String, Object> propertiesToMapWithPropertyFiltering(final Iterable<PluginProperty> properties, TenantContext context) {
         final Map<String, Object> map = PluginProperties.toMap(properties);
-        for (String sensitiveKey : getConfigProperties(context).getSensitivePropertyKeys()) {
-            if (map.containsKey(sensitiveKey)) {
-               map.remove(sensitiveKey);
-            }
+        final List<String> sensitiveKeys = getConfigProperties(context).getSensitivePropertyKeys();
+        for (final String sensitiveKey : sensitiveKeys) {
+            map.remove(sensitiveKey);
         }
         return map;
     }
