@@ -41,6 +41,7 @@ The following properties are optional:
 * `org.killbill.billing.plugin.adyen.proxyPort`: Proxy server port
 * `org.killbill.billing.plugin.adyen.proxyType`: Proxy server type (HTTP or SOCKS)
 * `org.killbill.billing.plugin.adyen.trustAllCertificates`: Whether to disable SSL certificates validation
+* `org.killbill.billing.plugin.adyen.sensitiveProperties`: A list of sensitive property keys; if specified, they won't be persisted in the additional field of Adyen hpp request table.
 
 Only needed for the Tests:
 
