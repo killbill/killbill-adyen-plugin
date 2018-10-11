@@ -35,6 +35,7 @@ import org.killbill.billing.payment.plugin.api.PaymentPluginApiException;
 import org.killbill.billing.payment.plugin.api.PaymentPluginStatus;
 import org.killbill.billing.payment.plugin.api.PaymentTransactionInfoPlugin;
 import org.killbill.billing.plugin.adyen.client.model.PaymentServiceProviderResult;
+import org.killbill.billing.plugin.adyen.dao.AdyenDao;
 import org.killbill.billing.plugin.adyen.dao.gen.tables.records.AdyenResponsesRecord;
 import org.killbill.billing.plugin.api.PluginProperties;
 import org.testng.annotations.BeforeMethod;
@@ -45,6 +46,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMap.Builder;
 
 import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.PROPERTY_CREATE_PENDING_PAYMENT;
+import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.PROPERTY_IP;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertFalse;
 import static org.testng.Assert.assertNotNull;
@@ -271,6 +273,7 @@ public class TestAdyenPaymentPluginApiHPP extends TestAdyenPaymentPluginApiBase 
         propsBuilder.put(AdyenPaymentPluginApi.PROPERTY_SERVER_URL, "http://killbill.io");
         propsBuilder.put(AdyenPaymentPluginApi.PROPERTY_CURRENCY, DEFAULT_CURRENCY.name());
         propsBuilder.put(AdyenPaymentPluginApi.PROPERTY_COUNTRY, DEFAULT_COUNTRY);
+        propsBuilder.put(AdyenPaymentPluginApi.PROPERTY_IP, "0.0.0.0");
         propsBuilder.putAll(extraProperties);
         final Map<String, String> customFieldsMap = propsBuilder.build();
         final Iterable<PluginProperty> customFields = PluginProperties.buildPluginProperties(customFieldsMap);
@@ -281,6 +284,7 @@ public class TestAdyenPaymentPluginApiHPP extends TestAdyenPaymentPluginApiBase 
         assertNotNull(descriptor.getFormUrl());
         assertFalse(descriptor.getFormFields().isEmpty());
         assertNotNull(dao.getHppRequest(paymentTransactionExternalKey));
+        assertFalse(AdyenDao.fromAdditionalData(dao.getHppRequest(paymentTransactionExternalKey).getAdditionalData()).containsKey(PROPERTY_IP));
 
         // For manual testing
         //System.out.println("Redirect to: " + descriptor.getFormUrl());

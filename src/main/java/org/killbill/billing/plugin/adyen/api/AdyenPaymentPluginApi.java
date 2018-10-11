@@ -561,7 +561,7 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
                               pendingPayment == null ? null : pendingPayment.getId(),
                               pendingPayment == null ? null : pendingPayment.getTransactions().get(0).getId(),
                               merchantReference,
-                              PluginProperties.toMap(mergedProperties),
+                              propertiesToMapWithPropertyFiltering(mergedProperties, context),
                               clock.getUTCNow(),
                               context.getTenantId());
         } catch (final SQLException e) {
@@ -614,6 +614,15 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
         public T execute(final String merchantAccount, final PaymentData paymentData, final String pspReference, final SplitSettlementData splitSettlementData) {
             throw new UnsupportedOperationException();
         }
+    }
+
+    private final Map<String, Object> propertiesToMapWithPropertyFiltering(final Iterable<PluginProperty> properties, TenantContext context) {
+        final Map<String, Object> map = PluginProperties.toMap(properties);
+        final List<String> sensitiveKeys = getConfigProperties(context).getSensitivePropertyKeys();
+        for (final String sensitiveKey : sensitiveKeys) {
+            map.remove(sensitiveKey);
+        }
+        return map;
     }
 
     private PaymentTransactionInfoPlugin executeInitialTransaction(final TransactionType transactionType,
