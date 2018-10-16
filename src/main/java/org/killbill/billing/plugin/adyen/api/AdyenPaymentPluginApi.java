@@ -26,6 +26,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
 import javax.xml.bind.JAXBException;
@@ -995,14 +996,16 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
                                       @Nullable final AdyenResponsesRecord adyenResponsesRecord,
                                       final Iterable<PluginProperty> properties,
                                       final TenantContext context) {
-        final String paymentProcessorAccountId =
-                PluginProperties.findPluginPropertyValue(PROPERTY_PAYMENT_PROCESSOR_ACCOUNT_ID, properties);
+        final String paymentProcessorAccountId = PluginProperties.findPluginPropertyValue(PROPERTY_PAYMENT_PROCESSOR_ACCOUNT_ID, properties);
         if (paymentProcessorAccountId != null) {
             return getConfigProperties(context)
                     .getMerchantAccountOfPaymentProcessorAccountId(paymentProcessorAccountId)
-                    .orElseGet(() -> {
-                        logger.info("Cannot find a mapping for '{}', fallback to use it directly", paymentProcessorAccountId);
-                        return paymentProcessorAccountId;
+                    .orElseGet(new Supplier<String>() {
+                        @Override
+                        public String get() {
+                            logger.debug("Cannot find a mapping for '{}', fallback to use it directly", paymentProcessorAccountId);
+                            return paymentProcessorAccountId;
+                        }
                     });
         }
 

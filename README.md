@@ -41,6 +41,7 @@ The following properties are optional:
 * `org.killbill.billing.plugin.adyen.proxyPort`: Proxy server port
 * `org.killbill.billing.plugin.adyen.proxyType`: Proxy server type (HTTP or SOCKS)
 * `org.killbill.billing.plugin.adyen.trustAllCertificates`: Whether to disable SSL certificates validation
+* `org.killbill.billing.plugin.adyen.paymentProcessorAccountIdToMerchantAccount`: Mappings from the `paymentProcessorAccountId` to Adyen merchant accounts. The `paymentProcessorAccountId`, if exists in the plugin property, is a `String` set by the upstream logic to specify the merchant account used in the transaction.
 
 Only needed for the Tests:
 
