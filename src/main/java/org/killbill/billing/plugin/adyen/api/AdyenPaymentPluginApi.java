@@ -1001,10 +1001,7 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
         return getMerchantAccount(countryCode, null, properties, context);
     }
 
-    private String getMerchantAccount(final String countryCode,
-                                      @Nullable final AdyenResponsesRecord adyenResponsesRecord,
-                                      final Iterable<PluginProperty> properties,
-                                      final TenantContext context) {
+    private String getMerchantAccount(final String countryCode, @Nullable final AdyenResponsesRecord adyenResponsesRecord, final Iterable<PluginProperty> properties, final TenantContext context) {
         final String paymentProcessorAccountId = PluginProperties.findPluginPropertyValue(PROPERTY_PAYMENT_PROCESSOR_ACCOUNT_ID, properties);
         if (paymentProcessorAccountId != null) {
             return getConfigProperties(context)
