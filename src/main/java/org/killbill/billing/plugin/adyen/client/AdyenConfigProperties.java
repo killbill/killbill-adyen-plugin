@@ -17,6 +17,7 @@
 
 package org.killbill.billing.plugin.adyen.client;
 
+import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -72,6 +73,7 @@ public class AdyenConfigProperties {
     private final Map<String, String> regionToPaymentUrlMap = new LinkedHashMap<String, String>();
     private final Map<String, String> regionToRecurringUrlMap = new LinkedHashMap<String, String>();
     private final Map<String, String> regionToDirectoryUrlMap = new LinkedHashMap<String, String>();
+    private final List<String> sensitivePropertyKeys = new ArrayList<>();
 
     private final String paymentProcessorAccountIdToMerchantAccount;
     private final String merchantAccounts;
@@ -211,6 +213,17 @@ public class AdyenConfigProperties {
             final String skin = merchantAccountOrNull != null ? merchantAccountToSkinMap.get(merchantAccountOrNull) : countryOrSkin;
             final String secretAlgorithm = countryOrSkinToSecretAlgorithmMap.get(countryOrSkin);
             skinToSecretAlgorithmMap.put(skin, secretAlgorithm);
+        }
+
+        readSensitivePropertyKeys(properties.getProperty(PROPERTY_PREFIX + "sensitiveProperties"));
+    }
+
+    private void readSensitivePropertyKeys(final String property) {
+        sensitivePropertyKeys.clear();
+        if(!Strings.isNullOrEmpty(property)) {
+            for (final String entry : property.split("\\" + ENTRY_DELIMITER)) {
+                sensitivePropertyKeys.add(entry.toLowerCase());
+            }
         }
     }
 
@@ -416,6 +429,10 @@ public class AdyenConfigProperties {
 
     public String getRecurringReadTimeout() {
         return recurringReadTimeout;
+    }
+
+    public List<String> getSensitivePropertyKeys() {
+        return sensitivePropertyKeys;
     }
 
     private static String adjustCountryCode(final String countryIsoCode) {
