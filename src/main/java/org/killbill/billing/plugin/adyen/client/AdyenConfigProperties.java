@@ -23,6 +23,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Properties;
 import java.util.Set;
 
@@ -61,6 +62,7 @@ public class AdyenConfigProperties {
     private static final String DEFAULT_CONNECTION_TIMEOUT = "30000";
     private static final String DEFAULT_READ_TIMEOUT = "60000";
 
+    private final Map<String, String> paymentProcessorAccountIdToMerchantAccountMap = new LinkedHashMap<>();
     private final Map<String, String> countryToMerchantAccountMap = new LinkedHashMap<String, String>();
     private final Map<String, String> merchantAccountToUsernameMap = new LinkedHashMap<String, String>();
     private final Map<String, String> usernameToPasswordMap = new LinkedHashMap<String, String>();
@@ -73,6 +75,7 @@ public class AdyenConfigProperties {
     private final Map<String, String> regionToDirectoryUrlMap = new LinkedHashMap<String, String>();
     private final List<String> sensitivePropertyKeys = new ArrayList<>();
 
+    private final String paymentProcessorAccountIdToMerchantAccount;
     private final String merchantAccounts;
     private final String userNames;
     private final String passwords;
@@ -148,6 +151,9 @@ public class AdyenConfigProperties {
         this.pendingHppPaymentWithoutCompletionExpirationPeriod = readPendingHppPaymentWithoutCompletionExpirationPeriod(properties);
 
         this.acquirersList = properties.getProperty(PROPERTY_PREFIX + "acquirersList");
+
+        this.paymentProcessorAccountIdToMerchantAccount = properties.getProperty(PROPERTY_PREFIX + "paymentProcessorAccountIdToMerchantAccount");
+        refillMap(paymentProcessorAccountIdToMerchantAccountMap, paymentProcessorAccountIdToMerchantAccount);
 
         this.merchantAccounts = properties.getProperty(PROPERTY_PREFIX + "merchantAccount");
         refillMap(countryToMerchantAccountMap, merchantAccounts);
@@ -285,6 +291,10 @@ public class AdyenConfigProperties {
 
     public Set<String> getChargebackAsFailurePaymentMethods() {
         return chargebackAsFailurePaymentMethods;
+    }
+
+    public Optional<String> getMerchantAccountOfPaymentProcessorAccountId(final String paymentProcessorAccountId) {
+        return Optional.ofNullable(paymentProcessorAccountIdToMerchantAccountMap.get(paymentProcessorAccountId));
     }
 
     public String getMerchantAccount(final String countryIsoCode) {
