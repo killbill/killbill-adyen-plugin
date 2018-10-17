@@ -26,6 +26,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.function.Supplier;
 
 import javax.annotation.Nullable;
 import javax.xml.bind.JAXBException;
@@ -563,7 +564,7 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
                               pendingPayment == null ? null : pendingPayment.getId(),
                               pendingPayment == null ? null : pendingPayment.getTransactions().get(0).getId(),
                               merchantReference,
-                              PluginProperties.toMap(mergedProperties),
+                              propertiesToMapWithPropertyFiltering(mergedProperties, context),
                               clock.getUTCNow(),
                               context.getTenantId());
         } catch (final SQLException e) {
@@ -616,6 +617,15 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
         public T execute(final String merchantAccount, final PaymentData paymentData, final String pspReference, final SplitSettlementData splitSettlementData, final Map<String, String> additionalData) {
             throw new UnsupportedOperationException();
         }
+    }
+
+    private final Map<String, Object> propertiesToMapWithPropertyFiltering(final Iterable<PluginProperty> properties, TenantContext context) {
+        final Map<String, Object> map = PluginProperties.toMap(properties);
+        final List<String> sensitiveKeys = getConfigProperties(context).getSensitivePropertyKeys();
+        for (final String sensitiveKey : sensitiveKeys) {
+            map.remove(sensitiveKey);
+        }
+        return map;
     }
 
     private PaymentTransactionInfoPlugin executeInitialTransaction(final TransactionType transactionType,
@@ -1024,9 +1034,17 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
     }
 
     private String getMerchantAccount(final String countryCode, @Nullable final AdyenResponsesRecord adyenResponsesRecord, final Iterable<PluginProperty> properties, final TenantContext context) {
-        final String pluginPropertyMerchantAccount = PluginProperties.findPluginPropertyValue(PROPERTY_PAYMENT_PROCESSOR_ACCOUNT_ID, properties);
-        if (pluginPropertyMerchantAccount != null) {
-            return pluginPropertyMerchantAccount;
+        final String paymentProcessorAccountId = PluginProperties.findPluginPropertyValue(PROPERTY_PAYMENT_PROCESSOR_ACCOUNT_ID, properties);
+        if (paymentProcessorAccountId != null) {
+            return getConfigProperties(context)
+                    .getMerchantAccountOfPaymentProcessorAccountId(paymentProcessorAccountId)
+                    .orElseGet(new Supplier<String>() {
+                        @Override
+                        public String get() {
+                            logger.debug("Cannot find a mapping for '{}', fallback to use it directly", paymentProcessorAccountId);
+                            return paymentProcessorAccountId;
+                        }
+                    });
         }
 
         if (adyenResponsesRecord != null) {

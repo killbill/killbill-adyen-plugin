@@ -17,11 +17,13 @@
 
 package org.killbill.billing.plugin.adyen.client;
 
+import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Properties;
 import java.util.Set;
 
@@ -60,6 +62,7 @@ public class AdyenConfigProperties {
     private static final String DEFAULT_CONNECTION_TIMEOUT = "30000";
     private static final String DEFAULT_READ_TIMEOUT = "60000";
 
+    private final Map<String, String> paymentProcessorAccountIdToMerchantAccountMap = new LinkedHashMap<>();
     private final Map<String, String> countryToMerchantAccountMap = new LinkedHashMap<String, String>();
     private final Map<String, String> merchantAccountToUsernameMap = new LinkedHashMap<String, String>();
     private final Map<String, String> usernameToPasswordMap = new LinkedHashMap<String, String>();
@@ -70,7 +73,9 @@ public class AdyenConfigProperties {
     private final Map<String, String> regionToPaymentUrlMap = new LinkedHashMap<String, String>();
     private final Map<String, String> regionToRecurringUrlMap = new LinkedHashMap<String, String>();
     private final Map<String, String> regionToDirectoryUrlMap = new LinkedHashMap<String, String>();
+    private final List<String> sensitivePropertyKeys = new ArrayList<>();
 
+    private final String paymentProcessorAccountIdToMerchantAccount;
     private final String merchantAccounts;
     private final String userNames;
     private final String passwords;
@@ -147,6 +152,9 @@ public class AdyenConfigProperties {
 
         this.acquirersList = properties.getProperty(PROPERTY_PREFIX + "acquirersList");
 
+        this.paymentProcessorAccountIdToMerchantAccount = properties.getProperty(PROPERTY_PREFIX + "paymentProcessorAccountIdToMerchantAccount");
+        refillMap(paymentProcessorAccountIdToMerchantAccountMap, paymentProcessorAccountIdToMerchantAccount);
+
         this.merchantAccounts = properties.getProperty(PROPERTY_PREFIX + "merchantAccount");
         refillMap(countryToMerchantAccountMap, merchantAccounts);
         if (this.countryToMerchantAccountMap.containsKey(FALL_BACK_MERCHANT_ACCOUNT_KEY)) {
@@ -205,6 +213,17 @@ public class AdyenConfigProperties {
             final String skin = merchantAccountOrNull != null ? merchantAccountToSkinMap.get(merchantAccountOrNull) : countryOrSkin;
             final String secretAlgorithm = countryOrSkinToSecretAlgorithmMap.get(countryOrSkin);
             skinToSecretAlgorithmMap.put(skin, secretAlgorithm);
+        }
+
+        readSensitivePropertyKeys(properties.getProperty(PROPERTY_PREFIX + "sensitiveProperties"));
+    }
+
+    private void readSensitivePropertyKeys(final String property) {
+        sensitivePropertyKeys.clear();
+        if(!Strings.isNullOrEmpty(property)) {
+            for (final String entry : property.split("\\" + ENTRY_DELIMITER)) {
+                sensitivePropertyKeys.add(entry.toLowerCase());
+            }
         }
     }
 
@@ -272,6 +291,10 @@ public class AdyenConfigProperties {
 
     public Set<String> getChargebackAsFailurePaymentMethods() {
         return chargebackAsFailurePaymentMethods;
+    }
+
+    public Optional<String> getMerchantAccountOfPaymentProcessorAccountId(final String paymentProcessorAccountId) {
+        return Optional.ofNullable(paymentProcessorAccountIdToMerchantAccountMap.get(paymentProcessorAccountId));
     }
 
     public String getMerchantAccount(final String countryIsoCode) {
@@ -406,6 +429,10 @@ public class AdyenConfigProperties {
 
     public String getRecurringReadTimeout() {
         return recurringReadTimeout;
+    }
+
+    public List<String> getSensitivePropertyKeys() {
+        return sensitivePropertyKeys;
     }
 
     private static String adjustCountryCode(final String countryIsoCode) {
