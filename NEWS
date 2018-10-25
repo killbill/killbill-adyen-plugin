@@ -1,3 +1,6 @@
+0.5.14
+    Make sensitive keys parsing case sensitive
+
 0.5.13
     Introduce org.killbill.billing.plugin.adyen.paymentProcessorAccountIdToMerchantAccount config property
     Introduce org.killbill.billing.plugin.adyen.sensitiveProperties config property to filter out sensitive information
