@@ -222,7 +222,7 @@ public class AdyenConfigProperties {
         sensitivePropertyKeys.clear();
         if(!Strings.isNullOrEmpty(property)) {
             for (final String entry : property.split("\\" + ENTRY_DELIMITER)) {
-                sensitivePropertyKeys.add(entry.toLowerCase());
+                sensitivePropertyKeys.add(entry);
             }
         }
     }

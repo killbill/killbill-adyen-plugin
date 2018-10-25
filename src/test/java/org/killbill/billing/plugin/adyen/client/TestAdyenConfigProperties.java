@@ -38,7 +38,7 @@ public class TestAdyenConfigProperties {
         properties.put("org.killbill.billing.plugin.adyen.paymentUrl", "http://paymentUrl.com");
         properties.put("org.killbill.billing.plugin.adyen.recurringUrl", "http://recurringUrl.com");
         properties.put("org.killbill.billing.plugin.adyen.directoryUrl", "http://directoryUrl.com");
-        properties.put("org.killbill.billing.plugin.adyen.sensitiveProperties", "ip|username|email");
+        properties.put("org.killbill.billing.plugin.adyen.sensitiveProperties", "ip|username|email|paymentBillingRecord");
         final AdyenConfigProperties adyenConfigProperties = new AdyenConfigProperties(properties);
 
         Assert.assertEquals(adyenConfigProperties.getMerchantAccount("UK"), "DefaultAccount");
@@ -66,7 +66,7 @@ public class TestAdyenConfigProperties {
         Assert.assertEquals(adyenConfigProperties.getRecurringUrl(), "http://recurringUrl.com");
         Assert.assertEquals(adyenConfigProperties.getDirectoryUrl(), "http://directoryUrl.com");
 
-        Assert.assertEquals(adyenConfigProperties.getSensitivePropertyKeys(), ImmutableList.of("ip", "username", "email"));
+        Assert.assertEquals(adyenConfigProperties.getSensitivePropertyKeys(), ImmutableList.of("ip", "username", "email", "paymentBillingRecord"));
     }
 
     @Test(groups = "fast")
