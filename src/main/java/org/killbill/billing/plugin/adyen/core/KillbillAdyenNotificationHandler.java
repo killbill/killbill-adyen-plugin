@@ -80,6 +80,7 @@ public class KillbillAdyenNotificationHandler implements AdyenNotificationHandle
                                                                                                                                        .put("REFUND_WITH_DATA", TransactionType.CREDIT)
                                                                                                                                        .put("CHARGEBACK", TransactionType.CHARGEBACK)
                                                                                                                                        .put("CHARGEBACK_REVERSED", TransactionType.CHARGEBACK)
+                                                                                                                                       .put("SECOND_CHARGEBACK", TransactionType.CHARGEBACK)
                                                                                                                                        .build();
 
     private final AdyenConfigPropertiesConfigurationHandler adyenConfigPropertiesConfigurationHandler;
@@ -235,6 +236,10 @@ public class KillbillAdyenNotificationHandler implements AdyenNotificationHandle
         } else if ("CHARGEBACK_REVERSED".equals(notification.getEventCode())) {
             // When you win the case and the funds are returned to your account we send out the chargeback_reversed notification.
             paymentPluginStatus = PaymentPluginStatus.ERROR;
+        } else if ("SECOND_CHARGEBACK".equals(notification.getEventCode())) {
+            // Sent when the disputed amount is deducted from your account after the issuing bank declines the material submitted
+            // during defense of the original chargeback.
+            paymentPluginStatus = PaymentPluginStatus.PROCESSED;
         } else {
             paymentPluginStatus = PaymentPluginStatus.UNDEFINED;
         }
