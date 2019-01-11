@@ -35,6 +35,7 @@ import org.joda.time.DateTime;
 import org.killbill.adyen.recurring.RecurringDetail;
 import org.killbill.adyen.recurring.ServiceException;
 import org.killbill.billing.account.api.Account;
+import org.killbill.billing.account.api.AccountApiException;
 import org.killbill.billing.account.api.AccountData;
 import org.killbill.billing.catalog.api.Currency;
 import org.killbill.billing.osgi.libs.killbill.OSGIConfigPropertiesService;
@@ -84,6 +85,7 @@ import org.killbill.billing.plugin.adyen.dao.gen.tables.records.AdyenHppRequests
 import org.killbill.billing.plugin.adyen.dao.gen.tables.records.AdyenPaymentMethodsRecord;
 import org.killbill.billing.plugin.adyen.dao.gen.tables.records.AdyenResponsesRecord;
 import org.killbill.billing.plugin.api.PluginProperties;
+import org.killbill.billing.plugin.api.core.PaymentApiWrapper;
 import org.killbill.billing.plugin.api.payment.PluginPaymentPluginApi;
 import org.killbill.billing.plugin.util.KillBillMoney;
 import org.killbill.billing.util.callcontext.CallContext;
@@ -106,6 +108,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 import static org.killbill.billing.plugin.adyen.api.mapping.UserDataMappingService.toUserData;
+import static org.killbill.billing.plugin.api.PluginProperties.merge;
 
 public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponsesRecord, AdyenResponses, AdyenPaymentMethodsRecord, AdyenPaymentMethods> {
 
@@ -261,7 +264,7 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
 
         try {
             dao.updateResponse(expiredTransaction.getKbTransactionPaymentId(),
-                               PluginProperties.merge(expiredTransaction.getProperties(), updatedStatusProperties),
+                               merge(expiredTransaction.getProperties(), updatedStatusProperties),
                                context.getTenantId());
         } catch (final SQLException e) {
             logService.log(LogService.LOG_ERROR, "Unable to update canceled payment", e);
@@ -422,18 +425,20 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
     @Override
     public PaymentTransactionInfoPlugin authorizePayment(final UUID kbAccountId, final UUID kbPaymentId, final UUID kbTransactionId, final UUID kbPaymentMethodId, final BigDecimal amount, final Currency currency, final Iterable<PluginProperty> properties, final CallContext context) throws PaymentPluginApiException {
         final AdyenResponsesRecord adyenResponsesRecord = fetchResponseIfExist(kbPaymentId, context.getTenantId());
-        final boolean isHPPCompletion = adyenResponsesRecord != null && Boolean.valueOf(MoreObjects.firstNonNull(AdyenDao.fromAdditionalData(adyenResponsesRecord.getAdditionalData()).get(PROPERTY_FROM_HPP), false).toString());
-        if (!isHPPCompletion) {
-            updateResponseWithAdditionalProperties(kbTransactionId, properties, context.getTenantId());
+        final boolean isHPPCompletionWithPendingPayment = adyenResponsesRecord != null && Boolean.valueOf(MoreObjects.firstNonNull(AdyenDao.fromAdditionalData(adyenResponsesRecord.getAdditionalData()).get(PROPERTY_FROM_HPP), false).toString());
+        if (!isHPPCompletionWithPendingPayment) {
+            updateResponseWithAdditionalProperties(kbTransactionId, null, properties, context.getTenantId());
             // We don't have any record for that payment: we want to trigger an actual authorization call (or complete a 3D-S authorization)
             return executeInitialTransaction(TransactionType.AUTHORIZE, kbAccountId, kbPaymentId, kbTransactionId, kbPaymentMethodId, amount, currency, properties, context);
         } else {
             // We already have a record for that payment transaction and we just updated the response row with additional properties
             // (the API can be called for instance after the user is redirected back from the HPP to store the PSP reference)
-            updateResponseWithAdditionalProperties(kbTransactionId, PluginProperties.merge(ImmutableMap.of(PROPERTY_HPP_COMPLETION, true), properties), context.getTenantId());
+            return hppCompleteAuthWithPendingPayment(kbAccountId,
+                                                     kbPaymentId,
+                                                     kbTransactionId,
+                                                     merge(ImmutableMap.of(PROPERTY_HPP_COMPLETION, true), properties),
+                                                     context);
         }
-
-        return buildPaymentTransactionInfoPlugin(adyenResponsesRecord);
     }
 
     @Override
@@ -468,7 +473,7 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
         if (adyenResponsesRecord == null) {
             // We don't have any record for that payment: we want to trigger an actual purchase (auto-capture) call
             final String captureDelayHours = PluginProperties.getValue(PROPERTY_CAPTURE_DELAY_HOURS, "0", properties);
-            final Iterable<PluginProperty> overriddenProperties = PluginProperties.merge(properties, ImmutableList.<PluginProperty>of(new PluginProperty(PROPERTY_CAPTURE_DELAY_HOURS, captureDelayHours, false)));
+            final Iterable<PluginProperty> overriddenProperties = merge(properties, ImmutableList.<PluginProperty>of(new PluginProperty(PROPERTY_CAPTURE_DELAY_HOURS, captureDelayHours, false)));
             return executeInitialTransaction(TransactionType.PURCHASE, kbAccountId, kbPaymentId, kbTransactionId, kbPaymentMethodId, amount, currency, overriddenProperties, context);
         } else {
             // We already have a record for that payment transaction and we just updated the response row with additional properties
@@ -529,7 +534,7 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
     @Override
     public HostedPaymentPageFormDescriptor buildFormDescriptor(final UUID kbAccountId, final Iterable<PluginProperty> customFields, final Iterable<PluginProperty> properties, final CallContext context) throws PaymentPluginApiException {
         //noinspection unchecked
-        final Iterable<PluginProperty> mergedProperties = PluginProperties.merge(customFields, properties);
+        final Iterable<PluginProperty> mergedProperties = merge(customFields, properties);
 
         final Account account = getAccount(kbAccountId, context);
         final String countryCode = getCountryCode(account, null, properties);
@@ -617,6 +622,59 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
         }
     }
 
+    private PaymentTransactionInfoPlugin hppCompleteAuthWithPendingPayment(final UUID accountId,
+                                                                           final UUID kbPaymentId,
+                                                                           final UUID kbTransactionId,
+                                                                           final Iterable<PluginProperty> properties,
+                                                                           final CallContext context) throws PaymentPluginApiException {
+        final HppCompletedResult hppCompletedResult = AdyenPaymentServiceProviderHostedPaymentPagePort.parseAndVerifyRequestIntegrity(PluginProperties.toStringMap(properties), getConfigProperties(context),logger);
+        final PaymentServiceProviderResult authResult = PaymentServiceProviderResult.getPaymentResultForId(hppCompletedResult.getAuthResult());
+        AdyenResponsesRecord adyenResponsesRecord;
+        if(needCancelHppPayment(authResult)) {
+            cancelHppPayment(accountId, kbPaymentId, kbTransactionId, context);
+            final Iterable<PluginProperty> propertyWithErrorFromHppStatus = PluginProperties.merge(ImmutableMap.of(PROPERTY_FROM_HPP_TRANSACTION_STATUS,
+                                                                                                                   PaymentPluginStatus.ERROR),
+                                                                                                   properties);
+            adyenResponsesRecord = updateResponseWithAdditionalProperties(kbTransactionId,
+                                                                          authResult,
+                                                                          propertyWithErrorFromHppStatus,
+                                                                          context.getTenantId());
+        } else {
+            adyenResponsesRecord = updateResponseWithAdditionalProperties(kbTransactionId,
+                                                                          null,
+                                                                          properties,
+                                                                          context.getTenantId());
+        }
+        return buildPaymentTransactionInfoPlugin(adyenResponsesRecord);
+    }
+
+    private boolean needCancelHppPayment(final PaymentServiceProviderResult authResult) {
+        //We only cancel the hpp payment during a complete request if the authResult is either canceled or refused.
+        //In all other cases, we keep the status in pending until the confirmation of a notification.
+        return ImmutableList.of(PaymentServiceProviderResult.CANCELLED,
+                                PaymentServiceProviderResult.REFUSED)
+                            .contains(authResult);
+    }
+
+    private void cancelHppPayment(final UUID accountId,
+                                  final UUID kbPaymentId,
+                                  final UUID kbPaymentTransactionId,
+                                  final CallContext context) {
+        try {
+            PaymentApiWrapper paymentApiWrapper = new PaymentApiWrapper(killbillAPI, false);
+            paymentApiWrapper.transitionPendingTransaction(killbillAPI.getAccountUserApi().getAccountById(accountId, context),
+                                                           kbPaymentId,
+                                                           kbPaymentTransactionId,
+                                                           PaymentPluginStatus.CANCELED,
+                                                           context);
+        } catch (AccountApiException e) {
+            //Swallow exceptions so the original payment response record will still be updated.
+            logger.error(String.format("Unable to fetch the account based on accountId='{0}'", accountId));
+        } catch (PaymentApiException e) {
+            logger.error(String.format("Unable to cancel pending payment for paymentId='{0}'; transactionId='{1}'", kbPaymentId, kbPaymentTransactionId));
+        }
+    }
+
     private final Map<String, Object> propertiesToMapWithPropertyFiltering(final Iterable<PluginProperty> properties, TenantContext context) {
         final Map<String, Object> map = PluginProperties.toMap(properties);
         final List<String> sensitiveKeys = getConfigProperties(context).getSensitivePropertyKeys();
@@ -689,7 +747,7 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
         // Pull extra properties from the payment method (such as the customerId)
         final Iterable<PluginProperty> additionalPropertiesFromRecord = buildPaymentMethodPlugin(nonNullPaymentMethodsRecord).getProperties();
         //noinspection unchecked
-        final Iterable<PluginProperty> mergedProperties = PluginProperties.merge(additionalPropertiesFromRecord, properties);
+        final Iterable<PluginProperty> mergedProperties = merge(additionalPropertiesFromRecord, properties);
         final PaymentData paymentData = buildPaymentData(merchantAccount, countryCode, account, kbPaymentId, kbTransactionId, nonNullPaymentMethodsRecord, amount, currency, mergedProperties, context);
         final UserData userData = toUserData(account, mergedProperties);
         final SplitSettlementData splitSettlementData = buildSplitSettlementData(currency, properties);
@@ -706,7 +764,7 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
                                           ImmutableMap.<String, String>of("skipGw", "true",
                                                                           AdyenPaymentPluginApi.PROPERTY_MERCHANT_ACCOUNT_CODE, merchantAccount,
                                                                           "merchantReference", paymentData.getPaymentTransactionExternalKey(),
-                                                                          "fromHPPTransactionStatus", "PROCESSED"));
+                                                                          PROPERTY_FROM_HPP_TRANSACTION_STATUS, "PROCESSED"));
         } else {
             response = transactionExecutor.execute(merchantAccount, paymentData, userData, splitSettlementData);
         }
@@ -761,7 +819,7 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
                                                        ImmutableMap.<Object, Object>of("skipGw", "true",
                                                                                        "merchantAccountCode", merchantAccount,
                                                                                        "merchantReference", paymentData.getPaymentTransactionExternalKey(),
-                                                                                       "fromHPPTransactionStatus", "PROCESSED"));
+                                                                                       PROPERTY_FROM_HPP_TRANSACTION_STATUS, "PROCESSED"));
         } else {
             response = transactionExecutor.execute(merchantAccount, paymentData, previousResponse.getPspReference(), splitSettlementData);
         }
@@ -781,9 +839,16 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
         }
     }
 
-    private void updateResponseWithAdditionalProperties(final UUID kbTransactionId, final Iterable<PluginProperty> properties, final UUID tenantId) throws PaymentPluginApiException {
+    private AdyenResponsesRecord updateResponseWithAdditionalProperties(final UUID kbTransactionId,
+                                                                        @Nullable PaymentServiceProviderResult paymentResult,
+                                                                        final Iterable<PluginProperty> properties,
+                                                                        final UUID tenantId) throws PaymentPluginApiException {
         try {
-            dao.updateResponse(kbTransactionId, properties, tenantId);
+            if (paymentResult == null) {
+                return dao.updateResponse(kbTransactionId, properties, tenantId);
+            } else {
+                return dao.updateResponse(kbTransactionId, paymentResult, properties, tenantId);
+            }
         } catch (final SQLException e) {
             throw new PaymentPluginApiException("SQL exception when updating response", e);
         }

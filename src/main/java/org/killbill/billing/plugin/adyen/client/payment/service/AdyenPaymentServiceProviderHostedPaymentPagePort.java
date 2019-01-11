@@ -100,9 +100,14 @@ public class AdyenPaymentServiceProviderHostedPaymentPagePort extends BaseAdyenP
         return directoryClient.getDirectory(params);
     }
 
-    // Used to verify completion
-    @SuppressWarnings("deprecation")
+
     public HppCompletedResult parseAndVerifyRequestIntegrity(final Map<String, String> requestParameterMap) {
+        return parseAndVerifyRequestIntegrity(requestParameterMap, adyenConfigProperties, logger);
+    }
+
+    public static HppCompletedResult parseAndVerifyRequestIntegrity(final Map<String, String> requestParameterMap,
+                                                                    final AdyenConfigProperties adyenConfigProperties,
+                                                                    final Logger logger) {
         final HppCompletedResult hppCompletedResult = new HppCompletedResult(requestParameterMap);
         final String merchantSig = requestParameterMap.get("merchantSig");
         // Note! It's the caller responsibility to verify a merchantSig is passed to enable request tampering verification

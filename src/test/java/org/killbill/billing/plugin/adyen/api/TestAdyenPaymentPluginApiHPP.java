@@ -18,6 +18,7 @@
 package org.killbill.billing.plugin.adyen.api;
 
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -29,6 +30,7 @@ import org.joda.time.Period;
 import org.killbill.billing.payment.api.Payment;
 import org.killbill.billing.payment.api.PaymentApiException;
 import org.killbill.billing.payment.api.PluginProperty;
+import org.killbill.billing.payment.api.TransactionStatus;
 import org.killbill.billing.payment.api.TransactionType;
 import org.killbill.billing.payment.plugin.api.HostedPaymentPageFormDescriptor;
 import org.killbill.billing.payment.plugin.api.PaymentPluginApiException;
@@ -38,7 +40,9 @@ import org.killbill.billing.plugin.adyen.client.model.PaymentServiceProviderResu
 import org.killbill.billing.plugin.adyen.dao.AdyenDao;
 import org.killbill.billing.plugin.adyen.dao.gen.tables.records.AdyenResponsesRecord;
 import org.killbill.billing.plugin.api.PluginProperties;
+import org.testng.Assert;
 import org.testng.annotations.BeforeMethod;
+import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
 import com.google.common.collect.ImmutableList;
@@ -129,7 +133,7 @@ public class TestAdyenPaymentPluginApiHPP extends TestAdyenPaymentPluginApiBase 
     }
 
     @Test(groups = "integration")
-    public void testAuthorizeAndExpireHppWithompletition() throws Exception {
+    public void testAuthorizeAndExpireHppWithCompletion() throws Exception {
         Payment payment = triggerBuildFormDescriptor(ImmutableMap.<String, String>of(AdyenPaymentPluginApi.PROPERTY_CREATE_PENDING_PAYMENT, "true",
                                                                                      AdyenPaymentPluginApi.PROPERTY_AUTH_MODE, "true"),
                                                      TransactionType.AUTHORIZE);
@@ -170,8 +174,8 @@ public class TestAdyenPaymentPluginApiHPP extends TestAdyenPaymentPluginApiBase 
         final Payment payment = triggerBuildFormDescriptor(ImmutableMap.<String, String>of(AdyenPaymentPluginApi.PROPERTY_CREATE_PENDING_PAYMENT, "true",
                                                                                            AdyenPaymentPluginApi.PROPERTY_AUTH_MODE, "true"),
                                                            TransactionType.AUTHORIZE);
-        final Period expirationPeriod = adyenConfigProperties.getPendingPaymentExpirationPeriod(null);
-        assertEquals(expirationPeriod.toString(), "P3D");
+        final Period expirationPeriod = adyenConfigProperties.getPendingHppPaymentWithoutCompletionExpirationPeriod();
+        assertEquals(expirationPeriod.toString(), "PT50M");
 
         final Period preExpirationPeriod = expirationPeriod.minusMinutes(1);
         clock.setDeltaFromReality(preExpirationPeriod.toStandardDuration().getMillis());
@@ -195,8 +199,8 @@ public class TestAdyenPaymentPluginApiHPP extends TestAdyenPaymentPluginApiBase 
                                                            TransactionType.AUTHORIZE);
         dao.updateResponse(payment.getTransactions().get(0).getId(), PaymentServiceProviderResult.PENDING, ImmutableList.<PluginProperty>of(new PluginProperty("paymentMethod", "paypal", false)), context.getTenantId());
 
-        final Period expirationPeriod = adyenConfigProperties.getPendingPaymentExpirationPeriod("paypal");
-        assertEquals(expirationPeriod.toString(), "P1D");
+        final Period expirationPeriod = adyenConfigProperties.getPendingHppPaymentWithoutCompletionExpirationPeriod();
+        assertEquals(expirationPeriod.toString(), "PT50M");
 
         final Period preExpirationPeriod = expirationPeriod.minusMinutes(1);
         clock.setDeltaFromReality(preExpirationPeriod.toStandardDuration().getMillis());
@@ -220,8 +224,8 @@ public class TestAdyenPaymentPluginApiHPP extends TestAdyenPaymentPluginApiBase 
                                                                                            AdyenPaymentPluginApi.PROPERTY_BRAND_CODE, "paypal"),
                                                            TransactionType.AUTHORIZE);
 
-        final Period expirationPeriod = adyenConfigProperties.getPendingPaymentExpirationPeriod("paypal");
-        assertEquals(expirationPeriod.toString(), "P1D");
+        final Period expirationPeriod = adyenConfigProperties.getPendingHppPaymentWithoutCompletionExpirationPeriod();
+        assertEquals(expirationPeriod.toString(), "PT50M");
 
         final Period preExpirationPeriod = expirationPeriod.minusMinutes(1);
         clock.setDeltaFromReality(preExpirationPeriod.toStandardDuration().getMillis());
@@ -238,6 +242,44 @@ public class TestAdyenPaymentPluginApiHPP extends TestAdyenPaymentPluginApiBase 
         assertEquals(updateMessage.getValue(), "Payment Expired - Cancelled by Janitor");
     }
 
+    @Test(groups = "integration",
+          dataProvider = "authResultNotToTriggerCancelHppPayment")
+    public void testNotCancelHppPaymentViaCompletionRequest(final String authResult) throws Exception {
+        Payment payment = triggerBuildFormDescriptor(ImmutableMap.<String, String>of(AdyenPaymentPluginApi.PROPERTY_CREATE_PENDING_PAYMENT, "true",
+                                                                                     AdyenPaymentPluginApi.PROPERTY_AUTH_MODE, "true"),
+                                                     TransactionType.AUTHORIZE);
+        PaymentTransactionInfoPlugin trxInfo = adyenPaymentPluginApi.authorizePayment(payment.getAccountId(),
+                                                                                      payment.getId(),
+                                                                                      payment.getTransactions().get(0).getId(),
+                                                                                      payment.getPaymentMethodId(),
+                                                                                      payment.getAuthAmount(),
+                                                                                      payment.getCurrency(),
+                                                                                      PluginProperties.buildPluginProperties(ImmutableMap.<String, String>of("authResult", authResult)),
+                                                                                      context);
+        Assert.assertEquals(trxInfo.getStatus(), PaymentPluginStatus.PENDING);
+        Assert.assertEquals(payment.getTransactions().get(0).getTransactionStatus(), TransactionStatus.PENDING);
+        Assert.assertEquals(payment.getTransactions().get(0).getPaymentInfoPlugin().getStatus(), PaymentPluginStatus.PENDING);
+    }
+
+    @Test(groups = "integration",
+          dataProvider = "authResultToTriggerCancelHppPayment")
+    public void testCancelHppPaymentViaCompletionRequest(final String authResult) throws Exception {
+        Payment payment = triggerBuildFormDescriptor(ImmutableMap.<String, String>of(AdyenPaymentPluginApi.PROPERTY_CREATE_PENDING_PAYMENT, "true",
+                                                                                     AdyenPaymentPluginApi.PROPERTY_AUTH_MODE, "true"),
+                                                     TransactionType.AUTHORIZE);
+        PaymentTransactionInfoPlugin trxInfo = adyenPaymentPluginApi.authorizePayment(payment.getAccountId(),
+                                                                                      payment.getId(),
+                                                                                      payment.getTransactions().get(0).getId(),
+                                                                                      payment.getPaymentMethodId(),
+                                                                                      payment.getAuthAmount(),
+                                                                                      payment.getCurrency(),
+                                                                                      PluginProperties.buildPluginProperties(ImmutableMap.<String, String>of("authResult", authResult)),
+                                                                                      context);
+        Assert.assertEquals(trxInfo.getStatus(), PaymentPluginStatus.ERROR);
+        Assert.assertEquals(payment.getTransactions().get(0).getTransactionStatus(), TransactionStatus.PAYMENT_FAILURE);
+        Assert.assertEquals(payment.getTransactions().get(0).getPaymentInfoPlugin().getStatus(), PaymentPluginStatus.ERROR);
+    }
+
     @Test(groups = "integration")
     public void testCancelExpiredBoletoPayment() throws Exception {
         final Payment payment = triggerBuildFormDescriptor(ImmutableMap.<String, String>of(AdyenPaymentPluginApi.PROPERTY_CREATE_PENDING_PAYMENT, "true",
@@ -245,8 +287,8 @@ public class TestAdyenPaymentPluginApiHPP extends TestAdyenPaymentPluginApiBase 
                                                            TransactionType.AUTHORIZE);
         dao.updateResponse(payment.getTransactions().get(0).getId(), PaymentServiceProviderResult.PENDING, ImmutableList.<PluginProperty>of(new PluginProperty("paymentMethod", "boletobancario_santander", false)), context.getTenantId());
 
-        final Period expirationPeriod = adyenConfigProperties.getPendingPaymentExpirationPeriod("boletobancario_santander");
-        assertEquals(expirationPeriod.toString(), "P7D");
+        final Period expirationPeriod = adyenConfigProperties.getPendingHppPaymentWithoutCompletionExpirationPeriod();
+        assertEquals(expirationPeriod.toString(), "PT50M");
 
         final Period preExpirationPeriod = expirationPeriod.minusMinutes(1);
         clock.setDeltaFromReality(preExpirationPeriod.toStandardDuration().getMillis());
@@ -333,5 +375,22 @@ public class TestAdyenPaymentPluginApiHPP extends TestAdyenPaymentPluginApiBase 
         assertEquals(processedPaymentTransactions.get(0).getTransactionType(), transactionType);
         assertEquals(processedPaymentTransactions.get(0).getStatus(), PaymentPluginStatus.PROCESSED);
         assertEquals(processedPaymentTransactions.get(0).getFirstPaymentReferenceId(), pspReference);
+    }
+
+    @DataProvider
+    public Object[] authResultToTriggerCancelHppPayment() {
+        return new Object[]{"REFUSED", "CANCELLED"};
+    }
+
+    @DataProvider
+    public Object[] authResultNotToTriggerCancelHppPayment() {
+        List<Object> retVal = new ArrayList();
+        for(PaymentServiceProviderResult result : PaymentServiceProviderResult.values()) {
+            if(result != PaymentServiceProviderResult.REFUSED &&
+               result != PaymentServiceProviderResult.CANCELLED) {
+                retVal.add(result.toString());
+            }
+        }
+        return retVal.toArray();
     }
 }
