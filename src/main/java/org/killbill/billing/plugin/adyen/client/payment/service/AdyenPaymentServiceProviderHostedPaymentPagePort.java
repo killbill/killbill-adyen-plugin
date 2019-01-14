@@ -100,6 +100,7 @@ public class AdyenPaymentServiceProviderHostedPaymentPagePort extends BaseAdyenP
         return directoryClient.getDirectory(params);
     }
 
+    @SuppressWarnings("deprecation")
     public HppCompletedResult parseAndVerifyRequestIntegrity(final Map<String, String> requestParameterMap) {
         final HppCompletedResult hppCompletedResult = new HppCompletedResult(requestParameterMap);
         final String merchantSig = requestParameterMap.get("merchantSig");
