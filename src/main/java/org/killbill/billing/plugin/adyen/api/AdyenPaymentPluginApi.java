@@ -108,7 +108,6 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 import static org.killbill.billing.plugin.adyen.api.mapping.UserDataMappingService.toUserData;
-import static org.killbill.billing.plugin.api.PluginProperties.merge;
 
 public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponsesRecord, AdyenResponses, AdyenPaymentMethodsRecord, AdyenPaymentMethods> {
 
@@ -266,7 +265,7 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
 
         try {
             dao.updateResponse(expiredTransaction.getKbTransactionPaymentId(),
-                               merge(expiredTransaction.getProperties(), updatedStatusProperties),
+                               PluginProperties.merge(expiredTransaction.getProperties(), updatedStatusProperties),
                                context.getTenantId());
         } catch (final SQLException e) {
             logService.log(LogService.LOG_ERROR, "Unable to update canceled payment", e);
@@ -438,7 +437,7 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
             return hppCompleteAuthWithPendingPayment(kbAccountId,
                                                      kbPaymentId,
                                                      kbTransactionId,
-                                                     merge(ImmutableMap.of(PROPERTY_HPP_COMPLETION, true), properties),
+                                                     PluginProperties.merge(ImmutableMap.of(PROPERTY_HPP_COMPLETION, true), properties),
                                                      context);
         }
     }
@@ -475,7 +474,7 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
         if (adyenResponsesRecord == null) {
             // We don't have any record for that payment: we want to trigger an actual purchase (auto-capture) call
             final String captureDelayHours = PluginProperties.getValue(PROPERTY_CAPTURE_DELAY_HOURS, "0", properties);
-            final Iterable<PluginProperty> overriddenProperties = merge(properties, ImmutableList.<PluginProperty>of(new PluginProperty(PROPERTY_CAPTURE_DELAY_HOURS, captureDelayHours, false)));
+            final Iterable<PluginProperty> overriddenProperties = PluginProperties.merge(properties, ImmutableList.<PluginProperty>of(new PluginProperty(PROPERTY_CAPTURE_DELAY_HOURS, captureDelayHours, false)));
             return executeInitialTransaction(TransactionType.PURCHASE, kbAccountId, kbPaymentId, kbTransactionId, kbPaymentMethodId, amount, currency, overriddenProperties, context);
         } else {
             // We already have a record for that payment transaction and we just updated the response row with additional properties
@@ -536,7 +535,7 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
     @Override
     public HostedPaymentPageFormDescriptor buildFormDescriptor(final UUID kbAccountId, final Iterable<PluginProperty> customFields, final Iterable<PluginProperty> properties, final CallContext context) throws PaymentPluginApiException {
         //noinspection unchecked
-        final Iterable<PluginProperty> mergedProperties = merge(customFields, properties);
+        final Iterable<PluginProperty> mergedProperties = PluginProperties.merge(customFields, properties);
 
         final Account account = getAccount(kbAccountId, context);
         final String countryCode = getCountryCode(account, null, properties);
@@ -750,7 +749,7 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
         // Pull extra properties from the payment method (such as the customerId)
         final Iterable<PluginProperty> additionalPropertiesFromRecord = buildPaymentMethodPlugin(nonNullPaymentMethodsRecord).getProperties();
         //noinspection unchecked
-        final Iterable<PluginProperty> mergedProperties = merge(additionalPropertiesFromRecord, properties);
+        final Iterable<PluginProperty> mergedProperties = PluginProperties.merge(additionalPropertiesFromRecord, properties);
         final PaymentData paymentData = buildPaymentData(merchantAccount, countryCode, account, kbPaymentId, kbTransactionId, nonNullPaymentMethodsRecord, amount, currency, mergedProperties, context);
         final UserData userData = toUserData(account, mergedProperties);
         final SplitSettlementData splitSettlementData = buildSplitSettlementData(currency, properties);
