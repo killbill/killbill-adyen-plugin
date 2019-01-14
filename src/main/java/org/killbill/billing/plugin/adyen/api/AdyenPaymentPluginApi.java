@@ -208,6 +208,8 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
     public static final String PROPERTY_ISSUER_URL = "issuerUrl";
 
     private static final Logger logger = LoggerFactory.getLogger(AdyenPaymentPluginApi.class);
+    private static final List<PaymentServiceProviderResult> PAYMENT_RESULT_TO_CANCEL_IN_HPP_COMPLETE = ImmutableList.of(PaymentServiceProviderResult.CANCELLED,
+                                                                                                                        PaymentServiceProviderResult.REFUSED);
 
     private final AdyenConfigurationHandler adyenConfigurationHandler;
     private final AdyenHostedPaymentPageConfigurationHandler adyenHppConfigurationHandler;
@@ -632,7 +634,7 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
         final HppCompletedResult hppCompletedResult = hostedPaymentPagePort.parseAndVerifyRequestIntegrity(PluginProperties.toStringMap(properties));
         final PaymentServiceProviderResult authResult = PaymentServiceProviderResult.getPaymentResultForId(hppCompletedResult.getAuthResult());
         AdyenResponsesRecord adyenResponsesRecord;
-        if(needCancelHppPayment(authResult)) {
+        if(PAYMENT_RESULT_TO_CANCEL_IN_HPP_COMPLETE.contains(authResult)) {
             cancelHppPayment(accountId, kbPaymentId, kbTransactionId, context);
             final Iterable<PluginProperty> propertyWithErrorFromHppStatus = PluginProperties.merge(ImmutableMap.of(PROPERTY_FROM_HPP_TRANSACTION_STATUS,
                                                                                                                    PaymentPluginStatus.ERROR),
@@ -648,14 +650,6 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
                                                                           context.getTenantId());
         }
         return buildPaymentTransactionInfoPlugin(adyenResponsesRecord);
-    }
-
-    private boolean needCancelHppPayment(final PaymentServiceProviderResult authResult) {
-        //We only cancel the hpp payment during a complete request if the authResult is either canceled or refused.
-        //In all other cases, we keep the status in pending until the confirmation of a notification.
-        return ImmutableList.of(PaymentServiceProviderResult.CANCELLED,
-                                PaymentServiceProviderResult.REFUSED)
-                            .contains(authResult);
     }
 
     private void cancelHppPayment(final UUID accountId,
