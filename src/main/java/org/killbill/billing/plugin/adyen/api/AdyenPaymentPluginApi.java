@@ -627,7 +627,8 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
                                                                            final UUID kbTransactionId,
                                                                            final Iterable<PluginProperty> properties,
                                                                            final CallContext context) throws PaymentPluginApiException {
-        final HppCompletedResult hppCompletedResult = AdyenPaymentServiceProviderHostedPaymentPagePort.parseAndVerifyRequestIntegrity(PluginProperties.toStringMap(properties), getConfigProperties(context),logger);
+        final AdyenPaymentServiceProviderHostedPaymentPagePort hostedPaymentPagePort = adyenHppConfigurationHandler.getConfigurable(context.getTenantId());
+        final HppCompletedResult hppCompletedResult = hostedPaymentPagePort.parseAndVerifyRequestIntegrity(PluginProperties.toStringMap(properties));
         final PaymentServiceProviderResult authResult = PaymentServiceProviderResult.getPaymentResultForId(hppCompletedResult.getAuthResult());
         AdyenResponsesRecord adyenResponsesRecord;
         if(needCancelHppPayment(authResult)) {
