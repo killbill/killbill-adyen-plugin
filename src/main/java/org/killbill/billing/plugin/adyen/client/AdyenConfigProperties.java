@@ -476,7 +476,7 @@ public class AdyenConfigProperties {
         }
     }
 
-    public Period getPendingHppPaymentWithoutCompletionExpirationPeriod(final String paymentMethod) {
+    public Period getPendingHppPaymentWithoutCompletionExpirationPeriod(@Nullable final String paymentMethod) {
         if (paymentMethod != null && paymentMethodToExpirationPeriod.get(paymentMethod.toLowerCase()) != null) {
             return paymentMethodToExpirationPeriod.get(paymentMethod.toLowerCase());
         } else {
