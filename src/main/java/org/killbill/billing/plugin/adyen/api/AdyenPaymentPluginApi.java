@@ -672,9 +672,9 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
                                                            context);
         } catch (AccountApiException e) {
             //Swallow exceptions so the original payment response record will still be updated.
-            logger.error(String.format("Unable to fetch the account based on accountId='{0}'", accountId));
+            logger.error("Unable to fetch the account based on accountId='{}'", accountId, e);
         } catch (PaymentApiException e) {
-            logger.error(String.format("Unable to cancel pending payment for paymentId='{0}'; transactionId='{1}'", kbPaymentId, kbPaymentTransactionId));
+            logger.error("Unable to cancel pending payment for paymentId='{}'; transactionId='{}'", kbPaymentId, kbPaymentTransactionId, e);
         }
     }
 
