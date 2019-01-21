@@ -108,7 +108,7 @@ public class TestAdyenPaymentPluginApiHPP extends TestAdyenPaymentPluginApiBase 
                                                                    AdyenPaymentPluginApi.PROPERTY_AUTH_MODE, "true"),
                                    TransactionType.AUTHORIZE);
         Period expirationPeriod = adyenConfigProperties.getPendingHppPaymentWithoutCompletionExpirationPeriod(null);
-        assertEquals(expirationPeriod.toString(), "PT50M");
+        assertEquals(expirationPeriod.toString(), "PT3H");
         expirationPeriod.minusMinutes(1);
         clock.setDeltaFromReality(expirationPeriod.toStandardDuration().getMillis());
 
@@ -182,7 +182,7 @@ public class TestAdyenPaymentPluginApiHPP extends TestAdyenPaymentPluginApiBase 
         dao.updateResponse(payment.getTransactions().get(0).getId(), PaymentServiceProviderResult.PENDING, ImmutableList.<PluginProperty>of(new PluginProperty("paymentMethod", "paypal", false)), context.getTenantId());
 
         final Period expirationPeriod = adyenConfigProperties.getPendingHppPaymentWithoutCompletionExpirationPeriod("paypal");
-        assertEquals(expirationPeriod.toString(), "PT50M");
+        assertEquals(expirationPeriod.toString(), "P1D");
 
         final Period preExpirationPeriod = expirationPeriod.minusMinutes(1);
         clock.setDeltaFromReality(preExpirationPeriod.toStandardDuration().getMillis());
@@ -214,7 +214,7 @@ public class TestAdyenPaymentPluginApiHPP extends TestAdyenPaymentPluginApiBase 
                                                                                       ImmutableList.of(),
                                                                                       context);
         final Period expirationPeriod = adyenConfigProperties.getPendingPaymentExpirationPeriod("paypal");
-        assertEquals(expirationPeriod.toString(), "P7D");
+        assertEquals(expirationPeriod.toString(), "P1D");
 
         final Period preExpirationPeriod = expirationPeriod.minusMinutes(1);
         clock.setDeltaFromReality(preExpirationPeriod.toStandardDuration().getMillis());
@@ -277,7 +277,7 @@ public class TestAdyenPaymentPluginApiHPP extends TestAdyenPaymentPluginApiBase 
         dao.updateResponse(payment.getTransactions().get(0).getId(), PaymentServiceProviderResult.PENDING, ImmutableList.<PluginProperty>of(new PluginProperty("paymentMethod", "boletobancario_santander", false)), context.getTenantId());
 
         final Period expirationPeriod = adyenConfigProperties.getPendingHppPaymentWithoutCompletionExpirationPeriod("boletobancario_santander");
-        assertEquals(expirationPeriod.toString(), "PT50M");
+        assertEquals(expirationPeriod.toString(), "P7D");
 
         final Period preExpirationPeriod = expirationPeriod.minusMinutes(1);
         clock.setDeltaFromReality(preExpirationPeriod.toStandardDuration().getMillis());
@@ -315,7 +315,6 @@ public class TestAdyenPaymentPluginApiHPP extends TestAdyenPaymentPluginApiBase 
         assertNotNull(descriptor.getFormUrl());
         assertFalse(descriptor.getFormFields().isEmpty());
         assertNotNull(dao.getHppRequest(paymentTransactionExternalKey));
-        assertFalse(AdyenDao.fromAdditionalData(dao.getHppRequest(paymentTransactionExternalKey).getAdditionalData()).containsKey(PROPERTY_IP));
 
         // For manual testing
         //System.out.println("Redirect to: " + descriptor.getFormUrl());
