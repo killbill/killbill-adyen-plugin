@@ -80,13 +80,13 @@ public class ExpiredPaymentPolicy {
     }
 
     private DateTime expirationDateForInitialTransactionType(final AdyenPaymentTransactionInfoPlugin transaction) {
+        final String paymentMethod = getPaymentMethod(transaction);
         if (is3ds(transaction)) {
             return transaction.getCreatedDate().plus(adyenProperties.getPending3DsPaymentExpirationPeriod());
         } else if(isHppBuildFormTransaction(transaction)) {
-            return transaction.getCreatedDate().plus(adyenProperties.getPendingHppPaymentWithoutCompletionExpirationPeriod());
+            return transaction.getCreatedDate().plus(adyenProperties.getPendingHppPaymentWithoutCompletionExpirationPeriod(paymentMethod));
         }
 
-        final String paymentMethod = getPaymentMethod(transaction);
         return transaction.getCreatedDate().plus(adyenProperties.getPendingPaymentExpirationPeriod(paymentMethod));
     }
 

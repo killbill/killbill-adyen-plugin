@@ -18,6 +18,7 @@
 package org.killbill.billing.plugin.adyen.client.payment.builder;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 
 import javax.annotation.Nullable;
@@ -43,11 +44,13 @@ public class PaymentRequest3DBuilder extends RequestBuilder<PaymentRequest3D> {
     private final PaymentData paymentData;
     private final UserData userData;
     private final SplitSettlementData splitSettlementData;
+    private final Map<String, String> additionalData;
 
     public PaymentRequest3DBuilder(final String merchantAccount,
                                    final PaymentData paymentData,
                                    final UserData userData,
-                                   @Nullable final SplitSettlementData splitSettlementData) {
+                                   @Nullable final SplitSettlementData splitSettlementData,
+                                   @Nullable final Map<String, String> additionalData) {
         super(new PaymentRequest3D());
         final AnyType2AnyTypeMap map = new AnyType2AnyTypeMap();
         request.setAdditionalData(map);
@@ -56,6 +59,7 @@ public class PaymentRequest3DBuilder extends RequestBuilder<PaymentRequest3D> {
         this.paymentData = paymentData;
         this.userData = userData;
         this.splitSettlementData = splitSettlementData;
+        this.additionalData = additionalData;
     }
 
     @Override
@@ -68,6 +72,7 @@ public class PaymentRequest3DBuilder extends RequestBuilder<PaymentRequest3D> {
         setShopperData();
         set3DSecureFields();
         setSplitSettlementData();
+        addAdditionalData(request.getAdditionalData(), additionalData);
 
         return request;
     }

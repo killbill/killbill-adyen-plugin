@@ -100,7 +100,6 @@ public class AdyenPaymentServiceProviderHostedPaymentPagePort extends BaseAdyenP
         return directoryClient.getDirectory(params);
     }
 
-    // Used to verify completion
     @SuppressWarnings("deprecation")
     public HppCompletedResult parseAndVerifyRequestIntegrity(final Map<String, String> requestParameterMap) {
         final HppCompletedResult hppCompletedResult = new HppCompletedResult(requestParameterMap);
