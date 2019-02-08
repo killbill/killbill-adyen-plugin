@@ -1,3 +1,7 @@
+0.5.15
+    Add support for custom additionalData parameters (#83)
+    Leverage authResult from complete hpp payment call to cancel the payment (#100)
+
 0.5.14
     Make sensitive keys parsing case sensitive
 
