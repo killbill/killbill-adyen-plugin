@@ -134,13 +134,16 @@ public class PaymentRequestBuilder extends RequestBuilder<PaymentRequest> {
         final BigDecimal amount = paymentData.getAmount();
         final PaymentInfo paymentInfo = paymentData.getPaymentInfo();
 
-        boolean thresholdReached = false;
-        if (amount != null && paymentInfo.getThreeDThreshold() != null) {
-            final Long amountMinorUnits = toMinorUnits(amount, paymentData.getCurrency().name());
-            thresholdReached = amountMinorUnits.compareTo(paymentInfo.getThreeDThreshold()) >= 0;
-        }
-        if (!thresholdReached) {
-            return;
+        // applepay and googlepay require mpidata
+        if (paymentInfo.getSelectedBrand() == null) {
+            boolean thresholdReached = false;
+            if (amount != null && paymentInfo.getThreeDThreshold() != null) {
+                final Long amountMinorUnits = toMinorUnits(amount, paymentData.getCurrency().name());
+                thresholdReached = amountMinorUnits.compareTo(paymentInfo.getThreeDThreshold()) >= 0;
+            }
+            if (!thresholdReached) {
+                return;
+            }
         }
 
         final BrowserInfo browserInfo = new BrowserInfo();
