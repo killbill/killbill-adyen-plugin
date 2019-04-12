@@ -107,6 +107,30 @@ public class TestAdyenPaymentPluginApi extends TestAdyenPaymentPluginApiBase {
                                                                                                                   .put(AdyenPaymentPluginApi.PROPERTY_TERM_URL, "dummy://url")
                                                                                                                   .put(AdyenPaymentPluginApi.PROPERTY_THREE_D_THRESHOLD, "25000")
                                                                                                                   .build());
+    private final Iterable<PluginProperty> propertiesWithGooglePay = PluginProperties.buildPluginProperties(ImmutableMap.<String, String>builder()
+                                                                                                                  .put(AdyenPaymentPluginApi.PROPERTY_CC_LAST_NAME, "Googlepaytester")
+                                                                                                                  .put(AdyenPaymentPluginApi.PROPERTY_SELECTED_BRAND, "paywithgoogle")
+                                                                                                                  .put(AdyenPaymentPluginApi.PROPERTY_MPI_DATA_CAVV, "AAAAAAAAt5fMJPDr320qAAALwwA=hq0BA9EAAAGXIJcAGAAAABKU0+s=")
+                                                                                                                  .put(AdyenPaymentPluginApi.PROPERTY_MPI_DATA_ECI, "7")
+                                                                                                                  .put(AdyenPaymentPluginApi.PROPERTY_CC_NUMBER, CC_3DS_NUMBER)
+                                                                                                                  .put(AdyenPaymentPluginApi.PROPERTY_CC_EXPIRATION_MONTH, "10")
+                                                                                                                  .put(AdyenPaymentPluginApi.PROPERTY_CC_EXPIRATION_YEAR, "2020")
+                                                                                                                  .put(AdyenPaymentPluginApi.PROPERTY_USER_AGENT, "Java/1.8")
+                                                                                                                  .put(AdyenPaymentPluginApi.PROPERTY_ACCEPT_HEADER, "application/json")
+                                                                                                                  .put(AdyenPaymentPluginApi.PROPERTY_TERM_URL, "dummy://url")
+                                                                                                                  .build());
+    private final Iterable<PluginProperty> propertiesWithApplePay = PluginProperties.buildPluginProperties(ImmutableMap.<String, String>builder()
+                                                                                                                  .put(AdyenPaymentPluginApi.PROPERTY_CC_LAST_NAME, "Applepaytester")
+                                                                                                                  .put(AdyenPaymentPluginApi.PROPERTY_SELECTED_BRAND, "applepay")
+                                                                                                                  .put(AdyenPaymentPluginApi.PROPERTY_MPI_DATA_CAVV, "AAAAAAAAt5fMJPDr320qAAALwwA=hq0BA9EAAAGXIJcAGAAAABKU0+s=")
+                                                                                                                  .put(AdyenPaymentPluginApi.PROPERTY_MPI_DATA_ECI, "7")
+                                                                                                                  .put(AdyenPaymentPluginApi.PROPERTY_CC_NUMBER, CC_3DS_NUMBER)
+                                                                                                                  .put(AdyenPaymentPluginApi.PROPERTY_CC_EXPIRATION_MONTH, String.valueOf(CC_EXPIRATION_MONTH))
+                                                                                                                  .put(AdyenPaymentPluginApi.PROPERTY_CC_EXPIRATION_YEAR, String.valueOf(CC_EXPIRATION_YEAR))
+                                                                                                                  .put(AdyenPaymentPluginApi.PROPERTY_USER_AGENT, "Java/1.8")
+                                                                                                                  .put(AdyenPaymentPluginApi.PROPERTY_ACCEPT_HEADER, "application/json")
+                                                                                                                  .put(AdyenPaymentPluginApi.PROPERTY_TERM_URL, "dummy://url")
+                                                                                                                  .build());
     private final Iterable<PluginProperty> propertiesWithAVSInfo = PluginProperties.buildPluginProperties(ImmutableMap.<String, String>builder()
                                                                                                                   .put(AdyenPaymentPluginApi.PROPERTY_CC_TYPE, CC_TYPE)
                                                                                                                   .put(AdyenPaymentPluginApi.PROPERTY_CC_LAST_NAME, "Avschecker")
@@ -423,6 +447,46 @@ public class TestAdyenPaymentPluginApi extends TestAdyenPaymentPluginApiBase {
 
         assertEquals(avsResultCode, "Y");
         assertEquals(avsResult, "7 Both postal code and address match");
+    }
+
+    @Test(groups = "integration")
+    public void testAuthorizeWithGooglePay() throws Exception {
+        adyenPaymentPluginApi.addPaymentMethod(account.getId(), account.getPaymentMethodId(), adyenEmptyPaymentMethodPlugin(), true, propertiesWithGooglePay, context);
+        final Payment payment = TestUtils.buildPayment(account.getId(), account.getPaymentMethodId(), account.getCurrency(), killbillApi);
+
+        final PaymentTransaction authorizationTransaction = TestUtils.buildPaymentTransaction(payment, TransactionType.AUTHORIZE, new BigDecimal("25"), account.getCurrency());
+
+        final PaymentTransactionInfoPlugin authorizationInfoPlugin = adyenPaymentPluginApi.authorizePayment(account.getId(),
+                                                                                                            payment.getId(),
+                                                                                                            authorizationTransaction.getId(),
+                                                                                                            account.getPaymentMethodId(),
+                                                                                                            authorizationTransaction.getAmount(),
+                                                                                                            authorizationTransaction.getCurrency(),
+                                                                                                            propertiesWithGooglePay,
+                                                                                                            context);
+
+        assertNull(authorizationInfoPlugin.getGatewayErrorCode());
+        assertEquals(authorizationInfoPlugin.getStatus(), PaymentPluginStatus.PROCESSED);
+    }
+
+    @Test(groups = "integration")
+    public void testAuthorizeWithApplePay() throws Exception {
+        adyenPaymentPluginApi.addPaymentMethod(account.getId(), account.getPaymentMethodId(), adyenEmptyPaymentMethodPlugin(), true, propertiesWithApplePay, context);
+        final Payment payment = TestUtils.buildPayment(account.getId(), account.getPaymentMethodId(), account.getCurrency(), killbillApi);
+
+        final PaymentTransaction authorizationTransaction = TestUtils.buildPaymentTransaction(payment, TransactionType.AUTHORIZE, new BigDecimal("260"), account.getCurrency());
+
+        final PaymentTransactionInfoPlugin authorizationInfoPlugin = adyenPaymentPluginApi.authorizePayment(account.getId(),
+                payment.getId(),
+                authorizationTransaction.getId(),
+                account.getPaymentMethodId(),
+                authorizationTransaction.getAmount(),
+                authorizationTransaction.getCurrency(),
+                propertiesWithApplePay,
+                context);
+
+        assertNull(authorizationInfoPlugin.getGatewayErrorCode());
+        assertEquals(authorizationInfoPlugin.getStatus(), PaymentPluginStatus.PROCESSED);
     }
 
     @Test(groups = "integration")

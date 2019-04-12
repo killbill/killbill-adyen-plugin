@@ -134,6 +134,19 @@ public abstract class PaymentInfoMappingService {
         final String mpiDataAuthenticationResponse = PluginProperties.findPluginPropertyValue(PROPERTY_MPI_DATA_AUTHENTICATION_RESPONSE, properties);
         paymentInfo.setMpiDataAuthenticationResponse(mpiDataAuthenticationResponse);
 
+        final String mpiDataEci = PluginProperties.findPluginPropertyValue(PROPERTY_MPI_DATA_ECI, properties);
+        paymentInfo.setMpiDataEci(mpiDataEci);
+
+        final String selectedBrand = PluginProperties.findPluginPropertyValue(PROPERTY_SELECTED_BRAND, properties);
+
+        if (selectedBrand != null) {
+            paymentInfo.setMpiDataDirectoryResponse("Y");
+            paymentInfo.setMpiDataAuthenticationResponse("Y");
+            if (mpiDataEci == null || mpiDataEci.isEmpty()) {
+                paymentInfo.setMpiDataEci("7");
+            }
+        }
+
         final String mpiDataCavv = PluginProperties.findPluginPropertyValue(PROPERTY_MPI_DATA_CAVV, properties);
         paymentInfo.setMpiDataCavv(mpiDataCavv);
 
@@ -142,9 +155,6 @@ public abstract class PaymentInfoMappingService {
 
         final String mpiDataXid = PluginProperties.findPluginPropertyValue(PROPERTY_MPI_DATA_XID, properties);
         paymentInfo.setMpiDataXid(mpiDataXid);
-
-        final String mpiDataEci = PluginProperties.findPluginPropertyValue(PROPERTY_MPI_DATA_ECI, properties);
-        paymentInfo.setMpiDataEci(mpiDataEci);
 
         final String mpiImplementationType = PluginProperties.findPluginPropertyValue(PROPERTY_MPI_IMPLEMENTATION_TYPE, properties);
         paymentInfo.setMpiImplementationType(mpiImplementationType);
