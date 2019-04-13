@@ -42,6 +42,9 @@ import org.killbill.billing.plugin.adyen.client.payment.converter.PaymentInfoCon
 import com.google.common.base.Charsets;
 import com.google.common.io.BaseEncoding;
 
+import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.BRAND_APPLEPAY;
+import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.BRAND_PAYWITHGOOGLE;
+
 public class PaymentRequestBuilder extends RequestBuilder<PaymentRequest> {
 
     private final String merchantAccount;
@@ -74,9 +77,18 @@ public class PaymentRequestBuilder extends RequestBuilder<PaymentRequest> {
         setShopperData();
         set3DSecureFields();
         setSplitSettlementData();
-        addAdditionalData(request.getAdditionalData(), additionalData);
+        addAdditionalData();
 
         return request;
+    }
+
+    private void addAdditionalData() {
+        addAdditionalData(request.getAdditionalData(), additionalData);
+
+        String selectedBrand = paymentData.getPaymentInfo().getSelectedBrand();
+        if (BRAND_APPLEPAY.equals(selectedBrand) || BRAND_PAYWITHGOOGLE.equals(selectedBrand)) {
+            addAdditionalDataEntry(request.getAdditionalData().getEntry(), "paymentdatasource.type", selectedBrand);
+        }
     }
 
     private void setAmount() {
@@ -135,7 +147,8 @@ public class PaymentRequestBuilder extends RequestBuilder<PaymentRequest> {
         final PaymentInfo paymentInfo = paymentData.getPaymentInfo();
 
         // applepay and googlepay require mpidata
-        if (paymentInfo.getSelectedBrand() == null) {
+        String selectedBrand = paymentInfo.getSelectedBrand();
+        if (!BRAND_APPLEPAY.equals(selectedBrand) && !BRAND_PAYWITHGOOGLE.equals(selectedBrand)) {
             boolean thresholdReached = false;
             if (amount != null && paymentInfo.getThreeDThreshold() != null) {
                 final Long amountMinorUnits = toMinorUnits(amount, paymentData.getCurrency().name());

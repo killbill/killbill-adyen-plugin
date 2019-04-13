@@ -206,6 +206,8 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
     public static final String PROPERTY_DCC_AMOUNT_CURRENCY = "dccCurrency";
     public static final String PROPERTY_DCC_SIGNATURE = "dccSignature";
     public static final String PROPERTY_ISSUER_URL = "issuerUrl";
+    public static final String BRAND_APPLEPAY = "applepay";
+    public static final String BRAND_PAYWITHGOOGLE = "paywithgoogle";
 
     private static final Logger logger = LoggerFactory.getLogger(AdyenPaymentPluginApi.class);
     private static final List<PaymentServiceProviderResult> PAYMENT_RESULT_TO_CANCEL_IN_HPP_COMPLETE = ImmutableList.of(PaymentServiceProviderResult.CANCELLED,
