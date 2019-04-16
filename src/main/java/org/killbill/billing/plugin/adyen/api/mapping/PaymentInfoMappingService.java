@@ -24,6 +24,7 @@ import javax.annotation.Nullable;
 
 import org.killbill.billing.account.api.AccountData;
 import org.killbill.billing.payment.api.PluginProperty;
+import org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi;
 import org.killbill.billing.plugin.adyen.client.AdyenConfigProperties;
 import org.killbill.billing.plugin.adyen.client.model.Acquirer;
 import org.killbill.billing.plugin.adyen.client.model.PaymentInfo;
@@ -37,6 +38,8 @@ import com.google.common.base.Predicates;
 import com.google.common.base.Strings;
 import com.google.common.collect.Maps;
 
+import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.BRAND_APPLEPAY;
+import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.BRAND_PAYWITHGOOGLE;
 import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.PROPERTY_ACCEPT_HEADER;
 import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.PROPERTY_ACQUIRER;
 import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.PROPERTY_ACQUIRER_MID;
@@ -139,7 +142,8 @@ public abstract class PaymentInfoMappingService {
 
         final String selectedBrand = PluginProperties.findPluginPropertyValue(PROPERTY_SELECTED_BRAND, properties);
 
-        if (selectedBrand != null) {
+        if (BRAND_APPLEPAY.equals(selectedBrand) || BRAND_PAYWITHGOOGLE.equals(selectedBrand)) {
+            // these require specific mpi data values
             paymentInfo.setMpiDataDirectoryResponse("Y");
             paymentInfo.setMpiDataAuthenticationResponse("Y");
             if (mpiDataEci == null || mpiDataEci.isEmpty()) {
@@ -215,9 +219,13 @@ public abstract class PaymentInfoMappingService {
         }
         paymentInfo.setContract(contract);
 
+        final String selectedBrand = PluginProperties.findPluginPropertyValue(PROPERTY_SELECTED_BRAND, properties);
         final String contAuthProperty = PluginProperties.findPluginPropertyValue(PROPERTY_CONTINUOUS_AUTHENTICATION, properties);
         final boolean contAuth;
-        if (contAuthProperty != null) {
+        if (BRAND_APPLEPAY.equals(selectedBrand) || BRAND_PAYWITHGOOGLE.equals(selectedBrand)) {
+            // these need to always use ecommerce
+            contAuth = false;
+        } else if (contAuthProperty != null) {
             contAuth = Boolean.parseBoolean(contAuthProperty);
         } else {
             // https://docs.adyen.com/developers/recurring-manual
@@ -232,7 +240,6 @@ public abstract class PaymentInfoMappingService {
         }
 
         if (contAuth) {
-            // Recurring flag
             paymentInfo.setShopperInteraction("ContAuth");
         } else {
             paymentInfo.setShopperInteraction("Ecommerce");
