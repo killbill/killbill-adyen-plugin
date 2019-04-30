@@ -123,6 +123,15 @@ public class TestAdyenPaymentPluginApi extends TestAdyenPaymentPluginApiBase {
                                                                                                                   .put(AdyenPaymentPluginApi.PROPERTY_CC_EXPIRATION_MONTH, "10")
                                                                                                                   .put(AdyenPaymentPluginApi.PROPERTY_CC_EXPIRATION_YEAR, "2020")
                                                                                                                   .build());
+    private final Iterable<PluginProperty> propertiesWithApplePayRecurring = PluginProperties.buildPluginProperties(ImmutableMap.<String, String>builder()
+                                                                                                                  .put(AdyenPaymentPluginApi.PROPERTY_CC_LAST_NAME, "Applepaytester")
+                                                                                                                  .put(AdyenPaymentPluginApi.PROPERTY_SELECTED_BRAND, "applepay")
+                                                                                                                  .put(AdyenPaymentPluginApi.PROPERTY_MPI_DATA_CAVV, "AAAAAAAAt5fMJPDr320qAAALwwA=hq0BA9EAAAGXIJcAGAAAABKU0+s=")
+                                                                                                                  .put(AdyenPaymentPluginApi.PROPERTY_CC_NUMBER, CC_3DS_NUMBER)
+                                                                                                                  .put(AdyenPaymentPluginApi.PROPERTY_CC_EXPIRATION_MONTH, "10")
+                                                                                                                  .put(AdyenPaymentPluginApi.PROPERTY_CC_EXPIRATION_YEAR, "2020")
+                                                                                                                  .put(AdyenPaymentPluginApi.PROPERTY_RECURRING_TYPE, "RECURRING")
+                                                                                                                  .build());
     private final Iterable<PluginProperty> propertiesWithAVSInfo = PluginProperties.buildPluginProperties(ImmutableMap.<String, String>builder()
                                                                                                                   .put(AdyenPaymentPluginApi.PROPERTY_CC_TYPE, CC_TYPE)
                                                                                                                   .put(AdyenPaymentPluginApi.PROPERTY_CC_LAST_NAME, "Avschecker")
@@ -464,6 +473,26 @@ public class TestAdyenPaymentPluginApi extends TestAdyenPaymentPluginApiBase {
     @Test(groups = "integration")
     public void testAuthorizeWithApplePay() throws Exception {
         adyenPaymentPluginApi.addPaymentMethod(account.getId(), account.getPaymentMethodId(), adyenEmptyPaymentMethodPlugin(), true, propertiesWithApplePay, context);
+        final Payment payment = TestUtils.buildPayment(account.getId(), account.getPaymentMethodId(), account.getCurrency(), killbillApi);
+
+        final PaymentTransaction authorizationTransaction = TestUtils.buildPaymentTransaction(payment, TransactionType.AUTHORIZE, new BigDecimal("60"), account.getCurrency());
+
+        final PaymentTransactionInfoPlugin authorizationInfoPlugin = adyenPaymentPluginApi.authorizePayment(account.getId(),
+                payment.getId(),
+                authorizationTransaction.getId(),
+                account.getPaymentMethodId(),
+                authorizationTransaction.getAmount(),
+                authorizationTransaction.getCurrency(),
+                propertiesWithApplePay,
+                context);
+
+        assertNull(authorizationInfoPlugin.getGatewayErrorCode());
+        assertEquals(authorizationInfoPlugin.getStatus(), PaymentPluginStatus.PROCESSED);
+    }
+
+    @Test(groups = "integration")
+    public void testAuthorizeWithApplePayIgnoreRecurring() throws Exception {
+        adyenPaymentPluginApi.addPaymentMethod(account.getId(), account.getPaymentMethodId(), adyenEmptyPaymentMethodPlugin(), true, propertiesWithApplePayRecurring, context);
         final Payment payment = TestUtils.buildPayment(account.getId(), account.getPaymentMethodId(), account.getCurrency(), killbillApi);
 
         final PaymentTransaction authorizationTransaction = TestUtils.buildPaymentTransaction(payment, TransactionType.AUTHORIZE, new BigDecimal("60"), account.getCurrency());

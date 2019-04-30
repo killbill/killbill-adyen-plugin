@@ -225,6 +225,8 @@ public abstract class PaymentInfoMappingService {
         if (BRAND_APPLEPAY.equals(selectedBrand) || BRAND_PAYWITHGOOGLE.equals(selectedBrand)) {
             // these need to always use ecommerce
             contAuth = false;
+            // and won't use recurring
+            paymentInfo.setContract(null);
         } else if (contAuthProperty != null) {
             contAuth = Boolean.parseBoolean(contAuthProperty);
         } else {
