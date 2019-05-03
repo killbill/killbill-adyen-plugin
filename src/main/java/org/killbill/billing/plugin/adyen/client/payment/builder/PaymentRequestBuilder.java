@@ -174,11 +174,21 @@ public class PaymentRequestBuilder extends RequestBuilder<PaymentRequest> {
         threeDSecureData.setDirectoryResponse(paymentInfo.getMpiDataDirectoryResponse());
         threeDSecureData.setAuthenticationResponse(paymentInfo.getMpiDataAuthenticationResponse());
         if (paymentInfo.getMpiDataCavv() != null) {
-            threeDSecureData.setCavv(BaseEncoding.base64().encode(paymentInfo.getMpiDataCavv().getBytes(Charsets.US_ASCII)).getBytes(Charsets.US_ASCII));
+            byte[] cavv = paymentInfo.getMpiDataCavv().getBytes(Charsets.US_ASCII);
+            // ApplePay and GooglePay already send Base64-encoded cryptograms
+            if (!BRAND_APPLEPAY.equals(selectedBrand) && !BRAND_PAYWITHGOOGLE.equals(selectedBrand)) {
+                cavv = BaseEncoding.base64().encode(cavv).getBytes(Charsets.US_ASCII);
+            }
+            threeDSecureData.setCavv(cavv);
         }
         threeDSecureData.setCavvAlgorithm(paymentInfo.getMpiDataCavvAlgorithm());
         if (paymentInfo.getMpiDataXid() != null) {
-            threeDSecureData.setXid(BaseEncoding.base64().encode(paymentInfo.getMpiDataXid().getBytes(Charsets.US_ASCII)).getBytes(Charsets.US_ASCII));
+            byte[] xid= paymentInfo.getMpiDataXid().getBytes(Charsets.US_ASCII);
+            // ApplePay and GooglePay already send Base64-encoded cryptograms
+            if (!BRAND_APPLEPAY.equals(selectedBrand) && !BRAND_PAYWITHGOOGLE.equals(selectedBrand)) {
+                xid = BaseEncoding.base64().encode(xid).getBytes(Charsets.US_ASCII);
+            }
+            threeDSecureData.setXid(xid);
         }
         threeDSecureData.setEci(paymentInfo.getMpiDataEci());
         if (threeDSecureData.getDirectoryResponse() != null ||
