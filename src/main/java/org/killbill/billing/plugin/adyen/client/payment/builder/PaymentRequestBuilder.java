@@ -176,7 +176,7 @@ public class PaymentRequestBuilder extends RequestBuilder<PaymentRequest> {
         if (paymentInfo.getMpiDataCavv() != null) {
             byte[] cavv = paymentInfo.getMpiDataCavv().getBytes(Charsets.US_ASCII);
             // ApplePay already sends Base64-encoded cryptograms
-            if (!BRAND_APPLEPAY.equals(selectedBrand)) {
+            if (!BRAND_APPLEPAY.equals(selectedBrand) && !BRAND_PAYWITHGOOGLE.equals(selectedBrand)) {
                 cavv = BaseEncoding.base64().encode(cavv).getBytes(Charsets.US_ASCII);
             }
             threeDSecureData.setCavv(cavv);
@@ -185,7 +185,7 @@ public class PaymentRequestBuilder extends RequestBuilder<PaymentRequest> {
         if (paymentInfo.getMpiDataXid() != null) {
             byte[] xid= paymentInfo.getMpiDataXid().getBytes(Charsets.US_ASCII);
             // ApplePay already sends Base64-encoded xids
-            if (!BRAND_APPLEPAY.equals(selectedBrand)) {
+            if (!BRAND_APPLEPAY.equals(selectedBrand) && !BRAND_PAYWITHGOOGLE.equals(selectedBrand)) {
                 xid = BaseEncoding.base64().encode(xid).getBytes(Charsets.US_ASCII);
             }
             threeDSecureData.setXid(xid);
