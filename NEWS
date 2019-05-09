@@ -1,3 +1,15 @@
+0.5.19
+    ApplePay and GooglePay support iteration
+
+0.5.18
+    ApplePay and GooglePay support iteration
+
+0.5.17
+    ApplePay and GooglePay support iteration
+
+0.5.16
+    Adds applepay and googlepay support
+
 0.5.15
     Add support for custom additionalData parameters (#83)
     Leverage authResult from complete hpp payment call to cancel the payment (#100)
