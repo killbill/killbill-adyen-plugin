@@ -141,17 +141,19 @@ public abstract class PaymentInfoMappingService {
 
         final String selectedBrand = PluginProperties.findPluginPropertyValue(PROPERTY_SELECTED_BRAND, properties);
 
-        if (BRAND_APPLEPAY.equals(selectedBrand) || BRAND_PAYWITHGOOGLE.equals(selectedBrand)) {
-            // these require specific mpi data values
-            paymentInfo.setMpiDataDirectoryResponse("Y");
-            paymentInfo.setMpiDataAuthenticationResponse("Y");
-            if (mpiDataEci == null || mpiDataEci.isEmpty()) {
-                paymentInfo.setMpiDataEci("07");
-            }
-        }
-
         final String mpiDataCavv = PluginProperties.findPluginPropertyValue(PROPERTY_MPI_DATA_CAVV, properties);
         paymentInfo.setMpiDataCavv(mpiDataCavv);
+
+        if (BRAND_APPLEPAY.equals(selectedBrand) || BRAND_PAYWITHGOOGLE.equals(selectedBrand)) {
+            if (mpiDataCavv != null) {
+                // these require specific mpi data values
+                paymentInfo.setMpiDataDirectoryResponse("Y");
+                paymentInfo.setMpiDataAuthenticationResponse("Y");
+                if (mpiDataEci == null || mpiDataEci.isEmpty()) {
+                    paymentInfo.setMpiDataEci("07");
+                }
+            }
+        }
 
         final String mpiDataCavvAlgorithm = PluginProperties.findPluginPropertyValue(PROPERTY_MPI_DATA_CAVV_ALGORITHM, properties);
         paymentInfo.setMpiDataCavvAlgorithm(mpiDataCavvAlgorithm);
