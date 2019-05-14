@@ -24,7 +24,6 @@ import javax.annotation.Nullable;
 
 import org.killbill.billing.account.api.AccountData;
 import org.killbill.billing.payment.api.PluginProperty;
-import org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi;
 import org.killbill.billing.plugin.adyen.client.AdyenConfigProperties;
 import org.killbill.billing.plugin.adyen.client.model.Acquirer;
 import org.killbill.billing.plugin.adyen.client.model.PaymentInfo;
@@ -70,7 +69,6 @@ import static org.killbill.billing.plugin.api.payment.PluginPaymentPluginApi.PRO
 import static org.killbill.billing.plugin.api.payment.PluginPaymentPluginApi.PROPERTY_ZIP;
 
 public abstract class PaymentInfoMappingService {
-
     public static PaymentInfo toPaymentInfo(final String merchantAccount,
                                             @Nullable final String countryCode,
                                             final AdyenConfigProperties configuration,
@@ -79,6 +77,7 @@ public abstract class PaymentInfoMappingService {
                                             @Nullable final AdyenPaymentMethodsRecord paymentMethodsRecord,
                                             final Iterable<PluginProperty> properties) {
         final PaymentInfo paymentInfo;
+
 
         if (paymentMethodsRecord == null) {
             paymentInfo = WebPaymentFrontendMappingService.toPaymentInfo(merchantAccount, configuration, clock, properties);
@@ -147,7 +146,7 @@ public abstract class PaymentInfoMappingService {
             paymentInfo.setMpiDataDirectoryResponse("Y");
             paymentInfo.setMpiDataAuthenticationResponse("Y");
             if (mpiDataEci == null || mpiDataEci.isEmpty()) {
-                paymentInfo.setMpiDataEci("7");
+                paymentInfo.setMpiDataEci("07");
             }
         }
 

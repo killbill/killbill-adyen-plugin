@@ -18,10 +18,12 @@
 package org.killbill.billing.plugin.adyen.client.payment.builder;
 
 import java.math.BigDecimal;
+import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import com.google.common.base.Charsets;
 import org.killbill.adyen.payment.AnyType2AnyTypeMap;
 import org.killbill.adyen.payment.PaymentRequest;
 import org.killbill.billing.catalog.api.Currency;
@@ -37,6 +39,8 @@ import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import com.google.common.collect.ImmutableList;
+
+import javax.xml.bind.DatatypeConverter;
 
 public class TestPaymentRequestBuilder extends BaseTestPaymentRequestBuilder {
 
@@ -149,8 +153,8 @@ public class TestPaymentRequestBuilder extends BaseTestPaymentRequestBuilder {
         Assert.assertEquals(paymentRequest.getBrowserInfo().getUserAgent(), paymentInfo.getUserAgent());
         Assert.assertEquals(paymentRequest.getMpiData().getDirectoryResponse(), paymentInfo.getMpiDataDirectoryResponse());
         Assert.assertEquals(paymentRequest.getMpiData().getAuthenticationResponse(), paymentInfo.getMpiDataAuthenticationResponse());
-        Assert.assertEquals(paymentRequest.getMpiData().getCavv(), "MTIzNDU2Nzg5MDEyMzQ1Njc4OTA=".getBytes());
-        Assert.assertEquals(paymentRequest.getMpiData().getXid(), "MDk4NzY1NDMyMTA5ODc2NTQzMjE=".getBytes());
+        Assert.assertEquals(Base64.getEncoder().encodeToString(paymentRequest.getMpiData().getCavv()), "12345678901234567890");
+        Assert.assertEquals(Base64.getEncoder().encodeToString(paymentRequest.getMpiData().getXid()), "09876543210987654321");
         Assert.assertEquals(paymentRequest.getMpiData().getEci(), paymentInfo.getMpiDataEci());
         Assert.assertEquals(paymentRequest.getMpiData().getCavvAlgorithm(), paymentInfo.getMpiDataCavvAlgorithm());
 
