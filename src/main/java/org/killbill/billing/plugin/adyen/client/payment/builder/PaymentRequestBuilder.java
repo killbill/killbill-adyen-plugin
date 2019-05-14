@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Map;
 
 import javax.annotation.Nullable;
+import javax.xml.bind.DatatypeConverter;
 import javax.xml.datatype.DatatypeConfigurationException;
 import javax.xml.datatype.DatatypeFactory;
 import javax.xml.datatype.XMLGregorianCalendar;
@@ -40,7 +41,8 @@ import org.killbill.billing.plugin.adyen.client.model.UserData;
 import org.killbill.billing.plugin.adyen.client.payment.converter.PaymentInfoConverterManagement;
 
 import com.google.common.base.Charsets;
-import com.google.common.io.BaseEncoding;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.BRAND_APPLEPAY;
 import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.BRAND_PAYWITHGOOGLE;
@@ -52,6 +54,8 @@ public class PaymentRequestBuilder extends RequestBuilder<PaymentRequest> {
     private final UserData userData;
     private final SplitSettlementData splitSettlementData;
     private final Map<String, String> additionalData;
+
+    private static final Logger logger = LoggerFactory.getLogger(PaymentRequestBuilder.class);
 
     public PaymentRequestBuilder(final String merchantAccount,
                                  final PaymentData paymentData,
@@ -173,23 +177,11 @@ public class PaymentRequestBuilder extends RequestBuilder<PaymentRequest> {
         final ThreeDSecureData threeDSecureData = new ThreeDSecureData();
         threeDSecureData.setDirectoryResponse(paymentInfo.getMpiDataDirectoryResponse());
         threeDSecureData.setAuthenticationResponse(paymentInfo.getMpiDataAuthenticationResponse());
-        if (paymentInfo.getMpiDataCavv() != null) {
-            byte[] cavv = paymentInfo.getMpiDataCavv().getBytes(Charsets.US_ASCII);
-            // ApplePay and GooglePay already send Base64-encoded cryptograms
-            if (!BRAND_APPLEPAY.equals(selectedBrand) && !BRAND_PAYWITHGOOGLE.equals(selectedBrand)) {
-                cavv = BaseEncoding.base64().encode(cavv).getBytes(Charsets.US_ASCII);
-            }
-            threeDSecureData.setCavv(cavv);
-        }
         threeDSecureData.setCavvAlgorithm(paymentInfo.getMpiDataCavvAlgorithm());
-        if (paymentInfo.getMpiDataXid() != null) {
-            byte[] xid= paymentInfo.getMpiDataXid().getBytes(Charsets.US_ASCII);
-            // ApplePay and GooglePay already send Base64-encoded cryptograms
-            if (!BRAND_APPLEPAY.equals(selectedBrand) && !BRAND_PAYWITHGOOGLE.equals(selectedBrand)) {
-                xid = BaseEncoding.base64().encode(xid).getBytes(Charsets.US_ASCII);
-            }
-            threeDSecureData.setXid(xid);
-        }
+        // Set the unencoded bytes for cavv and xid because JAXB will encode them to base64 automatically when creating
+        // a request to Adyen
+        threeDSecureData.setCavv(toPlainBytes(paymentInfo.getMpiDataCavv()));
+        threeDSecureData.setXid(toPlainBytes(paymentInfo.getMpiDataXid()));
         threeDSecureData.setEci(paymentInfo.getMpiDataEci());
         if (threeDSecureData.getDirectoryResponse() != null ||
             threeDSecureData.getAuthenticationResponse() != null ||
@@ -203,6 +195,20 @@ public class PaymentRequestBuilder extends RequestBuilder<PaymentRequest> {
         if (paymentInfo.getTermUrl() != null) {
             addAdditionalDataEntry(request.getAdditionalData().getEntry(), "returnUrl", paymentInfo.getTermUrl());
         }
+    }
+
+    private byte[] toPlainBytes(String maybeBase64EncodedString) {
+        if (maybeBase64EncodedString != null) {
+            byte[] asBytes;
+
+            try {
+                return DatatypeConverter.parseBase64Binary(maybeBase64EncodedString);
+            }
+            catch (IllegalArgumentException ex) {
+                return maybeBase64EncodedString.getBytes(Charsets.US_ASCII);
+            }
+        }
+        return null;
     }
 
     private void setSplitSettlementData() {
