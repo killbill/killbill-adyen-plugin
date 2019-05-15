@@ -130,39 +130,45 @@ public abstract class PaymentInfoMappingService {
             paymentInfo.setThreeDThreshold(Long.valueOf(threeDThreshold));
         }
 
-        final String mpiDataDirectoryResponse = PluginProperties.findPluginPropertyValue(PROPERTY_MPI_DATA_DIRECTORY_RESPONSE, properties);
-        paymentInfo.setMpiDataDirectoryResponse(mpiDataDirectoryResponse);
-
-        final String mpiDataAuthenticationResponse = PluginProperties.findPluginPropertyValue(PROPERTY_MPI_DATA_AUTHENTICATION_RESPONSE, properties);
-        paymentInfo.setMpiDataAuthenticationResponse(mpiDataAuthenticationResponse);
-
-        final String mpiDataEci = PluginProperties.findPluginPropertyValue(PROPERTY_MPI_DATA_ECI, properties);
-        paymentInfo.setMpiDataEci(mpiDataEci);
-
         final String selectedBrand = PluginProperties.findPluginPropertyValue(PROPERTY_SELECTED_BRAND, properties);
 
+        String mpiDataAuthenticationResponse = PluginProperties.findPluginPropertyValue(PROPERTY_MPI_DATA_AUTHENTICATION_RESPONSE, properties);
+        String mpiDataCavv = PluginProperties.findPluginPropertyValue(PROPERTY_MPI_DATA_CAVV, properties);
+        String mpiDataCavvAlgorithm = PluginProperties.findPluginPropertyValue(PROPERTY_MPI_DATA_CAVV_ALGORITHM, properties);
+        String mpiDataDirectoryResponse = PluginProperties.findPluginPropertyValue(PROPERTY_MPI_DATA_DIRECTORY_RESPONSE, properties);
+        String mpiDataEci = PluginProperties.findPluginPropertyValue(PROPERTY_MPI_DATA_ECI, properties);
+        String mpiDataXid = PluginProperties.findPluginPropertyValue(PROPERTY_MPI_DATA_XID, properties);
+        String mpiImplementationType = PluginProperties.findPluginPropertyValue(PROPERTY_MPI_IMPLEMENTATION_TYPE, properties);
+
+        boolean setMpiData = true;
+
         if (BRAND_APPLEPAY.equals(selectedBrand) || BRAND_PAYWITHGOOGLE.equals(selectedBrand)) {
-            // these require specific mpi data values
-            paymentInfo.setMpiDataDirectoryResponse("Y");
-            paymentInfo.setMpiDataAuthenticationResponse("Y");
-            if (mpiDataEci == null || mpiDataEci.isEmpty()) {
-                paymentInfo.setMpiDataEci("07");
+            if (mpiDataCavv != null) {
+                // these require specific mpi data values
+                mpiDataDirectoryResponse = "Y";
+                mpiDataAuthenticationResponse = "Y";
+                if (mpiDataEci == null || mpiDataEci.isEmpty()) {
+                    mpiDataEci = "07";
+                }
+            }
+            // do not generate mpiData at all
+            // as that will cause a payment failure with error 'mpi data is not allowed'
+            else {
+                setMpiData = false;
             }
         }
 
-        final String mpiDataCavv = PluginProperties.findPluginPropertyValue(PROPERTY_MPI_DATA_CAVV, properties);
-        paymentInfo.setMpiDataCavv(mpiDataCavv);
-
-        final String mpiDataCavvAlgorithm = PluginProperties.findPluginPropertyValue(PROPERTY_MPI_DATA_CAVV_ALGORITHM, properties);
-        paymentInfo.setMpiDataCavvAlgorithm(mpiDataCavvAlgorithm);
-
-        final String mpiDataXid = PluginProperties.findPluginPropertyValue(PROPERTY_MPI_DATA_XID, properties);
-        paymentInfo.setMpiDataXid(mpiDataXid);
-
-        final String mpiImplementationType = PluginProperties.findPluginPropertyValue(PROPERTY_MPI_IMPLEMENTATION_TYPE, properties);
-        paymentInfo.setMpiImplementationType(mpiImplementationType);
-        if (mpiImplementationType != null) {
-            paymentInfo.setMpiImplementationTypeValues(Maps.filterKeys(PluginProperties.toStringMap(properties), Predicates.containsPattern(mpiImplementationType + ".")));
+        if (setMpiData) {
+            paymentInfo.setMpiDataAuthenticationResponse(mpiDataAuthenticationResponse);
+            paymentInfo.setMpiDataCavv(mpiDataCavv);
+            paymentInfo.setMpiDataCavvAlgorithm(mpiDataCavvAlgorithm);
+            paymentInfo.setMpiDataDirectoryResponse(mpiDataDirectoryResponse);
+            paymentInfo.setMpiDataEci(mpiDataEci);
+            paymentInfo.setMpiDataXid(mpiDataXid);
+            paymentInfo.setMpiImplementationType(mpiImplementationType);
+            if (mpiImplementationType != null) {
+                paymentInfo.setMpiImplementationTypeValues(Maps.filterKeys(PluginProperties.toStringMap(properties), Predicates.containsPattern(mpiImplementationType + ".")));
+            }
         }
 
         final String termUrl = PluginProperties.findPluginPropertyValue(PROPERTY_TERM_URL, properties);
