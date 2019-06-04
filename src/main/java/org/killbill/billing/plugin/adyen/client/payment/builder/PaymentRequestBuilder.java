@@ -93,9 +93,14 @@ public class PaymentRequestBuilder extends RequestBuilder<PaymentRequest> {
         if (BRAND_APPLEPAY.equals(selectedBrand) || BRAND_PAYWITHGOOGLE.equals(selectedBrand)) {
             addAdditionalDataEntry(request.getAdditionalData().getEntry(), "paymentdatasource.type", selectedBrand);
         }
+
         if (BRAND_PAYWITHGOOGLE.equals(selectedBrand)) {
-            String tokenizedProperty = Boolean.toString(paymentData.getPaymentInfo().getMpiDataCavv() != null);
-            addAdditionalDataEntry(request.getAdditionalData().getEntry(), "paymentdatasource.tokenized", tokenizedProperty);
+            boolean isDPAN = paymentData.getPaymentInfo().getMpiDataCavv() != null;
+            addAdditionalDataEntry(request.getAdditionalData().getEntry(), "paymentdatasource.tokenized", Boolean.toString(isDPAN));
+
+            if (!isDPAN) {
+                addAdditionalDataEntry(request.getAdditionalData().getEntry(), "executeThreeD", "false");
+            }
         }
     }
 
