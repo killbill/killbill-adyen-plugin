@@ -5,6 +5,8 @@
 	xmlns:xsd="http://www.w3.org/2001/XMLSchema"
 	xmlns:adyenPayment="http://payment.services.adyen.com"
 	xmlns:adyenCommon="http://common.services.adyen.com"
+	xmlns:adyenApplicationInfo="http://applicationinfo.payment.services.adyen.com"
+	xmlns:adyenThreeds2Data="http://threeds2data.payment.services.adyen.com"
 xsd:schemaLocation="
 http://java.sun.com/xml/ns/jaxb http://java.sun.com/xml/ns/jaxb/bindingschema_2_0.xsd"
 >
@@ -28,4 +30,15 @@ http://java.sun.com/xml/ns/jaxb http://java.sun.com/xml/ns/jaxb/bindingschema_2_
 		</jaxb:schemaBindings>
 	</jaxb:bindings>
 
+	<jaxb:bindings scd="x-schema::adyenApplicationInfo">
+		<jaxb:schemaBindings>
+			<jaxb:package name="org.killbill.adyen.applicationinfo"/>
+		</jaxb:schemaBindings>
+	</jaxb:bindings>
+
+	<jaxb:bindings scd="x-schema::adyenThreeds2Data">
+		<jaxb:schemaBindings>
+			<jaxb:package name="org.killbill.adyen.threeds2data"/>
+		</jaxb:schemaBindings>
+	</jaxb:bindings>
 </jaxb:bindings>
