@@ -468,7 +468,7 @@ public class AdyenConfigProperties {
         map.clear();
         if (!Strings.isNullOrEmpty(stringToSplit)) {
             for (final String entry : stringToSplit.split("\\" + ENTRY_DELIMITER)) {
-                final String[] split = entry.split(KEY_VALUE_DELIMITER);
+                final String[] split = entry.split(KEY_VALUE_DELIMITER, 2);
                 if (split.length > 1) {
                     map.put(split[0], split[1]);
                 }

@@ -74,7 +74,7 @@ public class TestAdyenConfigProperties {
         final Properties properties = new Properties();
         properties.put("org.killbill.billing.plugin.adyen.merchantAccount", "UK#DefaultAccountUK|DE#DefaultAccountDE|US#DefaultAccountUS");
         properties.put("org.killbill.billing.plugin.adyen.username", "UK#DefaultUsernameUK|DE#DefaultUsernameDE|US#DefaultUsernameUS");
-        properties.put("org.killbill.billing.plugin.adyen.password", "UK#DefaultPasswordUK|DE#DefaultPasswordDE|DefaultUsernameUS#DefaultPasswordUS");
+        properties.put("org.killbill.billing.plugin.adyen.password", "UK#DefaultPasswordUK|DE#DefaultPasswordDE|DefaultUsernameUS#Default#PasswordUS");
         properties.put("org.killbill.billing.plugin.adyen.skin", "UK#DefaultSkinUK|US#DefaultSkinUS|DE#DefaultSkinDE");
         properties.put("org.killbill.billing.plugin.adyen.hmac.secret", "UK#DefaultSecretUK|US#DefaultSecretUS|DE#DefaultSecretDE");
         properties.put("org.killbill.billing.plugin.adyen.hmac.algorithm", "UK#DefaultAlgorithmUK|US#DefaultAlgorithmUS|DE#DefaultAlgorithmDE");
@@ -91,7 +91,7 @@ public class TestAdyenConfigProperties {
 
         Assert.assertEquals(adyenConfigProperties.getPassword("DefaultUsernameUK"), "DefaultPasswordUK");
         Assert.assertEquals(adyenConfigProperties.getPassword("DefaultUsernameDE"), "DefaultPasswordDE");
-        Assert.assertEquals(adyenConfigProperties.getPassword("DefaultUsernameUS"), "DefaultPasswordUS");
+        Assert.assertEquals(adyenConfigProperties.getPassword("DefaultUsernameUS"), "Default#PasswordUS");
 
         Assert.assertEquals(adyenConfigProperties.getSkin("DefaultAccountUK"), "DefaultSkinUK");
         Assert.assertEquals(adyenConfigProperties.getSkin("DefaultAccountDE"), "DefaultSkinDE");
@@ -118,9 +118,9 @@ public class TestAdyenConfigProperties {
         final Properties properties = new Properties();
         properties.put("org.killbill.billing.plugin.adyen.merchantAccount", "UK#DefaultAccountUK|DE#DefaultAccountDE|US#DefaultAccountUS");
         properties.put("org.killbill.billing.plugin.adyen.username", "UK#DefaultUsernameUK|DE#DefaultUsernameDE|OverrideAccountUK#OverrideUsernameUK|US#DefaultUsernameUS");
-        properties.put("org.killbill.billing.plugin.adyen.password", "UK#DefaultPasswordUK|OverrideUsernameUK#OverridePasswordUK|DE#DefaultPasswordDE|DefaultUsernameUS#DefaultPasswordUS");
+        properties.put("org.killbill.billing.plugin.adyen.password", "UK#DefaultPasswordUK|OverrideUsernameUK#OverridePasswordUK|DE#DefaultPasswordDE|DefaultUsernameUS#Default#PasswordUS");
         properties.put("org.killbill.billing.plugin.adyen.skin", "UK#DefaultSkinUK|OverrideAccountUK#OverrideSkinUK|US#DefaultSkinUS|DE#DefaultSkinDE");
-        properties.put("org.killbill.billing.plugin.adyen.hmac.secret", "UK#DefaultSecretUK|OverrideSkinUK#OverrideSecretUK|US#DefaultSecretUS|DE#DefaultSecretDE");
+        properties.put("org.killbill.billing.plugin.adyen.hmac.secret", "UK#DefaultSecretUK|OverrideSkinUK#OverrideSecretUK|US#Default#SecretUS|DE#DefaultSecretDE");
         properties.put("org.killbill.billing.plugin.adyen.hmac.algorithm", "UK#DefaultAlgorithmUK|OverrideSkinUK#OverrideAlgorithmUK|US#DefaultAlgorithmUS|DE#DefaultAlgorithmDE");
         properties.put("org.killbill.billing.plugin.adyen.pendingPaymentExpirationPeriod", "paypal#P4D|boletobancario_santander#P12D");
         properties.put("org.killbill.billing.plugin.adyen.pendingHppPaymentWithoutCompletionExpirationPeriod", "P12D");
@@ -138,7 +138,7 @@ public class TestAdyenConfigProperties {
         Assert.assertEquals(adyenConfigProperties.getPassword("DefaultUsernameUK"), "DefaultPasswordUK");
         Assert.assertEquals(adyenConfigProperties.getPassword("OverrideUsernameUK"), "OverridePasswordUK");
         Assert.assertEquals(adyenConfigProperties.getPassword("DefaultUsernameDE"), "DefaultPasswordDE");
-        Assert.assertEquals(adyenConfigProperties.getPassword("DefaultUsernameUS"), "DefaultPasswordUS");
+        Assert.assertEquals(adyenConfigProperties.getPassword("DefaultUsernameUS"), "Default#PasswordUS");
 
         Assert.assertEquals(adyenConfigProperties.getSkin("DefaultAccountUK"), "DefaultSkinUK");
         Assert.assertEquals(adyenConfigProperties.getSkin("OverrideAccountUK"), "OverrideSkinUK");
@@ -148,7 +148,7 @@ public class TestAdyenConfigProperties {
         Assert.assertEquals(adyenConfigProperties.getHmacSecret("DefaultSkinUK"), "DefaultSecretUK");
         Assert.assertEquals(adyenConfigProperties.getHmacSecret("OverrideSkinUK"), "OverrideSecretUK");
         Assert.assertEquals(adyenConfigProperties.getHmacSecret("DefaultSkinDE"), "DefaultSecretDE");
-        Assert.assertEquals(adyenConfigProperties.getHmacSecret("DefaultSkinUS"), "DefaultSecretUS");
+        Assert.assertEquals(adyenConfigProperties.getHmacSecret("DefaultSkinUS"), "Default#SecretUS");
 
         Assert.assertEquals(adyenConfigProperties.getHmacAlgorithm("DefaultSkinUK"), "DefaultAlgorithmUK");
         Assert.assertEquals(adyenConfigProperties.getHmacAlgorithm("OverrideSkinUK"), "OverrideAlgorithmUK");
