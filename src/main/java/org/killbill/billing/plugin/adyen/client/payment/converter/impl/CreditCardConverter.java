@@ -45,7 +45,7 @@ public class CreditCardConverter extends PaymentInfoConverter<Card> {
 
         final PaymentRequest adyenRequest = super.convertPaymentInfoToPaymentRequest(paymentInfo);
         adyenRequest.setCard(card);
-        card.setBillingAddress(adyenRequest.getBillingAddress());
+        adyenRequest.setBillingAddress(adyenRequest.getBillingAddress());
         setAdditionalData(paymentInfo, adyenRequest);
 
         return adyenRequest;

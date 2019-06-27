@@ -34,6 +34,9 @@ import org.killbill.adyen.common.Name;
 import org.killbill.adyen.payment.AnyType2AnyTypeMap;
 import org.killbill.adyen.payment.PaymentRequest;
 import org.killbill.adyen.payment.ThreeDSecureData;
+import org.killbill.adyen.threeds2data.ChallengeIndicator;
+import org.killbill.adyen.threeds2data.ThreeDS2RequestData;
+import org.killbill.adyen.threeds2data.ThreeDS2Result;
 import org.killbill.billing.plugin.adyen.client.model.PaymentData;
 import org.killbill.billing.plugin.adyen.client.model.PaymentInfo;
 import org.killbill.billing.plugin.adyen.client.model.SplitSettlementData;
@@ -79,7 +82,9 @@ public class PaymentRequestBuilder extends RequestBuilder<PaymentRequest> {
         setAmount();
         setRecurring();
         setShopperData();
-        set3DSecureFields();
+        setBrowserInfo();
+        set3DSFields();
+        set3DS2Fields();
         setSplitSettlementData();
         addAdditionalData();
 
@@ -155,7 +160,24 @@ public class PaymentRequestBuilder extends RequestBuilder<PaymentRequest> {
         request.setShopperReference(userData.getShopperReference());
     }
 
-    private void set3DSecureFields() {
+    private void setBrowserInfo() {
+        final PaymentInfo paymentInfo = paymentData.getPaymentInfo();
+        final BrowserInfo browserInfo = new BrowserInfo();
+        browserInfo.setAcceptHeader(paymentInfo.getAcceptHeader());
+        browserInfo.setColorDepth(paymentInfo.getColorDepth());
+        browserInfo.setJavaEnabled(paymentInfo.getJavaEnabled());
+        browserInfo.setJavaScriptEnabled(paymentInfo.getJavaScriptEnabled());
+        browserInfo.setLanguage(paymentInfo.getBrowserLanguage());
+        browserInfo.setScreenHeight(paymentInfo.getScreenHeight());
+        browserInfo.setScreenWidth(paymentInfo.getScreenWidth());
+        browserInfo.setTimeZoneOffset(paymentInfo.getBrowserTimeZoneOffset());
+        browserInfo.setUserAgent(paymentInfo.getUserAgent());
+        if (browserInfo.getAcceptHeader() != null || browserInfo.getUserAgent() != null) {
+            request.setBrowserInfo(browserInfo);
+        }
+    }
+
+    private void set3DSFields() {
         final BigDecimal amount = paymentData.getAmount();
         final PaymentInfo paymentInfo = paymentData.getPaymentInfo();
 
@@ -170,13 +192,6 @@ public class PaymentRequestBuilder extends RequestBuilder<PaymentRequest> {
             if (!thresholdReached) {
                 return;
             }
-        }
-
-        final BrowserInfo browserInfo = new BrowserInfo();
-        browserInfo.setAcceptHeader(paymentInfo.getAcceptHeader());
-        browserInfo.setUserAgent(paymentInfo.getUserAgent());
-        if (browserInfo.getAcceptHeader() != null || browserInfo.getUserAgent() != null) {
-            request.setBrowserInfo(browserInfo);
         }
 
         final ThreeDSecureData threeDSecureData = new ThreeDSecureData();
@@ -199,6 +214,18 @@ public class PaymentRequestBuilder extends RequestBuilder<PaymentRequest> {
 
         if (paymentInfo.getTermUrl() != null) {
             addAdditionalDataEntry(request.getAdditionalData().getEntry(), "returnUrl", paymentInfo.getTermUrl());
+        }
+    }
+
+    private void set3DS2Fields() {
+        final PaymentInfo paymentInfo = paymentData.getPaymentInfo();
+        if (paymentInfo.getNotificationUrl() != null) {
+            final ThreeDS2RequestData threeDS2RequestData = new ThreeDS2RequestData();
+            threeDS2RequestData.setAuthenticationOnly(false);
+            threeDS2RequestData.setChallengeIndicator(ChallengeIndicator.NO_PREFERENCE);  // TODO from property
+            threeDS2RequestData.setDeviceChannel("browser"); // For channels web and mobile when using webview
+            threeDS2RequestData.setNotificationURL(paymentInfo.getNotificationUrl());
+            request.setThreeDS2RequestData(threeDS2RequestData);
         }
     }
 

@@ -37,31 +37,7 @@ import com.google.common.base.Predicates;
 import com.google.common.base.Strings;
 import com.google.common.collect.Maps;
 
-import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.BRAND_APPLEPAY;
-import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.BRAND_PAYWITHGOOGLE;
-import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.PROPERTY_ACCEPT_HEADER;
-import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.PROPERTY_ACQUIRER;
-import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.PROPERTY_ACQUIRER_MID;
-import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.PROPERTY_CAPTURE_DELAY_HOURS;
-import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.PROPERTY_CONTINUOUS_AUTHENTICATION;
-import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.PROPERTY_DD_ACCOUNT_NUMBER;
-import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.PROPERTY_INSTALLMENTS;
-import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.PROPERTY_MD;
-import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.PROPERTY_MPI_DATA_AUTHENTICATION_RESPONSE;
-import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.PROPERTY_MPI_DATA_CAVV;
-import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.PROPERTY_MPI_DATA_CAVV_ALGORITHM;
-import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.PROPERTY_MPI_DATA_DIRECTORY_RESPONSE;
-import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.PROPERTY_MPI_DATA_ECI;
-import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.PROPERTY_MPI_DATA_XID;
-import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.PROPERTY_MPI_IMPLEMENTATION_TYPE;
-import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.PROPERTY_PA_RES;
-import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.PROPERTY_RECURRING_DETAIL_ID;
-import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.PROPERTY_RECURRING_TYPE;
-import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.PROPERTY_SELECTED_BRAND;
-import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.PROPERTY_TERM_URL;
-import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.PROPERTY_THREE_D_THRESHOLD;
-import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.PROPERTY_USER_AGENT;
-import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.decode;
+import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.*;
 import static org.killbill.billing.plugin.api.payment.PluginPaymentPluginApi.PROPERTY_ADDRESS1;
 import static org.killbill.billing.plugin.api.payment.PluginPaymentPluginApi.PROPERTY_ADDRESS2;
 import static org.killbill.billing.plugin.api.payment.PluginPaymentPluginApi.PROPERTY_CITY;
@@ -96,7 +72,9 @@ public abstract class PaymentInfoMappingService {
             }
         }
 
-        set3DSecureFields(paymentInfo, properties);
+        setBrowserInfo(paymentInfo, properties);
+        set3DSFields(paymentInfo, properties);
+        set3DS2Fields(paymentInfo, properties);
         setBillingAddress(countryCode, account, paymentInfo, paymentMethodsRecord, properties);
         setCaptureDelayHours(paymentInfo, properties);
         setContractAndContinuousAuthentication(paymentInfo, properties);
@@ -107,13 +85,46 @@ public abstract class PaymentInfoMappingService {
         return paymentInfo;
     }
 
-    private static void set3DSecureFields(final PaymentInfo paymentInfo, final Iterable<PluginProperty> properties) {
-        final String ccUserAgent = PluginProperties.findPluginPropertyValue(PROPERTY_USER_AGENT, properties);
-        paymentInfo.setUserAgent(ccUserAgent);
+    private static void setBrowserInfo(final PaymentInfo paymentInfo, final Iterable<PluginProperty> properties) {
+        final String acceptHeader = PluginProperties.findPluginPropertyValue(PROPERTY_ACCEPT_HEADER, properties);
+        final String userAgent = PluginProperties.findPluginPropertyValue(PROPERTY_USER_AGENT, properties);
+        final String colorDepth = PluginProperties.findPluginPropertyValue(PROPERTY_COLOR_DEPTH, properties);
+        final String javaEnabled = PluginProperties.findPluginPropertyValue(PROPERTY_JAVA_ENABLED, properties);
+        final String javaScriptEnabled = PluginProperties.findPluginPropertyValue(PROPERTY_JAVA_SCRIPT_ENABLED, properties);
+        final String browserLanguage = PluginProperties.findPluginPropertyValue(PROPERTY_BROWSER_LANGUAGE, properties);
+        final String screenHeight = PluginProperties.findPluginPropertyValue(PROPERTY_SCREEN_HEIGHT, properties);
+        final String screenWidth = PluginProperties.findPluginPropertyValue(PROPERTY_SCREEN_WIDTH, properties);
+        final String timeZoneOffset = PluginProperties.findPluginPropertyValue(PROPERTY_BROWSER_TIME_ZONE_OFFSET, properties);
+        if (acceptHeader != null) {
+            paymentInfo.setAcceptHeader(acceptHeader);
+        }
+        if (userAgent != null) {
+            paymentInfo.setUserAgent(userAgent);
+        }
+        if (colorDepth != null) {
+            paymentInfo.setColorDepth(Integer.valueOf(colorDepth));
+        }
+        if (javaEnabled != null) {
+            paymentInfo.setJavaEnabled(Boolean.valueOf(javaEnabled));
+        }
+        if (javaScriptEnabled != null) {
+            paymentInfo.setJavaScriptEnabled(Boolean.valueOf(javaScriptEnabled));
+        }
+        if (browserLanguage != null) {
+            paymentInfo.setBrowserLanguage(browserLanguage);
+        }
+        if (screenHeight != null) {
+            paymentInfo.setScreenHeight(Integer.valueOf(screenHeight));
+        }
+        if (screenWidth != null) {
+            paymentInfo.setScreenWidth(Integer.valueOf(screenWidth));
+        }
+        if (timeZoneOffset != null) {
+            paymentInfo.setBrowserTimeZoneOffset(Integer.valueOf(timeZoneOffset));
+        }
+    }
 
-        final String ccAcceptHeader = PluginProperties.findPluginPropertyValue(PROPERTY_ACCEPT_HEADER, properties);
-        paymentInfo.setAcceptHeader(ccAcceptHeader);
-
+    private static void set3DSFields(final PaymentInfo paymentInfo, final Iterable<PluginProperty> properties) {
         final String md = PluginProperties.findPluginPropertyValue(PROPERTY_MD, properties);
         if (md != null) {
             paymentInfo.setMd(decode(md));
@@ -173,6 +184,62 @@ public abstract class PaymentInfoMappingService {
 
         final String termUrl = PluginProperties.findPluginPropertyValue(PROPERTY_TERM_URL, properties);
         paymentInfo.setTermUrl(termUrl);
+    }
+
+    public static void set3DS2Fields(final PaymentInfo paymentInfo, final Iterable<PluginProperty> properties) {
+        final String notificationUrl = PluginProperties.findPluginPropertyValue(PROPERTY_NOTIFICATION_URL, properties);
+        final String threeDSServerTransID = PluginProperties.findPluginPropertyValue(PROPERTY_THREEDS_SERVER_TRANS_ID, properties);
+        final String threeDS2Token = PluginProperties.findPluginPropertyValue(PROPERTY_THREEDS2_TOKEN, properties);
+        final String threeDSMethodURL = PluginProperties.findPluginPropertyValue(PROPERTY_THREEDS_METHOD_URL, properties);
+        final String acsTransID = PluginProperties.findPluginPropertyValue(PROPERTY_ACS_TRANS_ID, properties);
+        final String messageVersion = PluginProperties.findPluginPropertyValue(PROPERTY_MESSAGE_VERSION, properties);
+        final String threeDSCompInd = PluginProperties.findPluginPropertyValue(PROPERTY_THREEDS_COMP_IND, properties);
+        final String transStatus = PluginProperties.findPluginPropertyValue(PROPERTY_TRANS_STATUS, properties);
+        final String acsChallengeMandated = PluginProperties.findPluginPropertyValue(PROPERTY_ACS_CHALLENGE_MANDATED, properties);
+        final String authenticationType = PluginProperties.findPluginPropertyValue(PROPERTY_AUTHENTICATION_TYPE, properties);
+        final String dsTransID = PluginProperties.findPluginPropertyValue(PROPERTY_DS_TRANS_ID, properties);
+        final String acsReferenceNumber = PluginProperties.findPluginPropertyValue(PROPERTY_ACS_REFERENCE_NUMBER, properties);
+        final String acsUrl = PluginProperties.findPluginPropertyValue(PROPERTY_ACS_URL, properties);
+
+        if (notificationUrl != null) {
+            paymentInfo.setNotificationUrl(notificationUrl);
+        }
+        if (threeDSServerTransID != null) {
+            paymentInfo.setThreeDSServerTransID(threeDSServerTransID);
+        }
+        if (threeDS2Token != null) {
+            paymentInfo.setThreeDS2Token(threeDS2Token);
+        }
+        if (threeDSMethodURL != null) {
+            paymentInfo.setThreeDSMethodURL(threeDSMethodURL);
+        }
+        if (acsTransID != null) {
+            paymentInfo.setAcsTransID(acsTransID);
+        }
+        if (messageVersion != null) {
+            paymentInfo.setMessageVersion(messageVersion);
+        }
+        if (threeDSCompInd != null) {
+            paymentInfo.setThreeDSCompInd(threeDSCompInd);
+        }
+        if (transStatus != null) {
+            paymentInfo.setTransStatus(transStatus);
+        }
+        if (acsChallengeMandated != null) {
+            paymentInfo.setAcsChallengeMandated(acsChallengeMandated);
+        }
+        if (authenticationType != null) {
+            paymentInfo.setAuthenticationType(authenticationType);
+        }
+        if (dsTransID != null) {
+            paymentInfo.setDsTransID(dsTransID);
+        }
+        if (acsReferenceNumber != null) {
+            paymentInfo.setAcsReferenceNumber(acsReferenceNumber);
+        }
+        if (acsUrl != null) {
+            paymentInfo.setAcsUrl(acsUrl);
+        }
     }
 
     private static void setBillingAddress(@Nullable final String countryCode, @Nullable final AccountData account, final PaymentInfo paymentInfo, @Nullable final AdyenPaymentMethodsRecord paymentMethodsRecord, final Iterable<PluginProperty> properties) {

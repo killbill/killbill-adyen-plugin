@@ -65,6 +65,10 @@ public abstract class TestRemoteBase {
 
     public static final String CC_3DS_NUMBER = "5212345678901234";
     public static final String CC_3DS_VERIFICATION_VALUE = "737";
+    public static final String CC_3DS2_NUMBER_IDENTIFY_SHOPPER = "4212345678901245";
+    public static final String CC_3DS2_NUMBER_CHALLENGE_SHOPPER = "4212345678910006";
+
+    public static final String CC_3DS2_VERIFICATION_VALUE = "737";
 
     public static final String CC_NUMBER_VISA = "4111111111111111";
 

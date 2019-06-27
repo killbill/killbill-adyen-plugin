@@ -55,6 +55,8 @@ public class TestAdyenPaymentPluginApiBase extends TestWithEmbeddedDBBase {
         Mockito.when(context.getTenantId()).thenReturn(UUID.randomUUID());
 
         account = TestUtils.buildAccount(DEFAULT_CURRENCY, DEFAULT_COUNTRY);
+        Mockito.when(account.getEmail()).thenReturn(UUID.randomUUID().toString() + "@example.com");
+
         killbillApi = TestUtils.buildOSGIKillbillAPI(account);
 
         TestUtils.buildPaymentMethod(account.getId(), account.getPaymentMethodId(), AdyenActivator.PLUGIN_NAME, killbillApi);

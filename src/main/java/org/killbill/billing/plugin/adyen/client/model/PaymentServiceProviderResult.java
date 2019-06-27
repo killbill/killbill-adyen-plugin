@@ -26,14 +26,16 @@ import org.killbill.billing.payment.plugin.api.PaymentPluginStatus;
 
 public enum PaymentServiceProviderResult {
 
-    INITIALISED("Initialised"), // be careful with this state, it's only here to enable orders from OfflineFundsTransfer to be able to expire in every case after 7 days
     AUTHORISED("Authorised"),
-    REDIRECT_SHOPPER("RedirectShopper"), // authorize return code when using 3D-Secure
-    RECEIVED(new String[]{"Received", "Pending", "[capture-received]", "[cancel-received]", "[cancelOrRefund-received]", "[refund-received]", "[all-details-successfully-disabled]", "[detail-successfully-disabled]"}), // direct debit, ideal payment response
+    CANCELLED("Cancelled"),
+    CHALLENGE_SHOPPER("ChallengeShopper"), // possible authorize return code when using 3DS2.0
+    ERROR(new String[]{"Error", "[error]"}),
+    IDENTIFY_SHOPPER("IdentifyShopper"), // possible authorize return code when using 3DS2.0
+    INITIALISED("Initialised"), // be careful with this state, it's only here to enable orders from OfflineFundsTransfer to be able to expire in every case after 7 days
     REFUSED("Refused"),
     PENDING("Pending"),
-    ERROR(new String[]{"Error", "[error]"}),
-    CANCELLED("Cancelled");
+    RECEIVED(new String[]{"Received", "Pending", "[capture-received]", "[cancel-received]", "[cancelOrRefund-received]", "[refund-received]", "[all-details-successfully-disabled]", "[detail-successfully-disabled]"}), // direct debit, ideal payment response
+    REDIRECT_SHOPPER("RedirectShopper"); // authorize return code when using 3DS1.0
 
     private static final Map<String, PaymentServiceProviderResult> REVERSE_LOOKUP = new HashMap<String, PaymentServiceProviderResult>();
 

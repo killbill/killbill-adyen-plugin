@@ -47,7 +47,7 @@ public class NotificationItem {
         this.additionalData = null;
         final Amount itemAmount = notificationRequestItem.getAmount();
         this.currency = (itemAmount == null ? null : itemAmount.getCurrency());
-        if (this.currency != null && itemAmount.getValue() != null) {
+        if (this.currency != null) {
             // The amount is in minor units
             final CurrencyUnit currencyUnit = CurrencyUnit.of(this.currency);
             this.amount = Money.ofMinor(currencyUnit, itemAmount.getValue()).getAmount();

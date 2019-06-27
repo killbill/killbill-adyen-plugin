@@ -42,7 +42,6 @@ import org.killbill.billing.plugin.adyen.dao.gen.tables.records.AdyenResponsesRe
 import org.killbill.billing.plugin.api.PluginProperties;
 import org.killbill.billing.plugin.api.payment.PluginPaymentTransactionInfoPlugin;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Optional;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
@@ -92,6 +91,14 @@ public class AdyenPaymentTransactionInfoPlugin extends PluginPaymentTransactionI
             .put("25", "T")  // Address matches, name doesn't match => Card member's name does not match, but street address matches
             .put("26", "N")  // Neither postal code, address nor name matches => Street address and postal code do not match
             .build();
+
+    private static final Map<String, String> SUPPORTED_ADDITIONAL_DATA_FIELDS = new ImmutableMap.Builder()
+            .put("avsResult", "avsResult")
+            .put("avsResultRaw", "avsResultCode")
+            .put("cvcResult", "cvcResult")
+            .put("cvcResultRaw", "cvcResultCode")
+            .build();
+
 
     public AdyenPaymentTransactionInfoPlugin(final UUID kbPaymentId,
                                              final UUID kbTransactionPaymentPaymentId,
@@ -357,29 +364,28 @@ public class AdyenPaymentTransactionInfoPlugin extends PluginPaymentTransactionI
         }
 
         Map<String, String> additionalData = purchaseResult.getAdditionalData();
+        ImmutableList.Builder<PluginProperty> builder = ImmutableList.builder();
 
         if (additionalData != null) {
-            String avsResultRaw = additionalData.get("avsResultRaw");
-            String avsResult = additionalData.get("avsResult");
-            String cvcResultRaw = additionalData.get("cvcResultRaw");
-            String cvcResult = additionalData.get("cvcResult");
+            for (Map.Entry<String, String> entry: additionalData.entrySet()) {
+                String propName = SUPPORTED_ADDITIONAL_DATA_FIELDS.get(entry.getKey());
+                if (propName != null) {
+                    if ("avsResultCode".equals(propName)) {
+                        //use Unknown (UK) as default
+                        propertiesMap.put(propName, CONVERT_AVS_CODE.getOrDefault(entry.getValue(), "UK"));
+                    } else if (entry.getValue() != null) {
+                        propertiesMap.put(propName, entry.getValue());
+                    }
+                }
+            }
 
-            if (avsResultRaw != null) {
-                //use Unknown (UK) as default
-                propertiesMap.put("avsResultCode", CONVERT_AVS_CODE.getOrDefault(avsResultRaw, "UK"));
-            }
-            if (avsResult != null) {
-                propertiesMap.put("avsResult", avsResult);
-            }
-            if (cvcResultRaw != null) {
-                propertiesMap.put("cvcResultCode", cvcResultRaw);
-            }
-            if (cvcResult != null) {
-                propertiesMap.put("cvcResult", cvcResult);
-            }
+            List<PluginProperty> threeds2Props = AdyenPaymentPluginApi.extractThreeDS2Data(additionalData);
+
+            builder.addAll(threeds2Props);
         }
 
-        return PluginProperties.buildPluginProperties(propertiesMap);
+        builder.addAll(PluginProperties.buildPluginProperties(propertiesMap));
+        return builder.build();
     }
 
     private static String toString(final Object obj) {
