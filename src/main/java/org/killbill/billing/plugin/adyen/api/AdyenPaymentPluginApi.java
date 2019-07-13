@@ -135,10 +135,10 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
     public static final String PROPERTY_COLOR_DEPTH = "colorDepth";
     public static final String PROPERTY_JAVA_ENABLED = "javaEnabled";
     public static final String PROPERTY_JAVA_SCRIPT_ENABLED = "javaScriptEnabled";
-    public static final String PROPERTY_BROWSER_LANGUAGE = "language";
+    public static final String PROPERTY_BROWSER_LANGUAGE = "browserLanguage";
     public static final String PROPERTY_SCREEN_HEIGHT = "screenHeight";
     public static final String PROPERTY_SCREEN_WIDTH = "screenWidth";
-    public static final String PROPERTY_BROWSER_TIME_ZONE_OFFSET = "timeZoneOffset";
+    public static final String PROPERTY_BROWSER_TIME_ZONE_OFFSET = "browserTimeZoneOffset";
 
     // 3-D Secure v1
     public static final String PROPERTY_PA_RES = "PaRes";
