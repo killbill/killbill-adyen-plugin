@@ -238,6 +238,8 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
     private static final String PREFIX_THREEDS = "threeds2.";
     private static final String PREFIX_THREEDS_RESPONSE_DATA = "threeds2.threeDS2ResponseData.";
 
+    private static final List<String> ADDITIONAL_PROPERTIES_TO_PERSIST = ImmutableList.of("3ds2._csrf", "3ds2.resUrl");
+
     private static final Map<String, String> THREEDS2_ADDITIONAL_DATA_FIELDS = new ImmutableMap.Builder()
             // unfortunately Adyen is not very consistent with the naming of the property in requests/responses
             .put(AdyenPaymentPluginApi.PROPERTY_THREEDS_SERVER_TRANS_ID, AdyenPaymentPluginApi.PROPERTY_THREEDS_SERVER_TRANS_ID)
@@ -847,12 +849,24 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
             response = transactionExecutor.execute(merchantAccount, paymentData, userData, splitSettlementData, additionalData);
         }
 
+        addAdditionalDataFromProperty(response, properties);
         try {
             dao.addResponse(kbAccountId, kbPaymentId, kbTransactionId, transactionType, amount, currency, response, utcNow, context.getTenantId());
             return new AdyenPaymentTransactionInfoPlugin(kbPaymentId, kbTransactionId, transactionType, amount, currency, utcNow, response);
         } catch (final SQLException e) {
             throw new PaymentPluginApiException("Payment went through, but we encountered a database error. Payment details: " + response.toString(), e);
         }
+    }
+
+    private void addAdditionalDataFromProperty(final PurchaseResult response,
+                                               final Iterable<PluginProperty> properties) {
+        final Map<String, String> map = new HashMap<>();
+        for(PluginProperty p : properties) {
+            if(ADDITIONAL_PROPERTIES_TO_PERSIST.contains(p.getKey())) {
+                map.put(p.getKey(), (String) p.getValue());
+            }
+        }
+        response.addToAdditionalDataIfNotPresent(map);
     }
 
     private PaymentTransactionInfoPlugin executeFollowUpTransaction(final TransactionType transactionType,

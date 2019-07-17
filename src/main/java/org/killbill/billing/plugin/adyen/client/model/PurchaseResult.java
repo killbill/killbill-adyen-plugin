@@ -75,6 +75,14 @@ public class PurchaseResult extends FrontendForm {
              hppCompletedResult.getAdditionalData());
     }
 
+    public void addToAdditionalDataIfNotPresent(final Map<String, String> dataMap) {
+        for(String key : dataMap.keySet()) {
+            if (!additionalData.containsKey(key)) {
+                additionalData.put(key, dataMap.get(key));
+            }
+        }
+    }
+
     public PurchaseResult(final PaymentServiceProviderResult result,
                           final String authCode,
                           final String pspReference,
