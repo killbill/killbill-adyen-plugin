@@ -238,7 +238,7 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
     private static final String PREFIX_THREEDS = "threeds2.";
     private static final String PREFIX_THREEDS_RESPONSE_DATA = "threeds2.threeDS2ResponseData.";
 
-    private static final List<String> ADDITIONAL_PROPERTIES_TO_PERSIST = ImmutableList.of("3ds2._csrf", "3ds2.resUrl");
+    private static final List<String> ADDITIONAL_PROPERTIES_TO_PERSIST = ImmutableList.of("3ds2.csrf", "3ds2.resUrl");
 
     private static final Map<String, String> THREEDS2_ADDITIONAL_DATA_FIELDS = new ImmutableMap.Builder()
             // unfortunately Adyen is not very consistent with the naming of the property in requests/responses
