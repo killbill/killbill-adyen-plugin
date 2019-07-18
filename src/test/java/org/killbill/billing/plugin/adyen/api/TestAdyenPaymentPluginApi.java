@@ -937,18 +937,18 @@ public class TestAdyenPaymentPluginApi extends TestAdyenPaymentPluginApiBase {
                 account.getPaymentMethodId(),
                 authorizationTransaction.getAmount(),
                 authorizationTransaction.getCurrency(),
-                propertiesFor3DS2IdentifyShopper,
+                propertiesFor3DS2ChallengeShopper,
                 context);
         final UUID kbPaymentId = authorizeResult.getKbPaymentId();
 
         final String threeDSServerTransID = PluginProperties.findPluginPropertyValue(PROPERTY_THREEDS_SERVER_TRANS_ID, authorizeResult.getProperties());
         final String threeDS2Token = PluginProperties.findPluginPropertyValue(PROPERTY_THREEDS2_TOKEN, authorizeResult.getProperties());
-        final URL threeDSMethodURL = new URL(PluginProperties.findPluginPropertyValue(PROPERTY_THREEDS_METHOD_URL, authorizeResult.getProperties()));
+        final String acsChallengeMandated = PluginProperties.findPluginPropertyValue(PROPERTY_ACS_CHALLENGE_MANDATED, authorizeResult.getProperties());
 
         assertNull(authorizeResult.getGatewayErrorCode());
         assertNotNull(threeDSServerTransID);
         assertNotNull(threeDS2Token);
-        assertNotNull(threeDSMethodURL);
+        assertEquals(acsChallengeMandated, "Y");
 
         final PaymentTransactionInfoPlugin paymentInfo = Iterables.getLast(adyenPaymentPluginApi.getPaymentInfo(payment.getAccountId(), payment.getId(), null, context));
         assertEquals(PluginProperties.findPluginPropertyValue("merchantAccountCode", paymentInfo.getProperties()), expectedMerchantAccount);
