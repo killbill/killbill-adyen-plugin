@@ -860,13 +860,13 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
 
     private void addAdditionalDataFromProperty(final PurchaseResult response,
                                                final Iterable<PluginProperty> properties) {
-        final Map<String, String> map = new HashMap<>();
-        for(PluginProperty p : properties) {
-            if(ADDITIONAL_PROPERTIES_TO_PERSIST.contains(p.getKey())) {
+        final Map<String, String> map = new HashMap<>(response.getAdditionalData());
+        for (final PluginProperty p : properties) {
+            if (ADDITIONAL_PROPERTIES_TO_PERSIST.contains(p.getKey())) {
                 map.put(p.getKey(), (String) p.getValue());
             }
         }
-        response.addToAdditionalDataIfNotPresent(map);
+        response.setAdditionalData(map);
     }
 
     private PaymentTransactionInfoPlugin executeFollowUpTransaction(final TransactionType transactionType,

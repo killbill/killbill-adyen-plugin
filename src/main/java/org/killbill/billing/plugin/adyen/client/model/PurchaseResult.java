@@ -17,6 +17,7 @@
 
 package org.killbill.billing.plugin.adyen.client.model;
 
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 
@@ -46,7 +47,8 @@ public class PurchaseResult extends FrontendForm {
     private final String reference;
     private final String paymentTransactionExternalKey;
     private final AdyenCallErrorStatus adyenCallErrorStatus;
-    private final Map<String, String> additionalData;
+
+    private Map<String, String> additionalData;
 
     public PurchaseResult(final String paymentTransactionExternalKey,
                           final AdyenCallResult<PaymentResult> adyenCallResult) {
@@ -75,12 +77,8 @@ public class PurchaseResult extends FrontendForm {
              hppCompletedResult.getAdditionalData());
     }
 
-    public void addToAdditionalDataIfNotPresent(final Map<String, String> dataMap) {
-        for(String key : dataMap.keySet()) {
-            if (!additionalData.containsKey(key)) {
-                additionalData.put(key, dataMap.get(key));
-            }
-        }
+    public void setAdditionalData(final Map<String, String> additionalData) {
+        this.additionalData = additionalData;
     }
 
     public PurchaseResult(final PaymentServiceProviderResult result,
