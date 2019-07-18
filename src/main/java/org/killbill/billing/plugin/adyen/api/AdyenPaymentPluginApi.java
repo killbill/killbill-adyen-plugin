@@ -238,8 +238,6 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
     private static final String PREFIX_THREEDS = "threeds2.";
     private static final String PREFIX_THREEDS_RESPONSE_DATA = "threeds2.threeDS2ResponseData.";
 
-    private static final List<String> ADDITIONAL_PROPERTIES_TO_PERSIST = ImmutableList.of("3ds2.csrf", "3ds2.resUrl", "3ds2.formUrl");
-
     private static final Map<String, String> THREEDS2_ADDITIONAL_DATA_FIELDS = new ImmutableMap.Builder()
             // unfortunately Adyen is not very consistent with the naming of the property in requests/responses
             .put(AdyenPaymentPluginApi.PROPERTY_THREEDS_SERVER_TRANS_ID, AdyenPaymentPluginApi.PROPERTY_THREEDS_SERVER_TRANS_ID)
@@ -849,7 +847,7 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
             response = transactionExecutor.execute(merchantAccount, paymentData, userData, splitSettlementData, additionalData);
         }
 
-        addAdditionalDataFromProperty(response, properties);
+        addAdditionalDataFromProperty(response, properties, context);
         try {
             dao.addResponse(kbAccountId, kbPaymentId, kbTransactionId, transactionType, amount, currency, response, utcNow, context.getTenantId());
             return new AdyenPaymentTransactionInfoPlugin(kbPaymentId, kbTransactionId, transactionType, amount, currency, utcNow, response);
@@ -859,10 +857,11 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
     }
 
     private void addAdditionalDataFromProperty(final PurchaseResult response,
-                                               final Iterable<PluginProperty> properties) {
+                                               final Iterable<PluginProperty> properties,
+                                               final TenantContext context) {
         final Map<String, String> map = new HashMap<>(response.getAdditionalData());
         for (final PluginProperty p : properties) {
-            if (ADDITIONAL_PROPERTIES_TO_PERSIST.contains(p.getKey())) {
+            if (getConfigProperties(context).getPersistablePluginProperties().contains(p.getKey())) {
                 map.put(p.getKey(), (String) p.getValue());
             }
         }

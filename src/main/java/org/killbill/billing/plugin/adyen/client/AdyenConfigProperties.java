@@ -74,6 +74,7 @@ public class AdyenConfigProperties {
     private final Map<String, String> regionToRecurringUrlMap = new LinkedHashMap<String, String>();
     private final Map<String, String> regionToDirectoryUrlMap = new LinkedHashMap<String, String>();
     private final List<String> sensitivePropertyKeys = new ArrayList<>();
+    private final List<String> persistablePluginProperties = new ArrayList<>();
 
     private final String paymentProcessorAccountIdToMerchantAccount;
     private final String merchantAccounts;
@@ -215,14 +216,15 @@ public class AdyenConfigProperties {
             skinToSecretAlgorithmMap.put(skin, secretAlgorithm);
         }
 
-        readSensitivePropertyKeys(properties.getProperty(PROPERTY_PREFIX + "sensitiveProperties"));
+        readConfigurationValuesToList(properties.getProperty(PROPERTY_PREFIX + "sensitiveProperties"), sensitivePropertyKeys);
+        readConfigurationValuesToList(properties.getProperty(PROPERTY_PREFIX + "persistablePluginProperties"), persistablePluginProperties);
     }
 
-    private void readSensitivePropertyKeys(final String property) {
-        sensitivePropertyKeys.clear();
+    private void readConfigurationValuesToList(final String property, final List<String> outputList) {
+        outputList.clear();
         if(!Strings.isNullOrEmpty(property)) {
             for (final String entry : property.split("\\" + ENTRY_DELIMITER)) {
-                sensitivePropertyKeys.add(entry);
+                outputList.add(entry);
             }
         }
     }
@@ -482,5 +484,9 @@ public class AdyenConfigProperties {
         } else {
             return pendingHppPaymentWithoutCompletionExpirationPeriod;
         }
+    }
+
+    public List<String> getPersistablePluginProperties() {
+        return persistablePluginProperties;
     }
 }
