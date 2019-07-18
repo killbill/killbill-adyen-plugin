@@ -99,6 +99,8 @@ public class AdyenPaymentTransactionInfoPlugin extends PluginPaymentTransactionI
             .put("cvcResultRaw", "cvcResultCode")
             .build();
 
+    private static final String PSP_RESULT_CODE_KEY = "adyenResultCode";
+
 
     public AdyenPaymentTransactionInfoPlugin(final UUID kbPaymentId,
                                              final UUID kbTransactionPaymentPaymentId,
@@ -143,7 +145,8 @@ public class AdyenPaymentTransactionInfoPlugin extends PluginPaymentTransactionI
               null,
               utcNow,
               utcNow,
-              buildProperties(paymentModificationResponse.getAdditionalData()));
+              buildProperties(paymentModificationResponse.getAdditionalData(),
+                              pspResult.isPresent() ? pspResult.get().toString() : null));
         adyenResponseRecord = Optional.absent();
     }
 
@@ -387,7 +390,12 @@ public class AdyenPaymentTransactionInfoPlugin extends PluginPaymentTransactionI
         }
 
         builder.addAll(PluginProperties.buildPluginProperties(propertiesMap));
+        builder.add(buildPurchaseResultCode(purchaseResult));
         return builder.build();
+    }
+
+    private static PluginProperty buildPurchaseResultCode(final PurchaseResult purchaseResult) {
+        return new PluginProperty(PSP_RESULT_CODE_KEY, purchaseResult.getResult().orNull(), false);
     }
 
     private static String toString(final Object obj) {
@@ -476,7 +484,8 @@ public class AdyenPaymentTransactionInfoPlugin extends PluginPaymentTransactionI
         lengthArray[dotCount] = className.length() - dotArray[lastDotIndex];
     }
 
-    private static List<PluginProperty> buildProperties(final AdyenResponsesRecord adyenResponsesRecord, @Nullable final AdyenHppRequestsRecord adyenHppRequestsRecord) {
+    private static List<PluginProperty> buildProperties(final AdyenResponsesRecord adyenResponsesRecord,
+                                                        @Nullable final AdyenHppRequestsRecord adyenHppRequestsRecord) {
         final Map mergedMap = new HashMap();
 
         if (adyenHppRequestsRecord != null) {
@@ -484,10 +493,10 @@ public class AdyenPaymentTransactionInfoPlugin extends PluginPaymentTransactionI
         }
         mergedMap.putAll(toMap(adyenResponsesRecord.getAdditionalData()));
 
-        return buildProperties(mergedMap);
+        return buildProperties(mergedMap, adyenResponsesRecord != null ? adyenResponsesRecord.getPspResult() : null);
     }
 
-    private static List<PluginProperty> buildProperties(@Nullable final Map data) {
+    private static List<PluginProperty> buildProperties(@Nullable final Map data, @Nullable final String pspResult) {
         if (data == null) {
             return ImmutableList.<PluginProperty>of();
         }
@@ -499,6 +508,7 @@ public class AdyenPaymentTransactionInfoPlugin extends PluginPaymentTransactionI
         defaultProperties.put("avsResultCode", data.get("avsResultRaw"));
         defaultProperties.put("cvvResultCode", data.get("cvcResultRaw"));
         defaultProperties.put("payment_processor_account_id", data.get(AdyenPaymentPluginApi.PROPERTY_MERCHANT_ACCOUNT_CODE));
+        defaultProperties.put(PSP_RESULT_CODE_KEY, pspResult);
         // Already populated
         //defaultProperties.put("paymentMethod", data.get("paymentMethod"));
 
