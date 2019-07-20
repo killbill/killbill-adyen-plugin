@@ -23,6 +23,7 @@ import javax.servlet.http.HttpServlet;
 
 import org.killbill.billing.osgi.api.OSGIPluginProperties;
 import org.killbill.billing.osgi.libs.killbill.KillbillActivatorBase;
+import org.killbill.billing.osgi.libs.killbill.OSGIKillbillEventDispatcher.OSGIFrameworkEventHandler;
 import org.killbill.billing.payment.plugin.api.PaymentPluginApi;
 import org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi;
 import org.killbill.billing.plugin.adyen.client.AdyenConfigProperties;
@@ -39,16 +40,37 @@ import org.killbill.billing.plugin.core.resources.jooby.PluginAppBuilder;
 import org.killbill.billing.plugin.service.Healthcheck;
 import org.killbill.clock.Clock;
 import org.killbill.clock.DefaultClock;
+import org.killbill.commons.jdbi.argument.DateTimeArgumentFactory;
+import org.killbill.commons.jdbi.argument.DateTimeZoneArgumentFactory;
+import org.killbill.commons.jdbi.argument.LocalDateArgumentFactory;
+import org.killbill.commons.jdbi.argument.UUIDArgumentFactory;
+import org.killbill.commons.jdbi.log.Slf4jLogging;
+import org.killbill.commons.jdbi.mapper.LowerToCamelBeanMapperFactory;
+import org.killbill.commons.jdbi.mapper.UUIDMapper;
+import org.killbill.commons.jdbi.notification.DatabaseTransactionNotificationApi;
+import org.killbill.commons.jdbi.transaction.NotificationTransactionHandler;
+import org.killbill.commons.jdbi.transaction.RestartTransactionRunner;
+import org.killbill.notificationq.DefaultNotificationQueueService;
+import org.killbill.notificationq.api.NotificationQueueConfig;
+import org.killbill.notificationq.dao.NotificationEventModelDao;
 import org.osgi.framework.BundleContext;
+import org.skife.config.ConfigurationObjectFactory;
+import org.skife.jdbi.v2.DBI;
+import org.skife.jdbi.v2.tweak.TransactionHandler;
+
+import com.codahale.metrics.MetricRegistry;
+import com.google.common.collect.ImmutableMap;
 
 public class AdyenActivator extends KillbillActivatorBase {
 
     public static final String PLUGIN_NAME = "killbill-adyen";
+    private final MetricRegistry metricRegistry = new MetricRegistry();
 
     private AdyenConfigurationHandler adyenConfigurationHandler;
     private AdyenConfigPropertiesConfigurationHandler adyenConfigPropertiesConfigurationHandler;
     private AdyenHostedPaymentPageConfigurationHandler adyenHostedPaymentPageConfigurationHandler;
     private AdyenRecurringConfigurationHandler adyenRecurringConfigurationHandler;
+    private DelayedActionScheduler delayedActionScheduler;
 
     @Override
     public void start(final BundleContext context) throws Exception {
@@ -79,6 +101,29 @@ public class AdyenActivator extends KillbillActivatorBase {
         final AdyenHealthcheck adyenHealthcheck = new AdyenHealthcheck(adyenConfigPropertiesConfigurationHandler);
         registerHealthcheck(context, adyenHealthcheck);
 
+        // Setup the delayed action queue for 3DSv2
+        final DBI dbi = new DBI(dataSource.getDataSource());
+        final DatabaseTransactionNotificationApi databaseTransactionNotificationApi = new DatabaseTransactionNotificationApi();
+        final TransactionHandler notificationTransactionHandler = new NotificationTransactionHandler(databaseTransactionNotificationApi);
+        dbi.registerMapper(new LowerToCamelBeanMapperFactory(NotificationEventModelDao.class));
+        dbi.registerMapper(new UUIDMapper());
+        dbi.registerArgumentFactory(new UUIDArgumentFactory());
+        dbi.registerArgumentFactory(new DateTimeZoneArgumentFactory());
+        dbi.registerArgumentFactory(new DateTimeArgumentFactory());
+        dbi.registerArgumentFactory(new LocalDateArgumentFactory());
+        dbi.setSQLLog(new Slf4jLogging());
+        dbi.setTransactionHandler(new RestartTransactionRunner(notificationTransactionHandler));
+
+        final NotificationQueueConfig config = new ConfigurationObjectFactory(configProperties.getProperties())
+                .buildWithReplacements(NotificationQueueConfig.class,
+                                       ImmutableMap.<String, String>of("instanceName", "adyen"));
+        final DefaultNotificationQueueService notificationQueueService = new DefaultNotificationQueueService(dbi, clock, config, metricRegistry);
+        delayedActionScheduler = new DelayedActionScheduler(
+                notificationQueueService,
+                dao,
+                killbillAPI,
+                adyenConfigPropertiesConfigurationHandler);
+
         // Register the servlet
         final PluginApp pluginApp = new PluginAppBuilder(PLUGIN_NAME,
                                                          killbillAPI,
@@ -101,14 +146,31 @@ public class AdyenActivator extends KillbillActivatorBase {
                                                                           configProperties,
                                                                           logService,
                                                                           clock,
-                                                                          dao);
+                                                                          dao,
+                                                                          delayedActionScheduler);
+
         registerPaymentPluginApi(context, pluginApi);
         registerHandlers();
     }
 
+    @Override
+    public void stop(final BundleContext context) throws Exception {
+        if (delayedActionScheduler != null) {
+            delayedActionScheduler.stop();
+        }
+        super.stop(context);
+    }
+
     public void registerHandlers() {
         final PluginConfigurationEventHandler handler = new PluginConfigurationEventHandler(adyenConfigPropertiesConfigurationHandler, adyenConfigurationHandler, adyenHostedPaymentPageConfigurationHandler, adyenRecurringConfigurationHandler);
-        dispatcher.registerEventHandlers(handler);
+        dispatcher.registerEventHandlers(
+                handler,
+                new OSGIFrameworkEventHandler() {
+                    @Override
+                    public void started() {
+                        delayedActionScheduler.start();
+                    }
+                });
     }
 
     private void registerServlet(final BundleContext context, final HttpServlet servlet) {

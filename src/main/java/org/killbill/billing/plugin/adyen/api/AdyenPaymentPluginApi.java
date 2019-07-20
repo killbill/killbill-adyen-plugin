@@ -32,6 +32,7 @@ import javax.annotation.Nullable;
 import javax.xml.bind.JAXBException;
 
 import org.joda.time.DateTime;
+import org.joda.time.Duration;
 import org.killbill.adyen.recurring.RecurringDetail;
 import org.killbill.adyen.recurring.ServiceException;
 import org.killbill.billing.account.api.Account;
@@ -77,6 +78,9 @@ import org.killbill.billing.plugin.adyen.core.AdyenConfigPropertiesConfiguration
 import org.killbill.billing.plugin.adyen.core.AdyenConfigurationHandler;
 import org.killbill.billing.plugin.adyen.core.AdyenHostedPaymentPageConfigurationHandler;
 import org.killbill.billing.plugin.adyen.core.AdyenRecurringConfigurationHandler;
+import org.killbill.billing.plugin.adyen.core.CheckForChallengeShopperCompleted;
+import org.killbill.billing.plugin.adyen.core.CheckForIdentifyShopperCompleted;
+import org.killbill.billing.plugin.adyen.core.DelayedActionScheduler;
 import org.killbill.billing.plugin.adyen.core.KillbillAdyenNotificationHandler;
 import org.killbill.billing.plugin.adyen.dao.AdyenDao;
 import org.killbill.billing.plugin.adyen.dao.gen.tables.AdyenPaymentMethods;
@@ -91,6 +95,7 @@ import org.killbill.billing.plugin.util.KillBillMoney;
 import org.killbill.billing.util.callcontext.CallContext;
 import org.killbill.billing.util.callcontext.TenantContext;
 import org.killbill.clock.Clock;
+import org.killbill.notificationq.api.NotificationEvent;
 import org.osgi.service.log.LogService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -277,6 +282,7 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
     private final AdyenConfigPropertiesConfigurationHandler adyenConfigPropertiesConfigurationHandler;
     private final AdyenDao dao;
     private final AdyenNotificationService adyenNotificationService;
+    private final DelayedActionScheduler delayedActionScheduler;
 
     public AdyenPaymentPluginApi(final AdyenConfigurationHandler adyenConfigurationHandler,
                                  final AdyenConfigPropertiesConfigurationHandler adyenConfigPropertiesConfigurationHandler,
@@ -286,13 +292,16 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
                                  final OSGIConfigPropertiesService osgiConfigPropertiesService,
                                  final OSGIKillbillLogService logService,
                                  final Clock clock,
-                                 final AdyenDao dao) throws JAXBException {
+                                 final AdyenDao dao,
+                                 final DelayedActionScheduler delayedActionScheduler) throws JAXBException {
         super(killbillApi, osgiConfigPropertiesService, logService, clock, dao);
         this.adyenConfigurationHandler = adyenConfigurationHandler;
         this.adyenHppConfigurationHandler = adyenHppConfigurationHandler;
         this.adyenRecurringConfigurationHandler = adyenRecurringConfigurationHandler;
         this.adyenConfigPropertiesConfigurationHandler = adyenConfigPropertiesConfigurationHandler;
         this.dao = dao;
+        this.delayedActionScheduler = delayedActionScheduler;
+        this.delayedActionScheduler.setApi(this);
 
         final AdyenNotificationHandler adyenNotificationHandler = new KillbillAdyenNotificationHandler(adyenConfigPropertiesConfigurationHandler, killbillApi, dao, clock);
         //noinspection RedundantTypeArguments
@@ -492,7 +501,44 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
         if (!isHPPCompletionWithPendingPayment) {
             updateResponseWithAdditionalProperties(kbTransactionId, null, properties, context.getTenantId());
             // We don't have any record for that payment: we want to trigger an actual authorization call (or complete a 3D-S authorization)
-            return executeInitialTransaction(TransactionType.AUTHORIZE, kbAccountId, kbPaymentId, kbTransactionId, kbPaymentMethodId, amount, currency, properties, context);
+            PaymentTransactionInfoPlugin result = executeInitialTransaction(TransactionType.AUTHORIZE,
+                                                                            kbAccountId,
+                                                                            kbPaymentId,
+                                                                            kbTransactionId,
+                                                                            kbPaymentMethodId,
+                                                                            amount,
+                                                                            currency,
+                                                                            properties,
+                                                                            context);
+            if (result instanceof AdyenPaymentTransactionInfoPlugin &&
+                ((AdyenPaymentTransactionInfoPlugin)result).getAdyenResponseRecord().isPresent()) {
+                AdyenResponsesRecord responsesRecord = ((AdyenPaymentTransactionInfoPlugin) result).getAdyenResponseRecord().get();
+                // TODO: make these delayed actions and their timeouts configurable
+                if (PaymentServiceProviderResult.IDENTIFY_SHOPPER.name().equals(responsesRecord.getResultCode())) {
+                    delayedActionScheduler.scheduleAction(
+                            Duration.standardSeconds(15),
+                            new CheckForIdentifyShopperCompleted(
+                                    UUID.randomUUID(),
+                                    context.getTenantId(),
+                                    kbPaymentMethodId,
+                                    kbPaymentId,
+                                    kbTransactionId,
+                                    responsesRecord.getReference()
+                            ));
+                } else if (PaymentServiceProviderResult.CHALLENGE_SHOPPER.name().equals(responsesRecord.getResultCode())) {
+                    delayedActionScheduler.scheduleAction(
+                            Duration.standardMinutes(11),
+                            new CheckForChallengeShopperCompleted(
+                                    UUID.randomUUID(),
+                                    context.getTenantId(),
+                                    kbPaymentMethodId,
+                                    kbPaymentId,
+                                    kbTransactionId,
+                                    responsesRecord.getReference()
+                            ));
+                }
+            }
+            return result;
         } else {
             // We already have a record for that payment transaction and we just updated the response row with additional properties
             // (the API can be called for instance after the user is redirected back from the HPP to store the PSP reference)
@@ -764,6 +810,8 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
                                                          //       place such that the data is available when the payment
                                                          //       info is created initially
                                                          PaymentInfoMappingService.set3DS2Fields(paymentData.getPaymentInfo(), threeDS2Data);
+                                                         // Adjust properties per status to automatically advance the payment on the adyen side if we receive
+                                                         // requests to complete the payment
                                                          if ("IdentifyShopper".equals(existingAuth.getResultCode())) {
                                                              if (paymentData.getPaymentInfo().getThreeDSCompInd() == null) {
                                                                  // Unless explicitly set, set to passed
@@ -952,7 +1000,7 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
         }
     }
 
-    private AdyenResponsesRecord fetchResponseIfExist(final UUID kbPaymentId, final UUID tenantId) throws PaymentPluginApiException {
+    public AdyenResponsesRecord fetchResponseIfExist(final UUID kbPaymentId, final UUID tenantId) throws PaymentPluginApiException {
         try {
             return dao.getSuccessfulAuthorizationResponse(kbPaymentId, tenantId);
         } catch (final SQLException e) {

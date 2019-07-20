@@ -72,7 +72,8 @@ public class TestAdyenPaymentPluginApiBase extends TestWithEmbeddedDBBase {
                                                           configPropertiesService,
                                                           logService,
                                                           clock,
-                                                          dao);
+                                                          dao,
+                                                          null);
 
         TestUtils.updateOSGIKillbillAPI(killbillApi, adyenPaymentPluginApi);
     }
