@@ -847,12 +847,25 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
             response = transactionExecutor.execute(merchantAccount, paymentData, userData, splitSettlementData, additionalData);
         }
 
+        addAdditionalDataFromProperty(response, properties, context);
         try {
             dao.addResponse(kbAccountId, kbPaymentId, kbTransactionId, transactionType, amount, currency, response, utcNow, context.getTenantId());
             return new AdyenPaymentTransactionInfoPlugin(kbPaymentId, kbTransactionId, transactionType, amount, currency, utcNow, response);
         } catch (final SQLException e) {
             throw new PaymentPluginApiException("Payment went through, but we encountered a database error. Payment details: " + response.toString(), e);
         }
+    }
+
+    private void addAdditionalDataFromProperty(final PurchaseResult response,
+                                               final Iterable<PluginProperty> properties,
+                                               final TenantContext context) {
+        final Map<String, String> map = new HashMap<>(response.getAdditionalData());
+        for (final PluginProperty p : properties) {
+            if (getConfigProperties(context).getPersistablePluginProperties().contains(p.getKey())) {
+                map.put(p.getKey(), (String) p.getValue());
+            }
+        }
+        response.setAdditionalData(map);
     }
 
     private PaymentTransactionInfoPlugin executeFollowUpTransaction(final TransactionType transactionType,
