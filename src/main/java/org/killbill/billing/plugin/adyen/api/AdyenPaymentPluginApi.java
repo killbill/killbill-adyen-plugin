@@ -764,6 +764,12 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
                                                          //       place such that the data is available when the payment
                                                          //       info is created initially
                                                          PaymentInfoMappingService.set3DS2Fields(paymentData.getPaymentInfo(), threeDS2Data);
+                                                         if ("IdentifyShopper".equals(existingAuth.getResultCode())) {
+                                                             if (paymentData.getPaymentInfo().getThreeDSCompInd() == null) {
+                                                                 // Unless explicitly set, set to passed
+                                                                 paymentData.getPaymentInfo().setThreeDSCompInd("Y");
+                                                             }
+                                                         }
                                                          return adyenPort.authorize3Ds2(
                                                                  originalMerchantAccount != null ? originalMerchantAccount : merchantAccount,
                                                                  paymentData,
