@@ -122,7 +122,7 @@ public class AdyenPaymentTransactionInfoPlugin extends PluginPaymentTransactionI
               utcNow,
               utcNow,
               extractPluginProperties(purchaseResult));
-        adyenResponseRecord = Optional.absent();
+        adyenResponseRecord = buildAdyenResponseRecord(purchaseResult);
     }
 
     public AdyenPaymentTransactionInfoPlugin(final UUID kbPaymentId,
@@ -514,5 +514,14 @@ public class AdyenPaymentTransactionInfoPlugin extends PluginPaymentTransactionI
 
         final Iterable<PluginProperty> propertiesWithDefaults = PluginProperties.merge(defaultProperties, originalProperties);
         return ImmutableList.<PluginProperty>copyOf(propertiesWithDefaults);
+    }
+
+    private Optional<AdyenResponsesRecord> buildAdyenResponseRecord(PurchaseResult purchaseResult){
+        AdyenResponsesRecord adyenResponsesRecord = new AdyenResponsesRecord();
+        adyenResponsesRecord.setAuthCode(purchaseResult.getAuthCode());
+        adyenResponsesRecord.setAdditionalData(purchaseResult.getAdditionalData().toString());
+        adyenResponsesRecord.setResultCode(purchaseResult.getResultCode());
+        adyenResponsesRecord.setReference(purchaseResult.getPaymentTransactionExternalKey());
+        return Optional.of(adyenResponsesRecord);
     }
 }

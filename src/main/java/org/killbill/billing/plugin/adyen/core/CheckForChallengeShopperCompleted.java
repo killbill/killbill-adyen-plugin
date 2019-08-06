@@ -18,27 +18,28 @@
 package org.killbill.billing.plugin.adyen.core;
 
 import java.util.UUID;
-
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import org.killbill.billing.osgi.libs.killbill.OSGIKillbillAPI;
 import org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi;
 import org.killbill.billing.plugin.adyen.client.model.PaymentServiceProviderResult;
 import org.killbill.billing.plugin.adyen.dao.AdyenDao;
 import org.killbill.billing.plugin.api.PluginProperties;
-
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableMap;
 import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.PROPERTY_TRANS_STATUS;
 
+
+@JsonIgnoreProperties(ignoreUnknown=true)
 public class CheckForChallengeShopperCompleted extends CheckForThreeDs2StepCompleted {
 
     @JsonCreator
-    public CheckForChallengeShopperCompleted(@JsonProperty final UUID uuidKey,
-                                             @JsonProperty final UUID kbTenantId,
-                                             @JsonProperty final UUID kbPaymentMethodId,
-                                             @JsonProperty final UUID kbPaymentId,
-                                             @JsonProperty final UUID kbPaymentTransactionId,
-                                             @JsonProperty final String kbPaymentTransactionExternalKey) {
+    public CheckForChallengeShopperCompleted(@JsonProperty("uuidKey") final UUID uuidKey,
+                                             @JsonProperty("kbTenantId") final UUID kbTenantId,
+                                             @JsonProperty("kbPaymentMethodId") final UUID kbPaymentMethodId,
+                                             @JsonProperty("kbPaymentId") final UUID kbPaymentId,
+                                             @JsonProperty("kbPaymentTransactionId") final UUID kbPaymentTransactionId,
+                                             @JsonProperty("kbPaymentTransactionExternalKey") final String kbPaymentTransactionExternalKey) {
         super(uuidKey, kbTenantId, kbPaymentMethodId, kbPaymentId, kbPaymentTransactionId, kbPaymentTransactionExternalKey);
     }
 
@@ -48,7 +49,7 @@ public class CheckForChallengeShopperCompleted extends CheckForThreeDs2StepCompl
                               final OSGIKillbillAPI osgiKillbillAPI,
                               final AdyenConfigPropertiesConfigurationHandler adyenConfigPropertiesConfigurationHandler) throws Exception {
         performAction(
-                PaymentServiceProviderResult.CHALLENGE_SHOPPER.name(),
+                PaymentServiceProviderResult.CHALLENGE_SHOPPER.getResponses()[0],
                 PluginProperties.buildPluginProperties(ImmutableMap.of(PROPERTY_TRANS_STATUS, "U")),
                 "3d-secure: Authentication failed",
                 adyenPaymentPluginApi,

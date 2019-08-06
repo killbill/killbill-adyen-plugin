@@ -514,7 +514,7 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
                 ((AdyenPaymentTransactionInfoPlugin)result).getAdyenResponseRecord().isPresent()) {
                 AdyenResponsesRecord responsesRecord = ((AdyenPaymentTransactionInfoPlugin) result).getAdyenResponseRecord().get();
                 // TODO: make these delayed actions and their timeouts configurable
-                if (PaymentServiceProviderResult.IDENTIFY_SHOPPER.name().equals(responsesRecord.getResultCode())) {
+                if (PaymentServiceProviderResult.IDENTIFY_SHOPPER.getResponses()[0].equals(responsesRecord.getResultCode())) {
                     delayedActionScheduler.scheduleAction(
                             Duration.standardSeconds(15),
                             new CheckForIdentifyShopperCompleted(
@@ -525,7 +525,7 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
                                     kbTransactionId,
                                     responsesRecord.getReference()
                             ));
-                } else if (PaymentServiceProviderResult.CHALLENGE_SHOPPER.name().equals(responsesRecord.getResultCode())) {
+                } else if (PaymentServiceProviderResult.CHALLENGE_SHOPPER.getResponses()[0].equals(responsesRecord.getResultCode())) {
                     delayedActionScheduler.scheduleAction(
                             Duration.standardMinutes(11),
                             new CheckForChallengeShopperCompleted(

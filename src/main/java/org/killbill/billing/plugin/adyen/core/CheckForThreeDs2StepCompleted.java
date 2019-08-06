@@ -17,16 +17,15 @@
 
 package org.killbill.billing.plugin.adyen.core;
 
-import java.util.List;
-import java.util.UUID;
-
+import com.fasterxml.jackson.annotation.JsonSubTypes;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import com.google.common.collect.ImmutableList;
 import org.killbill.billing.catalog.api.Currency;
 import org.killbill.billing.osgi.libs.killbill.OSGIKillbillAPI;
 import org.killbill.billing.payment.api.Payment;
 import org.killbill.billing.payment.api.PaymentApiException;
 import org.killbill.billing.payment.api.PaymentTransaction;
 import org.killbill.billing.payment.api.PluginProperty;
-import org.killbill.billing.payment.plugin.api.PaymentPluginApiException;
 import org.killbill.billing.payment.plugin.api.PaymentPluginStatus;
 import org.killbill.billing.payment.plugin.api.PaymentTransactionInfoPlugin;
 import org.killbill.billing.plugin.adyen.api.AdyenCallContext;
@@ -41,20 +40,9 @@ import org.killbill.billing.util.callcontext.TenantContext;
 import org.killbill.clock.Clock;
 import org.killbill.clock.DefaultClock;
 
-import com.fasterxml.jackson.annotation.JsonSubTypes;
-import com.fasterxml.jackson.annotation.JsonSubTypes.Type;
-import com.fasterxml.jackson.annotation.JsonTypeInfo;
-import com.fasterxml.jackson.annotation.JsonTypeInfo.Id;
-import com.google.common.collect.ImmutableList;
+import java.util.List;
+import java.util.UUID;
 
-@JsonTypeInfo(
-        use = Id.CLASS,
-        include = JsonTypeInfo.As.PROPERTY,
-        property = "type")
-@JsonSubTypes({
-        @Type(value = CheckForIdentifyShopperCompleted.class),
-        @Type(value = CheckForChallengeShopperCompleted.class)
-})
 public abstract class CheckForThreeDs2StepCompleted extends DelayedActionEvent {
     private final UUID kbTenantId;
     private final UUID kbPaymentMethodId;
@@ -122,7 +110,7 @@ public abstract class CheckForThreeDs2StepCompleted extends DelayedActionEvent {
             return;
         }
 
-        if (!previousResponse.getKbPaymentTransactionId().equals(getKbPaymentTransactionId())) {
+        if (!previousResponse.getKbPaymentTransactionId().equals(getKbPaymentTransactionId().toString())) {
             // the payment has already advanced, so nothing to do
             return;
         }

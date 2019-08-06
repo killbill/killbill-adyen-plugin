@@ -68,6 +68,16 @@
             <version>${jackson.version}</version>
         </dependency>
         <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-annotations</artifactId>
+            <version>${jackson.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-core</artifactId>
+            <version>${jackson.version}</version>
+        </dependency>
+        <dependency>
             <groupId>io.airlift</groupId>
             <artifactId>command</artifactId>
             <scope>test</scope>
@@ -109,7 +119,7 @@
         <dependency>
             <groupId>org.kill-bill.commons</groupId>
             <artifactId>killbill-queue</artifactId>
-            <scope>provided</scope>
+            <version>0.20.17</version>
         </dependency>
         <dependency>
             <groupId>org.kill-bill.billing.plugin.java</groupId>
