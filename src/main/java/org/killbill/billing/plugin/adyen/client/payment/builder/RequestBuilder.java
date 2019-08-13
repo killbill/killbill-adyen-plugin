@@ -29,6 +29,8 @@ import org.killbill.billing.plugin.util.KillBillMoney;
 
 public abstract class RequestBuilder<R> {
 
+    public static String ALLOW_THREE_DS2 = "allow3DS2";
+
     protected R request;
 
     protected RequestBuilder(final R request) {
@@ -59,5 +61,10 @@ public abstract class RequestBuilder<R> {
                 addAdditionalDataEntry(additionalDataEntries.getEntry(), key, additionalData.get(key));
             }
         }
+    }
+
+    protected boolean threeDs2Allowed(final Map<String, String> additionalData) {
+        return !(additionalData != null &&
+                 "false".equalsIgnoreCase(additionalData.getOrDefault(ALLOW_THREE_DS2, null)));
     }
 }

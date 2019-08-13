@@ -36,16 +36,15 @@ import org.killbill.adyen.payment.PaymentRequest;
 import org.killbill.adyen.payment.ThreeDSecureData;
 import org.killbill.adyen.threeds2data.ChallengeIndicator;
 import org.killbill.adyen.threeds2data.ThreeDS2RequestData;
-import org.killbill.adyen.threeds2data.ThreeDS2Result;
 import org.killbill.billing.plugin.adyen.client.model.PaymentData;
 import org.killbill.billing.plugin.adyen.client.model.PaymentInfo;
 import org.killbill.billing.plugin.adyen.client.model.SplitSettlementData;
 import org.killbill.billing.plugin.adyen.client.model.UserData;
 import org.killbill.billing.plugin.adyen.client.payment.converter.PaymentInfoConverterManagement;
-
-import com.google.common.base.Charsets;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.base.Charsets;
 
 import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.BRAND_APPLEPAY;
 import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.BRAND_PAYWITHGOOGLE;
@@ -84,11 +83,17 @@ public class PaymentRequestBuilder extends RequestBuilder<PaymentRequest> {
         setShopperData();
         setBrowserInfo();
         set3DSFields();
-        set3DS2Fields();
+        set3DS2FieldsIfAllowed();
         setSplitSettlementData();
         addAdditionalData();
 
         return request;
+    }
+
+    private void set3DS2FieldsIfAllowed() {
+        if(threeDs2Allowed(additionalData)) {
+            set3DS2Fields();
+        }
     }
 
     private void addAdditionalData() {
