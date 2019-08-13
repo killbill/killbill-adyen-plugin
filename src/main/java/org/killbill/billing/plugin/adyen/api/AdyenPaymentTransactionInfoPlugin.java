@@ -521,7 +521,7 @@ public class AdyenPaymentTransactionInfoPlugin extends PluginPaymentTransactionI
         adyenResponsesRecord.setAuthCode(purchaseResult.getAuthCode());
         adyenResponsesRecord.setAdditionalData(purchaseResult.getAdditionalData().toString());
         adyenResponsesRecord.setResultCode(purchaseResult.getResultCode());
-        adyenResponsesRecord.setReference(purchaseResult.getPaymentTransactionExternalKey());
+        adyenResponsesRecord.setKbPaymentTransactionId(purchaseResult.getPaymentTransactionExternalKey());
         return Optional.of(adyenResponsesRecord);
     }
 }

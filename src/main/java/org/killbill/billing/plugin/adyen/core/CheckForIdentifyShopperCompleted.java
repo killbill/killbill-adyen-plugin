@@ -39,8 +39,10 @@ public class CheckForIdentifyShopperCompleted extends CheckForThreeDs2StepComple
                                             @JsonProperty("kbPaymentMethodId") final UUID kbPaymentMethodId,
                                             @JsonProperty("kbPaymentId") final UUID kbPaymentId,
                                             @JsonProperty("kbPaymentTransactionId") final UUID kbPaymentTransactionId,
-                                            @JsonProperty("kbPaymentTransactionExternalKey") final String kbPaymentTransactionExternalKey) {
-        super(uuidKey, kbTenantId, kbPaymentMethodId, kbPaymentId, kbPaymentTransactionId, kbPaymentTransactionExternalKey);
+                                            @JsonProperty("kbPaymentTransactionExternalKey") final String kbPaymentTransactionExternalKey,
+                                            @JsonProperty("rbacUsername") final String rbacUsername,
+                                            @JsonProperty("rbacPassword") final String rbacPassword) {
+        super(uuidKey, kbTenantId, kbPaymentMethodId, kbPaymentId, kbPaymentTransactionId, kbPaymentTransactionExternalKey, rbacUsername, rbacPassword);
     }
 
     @Override

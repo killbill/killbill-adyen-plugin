@@ -17,9 +17,9 @@
 
 package org.killbill.billing.plugin.adyen.core;
 
-import com.fasterxml.jackson.annotation.JsonSubTypes;
-import com.fasterxml.jackson.annotation.JsonTypeInfo;
-import com.google.common.collect.ImmutableList;
+import java.util.List;
+import java.util.UUID;
+
 import org.killbill.billing.catalog.api.Currency;
 import org.killbill.billing.osgi.libs.killbill.OSGIKillbillAPI;
 import org.killbill.billing.payment.api.Payment;
@@ -40,8 +40,7 @@ import org.killbill.billing.util.callcontext.TenantContext;
 import org.killbill.clock.Clock;
 import org.killbill.clock.DefaultClock;
 
-import java.util.List;
-import java.util.UUID;
+import com.google.common.collect.ImmutableList;
 
 public abstract class CheckForThreeDs2StepCompleted extends DelayedActionEvent {
     private final UUID kbTenantId;
@@ -49,19 +48,25 @@ public abstract class CheckForThreeDs2StepCompleted extends DelayedActionEvent {
     private final UUID kbPaymentId;
     private final UUID kbPaymentTransactionId;
     private final String kbPaymentTransactionExternalKey;
+    private final String rbacUsername;
+    private final String rbacPassword;
 
     public CheckForThreeDs2StepCompleted(final UUID uuidKey,
                                          final UUID kbTenantId,
                                          final UUID kbPaymentMethodId,
                                          final UUID kbPaymentId,
                                          final UUID kbPaymentTransactionId,
-                                         final String kbPaymentTransactionExternalKey) {
+                                         final String kbPaymentTransactionExternalKey,
+                                         final String rbacUsername,
+                                         final String rbacPassword) {
         super(uuidKey);
         this.kbTenantId = kbTenantId;
         this.kbPaymentMethodId = kbPaymentMethodId;
         this.kbPaymentId = kbPaymentId;
         this.kbPaymentTransactionId = kbPaymentTransactionId;
         this.kbPaymentTransactionExternalKey = kbPaymentTransactionExternalKey;
+        this.rbacUsername = rbacUsername;
+        this.rbacPassword = rbacPassword;
     }
 
     public UUID getKbTenantId() {
@@ -82,6 +87,14 @@ public abstract class CheckForThreeDs2StepCompleted extends DelayedActionEvent {
 
     public String getKbPaymentTransactionExternalKey() {
         return kbPaymentTransactionExternalKey;
+    }
+
+    public String getRbacUsername() {
+        return rbacUsername;
+    }
+
+    public String getRbacPassword() {
+        return rbacPassword;
     }
 
     private Payment getPayment(final OSGIKillbillAPI osgiKillbillAPI, final TenantContext context) {
@@ -134,7 +147,9 @@ public abstract class CheckForThreeDs2StepCompleted extends DelayedActionEvent {
                 extraProperties,
                 context);
 
+
         final AdyenConfigProperties tenantConfiguration = adyenConfigPropertiesConfigurationHandler.getConfigurable(context.getTenantId());
+
         final PaymentApiWrapper paymentApiWrapper = getPaymentApiWrapper(osgiKillbillAPI, tenantConfiguration);
         final Payment payment = getPayment(osgiKillbillAPI, context);
         final PaymentTransaction paymentTransaction = PaymentApiWrapper.filterForTransaction(payment, transaction.getKbTransactionPaymentId());
@@ -143,7 +158,21 @@ public abstract class CheckForThreeDs2StepCompleted extends DelayedActionEvent {
                 errorMsg,
                 paymentTransaction);
 
-        paymentApiWrapper.fixPaymentTransactionState(payment, PaymentPluginStatus.ERROR, updatedPaymentTransaction, context);
+        withLogin(paymentApiWrapper,osgiKillbillAPI,payment,updatedPaymentTransaction,context);
+    }
+
+
+    private void withLogin(final PaymentApiWrapper paymentApiWrapper,
+                           final OSGIKillbillAPI osgiKillbillAPI,
+                           final Payment payment,
+                           final PaymentTransaction updatedPaymentTransaction,
+                           final CallContext context) throws Exception{
+        try {
+            osgiKillbillAPI.getSecurityApi().login(rbacUsername, rbacPassword);
+            paymentApiWrapper.fixPaymentTransactionState(payment, PaymentPluginStatus.ERROR, updatedPaymentTransaction, context);
+        }finally {
+            osgiKillbillAPI.getSecurityApi().logout();
+        }
     }
 
 }
