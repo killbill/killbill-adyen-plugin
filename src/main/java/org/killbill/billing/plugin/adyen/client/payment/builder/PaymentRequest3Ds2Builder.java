@@ -75,12 +75,18 @@ public class PaymentRequest3Ds2Builder extends RequestBuilder<PaymentRequest3Ds2
         setBillingAddress();
         setRecurring();
         setShopperData();
-        set3DS2Fields();
+        set3DS2FieldsIfAllowed();
         setBrowserInfo();
         setSplitSettlementData();
         addAdditionalData(request.getAdditionalData(), additionalData);
 
         return request;
+    }
+
+    private void set3DS2FieldsIfAllowed() {
+        if(threeDs2Allowed(additionalData)) {
+            set3DS2Fields();
+        }
     }
 
     private void setAmount() {
