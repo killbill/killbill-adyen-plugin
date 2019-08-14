@@ -242,9 +242,6 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
     private static final String PREFIX_THREEDS = "threeds2.";
     private static final String PREFIX_THREEDS_RESPONSE_DATA = "threeds2.threeDS2ResponseData.";
 
-    private static final String RBAC_USERNAME = "rbacUsername";
-    private static final String RBAC_PASSWORD = "rbacPassword";
-
     private static final Map<String, String> THREEDS2_ADDITIONAL_DATA_FIELDS = new ImmutableMap.Builder()
             // unfortunately Adyen is not very consistent with the naming of the property in requests/responses
             .put(AdyenPaymentPluginApi.PROPERTY_THREEDS_SERVER_TRANS_ID, AdyenPaymentPluginApi.PROPERTY_THREEDS_SERVER_TRANS_ID)
