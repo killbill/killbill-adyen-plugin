@@ -95,7 +95,6 @@ import org.killbill.billing.plugin.util.KillBillMoney;
 import org.killbill.billing.util.callcontext.CallContext;
 import org.killbill.billing.util.callcontext.TenantContext;
 import org.killbill.clock.Clock;
-import org.killbill.notificationq.api.NotificationEvent;
 import org.osgi.service.log.LogService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -514,6 +513,9 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
                 ((AdyenPaymentTransactionInfoPlugin)result).getAdyenResponseRecord().isPresent()) {
                 AdyenResponsesRecord responsesRecord = ((AdyenPaymentTransactionInfoPlugin) result).getAdyenResponseRecord().get();
                 // TODO: make these delayed actions and their timeouts configurable
+                final String rbacUsername = getRbacUserName(context);
+                final String rbacPassword = getRbacPassword(context);
+
                 if (PaymentServiceProviderResult.IDENTIFY_SHOPPER.getResponses()[0].equals(responsesRecord.getResultCode())) {
                     delayedActionScheduler.scheduleAction(
                             Duration.standardSeconds(15),
@@ -523,7 +525,9 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
                                     kbPaymentMethodId,
                                     kbPaymentId,
                                     kbTransactionId,
-                                    responsesRecord.getReference()
+                                    responsesRecord.getKbPaymentTransactionId(),
+                                    rbacUsername,
+                                    rbacPassword
                             ));
                 } else if (PaymentServiceProviderResult.CHALLENGE_SHOPPER.getResponses()[0].equals(responsesRecord.getResultCode())) {
                     delayedActionScheduler.scheduleAction(
@@ -534,7 +538,9 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
                                     kbPaymentMethodId,
                                     kbPaymentId,
                                     kbTransactionId,
-                                    responsesRecord.getReference()
+                                    responsesRecord.getKbPaymentTransactionId(),
+                                    rbacUsername,
+                                    rbacPassword
                             ));
                 }
             }
@@ -1302,5 +1308,17 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
         } catch (final UnsupportedEncodingException e) {
             return value;
         }
+    }
+
+    private String getRbacUserName(final CallContext context){
+        final AdyenConfigProperties adyenConfigProperties = getConfigProperties(context);
+        final String rbacUsername = adyenConfigProperties.getRbacUsername();
+        return rbacUsername;
+    }
+
+    private String getRbacPassword(final CallContext context){
+        final AdyenConfigProperties adyenConfigProperties = getConfigProperties(context);
+        final String rbacPassword = adyenConfigProperties.getRbacPassword();
+        return rbacPassword;
     }
 }

@@ -19,6 +19,8 @@ package org.killbill.billing.plugin.adyen.core;
 
 import java.util.UUID;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
+import org.killbill.billing.account.api.Account;
 import org.killbill.billing.osgi.libs.killbill.OSGIKillbillAPI;
 import org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi;
 import org.killbill.billing.plugin.adyen.client.model.PaymentServiceProviderResult;
@@ -39,8 +41,10 @@ public class CheckForChallengeShopperCompleted extends CheckForThreeDs2StepCompl
                                              @JsonProperty("kbPaymentMethodId") final UUID kbPaymentMethodId,
                                              @JsonProperty("kbPaymentId") final UUID kbPaymentId,
                                              @JsonProperty("kbPaymentTransactionId") final UUID kbPaymentTransactionId,
-                                             @JsonProperty("kbPaymentTransactionExternalKey") final String kbPaymentTransactionExternalKey) {
-        super(uuidKey, kbTenantId, kbPaymentMethodId, kbPaymentId, kbPaymentTransactionId, kbPaymentTransactionExternalKey);
+                                             @JsonProperty("kbPaymentTransactionExternalKey") final String kbPaymentTransactionExternalKey,
+                                             @JsonProperty("rbacUsername") final String rbacUsername,
+                                             @JsonProperty("rbacPassword") final String rbacPassword)   {
+        super(uuidKey, kbTenantId, kbPaymentMethodId, kbPaymentId, kbPaymentTransactionId, kbPaymentTransactionExternalKey, rbacUsername, rbacPassword);
     }
 
     @Override

@@ -100,6 +100,8 @@ public class AdyenConfigProperties {
     private final String paymentConnectionTimeout;
     private final String paymentReadTimeout;
     private final String fallBackMerchantAccount;
+    private final String rbacUsername;
+    private final String rbacPassword;
 
     private final Period pendingPaymentExpirationPeriod;
 
@@ -218,6 +220,9 @@ public class AdyenConfigProperties {
 
         readConfigurationValuesToList(properties.getProperty(PROPERTY_PREFIX + "sensitiveProperties"), sensitivePropertyKeys);
         readConfigurationValuesToList(properties.getProperty(PROPERTY_PREFIX + "persistablePluginProperties"), persistablePluginProperties);
+
+        this.rbacUsername = properties.getProperty(PROPERTY_PREFIX + "rbacUsername");
+        this.rbacPassword = properties.getProperty(PROPERTY_PREFIX + "rbacPassword");
     }
 
     private void readConfigurationValuesToList(final String property, final List<String> outputList) {
@@ -488,5 +493,13 @@ public class AdyenConfigProperties {
 
     public List<String> getPersistablePluginProperties() {
         return persistablePluginProperties;
+    }
+
+    public String getRbacUsername() {
+        return rbacUsername;
+    }
+
+    public String getRbacPassword() {
+        return rbacPassword;
     }
 }
