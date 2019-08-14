@@ -157,12 +157,11 @@ public abstract class CheckForThreeDs2StepCompleted extends DelayedActionEvent {
                 "Error",
                 errorMsg,
                 paymentTransaction);
-
-        withLogin(paymentApiWrapper,osgiKillbillAPI,payment,updatedPaymentTransaction,context);
+        fixPaymentTransactionStateWithLogin(paymentApiWrapper,osgiKillbillAPI,payment,updatedPaymentTransaction,context);
     }
 
 
-    private void withLogin(final PaymentApiWrapper paymentApiWrapper,
+    private void fixPaymentTransactionStateWithLogin(final PaymentApiWrapper paymentApiWrapper,
                            final OSGIKillbillAPI osgiKillbillAPI,
                            final Payment payment,
                            final PaymentTransaction updatedPaymentTransaction,
