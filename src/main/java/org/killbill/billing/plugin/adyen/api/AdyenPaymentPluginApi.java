@@ -124,6 +124,7 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
     public static final String SPLIT_SETTLEMENT_DATA_ITEM = "splitSettlementDataItem";
     public static final String PROPERTY_RECURRING_TYPE = "recurringType";
     public static final String PROPERTY_CAPTURE_DELAY_HOURS = "captureDelayHours";
+    public static final String PROPERTY_CUSTOMER_SUPPORT_REQUEST = "customerSupportRequest";
     /**
      * Cont auth disabled validation on adyens side (no cvc required). We practically tell them that the payment data is valid.
      * Should be given as "true" or "false".

@@ -38,6 +38,7 @@ import org.killbill.billing.payment.api.PaymentApiException;
 import org.killbill.billing.payment.api.PaymentMethodPlugin;
 import org.killbill.billing.payment.api.PaymentTransaction;
 import org.killbill.billing.payment.api.PluginProperty;
+import org.killbill.billing.payment.api.TransactionStatus;
 import org.killbill.billing.payment.api.TransactionType;
 import org.killbill.billing.payment.plugin.api.PaymentMethodInfoPlugin;
 import org.killbill.billing.payment.plugin.api.PaymentPluginApiException;
@@ -47,6 +48,7 @@ import org.killbill.billing.plugin.TestUtils;
 import org.killbill.billing.plugin.adyen.dao.AdyenDao;
 import org.killbill.billing.plugin.adyen.dao.gen.tables.records.AdyenPaymentMethodsRecord;
 import org.killbill.billing.plugin.api.PluginProperties;
+import org.testng.Assert;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
@@ -126,6 +128,16 @@ public class TestAdyenPaymentPluginApi extends TestAdyenPaymentPluginApiBase {
             .put(AdyenPaymentPluginApi.PROPERTY_NOTIFICATION_URL, "https://example.com")
             .putAll(three3DSbrowserInfo)
             .build());
+    private final Iterable<PluginProperty> propertiesForCustomerSupportMotoPayment = PluginProperties.buildPluginProperties(
+            ImmutableMap.<String, String>builder()
+                    .put(AdyenPaymentPluginApi.PROPERTY_CC_TYPE, CC_TYPE)
+                    .put(AdyenPaymentPluginApi.PROPERTY_CC_LAST_NAME, "Montblanc")
+                    .put(AdyenPaymentPluginApi.PROPERTY_CC_NUMBER, CC_3DS2_NUMBER_IDENTIFY_SHOPPER)
+                    .put(AdyenPaymentPluginApi.PROPERTY_CC_EXPIRATION_MONTH, String.valueOf(CC_EXPIRATION_MONTH))
+                    .put(AdyenPaymentPluginApi.PROPERTY_CC_EXPIRATION_YEAR, String.valueOf(CC_EXPIRATION_YEAR))
+                    .put(AdyenPaymentPluginApi.PROPERTY_CC_VERIFICATION_VALUE, CC_3DS2_VERIFICATION_VALUE)
+                    .put(AdyenPaymentPluginApi.PROPERTY_CUSTOMER_SUPPORT_REQUEST, "true")
+                    .build());
     private final Iterable<PluginProperty> propertiesFor3DS2ChallengeShopper = PluginProperties.buildPluginProperties(ImmutableMap.<String, String>builder()
             .put(AdyenPaymentPluginApi.PROPERTY_CC_TYPE, CC_TYPE)
             .put(AdyenPaymentPluginApi.PROPERTY_CC_LAST_NAME, "Montblanc")
@@ -1156,6 +1168,29 @@ public class TestAdyenPaymentPluginApi extends TestAdyenPaymentPluginApiBase {
         final List<PaymentTransactionInfoPlugin> fromDBList = adyenPaymentPluginApi.getPaymentInfo(account.getId(), payment.getId(), ImmutableList.<PluginProperty>of(), context);
         assertFalse(fromDBList.isEmpty());
         assertEquals(fromDBList.get(0).getGatewayError(), "Expired Card");
+    }
+
+    @Test(groups = "integration")
+    public void testCustomerSupportMotoTransactionWithAuthCaptureAndRefund() throws Exception {
+        adyenPaymentPluginApi.addPaymentMethod(account.getId(), account.getPaymentMethodId(), adyenEmptyPaymentMethodPlugin(), true, propertiesForCustomerSupportMotoPayment, context);
+        final Payment payment = doAuthorize(BigDecimal.TEN);
+        List<PaymentTransaction> paymentTransactions = payment.getTransactions();
+
+        doCapture(payment, BigDecimal.TEN);
+        doRefund(payment, BigDecimal.TEN);
+
+
+        PaymentTransaction authPaymentTransaction = paymentTransactions.get(0);
+        Assert.assertEquals(TransactionType.AUTHORIZE, authPaymentTransaction.getTransactionType());
+        Assert.assertEquals(TransactionStatus.SUCCESS, authPaymentTransaction.getTransactionStatus());
+
+        PaymentTransaction capturePaymentTransaction = paymentTransactions.get(1);
+        Assert.assertEquals(TransactionType.CAPTURE, capturePaymentTransaction.getTransactionType());
+        Assert.assertEquals(TransactionStatus.SUCCESS, capturePaymentTransaction.getTransactionStatus());
+
+        PaymentTransaction refundPaymentTransaction = paymentTransactions.get(2);
+        Assert.assertEquals(TransactionType.REFUND, refundPaymentTransaction.getTransactionType());
+        Assert.assertEquals(TransactionStatus.SUCCESS, refundPaymentTransaction.getTransactionStatus());
     }
 
     private String toJsonAndEncode(Map<String, String> data) throws JsonProcessingException {
