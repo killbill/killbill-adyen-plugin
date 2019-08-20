@@ -39,10 +39,14 @@ import org.killbill.billing.util.callcontext.CallContext;
 import org.killbill.billing.util.callcontext.TenantContext;
 import org.killbill.clock.Clock;
 import org.killbill.clock.DefaultClock;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.ImmutableList;
 
 public abstract class CheckForThreeDs2StepCompleted extends DelayedActionEvent {
+    private static final Logger logger = LoggerFactory.getLogger(CheckForThreeDs2StepCompleted.class);
+
     private final UUID kbTenantId;
     private final UUID kbPaymentMethodId;
     private final UUID kbPaymentId;
@@ -118,6 +122,8 @@ public abstract class CheckForThreeDs2StepCompleted extends DelayedActionEvent {
                                  final AdyenDao adyenDao,
                                  final OSGIKillbillAPI osgiKillbillAPI,
                                  final AdyenConfigPropertiesConfigurationHandler adyenConfigPropertiesConfigurationHandler) throws Exception {
+        logger.info("Checking whether state {} for payment {} has been completed", targetState, getKbPaymentId());
+
         final AdyenResponsesRecord previousResponse = adyenDao.getSuccessfulAuthorizationResponse(getKbPaymentId(), getKbTenantId());
         if (previousResponse == null) {
             return;
@@ -137,6 +143,8 @@ public abstract class CheckForThreeDs2StepCompleted extends DelayedActionEvent {
         final CallContext context = new AdyenCallContext(clock.getUTCNow(), getKbTenantId());
 
         // Tell Adyen about the failed notification
+        logger.info("Cancelling state {} for payment {} with Adyen", targetState, getKbPaymentId());
+
         final PaymentTransactionInfoPlugin transaction = adyenPaymentPluginApi.authorizePayment(
                 kbAccountId,
                 getKbPaymentId(),
