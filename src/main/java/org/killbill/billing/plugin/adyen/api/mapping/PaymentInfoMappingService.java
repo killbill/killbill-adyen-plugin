@@ -22,6 +22,7 @@ import java.util.Map;
 
 import javax.annotation.Nullable;
 
+import org.jooq.tools.StringUtils;
 import org.killbill.billing.account.api.AccountData;
 import org.killbill.billing.payment.api.PluginProperty;
 import org.killbill.billing.plugin.adyen.client.AdyenConfigProperties;
@@ -290,6 +291,12 @@ public abstract class PaymentInfoMappingService {
             contract = "RECURRING";
         }
         paymentInfo.setContract(contract);
+
+        final String customerSupportRequest = PluginProperties.findPluginPropertyValue(PROPERTY_CUSTOMER_SUPPORT_REQUEST, properties);
+        if (!StringUtils.isBlank(customerSupportRequest) && Boolean.valueOf(customerSupportRequest)) {
+            paymentInfo.setShopperInteraction("Moto");
+            return;
+        }
 
         final String selectedBrand = PluginProperties.findPluginPropertyValue(PROPERTY_SELECTED_BRAND, properties);
         final String contAuthProperty = PluginProperties.findPluginPropertyValue(PROPERTY_CONTINUOUS_AUTHENTICATION, properties);
