@@ -128,6 +128,19 @@ public class TestAdyenPaymentPluginApi extends TestAdyenPaymentPluginApiBase {
             .put(AdyenPaymentPluginApi.PROPERTY_NOTIFICATION_URL, "https://example.com")
             .putAll(three3DSbrowserInfo)
             .build());
+    private final Iterable<PluginProperty> propertiesFor3DS2IdentifyShopperNoCVC = PluginProperties.buildPluginProperties(ImmutableMap.<String, String>builder()
+            .put(AdyenPaymentPluginApi.PROPERTY_CC_TYPE, CC_TYPE)
+            .put(AdyenPaymentPluginApi.PROPERTY_CC_LAST_NAME, "Montblanc")
+            .put(AdyenPaymentPluginApi.PROPERTY_CC_NUMBER, CC_3DS2_NUMBER_IDENTIFY_SHOPPER)
+            .put(AdyenPaymentPluginApi.PROPERTY_CC_EXPIRATION_MONTH, String.valueOf(CC_EXPIRATION_MONTH))
+            .put(AdyenPaymentPluginApi.PROPERTY_CC_EXPIRATION_YEAR, String.valueOf(CC_EXPIRATION_YEAR))
+            .put(AdyenPaymentPluginApi.PROPERTY_NOTIFICATION_URL, "https://example.com")
+            .put("additionalDataItem.0.key", "allow3ds2")
+            .put("additionalDataItem.0.value", "true")
+            .put("additionalDataItem.1.key", "executeThreeD")
+            .put("additionalDataItem.1.value", "true")
+            .putAll(three3DSbrowserInfo)
+.build());
     private final Iterable<PluginProperty> propertiesForCustomerSupportMotoPayment = PluginProperties.buildPluginProperties(
             ImmutableMap.<String, String>builder()
                     .put(AdyenPaymentPluginApi.PROPERTY_CC_TYPE, CC_TYPE)
@@ -892,6 +905,217 @@ public class TestAdyenPaymentPluginApi extends TestAdyenPaymentPluginApiBase {
                 authorizationTransaction.getCurrency(),
                 challengeResultProps,
                 context);
+
+        verifyPaymentTransactionInfoPlugin(payment, authorizationTransaction, finalAuthorizationResponse);
+        assertEquals(finalAuthorizationResponse.getFirstPaymentReferenceId(), authorizeResult.getFirstPaymentReferenceId());
+
+        // Verify GET path after authorize finished
+        final List<PaymentTransactionInfoPlugin> paymentTransactionsAfterAuthorize = adyenPaymentPluginApi.getPaymentInfo(
+                account.getId(),
+                kbPaymentId,
+                ImmutableList.<PluginProperty>of(),
+                context);
+        assertEquals(paymentTransactionsAfterAuthorize.size(), 1);
+        assertEquals(paymentTransactionsAfterAuthorize.get(0).getTransactionType(), TransactionType.AUTHORIZE);
+        assertEquals(paymentTransactionsAfterAuthorize.get(0).getStatus(), PaymentPluginStatus.PROCESSED);
+
+        final PaymentTransactionInfoPlugin captureInfoPlugin = adyenPaymentPluginApi.capturePayment(
+                account.getId(),
+                payment.getId(),
+                captureTransaction.getId(),
+                account.getPaymentMethodId(),
+                captureTransaction.getAmount(),
+                captureTransaction.getCurrency(),
+                finalAuthorizationResponse.getProperties(),
+                context);
+
+        verifyPaymentTransactionInfoPlugin(payment, captureTransaction, captureInfoPlugin);
+
+        // Verify GET path
+        final List<PaymentTransactionInfoPlugin> paymentTransactionInfoPluginsPostCapture = adyenPaymentPluginApi.getPaymentInfo(
+                account.getId(),
+                kbPaymentId,
+                ImmutableList.<PluginProperty>of(),
+                context);
+        assertEquals(paymentTransactionInfoPluginsPostCapture.size(), 2);
+        assertEquals(paymentTransactionInfoPluginsPostCapture.get(0).getTransactionType(), TransactionType.AUTHORIZE);
+        assertEquals(paymentTransactionInfoPluginsPostCapture.get(0).getStatus(), PaymentPluginStatus.PROCESSED);
+        assertEquals(paymentTransactionInfoPluginsPostCapture.get(1).getTransactionType(), TransactionType.CAPTURE);
+        assertEquals(paymentTransactionInfoPluginsPostCapture.get(1).getStatus(), PaymentPluginStatus.PENDING);
+    }
+
+    @Test(groups = "integration")
+    public void testAuthorize3DS2IdentifyAndChallengeShopperContAuth() throws Exception {
+        // Setup
+        adyenPaymentPluginApi.addPaymentMethod(account.getId(), account.getPaymentMethodId(), adyenEmptyPaymentMethodPlugin(), true, propertiesFor3DS2IdentifyShopperNoCVC, context);
+
+        final Payment payment = TestUtils.buildPayment(account.getId(), account.getPaymentMethodId(), account.getCurrency(), killbillApi);
+        final PaymentTransaction authorizationTransaction = TestUtils.buildPaymentTransaction(payment, TransactionType.AUTHORIZE, new BigDecimal("12100"), account.getCurrency());
+        final PaymentTransaction captureTransaction = TestUtils.buildPaymentTransaction(payment, TransactionType.CAPTURE, new BigDecimal("12100"), account.getCurrency());
+        final String expectedMerchantAccount = getExpectedMerchantAccount(payment);
+
+        // Initial authorize call
+        final PaymentTransactionInfoPlugin authorizeResult = adyenPaymentPluginApi.authorizePayment(
+                account.getId(),
+                payment.getId(),
+                authorizationTransaction.getId(),
+                account.getPaymentMethodId(),
+                authorizationTransaction.getAmount(),
+                authorizationTransaction.getCurrency(),
+                propertiesFor3DS2IdentifyShopperNoCVC,
+                context);
+        final UUID kbPaymentId = authorizeResult.getKbPaymentId();
+
+        final String threeDSServerTransID = PluginProperties.findPluginPropertyValue(PROPERTY_THREEDS_SERVER_TRANS_ID, authorizeResult.getProperties());
+        final String threeDS2Token = PluginProperties.findPluginPropertyValue(PROPERTY_THREEDS2_TOKEN, authorizeResult.getProperties());
+        final URL threeDSMethodURL = new URL(PluginProperties.findPluginPropertyValue(PROPERTY_THREEDS_METHOD_URL, authorizeResult.getProperties()));
+
+        assertNull(authorizeResult.getGatewayErrorCode());
+        assertNotNull(threeDSServerTransID);
+        assertNotNull(threeDS2Token);
+        assertNotNull(threeDSMethodURL);
+
+        final PaymentTransactionInfoPlugin paymentInfo = Iterables.getLast(adyenPaymentPluginApi.getPaymentInfo(payment.getAccountId(), payment.getId(), null, context));
+        assertEquals(PluginProperties.findPluginPropertyValue("merchantAccountCode", paymentInfo.getProperties()), expectedMerchantAccount);
+
+        // Verify GET path, this also allows us to check the result code that the KB caller sees
+        final List<PaymentTransactionInfoPlugin> initialPaymentTransactions = adyenPaymentPluginApi.getPaymentInfo(
+                account.getId(),
+                kbPaymentId,
+                ImmutableList.<PluginProperty>of(),
+                context);
+        assertEquals(initialPaymentTransactions.size(), 1);
+
+        final AdyenPaymentTransactionInfoPlugin adyenInfoObj = (AdyenPaymentTransactionInfoPlugin)initialPaymentTransactions.get(0);
+        final String pspReference = adyenInfoObj.getAdyenResponseRecord().get().getPspReference();
+
+        assertEquals(adyenInfoObj.getTransactionType(), TransactionType.AUTHORIZE);
+        assertEquals(adyenInfoObj.getAdyenResponseRecord().get().getResultCode(), "IdentifyShopper");
+
+        // Mimic POST from the hidden iframe that generates the device fingerprint, to the threeDSMethodURL
+        final String notificationURL = PluginProperties.findPluginPropertyValue(PROPERTY_NOTIFICATION_URL, propertiesFor3DS2IdentifyShopper);
+        final Map<String, String> threeDSMethodData = ImmutableMap.of(
+                PROPERTY_THREEDS_SERVER_TRANS_ID, threeDSServerTransID,
+                PROPERTY_METHOD_NOTIFICATION_URL, notificationURL);
+
+        final String identifyResponse = given().log().all()
+                                               .contentType(ContentType.URLENC)
+                                               .accept(ContentType.HTML)
+                                               .formParam("threeDSMethodData", toJsonAndEncode(threeDSMethodData))
+                                               .post(threeDSMethodURL)
+                                               .then().log().all()
+                                               .statusCode(HTTP_200_OK)
+                                               .extract().asString();
+
+        final Map<String, String> identifyResponseForm = extractForm(identifyResponse);
+        assertFalse(identifyResponseForm.isEmpty(), "No FORM found in identify shopper response");
+
+        // Simulate Notification callback
+        final String returnedThreeDSMethodData = identifyResponseForm.get("threeDSMethodData");
+        assertNotNull(returnedThreeDSMethodData , "No threeDSMethodData value found in identify response");
+
+        final Map<String, Object> decodedThreeDSMethodData = new ObjectMapper().readValue(DatatypeConverter.parseBase64Binary(returnedThreeDSMethodData), new TypeReference<Map<String, Object>>(){});
+        assertEquals(decodedThreeDSMethodData.get(PROPERTY_THREEDS_SERVER_TRANS_ID), threeDSServerTransID);
+
+        // Send next authorize request with completion indicator set to "Y"
+
+        // We don't expect the caller to send us the threeDS2Token as we can get it internally
+        final List<PluginProperty> propertiesWithCompInd = PluginProperties.buildPluginProperties(ImmutableMap.of(PROPERTY_THREEDS_COMP_IND, "Y"));
+        final PaymentTransactionInfoPlugin identificationCompleteResponse = adyenPaymentPluginApi.authorizePayment(account.getId(),
+                                                                                                                   payment.getId(),
+                                                                                                                   authorizationTransaction.getId(),
+                                                                                                                   account.getPaymentMethodId(),
+                                                                                                                   authorizationTransaction.getAmount(),
+                                                                                                                   authorizationTransaction.getCurrency(),
+                                                                                                                   propertiesWithCompInd,
+                                                                                                                   context);
+
+        // Verify GET path, this also allows us to check the result code that the KB caller sees
+        final List<PaymentTransactionInfoPlugin> initialPaymentTransactionsAfterIdentification = adyenPaymentPluginApi.getPaymentInfo(
+                account.getId(),
+                kbPaymentId,
+                ImmutableList.<PluginProperty>of(),
+                context);
+        assertEquals(initialPaymentTransactionsAfterIdentification.size(), 1);
+        assertTrue(initialPaymentTransactionsAfterIdentification.get(0) instanceof AdyenPaymentTransactionInfoPlugin);
+
+        final AdyenPaymentTransactionInfoPlugin adyenInfoObj2 = (AdyenPaymentTransactionInfoPlugin)initialPaymentTransactionsAfterIdentification.get(0);
+        assertEquals(adyenInfoObj.getTransactionType(), TransactionType.AUTHORIZE);
+        assertEquals(adyenInfoObj2.getAdyenResponseRecord().get().getPspReference(), pspReference);
+        assertEquals(adyenInfoObj2.getAdyenResponseRecord().get().getResultCode(), "ChallengeShopper");
+
+        final String messageVersion = PluginProperties.findPluginPropertyValue(PROPERTY_MESSAGE_VERSION, identificationCompleteResponse.getProperties());
+        final String transId = PluginProperties.findPluginPropertyValue(PROPERTY_THREEDS_SERVER_TRANS_ID, identificationCompleteResponse.getProperties());
+        final String acsTransId = PluginProperties.findPluginPropertyValue(PROPERTY_ACS_TRANS_ID, identificationCompleteResponse.getProperties());
+        final URL acsUrl = new URL(PluginProperties.findPluginPropertyValue(PROPERTY_ACS_URL, identificationCompleteResponse.getProperties()));
+        final String threeDS2TokenInResponse = PluginProperties.findPluginPropertyValue(PROPERTY_THREEDS2_TOKEN, identificationCompleteResponse.getProperties());
+
+        assertEquals(threeDS2TokenInResponse, threeDS2Token);
+        assertNotNull(messageVersion);
+        assertNotNull(transId);
+        assertNotNull(acsTransId);
+
+        // Mimic POST from the challenge iframe to the acsURL
+
+        // All these fields are available in the response from the previous authoriz call
+        Map<String, String> creqData = ImmutableMap.of(
+                PROPERTY_THREEDS_SERVER_TRANS_ID, transId,
+                PROPERTY_ACS_TRANS_ID, acsTransId,
+                PROPERTY_MESSAGE_VERSION, messageVersion,
+                "challengeWindowSize", "05",
+                "messageType","CReq");
+
+        // This is the original POST when loading the iframe - it returns the actual challenge page for the user
+        final String captureResponse = given().log().all()
+                                              .contentType(ContentType.URLENC)
+                                              .accept(ContentType.HTML)
+                                              .formParam("creq", toJsonAndEncode(creqData))
+                                              .post(acsUrl)
+                                              .then().log().all()
+                                              .statusCode(HTTP_200_OK)
+                                              .extract().asString();
+
+        final Map<String, String> challengeForm = extractForm(captureResponse);
+        assertFalse(challengeForm.isEmpty(), "No FORM found in challenge page");
+
+        final String postChallengeUrl = rewriteFormURL(acsUrl, challengeForm.remove("formAction"));
+        challengeForm.put("answer", "password");
+
+        // This is simulating the challenge response POST from the from to the bank
+        final String challengeResponse = given().log().all()
+                                                .contentType(ContentType.URLENC)
+                                                .accept(ContentType.HTML)
+                                                .formParams(challengeForm)
+                                                .post(postChallengeUrl)
+                                                .then().log().all()
+                                                .statusCode(HTTP_200_OK)
+                                                .extract().asString();
+
+        final Map<String, String> challengeResponseForm = extractForm(challengeResponse);
+        assertFalse(challengeResponseForm.isEmpty(), "No FORM found in challenge response");
+
+        // Simulate Notification callback
+        final String cres = challengeResponseForm.get("cres");
+        assertNotNull(cres, "No cres value found in challenge response");
+
+        final Map<String, Object> decodedCres = new ObjectMapper().readValue(DatatypeConverter.parseBase64Binary(cres), new TypeReference<Map<String, Object>>(){});
+        final String transStatus = decodedCres.get(PROPERTY_TRANS_STATUS).toString();
+
+        assertEquals(decodedCres.get("messageType"), "CRes");
+        assertEquals(transStatus , "Y");
+
+        // Send next authorize request with transStatus
+
+        // We don't expect the caller to send us the threeDS2Token as we can get it internally
+        final List<PluginProperty> challengeResultProps = PluginProperties.buildPluginProperties(ImmutableMap.of(PROPERTY_TRANS_STATUS, transStatus));
+        final PaymentTransactionInfoPlugin finalAuthorizationResponse = adyenPaymentPluginApi.authorizePayment(account.getId(),
+                                                                                                               payment.getId(),
+                                                                                                               authorizationTransaction.getId(),
+                                                                                                               account.getPaymentMethodId(),
+                                                                                                               authorizationTransaction.getAmount(),
+                                                                                                               authorizationTransaction.getCurrency(),
+                                                                                                               challengeResultProps,
+                                                                                                               context);
 
         verifyPaymentTransactionInfoPlugin(payment, authorizationTransaction, finalAuthorizationResponse);
         assertEquals(finalAuthorizationResponse.getFirstPaymentReferenceId(), authorizeResult.getFirstPaymentReferenceId());
