@@ -103,15 +103,27 @@ public class PaymentRequest3Ds2Builder extends RequestBuilder<PaymentRequest3Ds2
 
     private void setBillingAddress() {
         final PaymentInfo paymentInfo = paymentData.getPaymentInfo();
-        final Address billingAddress = new Address();
+        if (isValidBillingAddress(paymentInfo)) {
+            final Address billingAddress = new Address();
 
-        billingAddress.setCity(paymentInfo.getCity());
-        billingAddress.setCountry(paymentInfo.getCountry());
-        billingAddress.setHouseNumberOrName(paymentInfo.getHouseNumberOrName());
-        billingAddress.setPostalCode(paymentInfo.getPostalCode());
-        billingAddress.setStateOrProvince(paymentInfo.getStateOrProvince());
-        billingAddress.setStreet(paymentInfo.getStreet());
-        request.setBillingAddress(billingAddress);
+            billingAddress.setCity(paymentInfo.getCity());
+            billingAddress.setCountry(paymentInfo.getCountry());
+            billingAddress.setHouseNumberOrName(paymentInfo.getHouseNumberOrName());
+            billingAddress.setPostalCode(paymentInfo.getPostalCode());
+            billingAddress.setStateOrProvince(paymentInfo.getStateOrProvince());
+            billingAddress.setStreet(paymentInfo.getStreet());
+            request.setBillingAddress(billingAddress);
+        }
+    }
+
+    private boolean isValidBillingAddress(PaymentInfo paymentInfo) {
+        return paymentInfo != null &&
+               paymentInfo.getCity() != null &&
+               paymentInfo.getCountry() != null &&
+               paymentInfo.getHouseNumberOrName() != null &&
+               paymentInfo.getPostalCode() != null &&
+               paymentInfo.getStateOrProvince() != null &&
+               paymentInfo.getStreet() != null;
     }
 
     private void setBrowserInfo() {

@@ -29,7 +29,7 @@ import org.killbill.billing.plugin.util.KillBillMoney;
 
 public abstract class RequestBuilder<R> {
 
-    public static String ALLOW_THREE_DS2 = "allow3DS2";
+    public static String ALLOW_THREE_DS2 = "allow3ds2";
 
     protected R request;
 
