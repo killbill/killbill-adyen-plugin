@@ -42,7 +42,6 @@ import org.killbill.billing.plugin.adyen.dao.gen.tables.records.AdyenResponsesRe
 import org.killbill.billing.plugin.api.PluginProperties;
 import org.killbill.billing.plugin.api.payment.PluginPaymentTransactionInfoPlugin;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Optional;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
@@ -93,6 +92,16 @@ public class AdyenPaymentTransactionInfoPlugin extends PluginPaymentTransactionI
             .put("26", "N")  // Neither postal code, address nor name matches => Street address and postal code do not match
             .build();
 
+    private static final Map<String, String> SUPPORTED_ADDITIONAL_DATA_FIELDS = new ImmutableMap.Builder()
+            .put("avsResult", "avsResult")
+            .put("avsResultRaw", "avsResultCode")
+            .put("cvcResult", "cvcResult")
+            .put("cvcResultRaw", "cvcResultCode")
+            .build();
+
+    private static final String PSP_RESULT_CODE_KEY = "adyenResultCode";
+
+
     public AdyenPaymentTransactionInfoPlugin(final UUID kbPaymentId,
                                              final UUID kbTransactionPaymentPaymentId,
                                              final TransactionType transactionType,
@@ -113,7 +122,7 @@ public class AdyenPaymentTransactionInfoPlugin extends PluginPaymentTransactionI
               utcNow,
               utcNow,
               extractPluginProperties(purchaseResult));
-        adyenResponseRecord = Optional.absent();
+        adyenResponseRecord = buildAdyenResponseRecord(purchaseResult);
     }
 
     public AdyenPaymentTransactionInfoPlugin(final UUID kbPaymentId,
@@ -136,7 +145,8 @@ public class AdyenPaymentTransactionInfoPlugin extends PluginPaymentTransactionI
               null,
               utcNow,
               utcNow,
-              buildProperties(paymentModificationResponse.getAdditionalData()));
+              buildProperties(paymentModificationResponse.getAdditionalData(),
+                              pspResult.isPresent() ? pspResult.get().toString() : null));
         adyenResponseRecord = Optional.absent();
     }
 
@@ -337,6 +347,8 @@ public class AdyenPaymentTransactionInfoPlugin extends PluginPaymentTransactionI
             case REDIRECT_SHOPPER:
             case RECEIVED:
             case PENDING:
+            case IDENTIFY_SHOPPER:
+            case CHALLENGE_SHOPPER:
                 return PaymentPluginStatus.PENDING;
             case AUTHORISED:
                 return PaymentPluginStatus.PROCESSED;
@@ -357,29 +369,33 @@ public class AdyenPaymentTransactionInfoPlugin extends PluginPaymentTransactionI
         }
 
         Map<String, String> additionalData = purchaseResult.getAdditionalData();
+        ImmutableList.Builder<PluginProperty> builder = ImmutableList.builder();
 
         if (additionalData != null) {
-            String avsResultRaw = additionalData.get("avsResultRaw");
-            String avsResult = additionalData.get("avsResult");
-            String cvcResultRaw = additionalData.get("cvcResultRaw");
-            String cvcResult = additionalData.get("cvcResult");
+            for (Map.Entry<String, String> entry: additionalData.entrySet()) {
+                String propName = SUPPORTED_ADDITIONAL_DATA_FIELDS.get(entry.getKey());
+                if (propName != null) {
+                    if ("avsResultCode".equals(propName)) {
+                        //use Unknown (UK) as default
+                        propertiesMap.put(propName, CONVERT_AVS_CODE.getOrDefault(entry.getValue(), "UK"));
+                    } else if (entry.getValue() != null) {
+                        propertiesMap.put(propName, entry.getValue());
+                    }
+                }
+            }
 
-            if (avsResultRaw != null) {
-                //use Unknown (UK) as default
-                propertiesMap.put("avsResultCode", CONVERT_AVS_CODE.getOrDefault(avsResultRaw, "UK"));
-            }
-            if (avsResult != null) {
-                propertiesMap.put("avsResult", avsResult);
-            }
-            if (cvcResultRaw != null) {
-                propertiesMap.put("cvcResultCode", cvcResultRaw);
-            }
-            if (cvcResult != null) {
-                propertiesMap.put("cvcResult", cvcResult);
-            }
+            List<PluginProperty> threeds2Props = AdyenPaymentPluginApi.extractThreeDS2Data(additionalData);
+
+            builder.addAll(threeds2Props);
         }
 
-        return PluginProperties.buildPluginProperties(propertiesMap);
+        builder.addAll(PluginProperties.buildPluginProperties(propertiesMap));
+        builder.add(buildPurchaseResultCode(purchaseResult));
+        return builder.build();
+    }
+
+    private static PluginProperty buildPurchaseResultCode(final PurchaseResult purchaseResult) {
+        return new PluginProperty(PSP_RESULT_CODE_KEY, purchaseResult.getResult().orNull(), false);
     }
 
     private static String toString(final Object obj) {
@@ -468,7 +484,8 @@ public class AdyenPaymentTransactionInfoPlugin extends PluginPaymentTransactionI
         lengthArray[dotCount] = className.length() - dotArray[lastDotIndex];
     }
 
-    private static List<PluginProperty> buildProperties(final AdyenResponsesRecord adyenResponsesRecord, @Nullable final AdyenHppRequestsRecord adyenHppRequestsRecord) {
+    private static List<PluginProperty> buildProperties(final AdyenResponsesRecord adyenResponsesRecord,
+                                                        @Nullable final AdyenHppRequestsRecord adyenHppRequestsRecord) {
         final Map mergedMap = new HashMap();
 
         if (adyenHppRequestsRecord != null) {
@@ -476,10 +493,10 @@ public class AdyenPaymentTransactionInfoPlugin extends PluginPaymentTransactionI
         }
         mergedMap.putAll(toMap(adyenResponsesRecord.getAdditionalData()));
 
-        return buildProperties(mergedMap);
+        return buildProperties(mergedMap, adyenResponsesRecord != null ? adyenResponsesRecord.getPspResult() : null);
     }
 
-    private static List<PluginProperty> buildProperties(@Nullable final Map data) {
+    private static List<PluginProperty> buildProperties(@Nullable final Map data, @Nullable final String pspResult) {
         if (data == null) {
             return ImmutableList.<PluginProperty>of();
         }
@@ -491,10 +508,20 @@ public class AdyenPaymentTransactionInfoPlugin extends PluginPaymentTransactionI
         defaultProperties.put("avsResultCode", data.get("avsResultRaw"));
         defaultProperties.put("cvvResultCode", data.get("cvcResultRaw"));
         defaultProperties.put("payment_processor_account_id", data.get(AdyenPaymentPluginApi.PROPERTY_MERCHANT_ACCOUNT_CODE));
+        defaultProperties.put(PSP_RESULT_CODE_KEY, pspResult);
         // Already populated
         //defaultProperties.put("paymentMethod", data.get("paymentMethod"));
 
         final Iterable<PluginProperty> propertiesWithDefaults = PluginProperties.merge(defaultProperties, originalProperties);
         return ImmutableList.<PluginProperty>copyOf(propertiesWithDefaults);
+    }
+
+    private Optional<AdyenResponsesRecord> buildAdyenResponseRecord(PurchaseResult purchaseResult){
+        AdyenResponsesRecord adyenResponsesRecord = new AdyenResponsesRecord();
+        adyenResponsesRecord.setAuthCode(purchaseResult.getAuthCode());
+        adyenResponsesRecord.setAdditionalData(purchaseResult.getAdditionalData().toString());
+        adyenResponsesRecord.setResultCode(purchaseResult.getResultCode());
+        adyenResponsesRecord.setKbPaymentTransactionId(purchaseResult.getPaymentTransactionExternalKey());
+        return Optional.of(adyenResponsesRecord);
     }
 }

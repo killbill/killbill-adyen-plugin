@@ -32,6 +32,7 @@ import javax.annotation.Nullable;
 import javax.xml.bind.JAXBException;
 
 import org.joda.time.DateTime;
+import org.joda.time.Duration;
 import org.killbill.adyen.recurring.RecurringDetail;
 import org.killbill.adyen.recurring.ServiceException;
 import org.killbill.billing.account.api.Account;
@@ -77,6 +78,9 @@ import org.killbill.billing.plugin.adyen.core.AdyenConfigPropertiesConfiguration
 import org.killbill.billing.plugin.adyen.core.AdyenConfigurationHandler;
 import org.killbill.billing.plugin.adyen.core.AdyenHostedPaymentPageConfigurationHandler;
 import org.killbill.billing.plugin.adyen.core.AdyenRecurringConfigurationHandler;
+import org.killbill.billing.plugin.adyen.core.CheckForChallengeShopperCompleted;
+import org.killbill.billing.plugin.adyen.core.CheckForIdentifyShopperCompleted;
+import org.killbill.billing.plugin.adyen.core.DelayedActionScheduler;
 import org.killbill.billing.plugin.adyen.core.KillbillAdyenNotificationHandler;
 import org.killbill.billing.plugin.adyen.dao.AdyenDao;
 import org.killbill.billing.plugin.adyen.dao.gen.tables.AdyenPaymentMethods;
@@ -120,6 +124,7 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
     public static final String SPLIT_SETTLEMENT_DATA_ITEM = "splitSettlementDataItem";
     public static final String PROPERTY_RECURRING_TYPE = "recurringType";
     public static final String PROPERTY_CAPTURE_DELAY_HOURS = "captureDelayHours";
+    public static final String PROPERTY_CUSTOMER_SUPPORT_REQUEST = "customerSupportRequest";
     /**
      * Cont auth disabled validation on adyens side (no cvc required). We practically tell them that the payment data is valid.
      * Should be given as "true" or "false".
@@ -129,12 +134,21 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
     // API
     public static final String PROPERTY_RECURRING_DETAIL_ID = "recurringDetailId";
 
-    // 3-D Secure
+    // Browser info
+    public static final String PROPERTY_USER_AGENT = "userAgent";
+    public static final String PROPERTY_ACCEPT_HEADER = "acceptHeader";
+    public static final String PROPERTY_COLOR_DEPTH = "colorDepth";
+    public static final String PROPERTY_JAVA_ENABLED = "javaEnabled";
+    public static final String PROPERTY_JAVA_SCRIPT_ENABLED = "javaScriptEnabled";
+    public static final String PROPERTY_BROWSER_LANGUAGE = "browserLanguage";
+    public static final String PROPERTY_SCREEN_HEIGHT = "screenHeight";
+    public static final String PROPERTY_SCREEN_WIDTH = "screenWidth";
+    public static final String PROPERTY_BROWSER_TIME_ZONE_OFFSET = "browserTimeZoneOffset";
+
+    // 3-D Secure v1
     public static final String PROPERTY_PA_RES = "PaRes";
     public static final String PROPERTY_MD = "MD";
     public static final String PROPERTY_TERM_URL = "TermUrl";
-    public static final String PROPERTY_USER_AGENT = "userAgent";
-    public static final String PROPERTY_ACCEPT_HEADER = "acceptHeader";
     public static final String PROPERTY_THREE_D_THRESHOLD = "threeDThreshold";
     public static final String PROPERTY_MPI_DATA_DIRECTORY_RESPONSE = "mpiDataDirectoryResponse";
     public static final String PROPERTY_MPI_DATA_AUTHENTICATION_RESPONSE = "mpiDataAuthenticationResponse";
@@ -143,6 +157,23 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
     public static final String PROPERTY_MPI_DATA_XID = "mpiDataXid";
     public static final String PROPERTY_MPI_DATA_ECI = "mpiDataEci";
     public static final String PROPERTY_MPI_IMPLEMENTATION_TYPE = "mpiImplementationType";
+
+    // 3-D Secure v2
+    public static final String PROPERTY_NOTIFICATION_URL = "notificationURL";
+    public static final String PROPERTY_METHOD_NOTIFICATION_URL = "threeDSMethodNotificationURL";
+    public static final String PROPERTY_THREEDS_SERVER_TRANS_ID = "threeDSServerTransID";
+    public static final String PROPERTY_THREEDS2_TOKEN = "threeDS2Token";
+    public static final String PROPERTY_THREEDS_METHOD_URL = "threeDSMethodURL";
+    public static final String PROPERTY_ACS_TRANS_ID = "acsTransID";
+    public static final String PROPERTY_ACS_URL = "acsURL";
+    public static final String PROPERTY_MESSAGE_VERSION = "messageVersion";
+    public static final String PROPERTY_THREEDS_COMP_IND = "threeDSCompInd";
+    public static final String PROPERTY_TRANS_STATUS = "transStatus";
+    public static final String PROPERTY_ACS_CHALLENGE_MANDATED = "acsChallengeMandated";
+    public static final String PROPERTY_AUTHENTICATION_TYPE = "authenticationType";
+    public static final String PROPERTY_DS_TRANS_ID = "dsTransID";
+    public static final String PROPERTY_ACS_REFERENCE_NUMBER = "acsReferenceNumber";
+    public static final String PROPERTY_CHALLENGE_COMPLETION_IND = "challengeCompletionInd";
 
     // Credit cards
     public static final String PROPERTY_CC_ISSUER_COUNTRY = "issuerCountry";
@@ -209,6 +240,38 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
     public static final String BRAND_APPLEPAY = "applepay";
     public static final String BRAND_PAYWITHGOOGLE = "paywithgoogle";
 
+    private static final String PREFIX_THREEDS = "threeds2.";
+    private static final String PREFIX_THREEDS_RESPONSE_DATA = "threeds2.threeDS2ResponseData.";
+
+    private static final Map<String, String> THREEDS2_ADDITIONAL_DATA_FIELDS = new ImmutableMap.Builder()
+            // unfortunately Adyen is not very consistent with the naming of the property in requests/responses
+            .put(AdyenPaymentPluginApi.PROPERTY_THREEDS_SERVER_TRANS_ID, AdyenPaymentPluginApi.PROPERTY_THREEDS_SERVER_TRANS_ID)
+            .put(PREFIX_THREEDS + AdyenPaymentPluginApi.PROPERTY_THREEDS_SERVER_TRANS_ID, AdyenPaymentPluginApi.PROPERTY_THREEDS_SERVER_TRANS_ID)
+            .put(PREFIX_THREEDS_RESPONSE_DATA + AdyenPaymentPluginApi.PROPERTY_THREEDS_SERVER_TRANS_ID, AdyenPaymentPluginApi.PROPERTY_THREEDS_SERVER_TRANS_ID)
+            .put(AdyenPaymentPluginApi.PROPERTY_THREEDS2_TOKEN, AdyenPaymentPluginApi.PROPERTY_THREEDS2_TOKEN)
+            .put(PREFIX_THREEDS + AdyenPaymentPluginApi.PROPERTY_THREEDS2_TOKEN, AdyenPaymentPluginApi.PROPERTY_THREEDS2_TOKEN)
+            .put(AdyenPaymentPluginApi.PROPERTY_THREEDS_METHOD_URL, AdyenPaymentPluginApi.PROPERTY_THREEDS_METHOD_URL)
+            .put(PREFIX_THREEDS + AdyenPaymentPluginApi.PROPERTY_THREEDS_METHOD_URL, AdyenPaymentPluginApi.PROPERTY_THREEDS_METHOD_URL)
+            .put(AdyenPaymentPluginApi.PROPERTY_ACS_TRANS_ID, AdyenPaymentPluginApi.PROPERTY_ACS_TRANS_ID)
+            .put(PREFIX_THREEDS_RESPONSE_DATA + AdyenPaymentPluginApi.PROPERTY_ACS_TRANS_ID, AdyenPaymentPluginApi.PROPERTY_ACS_TRANS_ID)
+            .put(AdyenPaymentPluginApi.PROPERTY_ACS_URL, AdyenPaymentPluginApi.PROPERTY_ACS_URL)
+            .put(PREFIX_THREEDS_RESPONSE_DATA + AdyenPaymentPluginApi.PROPERTY_ACS_URL, AdyenPaymentPluginApi.PROPERTY_ACS_URL)
+            .put(AdyenPaymentPluginApi.PROPERTY_MESSAGE_VERSION, AdyenPaymentPluginApi.PROPERTY_MESSAGE_VERSION)
+            .put(PREFIX_THREEDS_RESPONSE_DATA + AdyenPaymentPluginApi.PROPERTY_MESSAGE_VERSION, AdyenPaymentPluginApi.PROPERTY_MESSAGE_VERSION)
+            .put(AdyenPaymentPluginApi.PROPERTY_ACS_CHALLENGE_MANDATED, AdyenPaymentPluginApi.PROPERTY_ACS_CHALLENGE_MANDATED)
+            .put(PREFIX_THREEDS_RESPONSE_DATA + AdyenPaymentPluginApi.PROPERTY_ACS_CHALLENGE_MANDATED, AdyenPaymentPluginApi.PROPERTY_ACS_CHALLENGE_MANDATED)
+            .put(AdyenPaymentPluginApi.PROPERTY_AUTHENTICATION_TYPE, AdyenPaymentPluginApi.PROPERTY_AUTHENTICATION_TYPE)
+            .put(PREFIX_THREEDS_RESPONSE_DATA + AdyenPaymentPluginApi.PROPERTY_AUTHENTICATION_TYPE, AdyenPaymentPluginApi.PROPERTY_AUTHENTICATION_TYPE)
+            .put(AdyenPaymentPluginApi.PROPERTY_DS_TRANS_ID, AdyenPaymentPluginApi.PROPERTY_DS_TRANS_ID)
+            .put(PREFIX_THREEDS_RESPONSE_DATA + AdyenPaymentPluginApi.PROPERTY_DS_TRANS_ID, AdyenPaymentPluginApi.PROPERTY_DS_TRANS_ID)
+            .put(AdyenPaymentPluginApi.PROPERTY_ACS_REFERENCE_NUMBER, AdyenPaymentPluginApi.PROPERTY_ACS_REFERENCE_NUMBER)
+            .put(PREFIX_THREEDS_RESPONSE_DATA + AdyenPaymentPluginApi.PROPERTY_ACS_REFERENCE_NUMBER, AdyenPaymentPluginApi.PROPERTY_ACS_REFERENCE_NUMBER)
+            .put(AdyenPaymentPluginApi.PROPERTY_THREEDS_COMP_IND, AdyenPaymentPluginApi.PROPERTY_THREEDS_COMP_IND)
+            .put(PREFIX_THREEDS_RESPONSE_DATA + AdyenPaymentPluginApi.PROPERTY_THREEDS_COMP_IND, AdyenPaymentPluginApi.PROPERTY_THREEDS_COMP_IND)
+            .put(AdyenPaymentPluginApi.PROPERTY_TRANS_STATUS, AdyenPaymentPluginApi.PROPERTY_TRANS_STATUS)
+            .put(PREFIX_THREEDS_RESPONSE_DATA + AdyenPaymentPluginApi.PROPERTY_TRANS_STATUS, AdyenPaymentPluginApi.PROPERTY_TRANS_STATUS)
+            .build();
+
     private static final Logger logger = LoggerFactory.getLogger(AdyenPaymentPluginApi.class);
     private static final List<PaymentServiceProviderResult> PAYMENT_RESULT_TO_CANCEL_IN_HPP_COMPLETE = ImmutableList.of(PaymentServiceProviderResult.CANCELLED,
                                                                                                                         PaymentServiceProviderResult.REFUSED);
@@ -219,6 +282,7 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
     private final AdyenConfigPropertiesConfigurationHandler adyenConfigPropertiesConfigurationHandler;
     private final AdyenDao dao;
     private final AdyenNotificationService adyenNotificationService;
+    private final DelayedActionScheduler delayedActionScheduler;
 
     public AdyenPaymentPluginApi(final AdyenConfigurationHandler adyenConfigurationHandler,
                                  final AdyenConfigPropertiesConfigurationHandler adyenConfigPropertiesConfigurationHandler,
@@ -228,13 +292,16 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
                                  final OSGIConfigPropertiesService osgiConfigPropertiesService,
                                  final OSGIKillbillLogService logService,
                                  final Clock clock,
-                                 final AdyenDao dao) throws JAXBException {
+                                 final AdyenDao dao,
+                                 final DelayedActionScheduler delayedActionScheduler) throws JAXBException {
         super(killbillApi, osgiConfigPropertiesService, logService, clock, dao);
         this.adyenConfigurationHandler = adyenConfigurationHandler;
         this.adyenHppConfigurationHandler = adyenHppConfigurationHandler;
         this.adyenRecurringConfigurationHandler = adyenRecurringConfigurationHandler;
         this.adyenConfigPropertiesConfigurationHandler = adyenConfigPropertiesConfigurationHandler;
         this.dao = dao;
+        this.delayedActionScheduler = delayedActionScheduler;
+        this.delayedActionScheduler.setApi(this);
 
         final AdyenNotificationHandler adyenNotificationHandler = new KillbillAdyenNotificationHandler(adyenConfigPropertiesConfigurationHandler, killbillApi, dao, clock);
         //noinspection RedundantTypeArguments
@@ -434,7 +501,51 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
         if (!isHPPCompletionWithPendingPayment) {
             updateResponseWithAdditionalProperties(kbTransactionId, null, properties, context.getTenantId());
             // We don't have any record for that payment: we want to trigger an actual authorization call (or complete a 3D-S authorization)
-            return executeInitialTransaction(TransactionType.AUTHORIZE, kbAccountId, kbPaymentId, kbTransactionId, kbPaymentMethodId, amount, currency, properties, context);
+            PaymentTransactionInfoPlugin result = executeInitialTransaction(TransactionType.AUTHORIZE,
+                                                                            kbAccountId,
+                                                                            kbPaymentId,
+                                                                            kbTransactionId,
+                                                                            kbPaymentMethodId,
+                                                                            amount,
+                                                                            currency,
+                                                                            properties,
+                                                                            context);
+            if (result instanceof AdyenPaymentTransactionInfoPlugin &&
+                ((AdyenPaymentTransactionInfoPlugin)result).getAdyenResponseRecord().isPresent()) {
+                AdyenResponsesRecord responsesRecord = ((AdyenPaymentTransactionInfoPlugin) result).getAdyenResponseRecord().get();
+                // TODO: make these delayed actions and their timeouts configurable
+                final String rbacUsername = getRbacUserName(context);
+                final String rbacPassword = getRbacPassword(context);
+
+                if (PaymentServiceProviderResult.IDENTIFY_SHOPPER.getResponses()[0].equals(responsesRecord.getResultCode())) {
+                    delayedActionScheduler.scheduleAction(
+                            Duration.standardSeconds(15),
+                            new CheckForIdentifyShopperCompleted(
+                                    UUID.randomUUID(),
+                                    context.getTenantId(),
+                                    kbPaymentMethodId,
+                                    kbPaymentId,
+                                    kbTransactionId,
+                                    responsesRecord.getKbPaymentTransactionId(),
+                                    rbacUsername,
+                                    rbacPassword
+                            ));
+                } else if (PaymentServiceProviderResult.CHALLENGE_SHOPPER.getResponses()[0].equals(responsesRecord.getResultCode())) {
+                    delayedActionScheduler.scheduleAction(
+                            Duration.standardMinutes(11),
+                            new CheckForChallengeShopperCompleted(
+                                    UUID.randomUUID(),
+                                    context.getTenantId(),
+                                    kbPaymentMethodId,
+                                    kbPaymentId,
+                                    kbTransactionId,
+                                    responsesRecord.getKbPaymentTransactionId(),
+                                    rbacUsername,
+                                    rbacPassword
+                            ));
+                }
+            }
+            return result;
         } else {
             // We already have a record for that payment transaction and we just updated the response row with additional properties
             // (the API can be called for instance after the user is redirected back from the HPP to store the PSP reference)
@@ -700,7 +811,36 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
                                                  if (existingAuth != null) {
                                                      // We are completing a 3D-S payment
                                                      final String originalMerchantAccount = getMerchantAccountFromRecord(existingAuth);
-                                                     return adyenPort.authorize3DSecure(originalMerchantAccount != null? originalMerchantAccount: merchantAccount, paymentData, userData, splitSettlementData, additionalData);
+                                                     final List<PluginProperty> threeDS2Data = getThreeDS2DataFromRecord(existingAuth);
+                                                     if (paymentData.getPaymentInfo().hasThreeDS2Data() || !threeDS2Data.isEmpty()) {
+                                                         // TODO: see if there is a way to store the 3ds2 data in a
+                                                         //       place such that the data is available when the payment
+                                                         //       info is created initially
+                                                         PaymentInfoMappingService.set3DS2Fields(paymentData.getPaymentInfo(), threeDS2Data);
+                                                         // Adjust properties per status to automatically advance the payment on the adyen side if we receive
+                                                         // requests to complete the payment
+                                                         if ("IdentifyShopper".equals(existingAuth.getResultCode())) {
+                                                             if (paymentData.getPaymentInfo().getThreeDSCompInd() == null) {
+                                                                 // Unless explicitly set, set to passed
+                                                                 paymentData.getPaymentInfo().setThreeDSCompInd("Y");
+                                                             }
+                                                         }
+                                                         return adyenPort.authorize3Ds2(
+                                                                 originalMerchantAccount != null ? originalMerchantAccount : merchantAccount,
+                                                                 paymentData,
+                                                                 userData,
+                                                                 splitSettlementData,
+                                                                 additionalData
+                                                         );
+                                                     } else {
+                                                         return adyenPort.authorize3DSecure(
+                                                                 originalMerchantAccount != null ? originalMerchantAccount : merchantAccount,
+                                                                 paymentData,
+                                                                 userData,
+                                                                 splitSettlementData,
+                                                                 additionalData
+                                                         );
+                                                     }
                                                  } else {
                                                      // We are creating a new transaction (AUTHORIZE, PURCHASE or CREDIT)
                                                      if (transactionType == TransactionType.CREDIT) {
@@ -768,12 +908,25 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
             response = transactionExecutor.execute(merchantAccount, paymentData, userData, splitSettlementData, additionalData);
         }
 
+        addAdditionalDataFromProperty(response, properties, context);
         try {
             dao.addResponse(kbAccountId, kbPaymentId, kbTransactionId, transactionType, amount, currency, response, utcNow, context.getTenantId());
             return new AdyenPaymentTransactionInfoPlugin(kbPaymentId, kbTransactionId, transactionType, amount, currency, utcNow, response);
         } catch (final SQLException e) {
             throw new PaymentPluginApiException("Payment went through, but we encountered a database error. Payment details: " + response.toString(), e);
         }
+    }
+
+    private void addAdditionalDataFromProperty(final PurchaseResult response,
+                                               final Iterable<PluginProperty> properties,
+                                               final TenantContext context) {
+        final Map<String, String> map = new HashMap<>(response.getAdditionalData());
+        for (final PluginProperty p : properties) {
+            if (getConfigProperties(context).getPersistablePluginProperties().contains(p.getKey())) {
+                map.put(p.getKey(), (String) p.getValue());
+            }
+        }
+        response.setAdditionalData(map);
     }
 
     private PaymentTransactionInfoPlugin executeFollowUpTransaction(final TransactionType transactionType,
@@ -854,7 +1007,7 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
         }
     }
 
-    private AdyenResponsesRecord fetchResponseIfExist(final UUID kbPaymentId, final UUID tenantId) throws PaymentPluginApiException {
+    public AdyenResponsesRecord fetchResponseIfExist(final UUID kbPaymentId, final UUID tenantId) throws PaymentPluginApiException {
         try {
             return dao.getSuccessfulAuthorizationResponse(kbPaymentId, tenantId);
         } catch (final SQLException e) {
@@ -1125,6 +1278,27 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
         return null;
     }
 
+    public static List<PluginProperty> extractThreeDS2Data(final Map<String, String> additionalData) {
+        Map<String, String> propertiesMap = new HashMap<>();
+
+        if (additionalData != null) {
+            for (Map.Entry<String, String> entry: additionalData.entrySet()) {
+                String propName = THREEDS2_ADDITIONAL_DATA_FIELDS.get(entry.getKey());
+                if (propName != null && entry.getValue() != null) {
+                    propertiesMap.put(propName, entry.getValue());
+                }
+            }
+        }
+
+        return PluginProperties.buildPluginProperties(propertiesMap);
+    }
+
+    private List<PluginProperty> getThreeDS2DataFromRecord(final AdyenResponsesRecord adyenResponsesRecord) {
+        final Map additionalData = AdyenDao.fromAdditionalData(adyenResponsesRecord.getAdditionalData());
+
+        return extractThreeDS2Data(additionalData);
+    }
+
     private AdyenConfigProperties getConfigProperties(final TenantContext context) {
         return adyenConfigPropertiesConfigurationHandler.getConfigurable(context.getTenantId());
     }
@@ -1135,5 +1309,17 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
         } catch (final UnsupportedEncodingException e) {
             return value;
         }
+    }
+
+    private String getRbacUserName(final CallContext context){
+        final AdyenConfigProperties adyenConfigProperties = getConfigProperties(context);
+        final String rbacUsername = adyenConfigProperties.getRbacUsername();
+        return rbacUsername;
+    }
+
+    private String getRbacPassword(final CallContext context){
+        final AdyenConfigProperties adyenConfigProperties = getConfigProperties(context);
+        final String rbacPassword = adyenConfigProperties.getRbacPassword();
+        return rbacPassword;
     }
 }

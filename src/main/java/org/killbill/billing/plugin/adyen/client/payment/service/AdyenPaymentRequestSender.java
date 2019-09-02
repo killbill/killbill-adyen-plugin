@@ -28,13 +28,7 @@ import javax.xml.ws.soap.SOAPFaultException;
 
 import org.apache.cxf.binding.soap.SoapFault;
 import org.apache.cxf.transport.http.HTTPException;
-import org.killbill.adyen.payment.ModificationRequest;
-import org.killbill.adyen.payment.ModificationResult;
-import org.killbill.adyen.payment.PaymentPortType;
-import org.killbill.adyen.payment.PaymentRequest;
-import org.killbill.adyen.payment.PaymentRequest3D;
-import org.killbill.adyen.payment.PaymentResult;
-import org.killbill.adyen.payment.ServiceException;
+import org.killbill.adyen.payment.*;
 import org.killbill.billing.plugin.adyen.client.PaymentPortRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -72,6 +66,15 @@ public class AdyenPaymentRequestSender implements Closeable {
             @Override
             public PaymentResult apply(final PaymentPortType paymentPort) throws ServiceException {
                 return paymentPort.authorise3D(request);
+            }
+        });
+    }
+
+    public AdyenCallResult<PaymentResult> authorise3Ds2(final String merchantAccount, final PaymentRequest3Ds2 request) {
+        return callAdyen(merchantAccount, new AdyenCall<PaymentPortType, PaymentResult>() {
+            @Override
+            public PaymentResult apply(final PaymentPortType paymentPort) throws ServiceException {
+                return paymentPort.authorise3Ds2(request);
             }
         });
     }

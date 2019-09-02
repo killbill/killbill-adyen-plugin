@@ -39,8 +39,11 @@ import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 
 import javax.xml.bind.DatatypeConverter;
+
+import static org.killbill.billing.plugin.adyen.client.payment.builder.RequestBuilder.ALLOW_THREE_DS2;
 
 public class TestPaymentRequestBuilder extends BaseTestPaymentRequestBuilder {
 
@@ -101,6 +104,48 @@ public class TestPaymentRequestBuilder extends BaseTestPaymentRequestBuilder {
 
         final PaymentRequest paymentRequest = verifyPaymentRequestBuilder(paymentInfo);
         Assert.assertEquals(paymentRequest.getRecurring().getContract(), paymentInfo.getContract());
+    }
+
+    @Test(groups = "fast")
+    public void test3ds2InclusionWithAllowThreeDs2FlagBeingFalse() {
+        final PaymentRequestBuilder builder = createPaymentBuildFor3ds2(true, false);
+        final PaymentRequest paymentRequest = builder.build();
+        Assert.assertNull(paymentRequest.getThreeDS2RequestData());
+    }
+
+    @Test(groups = "fast")
+    public void test3ds2InclusionWithoutAllowThreeDs2Flag() {
+        final PaymentRequestBuilder builder = createPaymentBuildFor3ds2(false, false);
+        final PaymentRequest paymentRequest = builder.build();
+        Assert.assertNotNull(paymentRequest.getThreeDS2RequestData());
+    }
+
+    @Test(groups = "fast")
+    public void test3ds2InclusionWithAllowThreeDs2FlagBeingTrue() {
+        final PaymentRequestBuilder builder = createPaymentBuildFor3ds2(true, true);
+        final PaymentRequest paymentRequest = builder.build();
+        Assert.assertNotNull(paymentRequest.getThreeDS2RequestData());
+    }
+
+    private PaymentRequestBuilder createPaymentBuildFor3ds2(boolean withThreeDsFlag, boolean threeDsFlag) {
+        final String merchantAccount = UUID.randomUUID().toString();
+        final String paymentTransactionExternalKey = UUID.randomUUID().toString();
+        final PaymentData paymentData = new PaymentData<>(new BigDecimal("20"), Currency.EUR, paymentTransactionExternalKey, createCardForThreeDs2());
+        final UserData userData = new UserData();
+        final SplitSettlementData splitSettlementData = null;
+        Map<String, String> additionalData = null;
+        if(withThreeDsFlag) {
+            additionalData = ImmutableMap.of(ALLOW_THREE_DS2, String.valueOf(threeDsFlag));
+        }
+        final PaymentInfoConverterService paymentInfoConverterManagement = new PaymentInfoConverterService();
+
+        return new PaymentRequestBuilder(merchantAccount, paymentData, userData, splitSettlementData, additionalData, paymentInfoConverterManagement);
+    }
+
+    private Card createCardForThreeDs2() {
+        final Card cardWithNotfUrl = new Card();
+        cardWithNotfUrl.setNotificationUrl("dummy");
+        return cardWithNotfUrl;
     }
 
     private PaymentRequest verifyPaymentRequestBuilder(final PaymentInfo paymentInfo) {

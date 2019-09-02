@@ -29,6 +29,7 @@ import org.killbill.billing.payment.plugin.api.PaymentPluginApiException;
 import org.killbill.billing.plugin.TestUtils;
 import org.killbill.billing.plugin.adyen.TestWithEmbeddedDBBase;
 import org.killbill.billing.plugin.adyen.core.AdyenActivator;
+import org.killbill.billing.plugin.adyen.core.DelayedActionScheduler;
 import org.killbill.billing.util.callcontext.CallContext;
 import org.killbill.clock.ClockMock;
 import org.mockito.Mockito;
@@ -55,6 +56,8 @@ public class TestAdyenPaymentPluginApiBase extends TestWithEmbeddedDBBase {
         Mockito.when(context.getTenantId()).thenReturn(UUID.randomUUID());
 
         account = TestUtils.buildAccount(DEFAULT_CURRENCY, DEFAULT_COUNTRY);
+        Mockito.when(account.getEmail()).thenReturn(UUID.randomUUID().toString() + "@example.com");
+
         killbillApi = TestUtils.buildOSGIKillbillAPI(account);
 
         TestUtils.buildPaymentMethod(account.getId(), account.getPaymentMethodId(), AdyenActivator.PLUGIN_NAME, killbillApi);
@@ -62,6 +65,8 @@ public class TestAdyenPaymentPluginApiBase extends TestWithEmbeddedDBBase {
         final OSGIKillbillLogService logService = TestUtils.buildLogService();
 
         final OSGIConfigPropertiesService configPropertiesService = Mockito.mock(OSGIConfigPropertiesService.class);
+        final DelayedActionScheduler delayedActionScheduler = Mockito.mock(DelayedActionScheduler.class);
+
         adyenPaymentPluginApi = new AdyenPaymentPluginApi(adyenConfigurationHandler,
                                                           adyenConfigPropertiesConfigurationHandler,
                                                           adyenHostedPaymentPageConfigurationHandler,
@@ -70,7 +75,8 @@ public class TestAdyenPaymentPluginApiBase extends TestWithEmbeddedDBBase {
                                                           configPropertiesService,
                                                           logService,
                                                           clock,
-                                                          dao);
+                                                          dao,
+                                                          delayedActionScheduler);
 
         TestUtils.updateOSGIKillbillAPI(killbillApi, adyenPaymentPluginApi);
     }
