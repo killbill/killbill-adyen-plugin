@@ -30,8 +30,10 @@ import org.killbill.billing.payment.plugin.api.PaymentPluginStatus;
 import org.killbill.billing.payment.plugin.api.PaymentTransactionInfoPlugin;
 import org.killbill.billing.plugin.adyen.api.AdyenCallContext;
 import org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi;
+import org.killbill.billing.plugin.adyen.api.AdyenPaymentTransactionInfoPlugin;
 import org.killbill.billing.plugin.adyen.api.mapping.AdyenPaymentTransaction;
 import org.killbill.billing.plugin.adyen.client.AdyenConfigProperties;
+import org.killbill.billing.plugin.adyen.client.model.PaymentServiceProviderResult;
 import org.killbill.billing.plugin.adyen.dao.AdyenDao;
 import org.killbill.billing.plugin.adyen.dao.gen.tables.records.AdyenResponsesRecord;
 import org.killbill.billing.plugin.api.core.PaymentApiWrapper;
@@ -155,9 +157,7 @@ public abstract class CheckForThreeDs2StepCompleted extends DelayedActionEvent {
                 extraProperties,
                 context);
 
-
         final AdyenConfigProperties tenantConfiguration = adyenConfigPropertiesConfigurationHandler.getConfigurable(context.getTenantId());
-
         final PaymentApiWrapper paymentApiWrapper = getPaymentApiWrapper(osgiKillbillAPI, tenantConfiguration);
         final Payment payment = getPayment(osgiKillbillAPI, context);
         final PaymentTransaction paymentTransaction = PaymentApiWrapper.filterForTransaction(payment, transaction.getKbTransactionPaymentId());
@@ -165,19 +165,31 @@ public abstract class CheckForThreeDs2StepCompleted extends DelayedActionEvent {
                 "Error",
                 errorMsg,
                 paymentTransaction);
-        fixPaymentTransactionStateWithLogin(paymentApiWrapper,osgiKillbillAPI,payment,updatedPaymentTransaction,context);
+        PaymentPluginStatus targetStatus = PaymentPluginStatus.ERROR;
+
+        if (transaction instanceof AdyenPaymentTransactionInfoPlugin &&
+            ((AdyenPaymentTransactionInfoPlugin)transaction).getAdyenResponseRecord().isPresent()) {
+            AdyenResponsesRecord responsesRecord = ((AdyenPaymentTransactionInfoPlugin) transaction).getAdyenResponseRecord().get();
+
+            // It is possible that the transaction was moved into authorized
+            if (PaymentServiceProviderResult.AUTHORISED.getResponses()[0].equals(responsesRecord.getResultCode())) {
+                targetStatus = PaymentPluginStatus.PROCESSED;
+            }
+        }
+        advancePaymentTransaction(paymentApiWrapper, osgiKillbillAPI, payment, targetStatus, updatedPaymentTransaction, context);
     }
 
-
-    private void fixPaymentTransactionStateWithLogin(final PaymentApiWrapper paymentApiWrapper,
-                           final OSGIKillbillAPI osgiKillbillAPI,
-                           final Payment payment,
-                           final PaymentTransaction updatedPaymentTransaction,
-                           final CallContext context) throws Exception{
+    private void advancePaymentTransaction(
+            final PaymentApiWrapper paymentApiWrapper,
+            final OSGIKillbillAPI osgiKillbillAPI,
+            final Payment payment,
+            final PaymentPluginStatus newStatus,
+            final PaymentTransaction updatedPaymentTransaction,
+            final CallContext context) throws Exception {
         try {
             osgiKillbillAPI.getSecurityApi().login(rbacUsername, rbacPassword);
-            paymentApiWrapper.fixPaymentTransactionState(payment, PaymentPluginStatus.ERROR, updatedPaymentTransaction, context);
-        }finally {
+            paymentApiWrapper.fixPaymentTransactionState(payment, newStatus, updatedPaymentTransaction, context);
+        } finally {
             osgiKillbillAPI.getSecurityApi().logout();
         }
     }

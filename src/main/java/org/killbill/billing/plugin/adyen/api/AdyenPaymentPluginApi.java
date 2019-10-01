@@ -906,6 +906,11 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
                                                                           PROPERTY_FROM_HPP_TRANSACTION_STATUS, "PROCESSED"));
         } else {
             response = transactionExecutor.execute(merchantAccount, paymentData, userData, splitSettlementData, additionalData);
+            if (paymentData.getPaymentInfo().hasThreeDS2Data()) {
+                logger.info(
+                        "3DS2 {} request for payment with id {} finished with response code {}",
+                        transactionType.name(), kbPaymentId, response.getResultCode());
+            }
         }
 
         addAdditionalDataFromProperty(response, properties, context);
