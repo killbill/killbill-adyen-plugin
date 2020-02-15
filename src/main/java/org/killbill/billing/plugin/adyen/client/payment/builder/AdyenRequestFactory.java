@@ -24,6 +24,7 @@ import javax.annotation.Nullable;
 import org.killbill.adyen.payment.ModificationRequest;
 import org.killbill.adyen.payment.PaymentRequest;
 import org.killbill.adyen.payment.PaymentRequest3D;
+import org.killbill.adyen.payment.PaymentRequest3Ds2;
 import org.killbill.billing.plugin.adyen.client.AdyenConfigProperties;
 import org.killbill.billing.plugin.adyen.client.model.PaymentData;
 import org.killbill.billing.plugin.adyen.client.model.SplitSettlementData;
@@ -54,6 +55,11 @@ public class AdyenRequestFactory {
     public PaymentRequest3D paymentRequest3d(final String merchantAccount, final PaymentData paymentData, final UserData userData, @Nullable final SplitSettlementData splitSettlementData, final Map<String, String> additionalData) {
         final PaymentRequest3DBuilder paymentRequest3DBuilder = new PaymentRequest3DBuilder(merchantAccount, paymentData, userData, splitSettlementData, additionalData);
         return paymentRequest3DBuilder.build();
+    }
+
+    public PaymentRequest3Ds2 paymentRequest3Ds2(final String merchantAccount, final PaymentData paymentData, final UserData userData, @Nullable final SplitSettlementData splitSettlementData, final Map<String, String> additionalData) {
+        final PaymentRequest3Ds2Builder paymentRequest3Ds2Builder = new PaymentRequest3Ds2Builder(merchantAccount, paymentData, userData, splitSettlementData, additionalData);
+        return paymentRequest3Ds2Builder.build();
     }
 
     public ModificationRequest createModificationRequest(final String merchantAccount, final PaymentData paymentData, final String pspReference, @Nullable final SplitSettlementData splitSettlementData, final Map<String, String> additionalData) {

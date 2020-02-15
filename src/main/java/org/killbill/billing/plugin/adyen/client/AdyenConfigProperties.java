@@ -74,6 +74,7 @@ public class AdyenConfigProperties {
     private final Map<String, String> regionToRecurringUrlMap = new LinkedHashMap<String, String>();
     private final Map<String, String> regionToDirectoryUrlMap = new LinkedHashMap<String, String>();
     private final List<String> sensitivePropertyKeys = new ArrayList<>();
+    private final List<String> persistablePluginProperties = new ArrayList<>();
 
     private final String paymentProcessorAccountIdToMerchantAccount;
     private final String merchantAccounts;
@@ -99,6 +100,8 @@ public class AdyenConfigProperties {
     private final String paymentConnectionTimeout;
     private final String paymentReadTimeout;
     private final String fallBackMerchantAccount;
+    private final String rbacUsername;
+    private final String rbacPassword;
 
     private final Period pendingPaymentExpirationPeriod;
 
@@ -215,14 +218,18 @@ public class AdyenConfigProperties {
             skinToSecretAlgorithmMap.put(skin, secretAlgorithm);
         }
 
-        readSensitivePropertyKeys(properties.getProperty(PROPERTY_PREFIX + "sensitiveProperties"));
+        readConfigurationValuesToList(properties.getProperty(PROPERTY_PREFIX + "sensitiveProperties"), sensitivePropertyKeys);
+        readConfigurationValuesToList(properties.getProperty(PROPERTY_PREFIX + "persistablePluginProperties"), persistablePluginProperties);
+
+        this.rbacUsername = properties.getProperty(PROPERTY_PREFIX + "rbacUsername");
+        this.rbacPassword = properties.getProperty(PROPERTY_PREFIX + "rbacPassword");
     }
 
-    private void readSensitivePropertyKeys(final String property) {
-        sensitivePropertyKeys.clear();
+    private void readConfigurationValuesToList(final String property, final List<String> outputList) {
+        outputList.clear();
         if(!Strings.isNullOrEmpty(property)) {
             for (final String entry : property.split("\\" + ENTRY_DELIMITER)) {
-                sensitivePropertyKeys.add(entry);
+                outputList.add(entry);
             }
         }
     }
@@ -476,7 +483,23 @@ public class AdyenConfigProperties {
         }
     }
 
-    public Period getPendingHppPaymentWithoutCompletionExpirationPeriod() {
-        return pendingHppPaymentWithoutCompletionExpirationPeriod;
+    public Period getPendingHppPaymentWithoutCompletionExpirationPeriod(@Nullable final String paymentMethod) {
+        if (paymentMethod != null && paymentMethodToExpirationPeriod.get(paymentMethod.toLowerCase()) != null) {
+            return paymentMethodToExpirationPeriod.get(paymentMethod.toLowerCase());
+        } else {
+            return pendingHppPaymentWithoutCompletionExpirationPeriod;
+        }
+    }
+
+    public List<String> getPersistablePluginProperties() {
+        return persistablePluginProperties;
+    }
+
+    public String getRbacUsername() {
+        return rbacUsername;
+    }
+
+    public String getRbacPassword() {
+        return rbacPassword;
     }
 }

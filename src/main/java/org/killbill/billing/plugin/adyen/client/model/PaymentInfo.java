@@ -26,10 +26,18 @@ public class PaymentInfo {
     private String contract;
     private String shopperInteraction;
     private String shopperStatement;
-    // 3D Secure
-    private Long threeDThreshold;
+    // browser info
     private String acceptHeader;
+    private Integer colorDepth;
+    private Boolean javaEnabled;
+    private Boolean javaScriptEnabled;
+    private String browserLanguage;
+    private Integer screenHeight;
+    private Integer screenWidth;
+    private Integer browserTimeZoneOffset;
     private String userAgent;
+    // 3D Secure v1
+    private Long threeDThreshold;
     private String md;
     private String paRes;
     private String mpiDataDirectoryResponse;
@@ -41,6 +49,21 @@ public class PaymentInfo {
     private String mpiImplementationType;
     private Map<String, String> mpiImplementationTypeValues;
     private String termUrl;
+    // 3D Secure v2
+    private String notificationUrl;
+    private String threeDSCompInd;
+    private String threeDSServerTransID;
+    private String threeDS2Token;
+    private String threeDSMethodURL;
+    private String acsTransID;
+    private String acsUrl;
+    private String messageVersion;
+    private String transStatus;
+    private String acsChallengeMandated;
+    private String authenticationType;
+    private String dsTransID;
+    private String acsReferenceNumber;
+
     // Billing Address
     private String street;
     private String houseNumberOrName;
@@ -107,6 +130,62 @@ public class PaymentInfo {
 
     public void setAcceptHeader(final String acceptHeader) {
         this.acceptHeader = acceptHeader;
+    }
+
+    public Integer getColorDepth() {
+        return colorDepth;
+    }
+
+    public void setColorDepth(Integer colorDepth) {
+        this.colorDepth = colorDepth;
+    }
+
+    public Boolean getJavaEnabled() {
+        return javaEnabled;
+    }
+
+    public void setJavaEnabled(Boolean javaEnabled) {
+        this.javaEnabled = javaEnabled;
+    }
+
+    public Boolean getJavaScriptEnabled() {
+        return javaScriptEnabled;
+    }
+
+    public void setJavaScriptEnabled(Boolean javaScriptEnabled) {
+        this.javaScriptEnabled = javaScriptEnabled;
+    }
+
+    public String getBrowserLanguage() {
+        return browserLanguage;
+    }
+
+    public void setBrowserLanguage(String browserLanguage) {
+        this.browserLanguage = browserLanguage;
+    }
+
+    public Integer getScreenHeight() {
+        return screenHeight;
+    }
+
+    public void setScreenHeight(Integer screenHeight) {
+        this.screenHeight = screenHeight;
+    }
+
+    public Integer getScreenWidth() {
+        return screenWidth;
+    }
+
+    public void setScreenWidth(Integer screenWidth) {
+        this.screenWidth = screenWidth;
+    }
+
+    public Integer getBrowserTimeZoneOffset() {
+        return browserTimeZoneOffset;
+    }
+
+    public void setBrowserTimeZoneOffset(Integer browserTimeZoneOffset) {
+        this.browserTimeZoneOffset = browserTimeZoneOffset;
     }
 
     public String getUserAgent() {
@@ -205,6 +284,97 @@ public class PaymentInfo {
         this.termUrl = termUrl;
     }
 
+    public boolean hasThreeDS2Data() {
+        return notificationUrl != null || threeDSCompInd != null || threeDSServerTransID != null ||
+                threeDS2Token != null || threeDSMethodURL != null || acsTransID != null || acsUrl != null || messageVersion != null;
+    }
+
+    public String getNotificationUrl() {
+        return notificationUrl;
+    }
+
+    public void setNotificationUrl(String notificationUrl) {
+        this.notificationUrl = notificationUrl;
+    }
+
+    public String getThreeDSCompInd() {
+        return threeDSCompInd;
+    }
+
+    public void setThreeDSCompInd(String threeDSCompInd) {
+        this.threeDSCompInd = threeDSCompInd;
+    }
+
+    public String getTransStatus() {
+        return transStatus;
+    }
+
+    public void setTransStatus(String transStatus) {
+        this.transStatus = transStatus;
+    }
+
+    public void setAcsChallengeMandated(String acsChallengeMandated) {
+        this.acsChallengeMandated = acsChallengeMandated;
+    }
+
+    public void setAuthenticationType(String authenticationType) {
+        this.authenticationType = authenticationType;
+    }
+
+    public void setDsTransID(String dsTransID) {
+        this.dsTransID = dsTransID;
+    }
+
+    public void setAcsReferenceNumber(String acsReferenceNumber) {
+        this.acsReferenceNumber = acsReferenceNumber;
+    }
+
+    public void setThreeDSServerTransID(String threeDSServerTransID) {
+        this.threeDSServerTransID = threeDSServerTransID;
+    }
+
+    public void setAcsUrl(String acsUrl) {
+        this.acsUrl = acsUrl;
+    }
+
+    public String getThreeDSServerTransID() {
+        return threeDSServerTransID;
+    }
+
+    public String getThreeDS2Token() {
+        return threeDS2Token;
+    }
+
+    public void setThreeDS2Token(String threeDS2Token) {
+        this.threeDS2Token = threeDS2Token;
+    }
+
+    public String getThreeDSMethodURL() {
+        return threeDSMethodURL;
+    }
+
+    public void setThreeDSMethodURL(String threeDSMethodURL) {
+        this.threeDSMethodURL = threeDSMethodURL;
+    }
+
+    public String getAcsTransID() {
+        return acsTransID;
+    }
+
+    public String getAcsUrl(){ return acsUrl; }
+
+    public void setAcsTransID(String acsTransID) {
+        this.acsTransID = acsTransID;
+    }
+
+    public String getMessageVersion() {
+        return messageVersion;
+    }
+
+    public void setMessageVersion(String messageVersion) {
+        this.messageVersion = messageVersion;
+    }
+
     public String getStreet() {
         return street;
     }
@@ -278,6 +448,7 @@ public class PaymentInfo {
         this.selectedBrand = selectedBrand;
     }
 
+    //TODO: regenerate
     @Override
     public String toString() {
         final StringBuilder sb = new StringBuilder("PaymentInfo{");

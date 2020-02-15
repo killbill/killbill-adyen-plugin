@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Map;
 
 import javax.annotation.Nullable;
+import javax.xml.bind.DatatypeConverter;
 import javax.xml.datatype.DatatypeConfigurationException;
 import javax.xml.datatype.DatatypeFactory;
 import javax.xml.datatype.XMLGregorianCalendar;
@@ -33,14 +34,20 @@ import org.killbill.adyen.common.Name;
 import org.killbill.adyen.payment.AnyType2AnyTypeMap;
 import org.killbill.adyen.payment.PaymentRequest;
 import org.killbill.adyen.payment.ThreeDSecureData;
+import org.killbill.adyen.threeds2data.ChallengeIndicator;
+import org.killbill.adyen.threeds2data.ThreeDS2RequestData;
 import org.killbill.billing.plugin.adyen.client.model.PaymentData;
 import org.killbill.billing.plugin.adyen.client.model.PaymentInfo;
 import org.killbill.billing.plugin.adyen.client.model.SplitSettlementData;
 import org.killbill.billing.plugin.adyen.client.model.UserData;
 import org.killbill.billing.plugin.adyen.client.payment.converter.PaymentInfoConverterManagement;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Charsets;
-import com.google.common.io.BaseEncoding;
+
+import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.BRAND_APPLEPAY;
+import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.BRAND_PAYWITHGOOGLE;
 
 public class PaymentRequestBuilder extends RequestBuilder<PaymentRequest> {
 
@@ -49,6 +56,8 @@ public class PaymentRequestBuilder extends RequestBuilder<PaymentRequest> {
     private final UserData userData;
     private final SplitSettlementData splitSettlementData;
     private final Map<String, String> additionalData;
+
+    private static final Logger logger = LoggerFactory.getLogger(PaymentRequestBuilder.class);
 
     public PaymentRequestBuilder(final String merchantAccount,
                                  final PaymentData paymentData,
@@ -72,11 +81,37 @@ public class PaymentRequestBuilder extends RequestBuilder<PaymentRequest> {
         setAmount();
         setRecurring();
         setShopperData();
-        set3DSecureFields();
+        setBrowserInfo();
+        set3DSFields();
+        set3DS2FieldsIfAllowed();
         setSplitSettlementData();
         addAdditionalData(request.getAdditionalData(), additionalData);
 
         return request;
+    }
+
+    private void set3DS2FieldsIfAllowed() {
+        if(threeDs2Allowed(additionalData)) {
+            set3DS2Fields();
+        }
+    }
+
+    private void addAdditionalData() {
+        addAdditionalData(request.getAdditionalData(), additionalData);
+
+        String selectedBrand = paymentData.getPaymentInfo().getSelectedBrand();
+        if (BRAND_APPLEPAY.equals(selectedBrand) || BRAND_PAYWITHGOOGLE.equals(selectedBrand)) {
+            addAdditionalDataEntry(request.getAdditionalData().getEntry(), "paymentdatasource.type", selectedBrand);
+        }
+
+        if (BRAND_PAYWITHGOOGLE.equals(selectedBrand)) {
+            boolean isDPAN = paymentData.getPaymentInfo().getMpiDataCavv() != null;
+            addAdditionalDataEntry(request.getAdditionalData().getEntry(), "paymentdatasource.tokenized", Boolean.toString(isDPAN));
+
+            if (!isDPAN) {
+                addAdditionalDataEntry(request.getAdditionalData().getEntry(), "executeThreeD", "false");
+            }
+        }
     }
 
     private void setAmount() {
@@ -130,36 +165,48 @@ public class PaymentRequestBuilder extends RequestBuilder<PaymentRequest> {
         request.setShopperReference(userData.getShopperReference());
     }
 
-    private void set3DSecureFields() {
-        final BigDecimal amount = paymentData.getAmount();
+    private void setBrowserInfo() {
         final PaymentInfo paymentInfo = paymentData.getPaymentInfo();
-
-        boolean thresholdReached = false;
-        if (amount != null && paymentInfo.getThreeDThreshold() != null) {
-            final Long amountMinorUnits = toMinorUnits(amount, paymentData.getCurrency().name());
-            thresholdReached = amountMinorUnits.compareTo(paymentInfo.getThreeDThreshold()) >= 0;
-        }
-        if (!thresholdReached) {
-            return;
-        }
-
         final BrowserInfo browserInfo = new BrowserInfo();
         browserInfo.setAcceptHeader(paymentInfo.getAcceptHeader());
+        browserInfo.setColorDepth(paymentInfo.getColorDepth());
+        browserInfo.setJavaEnabled(paymentInfo.getJavaEnabled());
+        browserInfo.setJavaScriptEnabled(paymentInfo.getJavaScriptEnabled());
+        browserInfo.setLanguage(paymentInfo.getBrowserLanguage());
+        browserInfo.setScreenHeight(paymentInfo.getScreenHeight());
+        browserInfo.setScreenWidth(paymentInfo.getScreenWidth());
+        browserInfo.setTimeZoneOffset(paymentInfo.getBrowserTimeZoneOffset());
         browserInfo.setUserAgent(paymentInfo.getUserAgent());
         if (browserInfo.getAcceptHeader() != null || browserInfo.getUserAgent() != null) {
             request.setBrowserInfo(browserInfo);
+        }
+    }
+
+    private void set3DSFields() {
+        final BigDecimal amount = paymentData.getAmount();
+        final PaymentInfo paymentInfo = paymentData.getPaymentInfo();
+
+        // applepay and googlepay require mpidata
+        String selectedBrand = paymentInfo.getSelectedBrand();
+        if (!BRAND_APPLEPAY.equals(selectedBrand) && !BRAND_PAYWITHGOOGLE.equals(selectedBrand)) {
+            boolean thresholdReached = false;
+            if (amount != null && paymentInfo.getThreeDThreshold() != null) {
+                final Long amountMinorUnits = toMinorUnits(amount, paymentData.getCurrency().name());
+                thresholdReached = amountMinorUnits.compareTo(paymentInfo.getThreeDThreshold()) >= 0;
+            }
+            if (!thresholdReached) {
+                return;
+            }
         }
 
         final ThreeDSecureData threeDSecureData = new ThreeDSecureData();
         threeDSecureData.setDirectoryResponse(paymentInfo.getMpiDataDirectoryResponse());
         threeDSecureData.setAuthenticationResponse(paymentInfo.getMpiDataAuthenticationResponse());
-        if (paymentInfo.getMpiDataCavv() != null) {
-            threeDSecureData.setCavv(BaseEncoding.base64().encode(paymentInfo.getMpiDataCavv().getBytes(Charsets.US_ASCII)).getBytes(Charsets.US_ASCII));
-        }
         threeDSecureData.setCavvAlgorithm(paymentInfo.getMpiDataCavvAlgorithm());
-        if (paymentInfo.getMpiDataXid() != null) {
-            threeDSecureData.setXid(BaseEncoding.base64().encode(paymentInfo.getMpiDataXid().getBytes(Charsets.US_ASCII)).getBytes(Charsets.US_ASCII));
-        }
+        // Set the unencoded bytes for cavv and xid because JAXB will encode them to base64 automatically when creating
+        // a request to Adyen
+        threeDSecureData.setCavv(toPlainBytes(paymentInfo.getMpiDataCavv()));
+        threeDSecureData.setXid(toPlainBytes(paymentInfo.getMpiDataXid()));
         threeDSecureData.setEci(paymentInfo.getMpiDataEci());
         if (threeDSecureData.getDirectoryResponse() != null ||
             threeDSecureData.getAuthenticationResponse() != null ||
@@ -173,6 +220,32 @@ public class PaymentRequestBuilder extends RequestBuilder<PaymentRequest> {
         if (paymentInfo.getTermUrl() != null) {
             addAdditionalDataEntry(request.getAdditionalData().getEntry(), "returnUrl", paymentInfo.getTermUrl());
         }
+    }
+
+    private void set3DS2Fields() {
+        final PaymentInfo paymentInfo = paymentData.getPaymentInfo();
+        if (paymentInfo.getNotificationUrl() != null) {
+            final ThreeDS2RequestData threeDS2RequestData = new ThreeDS2RequestData();
+            threeDS2RequestData.setAuthenticationOnly(false);
+            threeDS2RequestData.setChallengeIndicator(ChallengeIndicator.NO_PREFERENCE);  // TODO from property
+            threeDS2RequestData.setDeviceChannel("browser"); // For channels web and mobile when using webview
+            threeDS2RequestData.setNotificationURL(paymentInfo.getNotificationUrl());
+            request.setThreeDS2RequestData(threeDS2RequestData);
+        }
+    }
+
+    private byte[] toPlainBytes(String maybeBase64EncodedString) {
+        if (maybeBase64EncodedString != null) {
+            byte[] asBytes;
+
+            try {
+                return DatatypeConverter.parseBase64Binary(maybeBase64EncodedString);
+            }
+            catch (IllegalArgumentException ex) {
+                return maybeBase64EncodedString.getBytes(Charsets.US_ASCII);
+            }
+        }
+        return null;
     }
 
     private void setSplitSettlementData() {

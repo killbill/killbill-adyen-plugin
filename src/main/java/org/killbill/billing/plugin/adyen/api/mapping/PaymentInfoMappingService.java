@@ -22,6 +22,7 @@ import java.util.Map;
 
 import javax.annotation.Nullable;
 
+import org.jooq.tools.StringUtils;
 import org.killbill.billing.account.api.AccountData;
 import org.killbill.billing.payment.api.PluginProperty;
 import org.killbill.billing.plugin.adyen.client.AdyenConfigProperties;
@@ -37,29 +38,7 @@ import com.google.common.base.Predicates;
 import com.google.common.base.Strings;
 import com.google.common.collect.Maps;
 
-import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.PROPERTY_ACCEPT_HEADER;
-import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.PROPERTY_ACQUIRER;
-import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.PROPERTY_ACQUIRER_MID;
-import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.PROPERTY_CAPTURE_DELAY_HOURS;
-import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.PROPERTY_CONTINUOUS_AUTHENTICATION;
-import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.PROPERTY_DD_ACCOUNT_NUMBER;
-import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.PROPERTY_INSTALLMENTS;
-import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.PROPERTY_MD;
-import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.PROPERTY_MPI_DATA_AUTHENTICATION_RESPONSE;
-import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.PROPERTY_MPI_DATA_CAVV;
-import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.PROPERTY_MPI_DATA_CAVV_ALGORITHM;
-import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.PROPERTY_MPI_DATA_DIRECTORY_RESPONSE;
-import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.PROPERTY_MPI_DATA_ECI;
-import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.PROPERTY_MPI_DATA_XID;
-import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.PROPERTY_MPI_IMPLEMENTATION_TYPE;
-import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.PROPERTY_PA_RES;
-import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.PROPERTY_RECURRING_DETAIL_ID;
-import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.PROPERTY_RECURRING_TYPE;
-import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.PROPERTY_SELECTED_BRAND;
-import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.PROPERTY_TERM_URL;
-import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.PROPERTY_THREE_D_THRESHOLD;
-import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.PROPERTY_USER_AGENT;
-import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.decode;
+import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.*;
 import static org.killbill.billing.plugin.api.payment.PluginPaymentPluginApi.PROPERTY_ADDRESS1;
 import static org.killbill.billing.plugin.api.payment.PluginPaymentPluginApi.PROPERTY_ADDRESS2;
 import static org.killbill.billing.plugin.api.payment.PluginPaymentPluginApi.PROPERTY_CITY;
@@ -67,7 +46,6 @@ import static org.killbill.billing.plugin.api.payment.PluginPaymentPluginApi.PRO
 import static org.killbill.billing.plugin.api.payment.PluginPaymentPluginApi.PROPERTY_ZIP;
 
 public abstract class PaymentInfoMappingService {
-
     public static PaymentInfo toPaymentInfo(final String merchantAccount,
                                             @Nullable final String countryCode,
                                             final AdyenConfigProperties configuration,
@@ -76,6 +54,7 @@ public abstract class PaymentInfoMappingService {
                                             @Nullable final AdyenPaymentMethodsRecord paymentMethodsRecord,
                                             final Iterable<PluginProperty> properties) {
         final PaymentInfo paymentInfo;
+
 
         if (paymentMethodsRecord == null) {
             paymentInfo = WebPaymentFrontendMappingService.toPaymentInfo(merchantAccount, configuration, clock, properties);
@@ -94,7 +73,9 @@ public abstract class PaymentInfoMappingService {
             }
         }
 
-        set3DSecureFields(paymentInfo, properties);
+        setBrowserInfo(paymentInfo, properties);
+        set3DSFields(paymentInfo, properties);
+        set3DS2Fields(paymentInfo, properties);
         setBillingAddress(countryCode, account, paymentInfo, paymentMethodsRecord, properties);
         setCaptureDelayHours(paymentInfo, properties);
         setContractAndContinuousAuthentication(paymentInfo, properties);
@@ -105,13 +86,46 @@ public abstract class PaymentInfoMappingService {
         return paymentInfo;
     }
 
-    private static void set3DSecureFields(final PaymentInfo paymentInfo, final Iterable<PluginProperty> properties) {
-        final String ccUserAgent = PluginProperties.findPluginPropertyValue(PROPERTY_USER_AGENT, properties);
-        paymentInfo.setUserAgent(ccUserAgent);
+    private static void setBrowserInfo(final PaymentInfo paymentInfo, final Iterable<PluginProperty> properties) {
+        final String acceptHeader = PluginProperties.findPluginPropertyValue(PROPERTY_ACCEPT_HEADER, properties);
+        final String userAgent = PluginProperties.findPluginPropertyValue(PROPERTY_USER_AGENT, properties);
+        final String colorDepth = PluginProperties.findPluginPropertyValue(PROPERTY_COLOR_DEPTH, properties);
+        final String javaEnabled = PluginProperties.findPluginPropertyValue(PROPERTY_JAVA_ENABLED, properties);
+        final String javaScriptEnabled = PluginProperties.findPluginPropertyValue(PROPERTY_JAVA_SCRIPT_ENABLED, properties);
+        final String browserLanguage = PluginProperties.findPluginPropertyValue(PROPERTY_BROWSER_LANGUAGE, properties);
+        final String screenHeight = PluginProperties.findPluginPropertyValue(PROPERTY_SCREEN_HEIGHT, properties);
+        final String screenWidth = PluginProperties.findPluginPropertyValue(PROPERTY_SCREEN_WIDTH, properties);
+        final String timeZoneOffset = PluginProperties.findPluginPropertyValue(PROPERTY_BROWSER_TIME_ZONE_OFFSET, properties);
+        if (acceptHeader != null) {
+            paymentInfo.setAcceptHeader(acceptHeader);
+        }
+        if (userAgent != null) {
+            paymentInfo.setUserAgent(userAgent);
+        }
+        if (colorDepth != null) {
+            paymentInfo.setColorDepth(Integer.valueOf(colorDepth));
+        }
+        if (javaEnabled != null) {
+            paymentInfo.setJavaEnabled(Boolean.valueOf(javaEnabled));
+        }
+        if (javaScriptEnabled != null) {
+            paymentInfo.setJavaScriptEnabled(Boolean.valueOf(javaScriptEnabled));
+        }
+        if (browserLanguage != null) {
+            paymentInfo.setBrowserLanguage(browserLanguage);
+        }
+        if (screenHeight != null) {
+            paymentInfo.setScreenHeight(Integer.valueOf(screenHeight));
+        }
+        if (screenWidth != null) {
+            paymentInfo.setScreenWidth(Integer.valueOf(screenWidth));
+        }
+        if (timeZoneOffset != null) {
+            paymentInfo.setBrowserTimeZoneOffset(Integer.valueOf(timeZoneOffset));
+        }
+    }
 
-        final String ccAcceptHeader = PluginProperties.findPluginPropertyValue(PROPERTY_ACCEPT_HEADER, properties);
-        paymentInfo.setAcceptHeader(ccAcceptHeader);
-
+    private static void set3DSFields(final PaymentInfo paymentInfo, final Iterable<PluginProperty> properties) {
         final String md = PluginProperties.findPluginPropertyValue(PROPERTY_MD, properties);
         if (md != null) {
             paymentInfo.setMd(decode(md));
@@ -128,32 +142,105 @@ public abstract class PaymentInfoMappingService {
             paymentInfo.setThreeDThreshold(Long.valueOf(threeDThreshold));
         }
 
-        final String mpiDataDirectoryResponse = PluginProperties.findPluginPropertyValue(PROPERTY_MPI_DATA_DIRECTORY_RESPONSE, properties);
-        paymentInfo.setMpiDataDirectoryResponse(mpiDataDirectoryResponse);
+        final String selectedBrand = PluginProperties.findPluginPropertyValue(PROPERTY_SELECTED_BRAND, properties);
 
-        final String mpiDataAuthenticationResponse = PluginProperties.findPluginPropertyValue(PROPERTY_MPI_DATA_AUTHENTICATION_RESPONSE, properties);
-        paymentInfo.setMpiDataAuthenticationResponse(mpiDataAuthenticationResponse);
+        String mpiDataAuthenticationResponse = PluginProperties.findPluginPropertyValue(PROPERTY_MPI_DATA_AUTHENTICATION_RESPONSE, properties);
+        String mpiDataCavv = PluginProperties.findPluginPropertyValue(PROPERTY_MPI_DATA_CAVV, properties);
+        String mpiDataCavvAlgorithm = PluginProperties.findPluginPropertyValue(PROPERTY_MPI_DATA_CAVV_ALGORITHM, properties);
+        String mpiDataDirectoryResponse = PluginProperties.findPluginPropertyValue(PROPERTY_MPI_DATA_DIRECTORY_RESPONSE, properties);
+        String mpiDataEci = PluginProperties.findPluginPropertyValue(PROPERTY_MPI_DATA_ECI, properties);
+        String mpiDataXid = PluginProperties.findPluginPropertyValue(PROPERTY_MPI_DATA_XID, properties);
+        String mpiImplementationType = PluginProperties.findPluginPropertyValue(PROPERTY_MPI_IMPLEMENTATION_TYPE, properties);
 
-        final String mpiDataCavv = PluginProperties.findPluginPropertyValue(PROPERTY_MPI_DATA_CAVV, properties);
-        paymentInfo.setMpiDataCavv(mpiDataCavv);
+        boolean setMpiData = true;
 
-        final String mpiDataCavvAlgorithm = PluginProperties.findPluginPropertyValue(PROPERTY_MPI_DATA_CAVV_ALGORITHM, properties);
-        paymentInfo.setMpiDataCavvAlgorithm(mpiDataCavvAlgorithm);
+        if (BRAND_APPLEPAY.equals(selectedBrand) || BRAND_PAYWITHGOOGLE.equals(selectedBrand)) {
+            if (mpiDataCavv != null) {
+                // these require specific mpi data values
+                mpiDataDirectoryResponse = "Y";
+                mpiDataAuthenticationResponse = "Y";
+                if (mpiDataEci == null || mpiDataEci.isEmpty()) {
+                    mpiDataEci = "07";
+                }
+            }
+            // do not generate mpiData at all
+            // as that will cause a payment failure with error 'mpi data is not allowed'
+            else {
+                setMpiData = false;
+            }
+        }
 
-        final String mpiDataXid = PluginProperties.findPluginPropertyValue(PROPERTY_MPI_DATA_XID, properties);
-        paymentInfo.setMpiDataXid(mpiDataXid);
-
-        final String mpiDataEci = PluginProperties.findPluginPropertyValue(PROPERTY_MPI_DATA_ECI, properties);
-        paymentInfo.setMpiDataEci(mpiDataEci);
-
-        final String mpiImplementationType = PluginProperties.findPluginPropertyValue(PROPERTY_MPI_IMPLEMENTATION_TYPE, properties);
-        paymentInfo.setMpiImplementationType(mpiImplementationType);
-        if (mpiImplementationType != null) {
-            paymentInfo.setMpiImplementationTypeValues(Maps.filterKeys(PluginProperties.toStringMap(properties), Predicates.containsPattern(mpiImplementationType + ".")));
+        if (setMpiData) {
+            paymentInfo.setMpiDataAuthenticationResponse(mpiDataAuthenticationResponse);
+            paymentInfo.setMpiDataCavv(mpiDataCavv);
+            paymentInfo.setMpiDataCavvAlgorithm(mpiDataCavvAlgorithm);
+            paymentInfo.setMpiDataDirectoryResponse(mpiDataDirectoryResponse);
+            paymentInfo.setMpiDataEci(mpiDataEci);
+            paymentInfo.setMpiDataXid(mpiDataXid);
+            paymentInfo.setMpiImplementationType(mpiImplementationType);
+            if (mpiImplementationType != null) {
+                paymentInfo.setMpiImplementationTypeValues(Maps.filterKeys(PluginProperties.toStringMap(properties), Predicates.containsPattern(mpiImplementationType + ".")));
+            }
         }
 
         final String termUrl = PluginProperties.findPluginPropertyValue(PROPERTY_TERM_URL, properties);
         paymentInfo.setTermUrl(termUrl);
+    }
+
+    public static void set3DS2Fields(final PaymentInfo paymentInfo, final Iterable<PluginProperty> properties) {
+        final String notificationUrl = PluginProperties.findPluginPropertyValue(PROPERTY_NOTIFICATION_URL, properties);
+        final String threeDSServerTransID = PluginProperties.findPluginPropertyValue(PROPERTY_THREEDS_SERVER_TRANS_ID, properties);
+        final String threeDS2Token = PluginProperties.findPluginPropertyValue(PROPERTY_THREEDS2_TOKEN, properties);
+        final String threeDSMethodURL = PluginProperties.findPluginPropertyValue(PROPERTY_THREEDS_METHOD_URL, properties);
+        final String acsTransID = PluginProperties.findPluginPropertyValue(PROPERTY_ACS_TRANS_ID, properties);
+        final String messageVersion = PluginProperties.findPluginPropertyValue(PROPERTY_MESSAGE_VERSION, properties);
+        final String threeDSCompInd = PluginProperties.findPluginPropertyValue(PROPERTY_THREEDS_COMP_IND, properties);
+        final String transStatus = PluginProperties.findPluginPropertyValue(PROPERTY_TRANS_STATUS, properties);
+        final String acsChallengeMandated = PluginProperties.findPluginPropertyValue(PROPERTY_ACS_CHALLENGE_MANDATED, properties);
+        final String authenticationType = PluginProperties.findPluginPropertyValue(PROPERTY_AUTHENTICATION_TYPE, properties);
+        final String dsTransID = PluginProperties.findPluginPropertyValue(PROPERTY_DS_TRANS_ID, properties);
+        final String acsReferenceNumber = PluginProperties.findPluginPropertyValue(PROPERTY_ACS_REFERENCE_NUMBER, properties);
+        final String acsUrl = PluginProperties.findPluginPropertyValue(PROPERTY_ACS_URL, properties);
+
+        if (notificationUrl != null) {
+            paymentInfo.setNotificationUrl(notificationUrl);
+        }
+        if (threeDSServerTransID != null) {
+            paymentInfo.setThreeDSServerTransID(threeDSServerTransID);
+        }
+        if (threeDS2Token != null) {
+            paymentInfo.setThreeDS2Token(threeDS2Token);
+        }
+        if (threeDSMethodURL != null) {
+            paymentInfo.setThreeDSMethodURL(threeDSMethodURL);
+        }
+        if (acsTransID != null) {
+            paymentInfo.setAcsTransID(acsTransID);
+        }
+        if (messageVersion != null) {
+            paymentInfo.setMessageVersion(messageVersion);
+        }
+        if (threeDSCompInd != null) {
+            paymentInfo.setThreeDSCompInd(threeDSCompInd);
+        }
+        if (transStatus != null) {
+            paymentInfo.setTransStatus(transStatus);
+        }
+        if (acsChallengeMandated != null) {
+            paymentInfo.setAcsChallengeMandated(acsChallengeMandated);
+        }
+        if (authenticationType != null) {
+            paymentInfo.setAuthenticationType(authenticationType);
+        }
+        if (dsTransID != null) {
+            paymentInfo.setDsTransID(dsTransID);
+        }
+        if (acsReferenceNumber != null) {
+            paymentInfo.setAcsReferenceNumber(acsReferenceNumber);
+        }
+        if (acsUrl != null) {
+            paymentInfo.setAcsUrl(acsUrl);
+        }
     }
 
     private static void setBillingAddress(@Nullable final String countryCode, @Nullable final AccountData account, final PaymentInfo paymentInfo, @Nullable final AdyenPaymentMethodsRecord paymentMethodsRecord, final Iterable<PluginProperty> properties) {
@@ -205,9 +292,21 @@ public abstract class PaymentInfoMappingService {
         }
         paymentInfo.setContract(contract);
 
+        final String customerSupportRequest = PluginProperties.findPluginPropertyValue(PROPERTY_CUSTOMER_SUPPORT_REQUEST, properties);
+        if (!StringUtils.isBlank(customerSupportRequest) && Boolean.valueOf(customerSupportRequest)) {
+            paymentInfo.setShopperInteraction("Moto");
+            return;
+        }
+
+        final String selectedBrand = PluginProperties.findPluginPropertyValue(PROPERTY_SELECTED_BRAND, properties);
         final String contAuthProperty = PluginProperties.findPluginPropertyValue(PROPERTY_CONTINUOUS_AUTHENTICATION, properties);
         final boolean contAuth;
-        if (contAuthProperty != null) {
+        if (BRAND_APPLEPAY.equals(selectedBrand) || BRAND_PAYWITHGOOGLE.equals(selectedBrand)) {
+            // these need to always use ecommerce
+            contAuth = false;
+            // and won't use recurring
+            paymentInfo.setContract(null);
+        } else if (contAuthProperty != null) {
             contAuth = Boolean.parseBoolean(contAuthProperty);
         } else {
             // https://docs.adyen.com/developers/recurring-manual
@@ -222,7 +321,6 @@ public abstract class PaymentInfoMappingService {
         }
 
         if (contAuth) {
-            // Recurring flag
             paymentInfo.setShopperInteraction("ContAuth");
         } else {
             paymentInfo.setShopperInteraction("Ecommerce");

@@ -23,14 +23,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.killbill.adyen.payment.AnyType2AnyTypeMap;
-import org.killbill.adyen.payment.FraudCheckResult;
-import org.killbill.adyen.payment.FraudResult;
-import org.killbill.adyen.payment.ModificationRequest;
-import org.killbill.adyen.payment.ModificationResult;
-import org.killbill.adyen.payment.PaymentRequest;
-import org.killbill.adyen.payment.PaymentRequest3D;
-import org.killbill.adyen.payment.PaymentResult;
+import org.killbill.adyen.payment.*;
 import org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi;
 import org.killbill.billing.plugin.adyen.client.model.PaymentData;
 import org.killbill.billing.plugin.adyen.client.model.PaymentModificationResponse;
@@ -106,15 +99,8 @@ public class AdyenPaymentServiceProviderPort extends BaseAdyenPaymentServiceProv
         final PurchaseResult purchaseResult;
         final PaymentResult result = adyenCallResult.getResult().get();
         final PaymentServiceProviderResult paymentServiceProviderResult = PaymentServiceProviderResult.getPaymentResultForId(result.getResultCode());
-        if (paymentServiceProviderResult != PaymentServiceProviderResult.REDIRECT_SHOPPER) {
-            purchaseResult = new PurchaseResult(paymentServiceProviderResult,
-                                                result.getAuthCode(),
-                                                result.getPspReference(),
-                                                result.getRefusalReason(),
-                                                result.getResultCode(),
-                                                paymentData.getPaymentTransactionExternalKey(),
-                                                getAdditionalData(result, merchantAccount));
-        } else {
+        if (paymentServiceProviderResult == PaymentServiceProviderResult.REDIRECT_SHOPPER) {
+
             final Map<String, String> formParams = new HashMap<String, String>();
             formParams.put(AdyenPaymentPluginApi.PROPERTY_PA_REQ, result.getPaRequest());
             formParams.put(AdyenPaymentPluginApi.PROPERTY_MD, result.getMd());
@@ -126,14 +112,33 @@ public class AdyenPaymentServiceProviderPort extends BaseAdyenPaymentServiceProv
             formParams.put(AdyenPaymentPluginApi.PROPERTY_TERM_URL, paymentData.getPaymentInfo().getTermUrl());
 
             purchaseResult = new PurchaseResult(paymentServiceProviderResult,
-                                                result.getAuthCode(),
-                                                result.getPspReference(),
-                                                result.getRefusalReason(),
-                                                result.getResultCode(),
-                                                paymentData.getPaymentTransactionExternalKey(),
-                                                result.getIssuerUrl(),
-                                                formParams,
-                                                getAdditionalData(result, merchantAccount));
+                    result.getAuthCode(),
+                    result.getPspReference(),
+                    result.getRefusalReason(),
+                    result.getResultCode(),
+                    paymentData.getPaymentTransactionExternalKey(),
+                    result.getIssuerUrl(),
+                    formParams,
+                    getAdditionalData(result, merchantAccount));
+        }
+        // todo: remerge if there are no differences
+        else if (paymentServiceProviderResult == PaymentServiceProviderResult.IDENTIFY_SHOPPER) {
+            purchaseResult = new PurchaseResult(paymentServiceProviderResult,
+                    result.getAuthCode(),
+                    result.getPspReference(),
+                    result.getRefusalReason(),
+                    result.getResultCode(),
+                    paymentData.getPaymentTransactionExternalKey(),
+                    getAdditionalData(result, merchantAccount));
+        }
+        else {
+            purchaseResult = new PurchaseResult(paymentServiceProviderResult,
+                    result.getAuthCode(),
+                    result.getPspReference(),
+                    result.getRefusalReason(),
+                    result.getResultCode(),
+                    paymentData.getPaymentTransactionExternalKey(),
+                    getAdditionalData(result, merchantAccount));
         }
 
         logTransaction(operation, userData, merchantAccount, paymentData, purchaseResult, adyenCallResult);
@@ -212,6 +217,55 @@ public class AdyenPaymentServiceProviderPort extends BaseAdyenPaymentServiceProv
                                                 result.getIssuerUrl(),
                                                 formParams,
                                                 getAdditionalData(result, merchantAccount));
+        }
+
+        logTransaction(operation, userData, merchantAccount, paymentData, purchaseResult, adyenCallResult);
+        return purchaseResult;
+    }
+
+    public PurchaseResult authorize3Ds2(final String merchantAccount,
+                                        final PaymentData paymentData,
+                                        final UserData userData,
+                                        final SplitSettlementData splitSettlementData,
+                                        final Map<String, String> additionalData) {
+        final String operation = "authorize3Ds2";
+        final PaymentRequest3Ds2 request = adyenRequestFactory.paymentRequest3Ds2(
+                merchantAccount,
+                paymentData,
+                userData,
+                splitSettlementData,
+                additionalData);
+        final AdyenCallResult<PaymentResult> adyenCallResult = adyenPaymentRequestSender.authorise3Ds2(merchantAccount, request);
+
+        if (!adyenCallResult.receivedWellFormedResponse()) {
+            return handleTechnicalFailureAtPurchase(operation, userData, merchantAccount, paymentData, adyenCallResult);
+        }
+
+        final PurchaseResult purchaseResult;
+        final PaymentResult result = adyenCallResult.getResult().get();
+        final PaymentServiceProviderResult paymentServiceProviderResult = PaymentServiceProviderResult.getPaymentResultForId(result.getResultCode());
+        if (paymentServiceProviderResult != PaymentServiceProviderResult.REDIRECT_SHOPPER) {
+            purchaseResult = new PurchaseResult(PaymentServiceProviderResult.getPaymentResultForId(result.getResultCode()),
+                    result.getAuthCode(),
+                    result.getPspReference(),
+                    result.getRefusalReason(),
+                    result.getResultCode(),
+                    paymentData.getPaymentTransactionExternalKey(),
+                    getAdditionalData(result, merchantAccount));
+        } else {
+            final Map<String, String> formParams = new HashMap<String, String>();
+            formParams.put("PaReq", result.getPaRequest());
+            formParams.put("MD", result.getMd());
+
+            purchaseResult = new PurchaseResult(paymentServiceProviderResult,
+                    result.getAuthCode(),
+                    result.getPspReference(),
+                    result.getRefusalReason(),
+                    result.getResultCode(),
+                    paymentData.getPaymentTransactionExternalKey(),
+                    result.getIssuerUrl(),
+                    formParams,
+                    getAdditionalData(result, merchantAccount));
         }
 
         logTransaction(operation, userData, merchantAccount, paymentData, purchaseResult, adyenCallResult);

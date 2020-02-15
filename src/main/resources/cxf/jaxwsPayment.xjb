@@ -5,6 +5,8 @@
 	xmlns:xsd="http://www.w3.org/2001/XMLSchema"
 	xmlns:adyenPayment="http://payment.services.adyen.com"
 	xmlns:adyenCommon="http://common.services.adyen.com"
+	xmlns:adyenApplicationInfo="http://applicationinfo.payment.services.adyen.com"
+	xmlns:adyenThreeds2Data="http://threeds2data.payment.services.adyen.com"
 xsd:schemaLocation="
 http://java.sun.com/xml/ns/jaxws http://java.sun.com/xml/ns/jaxws/wsdl_customizationschema_2_0.xsd"
 wsdlLocation="Payment.wsdl"

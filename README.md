@@ -17,6 +17,7 @@ Kill Bill compatibility
 | 0.5.y          | 0.18.z            |
 | 0.6.y          | 0.19.z            |
 | 0.7.y          | 0.20.z            |
+| 0.8.y          | 0.22.z            |
 
 Requirements
 ------------
@@ -96,6 +97,16 @@ org.killbill.billing.plugin.adyen.password=ZZZ' \
 ### Kill Bill
 
 To avoid runtime errors (such as `ClassCastException`), starting Kill Bill with the System Property `com.sun.xml.bind.v2.bytecode.ClassTailor.noOptimize=true` is recommended.
+
+### Running tests
+
+To be able to run the tests, you must whitelist your IP address in Adyen:
+
+1. Go to https://ca-test.adyen.com/ca/ca/config/users.shtml
+2. Click on your System user name
+3. In the _Edit Allowed User IP Range_ area, add your IP address and click `Allow`
+
+Some tests require specific payment methods to be enabled, such as Google Pay (https://docs.adyen.com/payment-methods/google-pay/api-only).
 
 Usage
 -----

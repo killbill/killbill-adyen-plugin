@@ -18,10 +18,12 @@
 package org.killbill.billing.plugin.adyen.client.payment.builder;
 
 import java.math.BigDecimal;
+import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import com.google.common.base.Charsets;
 import org.killbill.adyen.payment.AnyType2AnyTypeMap;
 import org.killbill.adyen.payment.PaymentRequest;
 import org.killbill.billing.catalog.api.Currency;
@@ -37,6 +39,11 @@ import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+
+import javax.xml.bind.DatatypeConverter;
+
+import static org.killbill.billing.plugin.adyen.client.payment.builder.RequestBuilder.ALLOW_THREE_DS2;
 
 public class TestPaymentRequestBuilder extends BaseTestPaymentRequestBuilder {
 
@@ -99,6 +106,48 @@ public class TestPaymentRequestBuilder extends BaseTestPaymentRequestBuilder {
         Assert.assertEquals(paymentRequest.getRecurring().getContract(), paymentInfo.getContract());
     }
 
+    @Test(groups = "fast")
+    public void test3ds2InclusionWithAllowThreeDs2FlagBeingFalse() {
+        final PaymentRequestBuilder builder = createPaymentBuildFor3ds2(true, false);
+        final PaymentRequest paymentRequest = builder.build();
+        Assert.assertNull(paymentRequest.getThreeDS2RequestData());
+    }
+
+    @Test(groups = "fast")
+    public void test3ds2InclusionWithoutAllowThreeDs2Flag() {
+        final PaymentRequestBuilder builder = createPaymentBuildFor3ds2(false, false);
+        final PaymentRequest paymentRequest = builder.build();
+        Assert.assertNotNull(paymentRequest.getThreeDS2RequestData());
+    }
+
+    @Test(groups = "fast")
+    public void test3ds2InclusionWithAllowThreeDs2FlagBeingTrue() {
+        final PaymentRequestBuilder builder = createPaymentBuildFor3ds2(true, true);
+        final PaymentRequest paymentRequest = builder.build();
+        Assert.assertNotNull(paymentRequest.getThreeDS2RequestData());
+    }
+
+    private PaymentRequestBuilder createPaymentBuildFor3ds2(boolean withThreeDsFlag, boolean threeDsFlag) {
+        final String merchantAccount = UUID.randomUUID().toString();
+        final String paymentTransactionExternalKey = UUID.randomUUID().toString();
+        final PaymentData paymentData = new PaymentData<>(new BigDecimal("20"), Currency.EUR, paymentTransactionExternalKey, createCardForThreeDs2());
+        final UserData userData = new UserData();
+        final SplitSettlementData splitSettlementData = null;
+        Map<String, String> additionalData = null;
+        if(withThreeDsFlag) {
+            additionalData = ImmutableMap.of(ALLOW_THREE_DS2, String.valueOf(threeDsFlag));
+        }
+        final PaymentInfoConverterService paymentInfoConverterManagement = new PaymentInfoConverterService();
+
+        return new PaymentRequestBuilder(merchantAccount, paymentData, userData, splitSettlementData, additionalData, paymentInfoConverterManagement);
+    }
+
+    private Card createCardForThreeDs2() {
+        final Card cardWithNotfUrl = new Card();
+        cardWithNotfUrl.setNotificationUrl("dummy");
+        return cardWithNotfUrl;
+    }
+
     private PaymentRequest verifyPaymentRequestBuilder(final PaymentInfo paymentInfo) {
         paymentInfo.setAcceptHeader(UUID.randomUUID().toString());
         paymentInfo.setUserAgent(UUID.randomUUID().toString());
@@ -149,8 +198,8 @@ public class TestPaymentRequestBuilder extends BaseTestPaymentRequestBuilder {
         Assert.assertEquals(paymentRequest.getBrowserInfo().getUserAgent(), paymentInfo.getUserAgent());
         Assert.assertEquals(paymentRequest.getMpiData().getDirectoryResponse(), paymentInfo.getMpiDataDirectoryResponse());
         Assert.assertEquals(paymentRequest.getMpiData().getAuthenticationResponse(), paymentInfo.getMpiDataAuthenticationResponse());
-        Assert.assertEquals(paymentRequest.getMpiData().getCavv(), "MTIzNDU2Nzg5MDEyMzQ1Njc4OTA=".getBytes());
-        Assert.assertEquals(paymentRequest.getMpiData().getXid(), "MDk4NzY1NDMyMTA5ODc2NTQzMjE=".getBytes());
+        Assert.assertEquals(Base64.getEncoder().encodeToString(paymentRequest.getMpiData().getCavv()), "12345678901234567890");
+        Assert.assertEquals(Base64.getEncoder().encodeToString(paymentRequest.getMpiData().getXid()), "09876543210987654321");
         Assert.assertEquals(paymentRequest.getMpiData().getEci(), paymentInfo.getMpiDataEci());
         Assert.assertEquals(paymentRequest.getMpiData().getCavvAlgorithm(), paymentInfo.getMpiDataCavvAlgorithm());
 

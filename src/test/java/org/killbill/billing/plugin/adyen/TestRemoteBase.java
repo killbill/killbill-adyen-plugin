@@ -58,13 +58,21 @@ public abstract class TestRemoteBase {
     // Magic details at https://www.adyen.com/home/support/knowledgebase/implementation-articles.html
     // Note: make sure to use the Amex one, as Visa/MC is not always configured by default
     public static final String CC_NUMBER = "370000000000002";
-    public static final int CC_EXPIRATION_MONTH = 8;
-    public static final int CC_EXPIRATION_YEAR = 2018;
+    public static final int CC_EXPIRATION_MONTH = 10;
+    public static final int CC_EXPIRATION_YEAR = 2020;
     public static final String CC_VERIFICATION_VALUE = "7373";
     public static final String CC_TYPE = "amex";
 
     public static final String CC_3DS_NUMBER = "5212345678901234";
     public static final String CC_3DS_VERIFICATION_VALUE = "737";
+    public static final String CC_3DS2_NUMBER_IDENTIFY_SHOPPER = "4917610000000000";
+    public static final String CC_3DS2_NUMBER_CHALLENGE_SHOPPER = "4212345678910006";
+
+    public static final String CC_3DS2_VERIFICATION_VALUE = "737";
+
+    public static final String CC_NUMBER_VISA = "4111111111111111";
+
+    public static final String MPI_DATA_CAVV = "YwAAAAAABaYcCMX/OhNRQAAAAAA=";
 
     public static final String CC_AVS_NUMBER = "5500000000000004";
     public static final String CC_CVV_VERIFICATION_VALUE = "737";

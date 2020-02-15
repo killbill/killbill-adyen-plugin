@@ -39,6 +39,9 @@ public class TestAdyenConfigProperties {
         properties.put("org.killbill.billing.plugin.adyen.recurringUrl", "http://recurringUrl.com");
         properties.put("org.killbill.billing.plugin.adyen.directoryUrl", "http://directoryUrl.com");
         properties.put("org.killbill.billing.plugin.adyen.sensitiveProperties", "ip|username|email|paymentBillingRecord");
+        properties.put("org.killbill.billing.plugin.adyen.persistablePluginProperties", "3ds2.csrf|3ds2.resUrl|3ds2.formUrl");
+        properties.put("org.killbill.billing.plugin.adyen.rbacUsername", "foo");
+        properties.put("org.killbill.billing.plugin.adyen.rbacPassword", "bar");
         final AdyenConfigProperties adyenConfigProperties = new AdyenConfigProperties(properties);
 
         Assert.assertEquals(adyenConfigProperties.getMerchantAccount("UK"), "DefaultAccount");
@@ -56,7 +59,7 @@ public class TestAdyenConfigProperties {
         Assert.assertEquals(adyenConfigProperties.getHmacAlgorithm("DefaultSkin"), "HmacSHA256");
 
         Assert.assertEquals(adyenConfigProperties.getPending3DsPaymentExpirationPeriod().toString(), "PT3H");
-        Assert.assertEquals(adyenConfigProperties.getPendingHppPaymentWithoutCompletionExpirationPeriod().toString(), "PT3H");
+        Assert.assertEquals(adyenConfigProperties.getPendingHppPaymentWithoutCompletionExpirationPeriod(null).toString(), "PT3H");
         Assert.assertEquals(adyenConfigProperties.getPendingPaymentExpirationPeriod(null).toString(), "P2D");
         // Don't use per-payment method default since user specified a global setting
         Assert.assertEquals(adyenConfigProperties.getPendingPaymentExpirationPeriod("paypal").toString(), "P2D");
@@ -67,6 +70,9 @@ public class TestAdyenConfigProperties {
         Assert.assertEquals(adyenConfigProperties.getDirectoryUrl(), "http://directoryUrl.com");
 
         Assert.assertEquals(adyenConfigProperties.getSensitivePropertyKeys(), ImmutableList.of("ip", "username", "email", "paymentBillingRecord"));
+        Assert.assertEquals(adyenConfigProperties.getPersistablePluginProperties(), ImmutableList.of("3ds2.csrf", "3ds2.resUrl", "3ds2.formUrl"));
+        Assert.assertEquals(adyenConfigProperties.getRbacUsername(), "foo");
+        Assert.assertEquals(adyenConfigProperties.getRbacPassword(), "bar");
     }
 
     @Test(groups = "fast")
@@ -106,7 +112,7 @@ public class TestAdyenConfigProperties {
         Assert.assertEquals(adyenConfigProperties.getHmacAlgorithm("DefaultSkinUS"), "DefaultAlgorithmUS");
 
         Assert.assertEquals(adyenConfigProperties.getPending3DsPaymentExpirationPeriod().toString(), "PT3H");
-        Assert.assertEquals(adyenConfigProperties.getPendingHppPaymentWithoutCompletionExpirationPeriod().toString(), "PT3H");
+        Assert.assertEquals(adyenConfigProperties.getPendingHppPaymentWithoutCompletionExpirationPeriod(null).toString(), "PT3H");
         Assert.assertEquals(adyenConfigProperties.getPendingPaymentExpirationPeriod(null).toString(), "P3D");
         Assert.assertEquals(adyenConfigProperties.getPendingPaymentExpirationPeriod("paypal").toString(), "P4D");
         // Use per-payment method default since user did only override paypal
@@ -157,9 +163,9 @@ public class TestAdyenConfigProperties {
 
         Assert.assertEquals(adyenConfigProperties.getPending3DsPaymentExpirationPeriod().toString(), "PT3H");
         Assert.assertEquals(adyenConfigProperties.getPendingPaymentExpirationPeriod(null).toString(), "P3D");
-        Assert.assertEquals(adyenConfigProperties.getPendingPaymentExpirationPeriod("paypal").toString(), "P4D");
-        Assert.assertEquals(adyenConfigProperties.getPendingPaymentExpirationPeriod("boletobancario_santander").toString(), "P12D");
-        Assert.assertEquals(adyenConfigProperties.getPendingHppPaymentWithoutCompletionExpirationPeriod().toString(), "P12D");
+        Assert.assertEquals(adyenConfigProperties.getPendingHppPaymentWithoutCompletionExpirationPeriod("paypal").toString(), "P4D");
+        Assert.assertEquals(adyenConfigProperties.getPendingHppPaymentWithoutCompletionExpirationPeriod("boletobancario_santander").toString(), "P12D");
+        Assert.assertEquals(adyenConfigProperties.getPendingHppPaymentWithoutCompletionExpirationPeriod(null).toString(), "P12D");
     }
 
     @Test(groups = "fast")

@@ -25,6 +25,8 @@ import org.killbill.billing.plugin.adyen.client.model.PaymentInfo;
 
 import com.google.common.base.Strings;
 
+import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.BRAND_PAYWITHGOOGLE;
+
 public class PaymentInfoConverter<T extends PaymentInfo> {
 
     /**
@@ -121,14 +123,19 @@ public class PaymentInfoConverter<T extends PaymentInfo> {
 
     // Set the concrete card brand when using subBrand types (e.g. DineroMail or to force an ELV recurring contract to be handled as SEPA)
     private void setSelectedBrand(final PaymentInfo paymentInfo, final PaymentRequest paymentRequest) {
-        if (paymentInfo.getSelectedBrand() != null) {
-            paymentRequest.setSelectedBrand(paymentInfo.getSelectedBrand());
+        final String selectedBrand = paymentInfo.getSelectedBrand();
 
-            // This option must be set to indicate that the specified brand must be taken, instead of determining the brand based on the card number
-            final AnyType2AnyTypeMap.Entry overwriteBrand = new AnyType2AnyTypeMap.Entry();
-            overwriteBrand.setKey("overwriteBrand");
-            overwriteBrand.setValue("true");
-            paymentRequest.getAdditionalData().getEntry().add(overwriteBrand);
+        if (selectedBrand != null) {
+            paymentRequest.setSelectedBrand(selectedBrand);
+
+            // Adyen does not want overwriteBrand property for google pay
+            if (!BRAND_PAYWITHGOOGLE.equals(selectedBrand)) {
+                // This option must be set to indicate that the specified brand must be taken, instead of determining the brand based on the card number
+                final AnyType2AnyTypeMap.Entry overwriteBrand = new AnyType2AnyTypeMap.Entry();
+                overwriteBrand.setKey("overwriteBrand");
+                overwriteBrand.setValue("true");
+                paymentRequest.getAdditionalData().getEntry().add(overwriteBrand);
+            }
         }
     }
 }

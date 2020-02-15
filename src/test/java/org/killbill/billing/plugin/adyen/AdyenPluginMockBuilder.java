@@ -45,6 +45,7 @@ import org.killbill.billing.plugin.adyen.core.AdyenConfigPropertiesConfiguration
 import org.killbill.billing.plugin.adyen.core.AdyenConfigurationHandler;
 import org.killbill.billing.plugin.adyen.core.AdyenHostedPaymentPageConfigurationHandler;
 import org.killbill.billing.plugin.adyen.core.AdyenRecurringConfigurationHandler;
+import org.killbill.billing.plugin.adyen.core.DelayedActionScheduler;
 import org.killbill.billing.plugin.adyen.dao.AdyenDao;
 import org.killbill.clock.Clock;
 import org.killbill.clock.DefaultClock;
@@ -130,6 +131,7 @@ public class AdyenPluginMockBuilder {
         final Clock clock = new DefaultClock();
 
         final OSGIConfigPropertiesService configPropertiesService = mock(OSGIConfigPropertiesService.class);
+        final DelayedActionScheduler delayedActionScheduler = mock(DelayedActionScheduler.class);
 
         return new AdyenPaymentPluginApi(adyenConfigurationHandler,
                                          adyenConfigPropertiesConfigurationHandler,
@@ -139,7 +141,8 @@ public class AdyenPluginMockBuilder {
                                          configPropertiesService,
                                          logService,
                                          clock,
-                                         dao);
+                                         dao,
+                                         delayedActionScheduler);
     }
 
     public AdyenPluginMockBuilder withDatabaseAccess(final AdyenDao dao) {
