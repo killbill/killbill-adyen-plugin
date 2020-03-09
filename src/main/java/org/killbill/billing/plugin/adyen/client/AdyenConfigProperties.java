@@ -102,6 +102,8 @@ public class AdyenConfigProperties {
     private final String fallBackMerchantAccount;
     private final String rbacUsername;
     private final String rbacPassword;
+    private final String apiKey;
+    private final String environment;
 
     private final Period pendingPaymentExpirationPeriod;
 
@@ -223,6 +225,8 @@ public class AdyenConfigProperties {
 
         this.rbacUsername = properties.getProperty(PROPERTY_PREFIX + "rbacUsername");
         this.rbacPassword = properties.getProperty(PROPERTY_PREFIX + "rbacPassword");
+        this.apiKey = properties.getProperty(PROPERTY_PREFIX + "apiKey");
+        this.environment = properties.getProperty(PROPERTY_PREFIX + "environment");
     }
 
     private void readConfigurationValuesToList(final String property, final List<String> outputList) {
@@ -502,4 +506,7 @@ public class AdyenConfigProperties {
     public String getRbacPassword() {
         return rbacPassword;
     }
+
+    public String getApiKey() { return apiKey; }
+    public String getEnvironment() { return environment; }
 }

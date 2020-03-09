@@ -23,6 +23,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.adyen.model.checkout.PaymentsRequest;
+import com.adyen.model.checkout.PaymentsResponse;
+import com.adyen.service.exception.ApiException;
 import org.killbill.adyen.payment.*;
 import org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi;
 import org.killbill.billing.plugin.adyen.client.model.PaymentData;
@@ -46,11 +49,14 @@ public class AdyenPaymentServiceProviderPort extends BaseAdyenPaymentServiceProv
 
     private final AdyenRequestFactory adyenRequestFactory;
     private final AdyenPaymentRequestSender adyenPaymentRequestSender;
+    private final AdyenCheckoutApiClient adyenCheckoutApiClient;
 
     public AdyenPaymentServiceProviderPort(final AdyenRequestFactory adyenRequestFactory,
-                                           final AdyenPaymentRequestSender adyenPaymentRequestSender) {
+                                           final AdyenPaymentRequestSender adyenPaymentRequestSender,
+                                           final AdyenCheckoutApiClient adyenCheckoutApiClient) {
         this.adyenRequestFactory = adyenRequestFactory;
         this.adyenPaymentRequestSender = adyenPaymentRequestSender;
+        this.adyenCheckoutApiClient = adyenCheckoutApiClient;
 
         this.logger = LoggerFactory.getLogger(AdyenPaymentServiceProviderPort.class);
     }
@@ -143,6 +149,45 @@ public class AdyenPaymentServiceProviderPort extends BaseAdyenPaymentServiceProv
 
         logTransaction(operation, userData, merchantAccount, paymentData, purchaseResult, adyenCallResult);
         return purchaseResult;
+    }
+
+    public PurchaseResult authoriseKlarnaPayment(final String merchantAccount,
+                                                 final PaymentData paymentData,
+                                                 final UserData userData) {
+        PaymentsRequest klarnaRequest = adyenRequestFactory.createKlarnaPayment(merchantAccount, paymentData, userData);
+        PurchaseResult purchaseResult = null;
+        try {
+            PaymentsResponse response = adyenCheckoutApiClient.createPayment(klarnaRequest);
+            purchaseResult = extractKlarnaResponse(response);
+        }
+        catch (ApiException ex) {
+            //TODO: extract appropriate error details
+            purchaseResult = new PurchaseResult(null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    klarnaRequest.getReference(),
+                    null);
+        } catch (IOException ex) {
+            //TODO: extract appropriate error details
+            purchaseResult = new PurchaseResult(null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    klarnaRequest.getReference(),
+                    null);
+        }
+
+        return purchaseResult;
+    }
+
+    private PurchaseResult extractKlarnaResponse(PaymentsResponse response) {
+        //PurchaseResult
+        //TODO: extract response
+
+        return null;
     }
 
     private Map<String, String> getAdditionalData(final PaymentResult result, final String merchantAccount) {

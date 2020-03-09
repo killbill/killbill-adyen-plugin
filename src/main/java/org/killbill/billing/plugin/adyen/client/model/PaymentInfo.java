@@ -17,15 +17,19 @@
 
 package org.killbill.billing.plugin.adyen.client.model;
 
+import org.jooq.tools.StringUtils;
+import org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi;
+import org.killbill.billing.plugin.adyen.api.mapping.KlarnaPaymentMappingService;
+
 import java.util.Map;
 
 public class PaymentInfo {
-
     private Integer captureDelayHours;
     private Integer installments;
     private String contract;
     private String shopperInteraction;
     private String shopperStatement;
+
     // browser info
     private String acceptHeader;
     private Integer colorDepth;
@@ -36,6 +40,7 @@ public class PaymentInfo {
     private Integer screenWidth;
     private Integer browserTimeZoneOffset;
     private String userAgent;
+
     // 3D Secure v1
     private Long threeDThreshold;
     private String md;
@@ -49,6 +54,7 @@ public class PaymentInfo {
     private String mpiImplementationType;
     private Map<String, String> mpiImplementationTypeValues;
     private String termUrl;
+
     // 3D Secure v2
     private String notificationUrl;
     private String threeDSCompInd;
@@ -71,10 +77,29 @@ public class PaymentInfo {
     private String postalCode;
     private String stateOrProvince;
     private String country;
+
     // Special fields
     private String acquirer;
     private String acquirerMID;
     private String selectedBrand;
+
+    // Klarna payment
+    private String paymentType;
+
+    public boolean shouldRedirectToKlarna() {
+        return shouldRedirectToKlarna(this.paymentType);
+    }
+
+    public static boolean shouldRedirectToKlarna(String paymentType) {
+        return !StringUtils.isEmpty(paymentType) && paymentType.equals(KlarnaPaymentMappingService.KLARNA_PAYMENT_TYPE_VALUE);
+    }
+
+    public String getPaymentType() {
+        return paymentType;
+    }
+    public void setPaymentType(String paymentType) {
+        this.paymentType = paymentType;
+    }
 
     public Integer getCaptureDelayHours() {
         return captureDelayHours;

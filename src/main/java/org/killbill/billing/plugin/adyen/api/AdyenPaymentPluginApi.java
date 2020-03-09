@@ -195,6 +195,12 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
     public static final String PROPERTY_CUSTOMER_ID = "customerId";
     public static final String PROPERTY_EMAIL = "email";
 
+    // Klarna properties
+    public static final String PROPERTY_PAYMENT_TYPE = "paymentType";
+    public static final String PROPERTY_RETURN_URL = "returnUrl";
+    public static final String PROPERTY_LINE_ITEMS = "lineItems";
+    public static final String PROPERTY_CUSTOMER_ACCOUNT ="customerAccount";
+
     // HPP
     public static final String PROPERTY_CREATE_PENDING_PAYMENT = "createPendingPayment";
     public static final String PROPERTY_AUTH_MODE = "authMode";
@@ -543,6 +549,9 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
                                     rbacUsername,
                                     rbacPassword
                             ));
+                } else if (PaymentServiceProviderResult.REDIRECT_SHOPPER.getResponses()[0].equals(responsesRecord.getResultCode())) {
+                    //harenk: process the result here
+                    //check if this is for Klarna payment
                 }
             }
             return result;
@@ -808,7 +817,11 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
                                              public PurchaseResult execute(final String merchantAccount, final PaymentData paymentData, final UserData userData, final SplitSettlementData splitSettlementData, final Map<String, String> additionalData) {
                                                  final AdyenPaymentServiceProviderPort adyenPort = adyenConfigurationHandler.getConfigurable(context.getTenantId());
                                                  final AdyenResponsesRecord existingAuth = previousAdyenResponseRecord(kbPaymentId, kbTransactionId.toString(), context);
+                                                 boolean authoriseKlarnaPayment = paymentData.getPaymentInfo().shouldRedirectToKlarna();
+
                                                  if (existingAuth != null) {
+                                                     //harenk: check if we need to handle existing Auth for Klarna
+
                                                      // We are completing a 3D-S payment
                                                      final String originalMerchantAccount = getMerchantAccountFromRecord(existingAuth);
                                                      final List<PluginProperty> threeDS2Data = getThreeDS2DataFromRecord(existingAuth);
@@ -846,7 +859,11 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
                                                      if (transactionType == TransactionType.CREDIT) {
                                                          return adyenPort.credit(merchantAccount, paymentData, userData, splitSettlementData, additionalData);
                                                      } else {
-                                                         return adyenPort.authorise(merchantAccount, paymentData, userData, splitSettlementData, additionalData);
+                                                         if(authoriseKlarnaPayment) {
+                                                             return adyenPort.authoriseKlarnaPayment(merchantAccount, paymentData, userData);
+                                                         } else {
+                                                             return adyenPort.authorise(merchantAccount, paymentData, userData, splitSettlementData, additionalData);
+                                                         }
                                                      }
                                                  }
                                              }
@@ -1139,22 +1156,22 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
                                                                                              }
                                                                                          });
 
-        final PaymentInfo paymentInfo = buildPaymentInfo(merchantAccount, countryCode, account, paymentMethodsRecord, properties, context);
+        final PaymentInfo paymentInfo = buildPaymentInfo(merchantAccount, countryCode, account, kbPaymentId, paymentMethodsRecord, properties, context);
 
         return new PaymentData<PaymentInfo>(amount, currency, paymentTransaction.getExternalKey(), paymentInfo);
     }
 
     // For HPP
     private PaymentData buildPaymentData(final String merchantAccount, final String countryCode, final AccountData account, final BigDecimal amount, final Currency currency, final Iterable<PluginProperty> properties, final TenantContext context) {
-        final PaymentInfo paymentInfo = buildPaymentInfo(merchantAccount, countryCode, account, null, properties, context);
+        final PaymentInfo paymentInfo = buildPaymentInfo(merchantAccount, countryCode, account, null,null, properties, context);
         final String paymentTransactionExternalKey = PluginProperties.getValue(PROPERTY_PAYMENT_EXTERNAL_KEY, UUID.randomUUID().toString(), properties);
         return new PaymentData<PaymentInfo>(amount, currency, paymentTransactionExternalKey, paymentInfo);
     }
 
-    private PaymentInfo buildPaymentInfo(final String merchantAccount, final String countryCode, final AccountData account, @Nullable final AdyenPaymentMethodsRecord paymentMethodsRecord, final Iterable<PluginProperty> properties, final TenantContext context) {
+    private PaymentInfo buildPaymentInfo(final String merchantAccount, final String countryCode, final AccountData account, @Nullable final UUID kbPaymentId, @Nullable final AdyenPaymentMethodsRecord paymentMethodsRecord, final Iterable<PluginProperty> properties, final TenantContext context) {
         // A bit of a hack - it would be nice to be able to isolate AdyenConfigProperties
         final AdyenConfigProperties adyenConfigProperties = getConfigProperties(context);
-        return PaymentInfoMappingService.toPaymentInfo(merchantAccount, countryCode, adyenConfigProperties, clock, account, paymentMethodsRecord, properties);
+        return PaymentInfoMappingService.toPaymentInfo(merchantAccount, countryCode, adyenConfigProperties, clock, account, kbPaymentId, paymentMethodsRecord, properties);
     }
 
     /**

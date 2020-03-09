@@ -19,6 +19,7 @@ package org.killbill.billing.plugin.adyen.api.mapping;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 import javax.annotation.Nullable;
 
@@ -51,12 +52,16 @@ public abstract class PaymentInfoMappingService {
                                             final AdyenConfigProperties configuration,
                                             final Clock clock,
                                             @Nullable final AccountData account,
+                                            @Nullable final UUID kbPaymentId,
                                             @Nullable final AdyenPaymentMethodsRecord paymentMethodsRecord,
                                             final Iterable<PluginProperty> properties) {
         final PaymentInfo paymentInfo;
 
-
-        if (paymentMethodsRecord == null) {
+        //check for klarna payment
+        String paymentType = PluginProperties.findPluginPropertyValue(PROPERTY_PAYMENT_TYPE, properties);
+        if(PaymentInfo.shouldRedirectToKlarna(paymentType)) {
+            paymentInfo = KlarnaPaymentMappingService.toPaymentInfo(merchantAccount, countryCode, kbPaymentId, configuration, properties);
+        } else if (paymentMethodsRecord == null) {
             paymentInfo = WebPaymentFrontendMappingService.toPaymentInfo(merchantAccount, configuration, clock, properties);
         } else {
             final String recurringDetailReference = PluginProperties.getValue(PROPERTY_RECURRING_DETAIL_ID, paymentMethodsRecord.getToken(), properties);

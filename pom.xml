@@ -26,7 +26,21 @@
     <groupId>org.kill-bill.billing.plugin.java</groupId>
     <artifactId>adyen-plugin</artifactId>
     <name>Kill Bill OSGI Adyen plugin</name>
-    <version>0.5.27-SNAPSHOT</version>
+    <version>0.5.27-harenk-SNAPSHOT</version>
+
+    <distributionManagement>
+        <snapshotRepository>
+            <id>snapshots</id>
+            <name>Groupon Snapshots Repository</name>
+            <url>http://nexus-dev.snc1/content/repositories/snapshots</url>
+        </snapshotRepository>
+        <repository>
+            <id>releases</id>
+            <name>Groupon Releases Repository</name>
+            <url>http://nexus-dev.snc1/content/repositories/releases</url>
+        </repository>
+    </distributionManagement>
+
     <packaging>bundle</packaging>
     <description>Kill Bill Adyen plugin</description>
     <url>http://github.com/killbill/killbill-adyen-plugin</url>
@@ -259,6 +273,11 @@
         <dependency>
             <groupId>org.yaml</groupId>
             <artifactId>snakeyaml</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.adyen</groupId>
+            <artifactId>adyen-java-api-library</artifactId>
+            <version>4.1.0</version>
         </dependency>
     </dependencies>
     <build>

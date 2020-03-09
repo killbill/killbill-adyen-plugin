@@ -21,6 +21,7 @@ import java.util.Map;
 
 import javax.annotation.Nullable;
 
+import com.adyen.model.checkout.PaymentsRequest;
 import org.killbill.adyen.payment.ModificationRequest;
 import org.killbill.adyen.payment.PaymentRequest;
 import org.killbill.adyen.payment.PaymentRequest3D;
@@ -75,5 +76,10 @@ public class AdyenRequestFactory {
                                                                 adyenConfigProperties,
                                                                 signer);
         return builder.build();
+    }
+
+    public PaymentsRequest createKlarnaPayment(final String merchantAccount, final PaymentData paymentData, final UserData userData) {
+        final KlarnaRequestBuilder paymentRequestBuilder = new KlarnaRequestBuilder(merchantAccount, paymentData, userData);
+        return paymentRequestBuilder.build();
     }
 }

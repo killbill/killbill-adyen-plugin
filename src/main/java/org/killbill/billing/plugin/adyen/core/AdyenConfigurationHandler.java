@@ -32,6 +32,7 @@ import org.killbill.billing.plugin.adyen.client.payment.converter.PaymentInfoCon
 import org.killbill.billing.plugin.adyen.client.payment.converter.impl.PaymentInfoConverterService;
 import org.killbill.billing.plugin.adyen.client.payment.service.AdyenPaymentRequestSender;
 import org.killbill.billing.plugin.adyen.client.payment.service.AdyenPaymentServiceProviderPort;
+import org.killbill.billing.plugin.adyen.client.payment.service.AdyenCheckoutApiClient;
 import org.killbill.billing.plugin.adyen.client.payment.service.Signer;
 import org.killbill.billing.plugin.api.notification.PluginTenantConfigurableConfigurationHandler;
 
@@ -64,7 +65,8 @@ public class AdyenConfigurationHandler extends PluginTenantConfigurableConfigura
         final HttpHeaderInterceptor httpHeaderInterceptor = new HttpHeaderInterceptor();
         final PaymentPortRegistry adyenPaymentPortRegistry = new AdyenPaymentPortRegistry(adyenConfigProperties, loggingInInterceptor, loggingOutInterceptor, httpHeaderInterceptor);
         final AdyenPaymentRequestSender adyenPaymentRequestSender = new AdyenPaymentRequestSender(adyenPaymentPortRegistry);
+        final AdyenCheckoutApiClient adyenCheckoutApiClient = new AdyenCheckoutApiClient(adyenConfigProperties);
 
-        return new AdyenPaymentServiceProviderPort(adyenRequestFactory, adyenPaymentRequestSender);
+        return new AdyenPaymentServiceProviderPort(adyenRequestFactory, adyenPaymentRequestSender, adyenCheckoutApiClient);
     }
 }
