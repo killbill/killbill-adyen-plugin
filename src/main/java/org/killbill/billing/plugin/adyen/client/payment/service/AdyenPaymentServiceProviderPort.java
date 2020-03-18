@@ -23,6 +23,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import com.adyen.model.ApiError;
 import com.adyen.model.checkout.*;
 import com.adyen.service.exception.ApiException;
 import org.killbill.adyen.payment.*;
@@ -174,6 +175,45 @@ public class AdyenPaymentServiceProviderPort extends BaseAdyenPaymentServiceProv
                     ex.getMessage(),
                     null,
                     klarnaRequest.getReference(), null);
+        }
+
+        return purchaseResult;
+    }
+
+    public PurchaseResult completeKlarnaPaymentAuth(final String merchantAccount,
+                                                 final PaymentData paymentData,
+                                                 final UserData userData) {
+        PaymentsDetailsRequest detailsRequest = adyenRequestFactory.completeKlarnaPayment(merchantAccount, paymentData, userData);
+        PurchaseResult purchaseResult = null;
+        try {
+            PaymentsResponse response = adyenCheckoutApiClient.paymentDetails(detailsRequest);
+            purchaseResult = extractKlarnaResponse(response);
+        }
+        catch (ApiException ex) {
+            ApiError apiError = ex.getError();
+            String errorDetails = new StringBuilder()
+                    .append("status :" + apiError.getStatus())
+                    .append("errorCode :" + apiError.getErrorCode())
+                    .append("message: " + apiError.getMessage())
+                    .append("type: " +  apiError.getErrorType())
+                    .append("pspReference: " + apiError.getPspReference())
+                    .toString();
+            logger.error("completeKlarnaPayment auth error, ", errorDetails);
+            new PurchaseResult(PaymentServiceProviderResult.valueOf("error"),
+                    null,
+                    apiError.getPspReference(),
+                    apiError.getMessage(),
+                    null,
+                    paymentData.getPaymentTransactionExternalKey(),
+                    null);
+        } catch (IOException ex) {
+            new PurchaseResult(PaymentServiceProviderResult.valueOf("error"),
+                    null,
+                    null,
+                    ex.getMessage(),
+                    null,
+                    paymentData.getPaymentTransactionExternalKey(),
+                    null);
         }
 
         return purchaseResult;

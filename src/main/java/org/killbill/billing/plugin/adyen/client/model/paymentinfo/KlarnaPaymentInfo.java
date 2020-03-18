@@ -34,7 +34,43 @@ public class KlarnaPaymentInfo extends PaymentInfo {
     private List<LineItem> items = new ArrayList<>();
 
     //data for payment details check
+    private String paymentsData;
+    Map<String, String> detailsData = new HashMap<>();
     private Iterable<PluginProperty> properties;
+
+    @Override
+    public boolean completeKlarnaAuthorisation() {
+        return detailsData.size() > 0;
+    }
+
+    private void setAuthResultKeys(Map<String, String> additionalData) {
+        List<String> authCompleteKeys = new ArrayList<>();
+        String authResultKeys = additionalData.get("resultKeys");
+        if(authResultKeys != null) {
+            try {
+                Map<String, String> authKeyMap = mapper.readValue(authResultKeys, Map.class);
+                authCompleteKeys.addAll(authKeyMap.keySet());
+            } catch (IOException ex) {
+                logger.warn("Failed to retrieve details keys: " + ex.getMessage());
+            }
+        }
+
+        if(authCompleteKeys.size() > 0) {
+            for (String authKey: authCompleteKeys) {
+                String value = PluginProperties.findPluginPropertyValue(authKey, properties);
+                detailsData.put(authKey, value);
+            }
+        }
+    }
+
+    @Override
+    protected void updateAuthResponse() {
+        Map<String, String> additionalDataResponse = getAuthResponseData();
+        if(additionalDataResponse != null) {
+            this.paymentsData = additionalDataResponse.get("paymentData");
+            setAuthResultKeys(additionalDataResponse);
+        }
+    }
 
     public Iterable<PluginProperty> getProperties() {
         return properties;
@@ -42,6 +78,12 @@ public class KlarnaPaymentInfo extends PaymentInfo {
     public void setProperties(Iterable<PluginProperty> properties) {
         this.properties = properties;
     }
+
+    public Map<String, String> getDetailsData() { return detailsData; }
+    public void setDetailsData(Map<String, String> detailsData) { this.detailsData = detailsData; }
+
+    public String getPaymentsData() { return paymentsData; }
+    public void setPaymentsData(String paymentsData) { this.paymentsData = paymentsData; }
 
     public String getMerchantAccount() {
         return merchantAccount;
