@@ -550,8 +550,7 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
                                     rbacPassword
                             ));
                 } else if (PaymentServiceProviderResult.REDIRECT_SHOPPER.getResponses()[0].equals(responsesRecord.getResultCode())) {
-                    //harenk: process the result here
-                    //check if this is for Klarna payment
+                    //TODO: Check user has completed interaction on Klarna page
                 }
             }
             return result;
@@ -817,11 +816,9 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
                                              public PurchaseResult execute(final String merchantAccount, final PaymentData paymentData, final UserData userData, final SplitSettlementData splitSettlementData, final Map<String, String> additionalData) {
                                                  final AdyenPaymentServiceProviderPort adyenPort = adyenConfigurationHandler.getConfigurable(context.getTenantId());
                                                  final AdyenResponsesRecord existingAuth = previousAdyenResponseRecord(kbPaymentId, kbTransactionId.toString(), context);
-                                                 boolean authoriseKlarnaPayment = paymentData.getPaymentInfo().shouldRedirectToKlarna();
+                                                 boolean authoriseKlarnaPayment = paymentData.getPaymentInfo().isKlarnaPayment();
 
                                                  if (existingAuth != null) {
-                                                     //harenk: check if we need to handle existing Auth for Klarna
-
                                                      // We are completing a 3D-S payment
                                                      final String originalMerchantAccount = getMerchantAccountFromRecord(existingAuth);
                                                      final List<PluginProperty> threeDS2Data = getThreeDS2DataFromRecord(existingAuth);

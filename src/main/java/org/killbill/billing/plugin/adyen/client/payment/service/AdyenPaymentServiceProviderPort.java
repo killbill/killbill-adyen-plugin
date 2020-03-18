@@ -23,8 +23,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import com.adyen.model.checkout.PaymentsRequest;
-import com.adyen.model.checkout.PaymentsResponse;
+import com.adyen.model.checkout.*;
 import com.adyen.service.exception.ApiException;
 import org.killbill.adyen.payment.*;
 import org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi;
@@ -34,6 +33,7 @@ import org.killbill.billing.plugin.adyen.client.model.PaymentServiceProviderResu
 import org.killbill.billing.plugin.adyen.client.model.PurchaseResult;
 import org.killbill.billing.plugin.adyen.client.model.SplitSettlementData;
 import org.killbill.billing.plugin.adyen.client.model.UserData;
+import org.killbill.billing.plugin.adyen.client.model.checkout.CheckoutPaymentsRequestResult;
 import org.killbill.billing.plugin.adyen.client.payment.builder.AdyenRequestFactory;
 import org.slf4j.LoggerFactory;
 
@@ -161,33 +161,54 @@ public class AdyenPaymentServiceProviderPort extends BaseAdyenPaymentServiceProv
             purchaseResult = extractKlarnaResponse(response);
         }
         catch (ApiException ex) {
-            //TODO: extract appropriate error details
-            purchaseResult = new PurchaseResult(null,
+            new PurchaseResult(PaymentServiceProviderResult.valueOf("error"),
                     null,
                     null,
+                    ex.getMessage(),
                     null,
-                    null,
-                    klarnaRequest.getReference(),
-                    null);
+                    klarnaRequest.getReference(), null);
         } catch (IOException ex) {
-            //TODO: extract appropriate error details
-            purchaseResult = new PurchaseResult(null,
+            new PurchaseResult(PaymentServiceProviderResult.valueOf("error"),
                     null,
                     null,
+                    ex.getMessage(),
                     null,
-                    null,
-                    klarnaRequest.getReference(),
-                    null);
+                    klarnaRequest.getReference(), null);
         }
 
         return purchaseResult;
     }
 
     private PurchaseResult extractKlarnaResponse(PaymentsResponse response) {
-        //PurchaseResult
-        //TODO: extract response
+        CheckoutPaymentsRequestResult result = new CheckoutPaymentsRequestResult();
+        PaymentsResponse.ResultCodeEnum resultCode = response.getResultCode();
+        result.setResultCode(resultCode.toString());
+        result.setPspReference(response.getPspReference());
 
-        return null;
+        if(resultCode == PaymentsResponse.ResultCodeEnum.REDIRECTSHOPPER) {
+            CheckoutPaymentsAction actionData = response.getAction();
+            if(actionData.getType() == CheckoutPaymentsAction.CheckoutActionType.REDIRECT) {
+                result.setFormUrl(actionData.getUrl());
+                result.setFormMethod(actionData.getMethod());
+                result.setPaymentMethod(actionData.getPaymentMethodType());
+                result.setPaymentData(actionData.getPaymentData());
+
+                //TODO: add form params for POST method
+            }
+
+            List<InputDetail> keyDetails = response.getDetails();
+            if(keyDetails != null) {
+                Map<String, String> keyTypes = new HashMap<>();
+                for (InputDetail key: keyDetails) {
+                    keyTypes.put(key.getKey(), key.getType());
+                }
+                result.setAuthResultKeys(keyTypes);
+            }
+        } else {
+            //TODO: handle other result codes
+        }
+
+        return result.toPurchaseResult();
     }
 
     private Map<String, String> getAdditionalData(final PaymentResult result, final String merchantAccount) {

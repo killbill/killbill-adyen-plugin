@@ -86,11 +86,11 @@ public class PaymentInfo {
     // Klarna payment
     private String paymentType;
 
-    public boolean shouldRedirectToKlarna() {
-        return shouldRedirectToKlarna(this.paymentType);
+    public boolean isKlarnaPayment() {
+        return isKlarnaPayment(this.paymentType);
     }
 
-    public static boolean shouldRedirectToKlarna(String paymentType) {
+    public static boolean isKlarnaPayment(String paymentType) {
         return !StringUtils.isEmpty(paymentType) && paymentType.equals(KlarnaPaymentMappingService.KLARNA_PAYMENT_TYPE_VALUE);
     }
 

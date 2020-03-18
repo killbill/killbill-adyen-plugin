@@ -15,36 +15,35 @@
  * under the License.
  */
 
-package org.killbill.billing.plugin.adyen.client.payment.builder;
+package org.killbill.billing.plugin.adyen.client.payment.builder.checkout;
 
 import com.adyen.model.checkout.DefaultPaymentMethodDetails;
 import com.adyen.model.checkout.LineItem;
 import com.adyen.model.checkout.PaymentMethodDetails;
 import com.adyen.model.checkout.PaymentsRequest;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Charsets;
 import com.adyen.model.*;
 import java.util.Base64;
 import org.killbill.billing.plugin.adyen.client.model.PaymentData;
 import org.killbill.billing.plugin.adyen.client.model.UserData;
 import org.killbill.billing.plugin.adyen.client.model.paymentinfo.KlarnaPaymentInfo;
+import org.killbill.billing.plugin.adyen.client.payment.builder.RequestBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.List;
 
-public class KlarnaRequestBuilder extends RequestBuilder<PaymentsRequest> {
+public class CheckoutPaymentsBuilder extends RequestBuilder<PaymentsRequest> {
     private final String merchantAccount;
     private final PaymentData paymentData;
     private final UserData userData;
 
-    private static final Logger logger = LoggerFactory.getLogger(KlarnaRequestBuilder.class);
+    private static final Logger logger = LoggerFactory.getLogger(CheckoutPaymentsBuilder.class);
     public final static String OPEN_INVOICE_MERCHANT_DATA = "openinvoicedata.merchantData";
 
-    public KlarnaRequestBuilder(final String merchantAccount,
-                                final PaymentData paymentData,
-                                final UserData userData) {
+    public CheckoutPaymentsBuilder(final String merchantAccount,
+                                   final PaymentData paymentData,
+                                   final UserData userData) {
         super(new PaymentsRequest());
         this.merchantAccount = merchantAccount;
         this.paymentData = paymentData;
@@ -57,7 +56,7 @@ public class KlarnaRequestBuilder extends RequestBuilder<PaymentsRequest> {
         if (paymentData.getPaymentInfo() instanceof KlarnaPaymentInfo) {
             paymentInfo = (KlarnaPaymentInfo) paymentData.getPaymentInfo();
         } else {
-            logger.error("Invalid paymentInfo object, expected type KlarnaPaymentInfo");
+            logger.error("Invalid paymentInfo object, expected KlarnaPaymentInfo");
             return request;
         }
 
@@ -83,8 +82,6 @@ public class KlarnaRequestBuilder extends RequestBuilder<PaymentsRequest> {
         setShopperData();
         setInvoiceLines(paymentInfo);
         setAdditionalData(paymentInfo);
-
-        //TODO: dump request object
         return request;
     }
 
@@ -148,29 +145,4 @@ public class KlarnaRequestBuilder extends RequestBuilder<PaymentsRequest> {
         request.setShopperIP(userData.getShopperIP());
         request.setShopperReference(userData.getShopperReference());
     }
-
-//    private static class MerchantData {
-//        private String voucher;
-//        private String customer_account_info;
-//        private String marketplace_seller_info;
-//
-//        public String getVoucher() {
-//            return voucher;
-//        }
-//        public void setVoucher(String voucher) {
-//            this.voucher = voucher;
-//        }
-//        public String getCustomerAccountInfo() {
-//            return customer_account_info;
-//        }
-//        public void setCustomerAccountInfo(String account_info) {
-//            this.customer_account_info = account_info;
-//        }
-//        public String getMarketplaceSellerInfo() {
-//            return marketplace_seller_info;
-//        }
-//        public void setMarketplaceSellerInfo(String seller_info) {
-//            this.marketplace_seller_info = seller_info;
-//        }
-//    }
 }

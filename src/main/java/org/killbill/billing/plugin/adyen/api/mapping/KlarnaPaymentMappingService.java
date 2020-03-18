@@ -1,7 +1,5 @@
 package org.killbill.billing.plugin.adyen.api.mapping;
 
-import com.fasterxml.jackson.core.JsonParseException;
-import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.jooq.tools.StringUtils;
 import org.killbill.billing.payment.api.PluginProperty;
@@ -14,7 +12,6 @@ import org.killbill.billing.plugin.adyen.client.model.paymentinfo.KlarnaPaymentI
 import org.killbill.billing.plugin.api.PluginProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.*;
@@ -23,7 +20,7 @@ import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.*;
 
 public abstract class KlarnaPaymentMappingService {
     private static final Logger logger = LoggerFactory.getLogger(KlarnaPaymentMappingService.class);
-    private static ObjectMapper mapper = new ObjectMapper();
+    private static final ObjectMapper mapper = new ObjectMapper();
 
     public static final String KLARNA_PAYMENT_TYPE_VALUE = "klarna";
     public static final String KLARNA_PAYMENT_PAY_LATER = "klarna";
@@ -32,6 +29,7 @@ public abstract class KlarnaPaymentMappingService {
 
     public static PaymentInfo toPaymentInfo(String merchantAccount, final String countryCode, @Nullable final UUID kbPaymentId, AdyenConfigProperties configuration, Iterable<PluginProperty> properties) {
         final KlarnaPaymentInfo paymentInfo = new KlarnaPaymentInfo();
+        paymentInfo.setProperties(properties);
         paymentInfo.setCountryCode(countryCode);
         paymentInfo.setMerchantAccount(merchantAccount);
         paymentInfo.setPaymentType(PluginProperties.findPluginPropertyValue(PROPERTY_PAYMENT_TYPE, properties));
@@ -47,7 +45,7 @@ public abstract class KlarnaPaymentMappingService {
             setSellerInfo(lineItems, paymentInfo);
         }
 
-        //TODO: log paymentInfo
+
         return paymentInfo;
     }
 
@@ -121,5 +119,4 @@ public abstract class KlarnaPaymentMappingService {
 
         paymentInfo.setAccounts(accountList);
     }
-
 }

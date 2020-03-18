@@ -2,17 +2,27 @@ package org.killbill.billing.plugin.adyen.client.model.paymentinfo;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.jooq.tools.StringUtils;
+import org.killbill.billing.payment.api.PluginProperty;
 import org.killbill.billing.plugin.adyen.api.mapping.klarna.Account;
 import org.killbill.billing.plugin.adyen.api.mapping.klarna.MerchantData;
 import org.killbill.billing.plugin.adyen.api.mapping.klarna.Seller;
 import org.killbill.billing.plugin.adyen.api.mapping.klarna.Voucher;
 import org.killbill.billing.plugin.adyen.client.model.PaymentInfo;
+import org.killbill.billing.plugin.api.PluginProperties;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+
 
 public class KlarnaPaymentInfo extends PaymentInfo {
+    private static final Logger logger = LoggerFactory.getLogger(KlarnaPaymentInfo.class);
+    private static final ObjectMapper mapper = new ObjectMapper();
+
     private String merchantAccount;
     private String paymentMethod;
     private String orderReference;
@@ -22,6 +32,16 @@ public class KlarnaPaymentInfo extends PaymentInfo {
     private List<Account> accounts;
     private List<Seller> sellers;
     private List<LineItem> items = new ArrayList<>();
+
+    //data for payment details check
+    private Iterable<PluginProperty> properties;
+
+    public Iterable<PluginProperty> getProperties() {
+        return properties;
+    }
+    public void setProperties(Iterable<PluginProperty> properties) {
+        this.properties = properties;
+    }
 
     public String getMerchantAccount() {
         return merchantAccount;
@@ -88,7 +108,6 @@ public class KlarnaPaymentInfo extends PaymentInfo {
         merchantData.setVoucher(vouchers);
 
         try {
-            ObjectMapper mapper = new ObjectMapper();
             additionalData = mapper.writeValueAsString(merchantData);
         } catch (IOException e) {
             e.printStackTrace();

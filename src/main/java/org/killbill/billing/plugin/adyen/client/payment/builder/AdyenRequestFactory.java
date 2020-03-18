@@ -30,6 +30,7 @@ import org.killbill.billing.plugin.adyen.client.AdyenConfigProperties;
 import org.killbill.billing.plugin.adyen.client.model.PaymentData;
 import org.killbill.billing.plugin.adyen.client.model.SplitSettlementData;
 import org.killbill.billing.plugin.adyen.client.model.UserData;
+import org.killbill.billing.plugin.adyen.client.payment.builder.checkout.CheckoutPaymentsBuilder;
 import org.killbill.billing.plugin.adyen.client.payment.converter.PaymentInfoConverterManagement;
 import org.killbill.billing.plugin.adyen.client.payment.exception.SignatureGenerationException;
 import org.killbill.billing.plugin.adyen.client.payment.service.Signer;
@@ -79,7 +80,7 @@ public class AdyenRequestFactory {
     }
 
     public PaymentsRequest createKlarnaPayment(final String merchantAccount, final PaymentData paymentData, final UserData userData) {
-        final KlarnaRequestBuilder paymentRequestBuilder = new KlarnaRequestBuilder(merchantAccount, paymentData, userData);
-        return paymentRequestBuilder.build();
+        final CheckoutPaymentsBuilder requestBuilder = new CheckoutPaymentsBuilder(merchantAccount, paymentData, userData);
+        return requestBuilder.build();
     }
 }

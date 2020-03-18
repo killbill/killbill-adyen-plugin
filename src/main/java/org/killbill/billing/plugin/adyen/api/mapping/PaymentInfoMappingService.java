@@ -59,7 +59,7 @@ public abstract class PaymentInfoMappingService {
 
         //check for klarna payment
         String paymentType = PluginProperties.findPluginPropertyValue(PROPERTY_PAYMENT_TYPE, properties);
-        if(PaymentInfo.shouldRedirectToKlarna(paymentType)) {
+        if(PaymentInfo.isKlarnaPayment(paymentType)) {
             paymentInfo = KlarnaPaymentMappingService.toPaymentInfo(merchantAccount, countryCode, kbPaymentId, configuration, properties);
         } else if (paymentMethodsRecord == null) {
             paymentInfo = WebPaymentFrontendMappingService.toPaymentInfo(merchantAccount, configuration, clock, properties);
