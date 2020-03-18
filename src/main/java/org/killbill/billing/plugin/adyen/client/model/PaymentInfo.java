@@ -91,7 +91,7 @@ public class PaymentInfo {
     }
 
     public static boolean isKlarnaPayment(String paymentType) {
-        return !StringUtils.isEmpty(paymentType) && paymentType.equals(KlarnaPaymentMappingService.KLARNA_PAYMENT_TYPE_VALUE);
+        return !StringUtils.isEmpty(paymentType) && paymentType.equals(KlarnaPaymentMappingService.KLARNA_PAYMENT_TYPE);
     }
 
     public String getPaymentType() {

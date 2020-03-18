@@ -33,7 +33,7 @@ import org.killbill.billing.plugin.adyen.client.model.PaymentServiceProviderResu
 import org.killbill.billing.plugin.adyen.client.model.PurchaseResult;
 import org.killbill.billing.plugin.adyen.client.model.SplitSettlementData;
 import org.killbill.billing.plugin.adyen.client.model.UserData;
-import org.killbill.billing.plugin.adyen.client.model.checkout.CheckoutPaymentsRequestResult;
+import org.killbill.billing.plugin.adyen.client.model.checkout.CheckoutPaymentsResult;
 import org.killbill.billing.plugin.adyen.client.payment.builder.AdyenRequestFactory;
 import org.slf4j.LoggerFactory;
 
@@ -180,7 +180,7 @@ public class AdyenPaymentServiceProviderPort extends BaseAdyenPaymentServiceProv
     }
 
     private PurchaseResult extractKlarnaResponse(PaymentsResponse response) {
-        CheckoutPaymentsRequestResult result = new CheckoutPaymentsRequestResult();
+        CheckoutPaymentsResult result = new CheckoutPaymentsResult();
         PaymentsResponse.ResultCodeEnum resultCode = response.getResultCode();
         result.setResultCode(resultCode.toString());
         result.setPspReference(response.getPspReference());

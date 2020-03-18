@@ -10,7 +10,7 @@ import org.slf4j.LoggerFactory;
 import java.util.HashMap;
 import java.util.Map;
 
-public class CheckoutPaymentsRequestResult {
+public class CheckoutPaymentsResult {
     private String resultCode;
     private String paymentData;
     private String pspReference;
@@ -21,8 +21,8 @@ public class CheckoutPaymentsRequestResult {
     private Map<String, String> authResultKeys;
     private final Logger logger;
 
-    public CheckoutPaymentsRequestResult() {
-        this.logger = LoggerFactory.getLogger(CheckoutPaymentsRequestResult.class);
+    public CheckoutPaymentsResult() {
+        this.logger = LoggerFactory.getLogger(CheckoutPaymentsResult.class);
     }
 
     public String getResultCode() {

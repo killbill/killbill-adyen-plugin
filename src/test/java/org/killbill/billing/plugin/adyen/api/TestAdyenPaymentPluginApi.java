@@ -245,8 +245,8 @@ public class TestAdyenPaymentPluginApi extends TestAdyenPaymentPluginApiBase {
             .put(AdyenPaymentPluginApi.PROPERTY_TERM_URL, "dummy://url")
             .build());
     private final Iterable<PluginProperty> propertiesWithKlarnaRedirect = PluginProperties.buildPluginProperties(ImmutableMap.<String, String>builder()
-            .put(PROPERTY_PAYMENT_TYPE, KlarnaPaymentMappingService.KLARNA_PAYMENT_TYPE_VALUE)
-            .put(PROPERTY_PAYMENT_METHOD, KlarnaPaymentMappingService.KLARNA_PAYMENT_PAY_LATER)
+            .put(PROPERTY_PAYMENT_TYPE, KlarnaPaymentMappingService.KLARNA_PAYMENT_TYPE)
+            .put(PROPERTY_PAYMENT_METHOD, KlarnaPaymentMappingService.KLARNA_PAY_LATER)
             .put(PROPERTY_RETURN_URL, "https://www.company.com/callback")
             .put(AdyenPaymentPluginApi.PROPERTY_USER_AGENT, "Java/1.8")
             .put(AdyenPaymentPluginApi.PROPERTY_ACCEPT_HEADER, "application/json")

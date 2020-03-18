@@ -22,10 +22,10 @@ public abstract class KlarnaPaymentMappingService {
     private static final Logger logger = LoggerFactory.getLogger(KlarnaPaymentMappingService.class);
     private static final ObjectMapper mapper = new ObjectMapper();
 
-    public static final String KLARNA_PAYMENT_TYPE_VALUE = "klarna";
-    public static final String KLARNA_PAYMENT_PAY_LATER = "klarna";
-    public static final String KLARNA_PAYMENT_PAY_NOW = "klarna_paynow";
-    public static final String KLARNA_PAYMENT_PAY_ACCOUNT = "klarna_account";
+    public static final String KLARNA_PAYMENT_TYPE = "klarna";
+    public static final String KLARNA_PAY_LATER = "klarna";
+    public static final String KLARNA_PAY_NOW = "klarna_paynow";
+    public static final String KLARNA_PAY_INSTALLMENT = "klarna_account";
 
     public static PaymentInfo toPaymentInfo(String merchantAccount, final String countryCode, @Nullable final UUID kbPaymentId, AdyenConfigProperties configuration, Iterable<PluginProperty> properties) {
         final KlarnaPaymentInfo paymentInfo = new KlarnaPaymentInfo();
