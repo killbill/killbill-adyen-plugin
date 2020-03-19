@@ -199,6 +199,7 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
     public static final String PROPERTY_PAYMENT_TYPE = "paymentType";
     public static final String PROPERTY_RETURN_URL = "returnUrl";
     public static final String PROPERTY_LINE_ITEMS = "lineItems";
+    public static final String PROPERTY_ORDER_REFERENCE = "orderReference";
     public static final String PROPERTY_CUSTOMER_ACCOUNT ="customerAccount";
 
     // HPP
@@ -1153,22 +1154,22 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
                                                                                              }
                                                                                          });
 
-        final PaymentInfo paymentInfo = buildPaymentInfo(merchantAccount, countryCode, account, kbPaymentId, paymentMethodsRecord, properties, context);
+        final PaymentInfo paymentInfo = buildPaymentInfo(merchantAccount, countryCode, account, paymentMethodsRecord, properties, context);
 
         return new PaymentData<PaymentInfo>(amount, currency, paymentTransaction.getExternalKey(), paymentInfo);
     }
 
     // For HPP
     private PaymentData buildPaymentData(final String merchantAccount, final String countryCode, final AccountData account, final BigDecimal amount, final Currency currency, final Iterable<PluginProperty> properties, final TenantContext context) {
-        final PaymentInfo paymentInfo = buildPaymentInfo(merchantAccount, countryCode, account, null,null, properties, context);
+        final PaymentInfo paymentInfo = buildPaymentInfo(merchantAccount, countryCode, account,null, properties, context);
         final String paymentTransactionExternalKey = PluginProperties.getValue(PROPERTY_PAYMENT_EXTERNAL_KEY, UUID.randomUUID().toString(), properties);
         return new PaymentData<PaymentInfo>(amount, currency, paymentTransactionExternalKey, paymentInfo);
     }
 
-    private PaymentInfo buildPaymentInfo(final String merchantAccount, final String countryCode, final AccountData account, @Nullable final UUID kbPaymentId, @Nullable final AdyenPaymentMethodsRecord paymentMethodsRecord, final Iterable<PluginProperty> properties, final TenantContext context) {
+    private PaymentInfo buildPaymentInfo(final String merchantAccount, final String countryCode, final AccountData account, @Nullable final AdyenPaymentMethodsRecord paymentMethodsRecord, final Iterable<PluginProperty> properties, final TenantContext context) {
         // A bit of a hack - it would be nice to be able to isolate AdyenConfigProperties
         final AdyenConfigProperties adyenConfigProperties = getConfigProperties(context);
-        return PaymentInfoMappingService.toPaymentInfo(merchantAccount, countryCode, adyenConfigProperties, clock, account, kbPaymentId, paymentMethodsRecord, properties);
+        return PaymentInfoMappingService.toPaymentInfo(merchantAccount, countryCode, adyenConfigProperties, clock, account, paymentMethodsRecord, properties);
     }
 
     /**

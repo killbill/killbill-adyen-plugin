@@ -27,7 +27,7 @@ public abstract class KlarnaPaymentMappingService {
     public static final String KLARNA_PAY_NOW = "klarna_paynow";
     public static final String KLARNA_PAY_INSTALLMENT = "klarna_account";
 
-    public static PaymentInfo toPaymentInfo(String merchantAccount, final String countryCode, @Nullable final UUID kbPaymentId, AdyenConfigProperties configuration, Iterable<PluginProperty> properties) {
+    public static PaymentInfo toPaymentInfo(String merchantAccount, final String countryCode, Iterable<PluginProperty> properties) {
         final KlarnaPaymentInfo paymentInfo = new KlarnaPaymentInfo();
         paymentInfo.setProperties(properties);
         paymentInfo.setCountryCode(countryCode);
@@ -35,7 +35,7 @@ public abstract class KlarnaPaymentMappingService {
         paymentInfo.setPaymentType(PluginProperties.findPluginPropertyValue(PROPERTY_PAYMENT_TYPE, properties));
         paymentInfo.setPaymentMethod(PluginProperties.findPluginPropertyValue(PROPERTY_PAYMENT_METHOD, properties));
         paymentInfo.setReturnUrl(PluginProperties.findPluginPropertyValue(PROPERTY_RETURN_URL, properties));
-        paymentInfo.setOrderReference(kbPaymentId.toString());
+        paymentInfo.setOrderReference(PluginProperties.findPluginPropertyValue(PROPERTY_ORDER_REFERENCE, properties));
         setAccountInfo(properties, paymentInfo);
 
         List<KlarnaPaymentInfo.LineItem> lineItems = extractLineItems(properties);
