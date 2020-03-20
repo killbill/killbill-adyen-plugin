@@ -1,33 +1,39 @@
 package org.killbill.billing.plugin.adyen.api.mapping.klarna;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.List;
 
 public class MerchantData {
-    private List<Voucher> voucher;
-    private List<Account> customer_account_info;
-    private List<Seller> marketplace_seller_info;
+    @JsonProperty("voucher")
+    private List<Voucher> voucherInfo;
 
-    public List<Voucher> getVoucher() {
-        return voucher;
+    @JsonProperty("customer_account_info")
+    private List<Account> customerInfo;
+
+    @JsonProperty("marketplace_seller_info")
+    private List<Seller> sellerInfo;
+
+    public List<Voucher> getVoucherInfo() {
+        return voucherInfo;
     }
 
-    public void setVoucher(List<Voucher> voucher) {
-        this.voucher = voucher;
+    public void setVoucherInfo(List<Voucher> voucherInfo) {
+        this.voucherInfo = voucherInfo;
     }
 
-    public List<Account> getCustomer_account_info() {
-        return customer_account_info;
+    public List<Account> getCustomerInfo() {
+        return customerInfo;
     }
 
-    public void setCustomer_account_info(List<Account> customer_account_info) {
-        this.customer_account_info = customer_account_info;
+    public void setCustomerInfo(List<Account> customerInfo) {
+        this.customerInfo = customerInfo;
     }
 
-    public List<Seller> getMarketplace_seller_info() {
-        return marketplace_seller_info;
+    public List<Seller> getSellerInfo() {
+        return sellerInfo;
     }
 
-    public void setMarketplace_seller_info(List<Seller> marketplace_seller_info) {
-        this.marketplace_seller_info = marketplace_seller_info;
+    public void setSellerInfo(List<Seller> sellerInfo) {
+        this.sellerInfo = sellerInfo;
     }
 }

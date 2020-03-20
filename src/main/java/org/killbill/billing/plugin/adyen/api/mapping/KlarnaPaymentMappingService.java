@@ -1,18 +1,16 @@
 package org.killbill.billing.plugin.adyen.api.mapping;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.jooq.tools.StringUtils;
 import org.killbill.billing.payment.api.PluginProperty;
 import org.killbill.billing.plugin.adyen.api.mapping.klarna.Account;
 import org.killbill.billing.plugin.adyen.api.mapping.klarna.Seller;
 import org.killbill.billing.plugin.adyen.api.mapping.klarna.Voucher;
-import org.killbill.billing.plugin.adyen.client.AdyenConfigProperties;
 import org.killbill.billing.plugin.adyen.client.model.PaymentInfo;
 import org.killbill.billing.plugin.adyen.client.model.paymentinfo.KlarnaPaymentInfo;
 import org.killbill.billing.plugin.api.PluginProperties;
+import org.jooq.tools.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.*;
 
@@ -73,8 +71,8 @@ public abstract class KlarnaPaymentMappingService {
                 if (item.getDescription() != null ||
                         item.getMerchantName() != null) {
                     Voucher voucher = new Voucher();
-                    voucher.setVoucher_name(item.getDescription());
-                    voucher.setVoucher_company(item.getMerchantName());
+                    voucher.setName(item.getDescription());
+                    voucher.setCompany(item.getMerchantName());
                     vouchers.add(voucher);
                 }
             }
@@ -90,9 +88,9 @@ public abstract class KlarnaPaymentMappingService {
                     item.getProductCategory() != null ||
                     item.getMerchantId() != null) {
                 Seller seller = new Seller();
-                seller.setProduct_name(item.getProductName());
-                seller.setProduct_category(item.getProductCategory());
-                seller.setSub_merchant_id(item.getMerchantId());
+                seller.setProductName(item.getProductName());
+                seller.setProductCategory(item.getProductCategory());
+                seller.setMerchantId(item.getMerchantId());
                 sellers.add(seller);
             }
         }
@@ -108,9 +106,9 @@ public abstract class KlarnaPaymentMappingService {
                 KlarnaPaymentInfo.CustomerAccount customerAccount = mapper.readValue(accountInfoValue, KlarnaPaymentInfo.CustomerAccount.class);
 
                 Account account = new Account();
-                account.setUnique_account_identifier(customerAccount.getAccountId());
-                account.setAccount_registration_date(customerAccount.getRegistrationDate());
-                account.setAccount_last_modified(customerAccount.getLastModifiedDate());
+                account.setIdentifier(customerAccount.getAccountId());
+                account.setRegistrationDate(customerAccount.getRegistrationDate());
+                account.setLastModifiedDate(customerAccount.getLastModifiedDate());
                 accountList.add(account);
             } catch (IOException e) {
                 e.printStackTrace();

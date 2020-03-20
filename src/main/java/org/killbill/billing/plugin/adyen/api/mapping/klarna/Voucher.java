@@ -1,21 +1,28 @@
 package org.killbill.billing.plugin.adyen.api.mapping.klarna;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 public class Voucher {
-    private String voucher_name;
-    private String voucher_company;
+    @JsonProperty("voucher_name")
+    private String name;
 
-    public String getVoucher_name() {
-        return voucher_name;
-    }
-    public void setVoucher_name(String voucher_name) {
-        this.voucher_name = voucher_name;
+    @JsonProperty("voucher_company")
+    private String company;
+
+    public String getName() {
+        return name;
     }
 
-    public String getVoucher_company() {
-        return voucher_company;
+    public void setName(String name) {
+        this.name = name;
     }
-    public void setVoucher_company(String voucher_company) {
-        this.voucher_company = voucher_company;
+
+    public String getCompany() {
+        return company;
+    }
+
+    public void setCompany(String company) {
+        this.company = company;
     }
 }
 
