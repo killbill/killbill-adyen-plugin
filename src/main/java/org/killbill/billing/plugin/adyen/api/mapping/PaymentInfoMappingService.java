@@ -52,7 +52,6 @@ public abstract class PaymentInfoMappingService {
                                             final AdyenConfigProperties configuration,
                                             final Clock clock,
                                             @Nullable final AccountData account,
-                                            @Nullable final UUID kbPaymentId,
                                             @Nullable final AdyenPaymentMethodsRecord paymentMethodsRecord,
                                             final Iterable<PluginProperty> properties) {
         final PaymentInfo paymentInfo;
@@ -60,7 +59,7 @@ public abstract class PaymentInfoMappingService {
         //check for klarna payment
         String paymentType = PluginProperties.findPluginPropertyValue(PROPERTY_PAYMENT_TYPE, properties);
         if(PaymentInfo.isKlarnaPayment(paymentType)) {
-            paymentInfo = KlarnaPaymentMappingService.toPaymentInfo(merchantAccount, countryCode, kbPaymentId, configuration, properties);
+            paymentInfo = KlarnaPaymentMappingService.toPaymentInfo(merchantAccount, countryCode, properties);
         } else if (paymentMethodsRecord == null) {
             paymentInfo = WebPaymentFrontendMappingService.toPaymentInfo(merchantAccount, configuration, clock, properties);
         } else {

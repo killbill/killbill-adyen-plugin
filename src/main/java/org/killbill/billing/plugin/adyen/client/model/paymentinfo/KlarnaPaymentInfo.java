@@ -8,15 +8,11 @@ import org.killbill.billing.plugin.adyen.api.mapping.klarna.MerchantData;
 import org.killbill.billing.plugin.adyen.api.mapping.klarna.Seller;
 import org.killbill.billing.plugin.adyen.api.mapping.klarna.Voucher;
 import org.killbill.billing.plugin.adyen.client.model.PaymentInfo;
-import org.killbill.billing.plugin.api.PluginProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 
 public class KlarnaPaymentInfo extends PaymentInfo {
@@ -145,9 +141,9 @@ public class KlarnaPaymentInfo extends PaymentInfo {
     public String getAdditionalData() {
         String additionalData = null;
         MerchantData merchantData = new MerchantData();
-        merchantData.setCustomer_account_info(accounts);
-        merchantData.setMarketplace_seller_info(sellers);
-        merchantData.setVoucher(vouchers);
+        merchantData.setCustomerInfo(accounts);
+        merchantData.setSellerInfo(sellers);
+        merchantData.setVoucherInfo(vouchers);
 
         try {
             additionalData = mapper.writeValueAsString(merchantData);
@@ -168,7 +164,7 @@ public class KlarnaPaymentInfo extends PaymentInfo {
         private Long amountExcludingTax;
         private Long amountIncludingTax;
 
-        // fields included for voucher, seller
+        // fields included for merchant data
         private String inventoryService;
         private String productName;
         private String productCategory;
@@ -182,9 +178,7 @@ public class KlarnaPaymentInfo extends PaymentInfo {
             this.id = id;
         }
 
-        public Long getQuantity() {
-            return quantity;
-        }
+        public Long getQuantity() { return quantity; }
         public void setQuantity(Long quantity) {
             this.quantity = quantity;
         }
@@ -257,7 +251,6 @@ public class KlarnaPaymentInfo extends PaymentInfo {
         public String getAccountId() {
             return accountId;
         }
-
         public void setAccountId(String accountId) {
             this.accountId = accountId;
         }
@@ -265,7 +258,6 @@ public class KlarnaPaymentInfo extends PaymentInfo {
         public String getRegistrationDate() {
             return registrationDate;
         }
-
         public void setRegistrationDate(String registrationDate) {
             this.registrationDate = registrationDate;
         }
@@ -273,7 +265,6 @@ public class KlarnaPaymentInfo extends PaymentInfo {
         public String getLastModifiedDate() {
             return lastModifiedDate;
         }
-
         public void setLastModifiedDate(String lastModifiedDate) {
             this.lastModifiedDate = lastModifiedDate;
         }

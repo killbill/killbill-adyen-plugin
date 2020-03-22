@@ -1,29 +1,39 @@
 package org.killbill.billing.plugin.adyen.api.mapping.klarna;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 public class Seller {
-    private String product_name;
-    private String product_category;
-    private String sub_merchant_id;
+    @JsonProperty("product_name")
+    private String productName;
 
-    public String getProduct_name() {
-        return product_name;
-    }
-    public void setProduct_name(String product_name) {
-        this.product_name = product_name;
-    }
+    @JsonProperty("product_category")
+    private String productCategory;
 
-    public String getProduct_category() {
-        return product_category;
-    }
-    public void setProduct_category(String product_category) {
-        this.product_category = product_category;
+    @JsonProperty("sub_merchant_id")
+    private String merchantId;
+
+    public String getProductName() {
+        return productName;
     }
 
-    public String getSub_merchant_id() {
-        return sub_merchant_id;
+    public void setProductName(String productName) {
+        this.productName = productName;
     }
-    public void setSub_merchant_id(String sub_merchant_id) {
-        this.sub_merchant_id = sub_merchant_id;
+
+    public String getProductCategory() {
+        return productCategory;
+    }
+
+    public void setProductCategory(String productCategory) {
+        this.productCategory = productCategory;
+    }
+
+    public String getMerchantId() {
+        return merchantId;
+    }
+
+    public void setMerchantId(String merchantId) {
+        this.merchantId = merchantId;
     }
 }
 
