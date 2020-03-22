@@ -4,15 +4,18 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.jooq.tools.StringUtils;
 import org.killbill.billing.payment.api.PluginProperty;
 import org.killbill.billing.plugin.adyen.api.mapping.klarna.Account;
-import org.killbill.billing.plugin.adyen.api.mapping.klarna.MerchantData;
 import org.killbill.billing.plugin.adyen.api.mapping.klarna.Seller;
 import org.killbill.billing.plugin.adyen.api.mapping.klarna.Voucher;
+import org.killbill.billing.plugin.adyen.api.mapping.klarna.MerchantData;
 import org.killbill.billing.plugin.adyen.client.model.PaymentInfo;
+import org.killbill.billing.plugin.api.PluginProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 
 public class KlarnaPaymentInfo extends PaymentInfo {
