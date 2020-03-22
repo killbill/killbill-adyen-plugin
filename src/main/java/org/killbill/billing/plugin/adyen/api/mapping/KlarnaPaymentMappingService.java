@@ -25,7 +25,7 @@ public abstract class KlarnaPaymentMappingService {
     public static final String KLARNA_PAY_NOW = "klarna_paynow";
     public static final String KLARNA_PAY_INSTALLMENT = "klarna_account";
 
-    public static PaymentInfo toPaymentInfo(String merchantAccount, final String countryCode, Iterable<PluginProperty> properties) {
+    public static PaymentInfo toPaymentInfo(final String merchantAccount, final String countryCode, Iterable<PluginProperty> properties) {
         final KlarnaPaymentInfo paymentInfo = new KlarnaPaymentInfo();
         paymentInfo.setProperties(properties);
         paymentInfo.setCountryCode(countryCode);
