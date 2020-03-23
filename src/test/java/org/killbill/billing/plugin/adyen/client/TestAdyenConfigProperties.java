@@ -42,6 +42,8 @@ public class TestAdyenConfigProperties {
         properties.put("org.killbill.billing.plugin.adyen.persistablePluginProperties", "3ds2.csrf|3ds2.resUrl|3ds2.formUrl");
         properties.put("org.killbill.billing.plugin.adyen.rbacUsername", "foo");
         properties.put("org.killbill.billing.plugin.adyen.rbacPassword", "bar");
+        properties.put("org.killbill.billing.plugin.adyen.apiKey", "TEST_API_KEY");
+        properties.put("org.killbill.billing.plugin.adyen.environment", "TEST_ENV");
         final AdyenConfigProperties adyenConfigProperties = new AdyenConfigProperties(properties);
 
         Assert.assertEquals(adyenConfigProperties.getMerchantAccount("UK"), "DefaultAccount");
@@ -73,6 +75,8 @@ public class TestAdyenConfigProperties {
         Assert.assertEquals(adyenConfigProperties.getPersistablePluginProperties(), ImmutableList.of("3ds2.csrf", "3ds2.resUrl", "3ds2.formUrl"));
         Assert.assertEquals(adyenConfigProperties.getRbacUsername(), "foo");
         Assert.assertEquals(adyenConfigProperties.getRbacPassword(), "bar");
+        Assert.assertEquals(adyenConfigProperties.getApiKey(), "TEST_API_KEY");
+        Assert.assertEquals(adyenConfigProperties.getEnvironment(), "TEST_ENV");
     }
 
     @Test(groups = "fast")
