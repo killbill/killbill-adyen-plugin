@@ -28,6 +28,7 @@ import com.adyen.model.checkout.PaymentsResponse.ResultCodeEnum;
 public abstract class CheckoutApiTestHelper {
     public static String URL = "https://checkout-test.adyen.com/checkoutPaymentRedirect?redirectData=abcdef12345";
     public static String PAYMENT_DATA = "abcde12345";
+    public static String PSP_REFERENCE = "853584459070452C";
 
     public static PaymentsResponse getRedirectShopperResponse() {
         List<InputDetail> details = new ArrayList<InputDetail>();
@@ -53,7 +54,7 @@ public abstract class CheckoutApiTestHelper {
     public static PaymentsResponse getAuthorisedResponse() {
         PaymentsResponse authoriseResponse = new PaymentsResponse();
         authoriseResponse.setResultCode(ResultCodeEnum.AUTHORISED);
-        authoriseResponse.setPspReference("853584459070452C");
+        authoriseResponse.setPspReference(PSP_REFERENCE);
         return authoriseResponse;
     }
 }

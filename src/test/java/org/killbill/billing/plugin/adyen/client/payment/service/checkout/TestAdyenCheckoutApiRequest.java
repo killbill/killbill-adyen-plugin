@@ -30,6 +30,8 @@ import org.killbill.billing.plugin.adyen.client.model.paymentinfo.KlarnaPaymentI
 import org.killbill.billing.plugin.adyen.client.payment.builder.AdyenRequestFactory;
 import org.killbill.billing.plugin.adyen.client.payment.service.AdyenCheckoutApiClient;
 import org.killbill.billing.plugin.adyen.client.payment.service.AdyenPaymentServiceProviderPort;
+
+import com.adyen.model.checkout.PaymentsDetailsRequest;
 import com.adyen.model.checkout.PaymentsRequest;
 import com.adyen.model.checkout.PaymentsResponse;
 
@@ -68,5 +70,28 @@ public class TestAdyenCheckoutApiRequest {
         assertEquals(additionalData.get("formUrl"), CheckoutApiTestHelper.URL);
         assertEquals(additionalData.get("formMethod"), "GET");
         assertFalse(StringUtils.isEmpty(additionalData.get("resultKeys")));
+    }
+
+    @Test(groups = "fast")
+    public void testCompleteAuthoriseKlarna() throws Exception {
+        PaymentsDetailsRequest request = new PaymentsDetailsRequest();
+        final AdyenCheckoutApiClient checkoutApi = mock(AdyenCheckoutApiClient.class);
+        PaymentsResponse authoriseResponse = CheckoutApiTestHelper.getAuthorisedResponse();
+        when(checkoutApi.paymentDetails(request)).thenReturn(authoriseResponse);
+
+        final String merchantAccount = "TestAccount";
+        final UserData userData = new UserData();
+        final PaymentData paymentData = new PaymentData<PaymentInfo>(
+                BigDecimal.TEN, Currency.EUR,null, new KlarnaPaymentInfo());
+
+        final AdyenRequestFactory adyenRequestFactory = mock(AdyenRequestFactory.class);
+        when(adyenRequestFactory.completeKlarnaPayment(merchantAccount, paymentData, userData)).thenReturn(request);
+
+        final AdyenPaymentServiceProviderPort adyenServiceProvider = new AdyenPaymentServiceProviderPort(
+                adyenRequestFactory, null, checkoutApi);
+
+        PurchaseResult result = adyenServiceProvider.completeKlarnaPaymentAuth(merchantAccount, paymentData, userData);
+        assertEquals(result.getResultCode(), "Authorised");
+        assertEquals(result.getPspReference(), CheckoutApiTestHelper.PSP_REFERENCE);
     }
 }
