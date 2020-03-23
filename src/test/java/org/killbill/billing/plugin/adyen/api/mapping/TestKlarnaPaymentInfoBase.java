@@ -1,11 +1,14 @@
 package org.killbill.billing.plugin.adyen.api.mapping;
 
 import com.google.common.collect.ImmutableMap;
+
+import org.jooq.tools.StringUtils;
 import org.killbill.billing.payment.api.PluginProperty;
 import org.killbill.billing.plugin.adyen.client.model.UserData;
 import org.killbill.billing.plugin.adyen.client.model.paymentinfo.KlarnaPaymentInfo;
 import org.killbill.billing.plugin.api.PluginProperties;
 import java.util.Locale;
+import java.util.Map;
 import java.util.UUID;
 
 import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.*;
@@ -36,7 +39,7 @@ public abstract class TestKlarnaPaymentInfoBase {
         return userData;
     }
 
-    protected Iterable<PluginProperty> propertiesForKlarnaPayment(
+    protected Iterable<PluginProperty> addKlarnaPaymentData(
             final String customerAccount,
             final String lineItems) {
         Iterable<PluginProperty> klarnaProperties = PluginProperties.buildPluginProperties(ImmutableMap.<String, String>builder()
@@ -54,10 +57,12 @@ public abstract class TestKlarnaPaymentInfoBase {
     protected KlarnaPaymentInfo getPaymentInfo(final String merchantAccount,
                                                final String countryCode,
                                                final String customerAccount,
-                                               final String lineItems) {
-        Iterable<PluginProperty> klarnaProperties = propertiesForKlarnaPayment(customerAccount, lineItems);
+                                               final String lineItems,
+                                               Iterable<PluginProperty> properties) {
+        Iterable<PluginProperty> klarnaProperties = addKlarnaPaymentData(customerAccount, lineItems);
+        Iterable<PluginProperty> allProperties = PluginProperties.merge(klarnaProperties, properties);
         final KlarnaPaymentInfo paymentInfo = (KlarnaPaymentInfo) KlarnaPaymentMappingService
-                .toPaymentInfo(merchantAccount, countryCode, klarnaProperties);
+                .toPaymentInfo(merchantAccount, countryCode, allProperties);
         return paymentInfo;
     }
 }

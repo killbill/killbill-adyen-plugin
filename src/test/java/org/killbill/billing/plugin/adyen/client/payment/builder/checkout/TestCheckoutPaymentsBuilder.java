@@ -22,9 +22,9 @@ public class TestCheckoutPaymentsBuilder extends TestKlarnaPaymentInfoBase {
 
 
     @Test(groups = "fast")
-    public void testPaymentRequest() throws Exception {
+    public void testBuildPaymentRequest() throws Exception {
         KlarnaPaymentInfo paymentInfo = getPaymentInfo(merchantAccount,
-                countryCode, customerAccount, lineItems);
+                countryCode, customerAccount, lineItems, null);
         PaymentData paymentData = new PaymentData<PaymentInfo>(
                 BigDecimal.valueOf(12), Currency.EUR,
                 UUID.randomUUID().toString(), paymentInfo);
