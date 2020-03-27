@@ -2,6 +2,7 @@ package org.killbill.billing.plugin.adyen.api.mapping;
 
 import org.jooq.tools.StringUtils;
 import org.killbill.billing.plugin.adyen.api.mapping.klarna.Account;
+import org.killbill.billing.plugin.adyen.api.mapping.klarna.PropertyMapper;
 import org.killbill.billing.plugin.adyen.api.mapping.klarna.Seller;
 import org.killbill.billing.plugin.adyen.api.mapping.klarna.Voucher;
 import org.killbill.billing.plugin.adyen.client.model.paymentinfo.KlarnaPaymentInfo;
@@ -13,13 +14,14 @@ import static org.testng.Assert.assertEquals;
 public class KlarnaPaymentMappingServiceTest extends TestKlarnaPaymentInfoBase {
     private final String countryCode = "GB";
     private final String merchantAccount = "MerchantAccount";
+    private final String shippingAddress = "{\"address1\":\"Address Line1\",\"address2\":\"Address Line2\",\"city\":\"My City\",\"state\":\"My State\",\"country\":\"My Country\",\"postalCode\":\"AB111CD\"}";
     private final String customerAccount= "{\"accountId\":\"ACCOUNT_ID009\",\"registrationDate\":\"2019-08-08T09:16:15Z\",\"lastModifiedDate\":\"2019-08-08T09:50:15Z\"}";
     private final String lineItems = "[{\"id\":\"Item_ID090909\",\"quantity\":\"2\",\"taxAmount\":\"69\",\"taxPercentage\":\"2100\",\"amountExcludingTax\":\"331\",\"amountIncludingTax\":\"400\",\"description\":\"Black Shoes\",\"productName\":\"School Shoes\",\"productCategory\":\"Shoes\",\"merchantId\":\"MERCHANT_ID0909\",\"merchantName\":\"Local Shopee\",\"inventoryService\":\"goods\"},{\"id\":\"Item_ID090910\",\"quantity\":\"1\",\"taxAmount\":\"52\",\"taxPercentage\":\"2100\",\"amountExcludingTax\":\"248\",\"amountIncludingTax\":\"300\",\"description\":\"Wine Tasting\",\"productName\":\"Winery\",\"productCategory\":\"Experience\",\"merchantId\":\"MERCHANT_ID0909\",\"merchantName\":\"Local Vineyard\",\"inventoryService\":\"vis\"}]";
 
     @Test(groups = "fast")
     public void testPaymentKlarnaInfoMapping() throws Exception {
         KlarnaPaymentInfo paymentInfo = getPaymentInfo(merchantAccount,
-                countryCode, customerAccount, lineItems);
+                countryCode, customerAccount, shippingAddress, lineItems);
 
         //validate payment info mapped from properties
         assertEquals(paymentInfo.getReturnUrl(), returnUrl);
@@ -34,7 +36,7 @@ public class KlarnaPaymentMappingServiceTest extends TestKlarnaPaymentInfoBase {
         assertTrue(paymentInfo.getItems().size() > 0);
 
         //line items
-        KlarnaPaymentInfo.LineItem lineItem = paymentInfo.getItems().get(0);
+        PropertyMapper.LineItem lineItem = paymentInfo.getItems().get(0);
         assertEquals(lineItem.getId(), "Item_ID090909");
         assertEquals(lineItem.getQuantity(), Long.valueOf(2));
         assertEquals(lineItem.getDescription(), "Black Shoes");
@@ -64,5 +66,15 @@ public class KlarnaPaymentMappingServiceTest extends TestKlarnaPaymentInfoBase {
         assertEquals(seller.getProductName(), "School Shoes");
         assertEquals(seller.getProductCategory(), "Shoes");
         assertEquals(seller.getMerchantId(), "MERCHANT_ID0909");
+
+        //shipping address
+        PropertyMapper.Address address = paymentInfo.getShippingAddress();
+        assertEquals(address.getAddress1(), "Address Line1");
+        assertEquals(address.getAddress2(), "Address Line2");
+        assertEquals(address.getCity(), "My City");
+        assertEquals(address.getState(), "My State");
+        assertEquals(address.getCountry(), "My Country");
+        assertEquals(address.getPostalCode(), "AB111CD");
+
     }
 }

@@ -24,6 +24,8 @@ import com.adyen.model.checkout.PaymentsRequest;
 import com.google.common.base.Charsets;
 import com.adyen.model.*;
 import java.util.Base64;
+
+import org.killbill.billing.plugin.adyen.api.mapping.klarna.PropertyMapper;
 import org.killbill.billing.plugin.adyen.client.model.PaymentData;
 import org.killbill.billing.plugin.adyen.client.model.UserData;
 import org.killbill.billing.plugin.adyen.client.model.paymentinfo.KlarnaPaymentInfo;
@@ -74,6 +76,11 @@ public class CheckoutPaymentsBuilder extends RequestBuilder<PaymentsRequest> {
             request.setPaymentMethod(paymentMethod);
         }
 
+        //shipping address
+        if(paymentInfo.getShippingAddress() != null) {
+            setDeliveryAddress(paymentInfo.getShippingAddress());
+        }
+
         request.setReference(paymentInfo.getOrderReference());
         request.setCountryCode(paymentInfo.getCountryCode());
         request.setReturnUrl(paymentInfo.getReturnUrl());
@@ -83,6 +90,17 @@ public class CheckoutPaymentsBuilder extends RequestBuilder<PaymentsRequest> {
         setInvoiceLines(paymentInfo);
         setAdditionalData(paymentInfo);
         return request;
+    }
+
+    private void setDeliveryAddress(PropertyMapper.Address shippingAddress){
+        Address address = new Address();
+        address.setHouseNumberOrName(shippingAddress.getAddress1());
+        address.setStreet(shippingAddress.getAddress2());
+        address.setStateOrProvince(shippingAddress.getState());
+        address.setCity(shippingAddress.getCity());
+        address.setCountry(shippingAddress.getCountry());
+        address.setPostalCode(shippingAddress.getPostalCode());
+        request.setDeliveryAddress(address);
     }
 
     private void setAdditionalData(KlarnaPaymentInfo paymentInfo) {
@@ -97,10 +115,10 @@ public class CheckoutPaymentsBuilder extends RequestBuilder<PaymentsRequest> {
     }
 
     private void setInvoiceLines(KlarnaPaymentInfo paymentInfo) {
-        List<KlarnaPaymentInfo.LineItem>  items = paymentInfo.getItems();
+        List<PropertyMapper.LineItem>  items = paymentInfo.getItems();
         List<LineItem> invoiceLines = new ArrayList<LineItem>();
         if(items.size() > 0) {
-            for(KlarnaPaymentInfo.LineItem item: items) {
+            for(PropertyMapper.LineItem item: items) {
                 LineItem lineItem = new LineItem();
                 lineItem.setId(item.getId());
                 lineItem.setDescription(item.getDescription());

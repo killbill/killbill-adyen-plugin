@@ -1,9 +1,10 @@
 package org.killbill.billing.plugin.adyen.client.model.paymentinfo;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.jooq.tools.StringUtils;
+
 import org.killbill.billing.payment.api.PluginProperty;
 import org.killbill.billing.plugin.adyen.api.mapping.klarna.Account;
+import org.killbill.billing.plugin.adyen.api.mapping.klarna.PropertyMapper;
 import org.killbill.billing.plugin.adyen.api.mapping.klarna.MerchantData;
 import org.killbill.billing.plugin.adyen.api.mapping.klarna.Seller;
 import org.killbill.billing.plugin.adyen.api.mapping.klarna.Voucher;
@@ -27,7 +28,8 @@ public class KlarnaPaymentInfo extends PaymentInfo {
     private List<Voucher> vouchers;
     private List<Account> accounts;
     private List<Seller> sellers;
-    private List<LineItem> items = new ArrayList<>();
+    private List<PropertyMapper.LineItem> items = new ArrayList<>();
+    private PropertyMapper.Address shippingAddress;
 
     //data for payment details check
     private Iterable<PluginProperty> properties;
@@ -38,6 +40,9 @@ public class KlarnaPaymentInfo extends PaymentInfo {
     public void setProperties(Iterable<PluginProperty> properties) {
         this.properties = properties;
     }
+
+    public PropertyMapper.Address getShippingAddress() { return shippingAddress; }
+    public void setShippingAddress(final PropertyMapper.Address shippingAddress) { this.shippingAddress = shippingAddress; }
 
     public String getMerchantAccount() {
         return merchantAccount;
@@ -72,10 +77,10 @@ public class KlarnaPaymentInfo extends PaymentInfo {
         this.returnUrl = returnUrl;
     }
 
-    public List<LineItem> getItems() {
+    public List<PropertyMapper.LineItem> getItems() {
         return items;
     }
-    public void setItems(List<LineItem> items) {
+    public void setItems(List<PropertyMapper.LineItem> items) {
         this.items = items;
     }
 
@@ -110,121 +115,5 @@ public class KlarnaPaymentInfo extends PaymentInfo {
         }
 
         return additionalData;
-    }
-
-    // Line Item
-    public static class LineItem {
-        private String id;
-        private String description;
-        private Long quantity;
-        private Long taxAmount;
-        private Long taxPercentage;
-        private Long amountExcludingTax;
-        private Long amountIncludingTax;
-
-        // fields included for merchant data
-        private String inventoryService;
-        private String productName;
-        private String productCategory;
-        private String merchantId;
-        private String merchantName;
-
-        public String getId() {
-            return id;
-        }
-        public void setId(String id) {
-            this.id = id;
-        }
-
-        public Long getQuantity() { return quantity; }
-        public void setQuantity(Long quantity) {
-            this.quantity = quantity;
-        }
-
-        public String getDescription() {
-            return description;
-        }
-        public void setDescription(String description) {
-            this.description = description;
-        }
-
-        public String getProductName() { return productName; }
-        public void setProductName(String productName) { this.productName = productName; }
-
-        public String getProductCategory() { return productCategory; }
-        public void setProductCategory(String productCategory) { this.productCategory = productCategory; }
-
-        public String getMerchantId() { return merchantId; }
-        public void setMerchantId(String merchantId) { this.merchantId = merchantId; }
-
-        public String getMerchantName() { return merchantName; }
-        public void setMerchantName(String merchantName) { this.merchantName = merchantName; }
-
-        public Long getTaxAmount() {
-            return taxAmount;
-        }
-        public void setTaxAmount(Long taxAmount) {
-            this.taxAmount = taxAmount;
-        }
-
-        public Long getTaxPercentage() {
-            return taxPercentage;
-        }
-        public void setTaxPercentage(Long taxPercentage) {
-            this.taxPercentage = taxPercentage;
-        }
-
-        public Long getAmountExcludingTax() {
-            return amountExcludingTax;
-        }
-        public void setAmountExcludingTax(Long amountExcludingTax) {
-            this.amountExcludingTax = amountExcludingTax;
-        }
-
-        public Long getAmountIncludingTax() {
-            return amountIncludingTax;
-        }
-        public void setAmountIncludingTax(Long amountIncludingTax) {
-            this.amountIncludingTax = amountIncludingTax;
-        }
-
-        public String getInventoryService() { return inventoryService; }
-        public void setInventoryService(String inventoryService) { this.inventoryService = inventoryService; }
-
-        public boolean isVoucher() {
-            boolean itemIsVoucher = true;
-            if(!StringUtils.isEmpty(inventoryService) && inventoryService.toLowerCase().equals("goods")) {
-                itemIsVoucher = false;
-            }
-
-            return itemIsVoucher;
-        }
-    }
-
-    public static class CustomerAccount {
-        private String accountId;
-        private String registrationDate;
-        private String lastModifiedDate;
-
-        public String getAccountId() {
-            return accountId;
-        }
-        public void setAccountId(String accountId) {
-            this.accountId = accountId;
-        }
-
-        public String getRegistrationDate() {
-            return registrationDate;
-        }
-        public void setRegistrationDate(String registrationDate) {
-            this.registrationDate = registrationDate;
-        }
-
-        public String getLastModifiedDate() {
-            return lastModifiedDate;
-        }
-        public void setLastModifiedDate(String lastModifiedDate) {
-            this.lastModifiedDate = lastModifiedDate;
-        }
     }
 }

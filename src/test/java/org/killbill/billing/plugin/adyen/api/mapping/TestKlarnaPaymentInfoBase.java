@@ -38,6 +38,7 @@ public abstract class TestKlarnaPaymentInfoBase {
 
     protected Iterable<PluginProperty> propertiesForKlarnaPayment(
             final String customerAccount,
+            final String shippingAddress,
             final String lineItems) {
         Iterable<PluginProperty> klarnaProperties = PluginProperties.buildPluginProperties(ImmutableMap.<String, String>builder()
                 .put(PROPERTY_PAYMENT_TYPE, KlarnaPaymentMappingService.KLARNA_PAYMENT_TYPE)
@@ -45,6 +46,7 @@ public abstract class TestKlarnaPaymentInfoBase {
                 .put(PROPERTY_RETURN_URL, returnUrl)
                 .put(PROPERTY_ORDER_REFERENCE, orderReference)
                 .put(PROPERTY_CUSTOMER_ACCOUNT, customerAccount)
+                .put(PROPERTY_SHIPPING_ADDRESS, shippingAddress)
                 .put(PROPERTY_LINE_ITEMS, lineItems)
                 .build());
 
@@ -54,8 +56,9 @@ public abstract class TestKlarnaPaymentInfoBase {
     protected KlarnaPaymentInfo getPaymentInfo(final String merchantAccount,
                                                final String countryCode,
                                                final String customerAccount,
+                                               final String shippingAddress,
                                                final String lineItems) {
-        Iterable<PluginProperty> klarnaProperties = propertiesForKlarnaPayment(customerAccount, lineItems);
+        Iterable<PluginProperty> klarnaProperties = propertiesForKlarnaPayment(customerAccount, shippingAddress, lineItems);
         final KlarnaPaymentInfo paymentInfo = (KlarnaPaymentInfo) KlarnaPaymentMappingService
                 .toPaymentInfo(merchantAccount, countryCode, klarnaProperties);
         return paymentInfo;
