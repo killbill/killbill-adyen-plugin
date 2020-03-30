@@ -24,5 +24,13 @@ public class Voucher {
     public void setCompany(String company) {
         this.company = company;
     }
+
+    @Override
+    public String toString() {
+        return "Voucher{" +
+               "name='" + name + '\'' +
+               ", company='" + company + '\'' +
+               '}';
+    }
 }
 

@@ -201,6 +201,7 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
     public static final String PROPERTY_LINE_ITEMS = "lineItems";
     public static final String PROPERTY_ORDER_REFERENCE = "orderReference";
     public static final String PROPERTY_CUSTOMER_ACCOUNT ="customerAccount";
+    public static final String PROPERTY_SHIPPING_ADDRESS = "shippingAddress";
 
     // HPP
     public static final String PROPERTY_CREATE_PENDING_PAYMENT = "createPendingPayment";

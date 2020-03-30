@@ -35,4 +35,13 @@ public class Account {
     public void setLastModifiedDate(String lastModifiedDate) {
         this.lastModifiedDate = lastModifiedDate;
     }
+
+    @Override
+    public String toString() {
+        return "Account{" +
+               "identifier='" + identifier + '\'' +
+               ", registrationDate='" + registrationDate + '\'' +
+               ", lastModifiedDate='" + lastModifiedDate + '\'' +
+               '}';
+    }
 }

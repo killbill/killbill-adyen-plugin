@@ -54,6 +54,7 @@ import org.killbill.billing.payment.plugin.api.PaymentPluginStatus;
 import org.killbill.billing.payment.plugin.api.PaymentTransactionInfoPlugin;
 import org.killbill.billing.plugin.TestUtils;
 import org.killbill.billing.plugin.adyen.api.mapping.KlarnaPaymentMappingService;
+import org.killbill.billing.plugin.adyen.api.mapping.klarna.PaymentType;
 import org.killbill.billing.plugin.adyen.dao.AdyenDao;
 import org.killbill.billing.plugin.adyen.dao.gen.tables.records.AdyenPaymentMethodsRecord;
 import org.killbill.billing.plugin.api.PluginProperties;
@@ -246,7 +247,7 @@ public class TestAdyenPaymentPluginApi extends TestAdyenPaymentPluginApiBase {
             .build());
     private final Iterable<PluginProperty> propertiesWithKlarnaPayment = PluginProperties.buildPluginProperties(ImmutableMap.<String, String>builder()
             .put(PROPERTY_PAYMENT_TYPE, KlarnaPaymentMappingService.KLARNA_PAYMENT_TYPE)
-            .put(PROPERTY_PAYMENT_METHOD, KlarnaPaymentMappingService.KLARNA_PAY_LATER)
+            .put(PROPERTY_PAYMENT_METHOD, PaymentType.PAY_LATER.toString())
             .put(PROPERTY_RETURN_URL, "https://www.company.com/callback")
             .put(AdyenPaymentPluginApi.PROPERTY_USER_AGENT, "Java/1.8")
             .put(AdyenPaymentPluginApi.PROPERTY_ACCEPT_HEADER, "application/json")
@@ -1463,7 +1464,7 @@ public class TestAdyenPaymentPluginApi extends TestAdyenPaymentPluginApiBase {
         assertNotNull(PluginProperties.findPluginPropertyValue("resultKeys", pluginProperties));
         assertNotNull(PluginProperties.findPluginPropertyValue("paymentData", pluginProperties));
         assertEquals(PluginProperties.findPluginPropertyValue("formMethod", pluginProperties), "GET");
-        assertEquals(PluginProperties.findPluginPropertyValue("paymentMethod", pluginProperties), KlarnaPaymentMappingService.KLARNA_PAY_LATER);
+        assertEquals(PluginProperties.findPluginPropertyValue("paymentMethod", pluginProperties), PaymentType.PAY_LATER.toString());
         assertEquals(PluginProperties.findPluginPropertyValue("adyenResultCode", pluginProperties), "RedirectShopper");
     }
 

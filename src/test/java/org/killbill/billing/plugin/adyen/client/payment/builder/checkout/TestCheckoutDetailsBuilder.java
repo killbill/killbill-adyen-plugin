@@ -56,6 +56,7 @@ public class TestCheckoutDetailsBuilder extends TestKlarnaPaymentInfoBase {
                                                        countryCode,
                                                        "dummy",
                                                        "dummy",
+                                                       "dummy",
                                                        authCompleteProperties);
 
         //update the saved auth response data

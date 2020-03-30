@@ -128,4 +128,18 @@ public class CheckoutPaymentsResult {
                 null,
                 additionalData);
     }
+
+    @Override
+    public String toString() {
+        return "CheckoutPaymentsResult{" +
+               "resultCode='" + resultCode + '\'' +
+               ", paymentData='" + paymentData + '\'' +
+               ", pspReference='" + pspReference + '\'' +
+               ", paymentMethod='" + paymentMethod + '\'' +
+               ", formMethod='" + formMethod + '\'' +
+               ", formUrl='" + formUrl + '\'' +
+               ", formParameter=" + formParameter +
+               ", authResultKeys=" + authResultKeys +
+               '}';
+    }
 }

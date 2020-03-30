@@ -233,7 +233,9 @@ public class AdyenPaymentServiceProviderPort extends BaseAdyenPaymentServiceProv
                 result.setPaymentMethod(actionData.getPaymentMethodType());
                 result.setPaymentData(actionData.getPaymentData());
 
-                //TODO: add form params for POST method
+                if(actionData.getMethod() == "POST") {
+                    result.setFormParameter(actionData.getData());
+                }
             }
 
             List<InputDetail> keyDetails = response.getDetails();
@@ -245,7 +247,7 @@ public class AdyenPaymentServiceProviderPort extends BaseAdyenPaymentServiceProv
                 result.setAuthResultKeys(keyTypes);
             }
         } else {
-            //TODO: handle other result codes
+            logger.error("Received unexpected resultCode:" + resultCode.toString());
         }
 
         return result.toPurchaseResult();
