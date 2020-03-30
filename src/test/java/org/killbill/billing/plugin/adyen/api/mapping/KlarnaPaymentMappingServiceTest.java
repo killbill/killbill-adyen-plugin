@@ -2,6 +2,7 @@ package org.killbill.billing.plugin.adyen.api.mapping;
 
 import org.jooq.tools.StringUtils;
 import org.killbill.billing.plugin.adyen.api.mapping.klarna.Account;
+import org.killbill.billing.plugin.adyen.api.mapping.klarna.PaymentType;
 import org.killbill.billing.plugin.adyen.api.mapping.klarna.PropertyMapper;
 import org.killbill.billing.plugin.adyen.api.mapping.klarna.Seller;
 import org.killbill.billing.plugin.adyen.api.mapping.klarna.Voucher;
@@ -29,7 +30,7 @@ public class KlarnaPaymentMappingServiceTest extends TestKlarnaPaymentInfoBase {
         assertEquals(paymentInfo.getCountryCode(), countryCode);
         assertEquals(paymentInfo.getOrderReference(), orderReference);
         assertEquals(paymentInfo.getPaymentType(), KlarnaPaymentMappingService.KLARNA_PAYMENT_TYPE);
-        assertEquals(paymentInfo.getPaymentMethod(), KlarnaPaymentMappingService.KLARNA_PAY_LATER);
+        assertEquals(paymentInfo.getPaymentMethod(), PaymentType.PAY_LATER.toString());
         assertTrue(paymentInfo.getAccounts().size() > 0);
         assertTrue(paymentInfo.getVouchers().size() > 0);
         assertTrue(paymentInfo.getSellers().size() > 0);
@@ -52,17 +53,20 @@ public class KlarnaPaymentMappingServiceTest extends TestKlarnaPaymentInfoBase {
 
         //account info
         Account account = paymentInfo.getAccounts().get(0);
+        String test1 = account.toString();
         assertEquals(account.getIdentifier(), "ACCOUNT_ID009");
         assertFalse(StringUtils.isEmpty(account.getRegistrationDate()));
         assertFalse(StringUtils.isEmpty(account.getLastModifiedDate()));
 
         //voucher info
         Voucher voucher = paymentInfo.getVouchers().get(0);
+        String test2 = voucher.toString();
         assertEquals(voucher.getName(), "Wine Tasting");
         assertEquals(voucher.getCompany(), "Local Vineyard");
 
         //seller info
         Seller seller = paymentInfo.getSellers().get(0);
+        String test3 = voucher.toString();
         assertEquals(seller.getProductName(), "School Shoes");
         assertEquals(seller.getProductCategory(), "Shoes");
         assertEquals(seller.getMerchantId(), "MERCHANT_ID0909");

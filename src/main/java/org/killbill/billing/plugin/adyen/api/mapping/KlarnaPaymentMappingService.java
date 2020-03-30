@@ -22,9 +22,6 @@ public abstract class KlarnaPaymentMappingService {
     private static final ObjectMapper mapper = new ObjectMapper();
 
     public static final String KLARNA_PAYMENT_TYPE = "klarna";
-    public static final String KLARNA_PAY_LATER = "klarna";
-    public static final String KLARNA_PAY_NOW = "klarna_paynow";
-    public static final String KLARNA_PAY_INSTALLMENT = "klarna_account";
 
     public static PaymentInfo toPaymentInfo(final String merchantAccount, final String countryCode, Iterable<PluginProperty> properties) {
         final KlarnaPaymentInfo paymentInfo = new KlarnaPaymentInfo();

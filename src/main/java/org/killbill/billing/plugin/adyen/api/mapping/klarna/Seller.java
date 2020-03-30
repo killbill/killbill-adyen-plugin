@@ -35,5 +35,14 @@ public class Seller {
     public void setMerchantId(String merchantId) {
         this.merchantId = merchantId;
     }
+
+    @Override
+    public String toString() {
+        return "Seller{" +
+               "productName='" + productName + '\'' +
+               ", productCategory='" + productCategory + '\'' +
+               ", merchantId='" + merchantId + '\'' +
+               '}';
+    }
 }
 

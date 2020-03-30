@@ -76,6 +76,18 @@ public abstract class PropertyMapper {
         public void setPostalCode(final String postalCode) {
             this.postalCode = postalCode;
         }
+
+        @Override
+        public String toString() {
+            return "Address{" +
+                   "address1='" + address1 + '\'' +
+                   ", address2='" + address2 + '\'' +
+                   ", city='" + city + '\'' +
+                   ", state='" + state + '\'' +
+                   ", country='" + country + '\'' +
+                   ", postalCode='" + postalCode + '\'' +
+                   '}';
+        }
     }
 
     public static class LineItem {
@@ -164,6 +176,24 @@ public abstract class PropertyMapper {
 
             return itemIsVoucher;
         }
+
+        @Override
+        public String toString() {
+            return "LineItem{" +
+                   "id='" + id + '\'' +
+                   ", description='" + description + '\'' +
+                   ", quantity=" + quantity +
+                   ", taxAmount=" + taxAmount +
+                   ", taxPercentage=" + taxPercentage +
+                   ", amountExcludingTax=" + amountExcludingTax +
+                   ", amountIncludingTax=" + amountIncludingTax +
+                   ", inventoryService='" + inventoryService + '\'' +
+                   ", productName='" + productName + '\'' +
+                   ", productCategory='" + productCategory + '\'' +
+                   ", merchantId='" + merchantId + '\'' +
+                   ", merchantName='" + merchantName + '\'' +
+                   '}';
+        }
     }
 
     public static class CustomerAccount {
@@ -190,6 +220,15 @@ public abstract class PropertyMapper {
         }
         public void setLastModifiedDate(String lastModifiedDate) {
             this.lastModifiedDate = lastModifiedDate;
+        }
+
+        @Override
+        public String toString() {
+            return "CustomerAccount{" +
+                   "accountId='" + accountId + '\'' +
+                   ", registrationDate='" + registrationDate + '\'' +
+                   ", lastModifiedDate='" + lastModifiedDate + '\'' +
+                   '}';
         }
     }
 }

@@ -36,4 +36,13 @@ public class MerchantData {
     public void setSellerInfo(List<Seller> sellerInfo) {
         this.sellerInfo = sellerInfo;
     }
+
+    @Override
+    public String toString() {
+        return "MerchantData{" +
+               "voucherInfo=" + voucherInfo +
+               ", customerInfo=" + customerInfo +
+               ", sellerInfo=" + sellerInfo +
+               '}';
+    }
 }
