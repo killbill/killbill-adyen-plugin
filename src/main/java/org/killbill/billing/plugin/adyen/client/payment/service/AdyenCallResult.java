@@ -16,6 +16,10 @@
 
 package org.killbill.billing.plugin.adyen.client.payment.service;
 
+import java.io.IOException;
+
+import com.adyen.service.exception.ApiException;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Optional;
 
 import static com.google.common.base.Preconditions.checkNotNull;
@@ -36,12 +40,14 @@ public interface AdyenCallResult<T> {
 
 }
 
+@VisibleForTesting
 class SuccessfulAdyenCall<T> implements AdyenCallResult<T> {
 
     private final T result;
 
     private final long duration;
 
+    @VisibleForTesting
     public SuccessfulAdyenCall(final T result, long duration) {
         this.result = checkNotNull(result, "result");
         this.duration = duration;
@@ -141,5 +147,23 @@ class UnSuccessfulAdyenCall<T> implements AdyenCallResult<T> {
         sb.append(", exceptionClass='").append(exceptionClass).append('\'');
         sb.append(" }");
         return sb.toString();
+    }
+}
+
+class FailedCheckoutApiCall<T> extends UnSuccessfulAdyenCall<T> {
+    private Exception exception;
+    FailedCheckoutApiCall(final AdyenCallErrorStatus responseStatus,
+                          final Throwable rootCause,
+                          final Exception exception) {
+        super(responseStatus, rootCause);
+        this.exception = exception;
+    }
+
+    ApiException getApiException() {
+        return (exception instanceof ApiException) ? (ApiException)exception : null;
+    }
+
+    IOException getIOException() {
+        return (exception instanceof IOException) ? (IOException)exception : null;
     }
 }

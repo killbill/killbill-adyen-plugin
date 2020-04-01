@@ -2,6 +2,8 @@ package org.killbill.billing.plugin.adyen.client.payment.service.checkout;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
+import org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi;
 import org.killbill.billing.plugin.adyen.client.model.PaymentServiceProviderResult;
 import org.killbill.billing.plugin.adyen.client.model.PurchaseResult;
 import org.slf4j.Logger;
@@ -19,6 +21,8 @@ public class CheckoutPaymentsResult {
     private String formUrl;
     private Map<String, String> formParameter;
     private Map<String, String> authResultKeys;
+    private String merchantAccount;
+    private String paymentExternalKey;
     private final Logger logger;
 
     public CheckoutPaymentsResult() {
@@ -28,7 +32,6 @@ public class CheckoutPaymentsResult {
     public String getResultCode() {
         return resultCode;
     }
-
     public void setResultCode(String resultCode) {
         this.resultCode = resultCode;
     }
@@ -36,7 +39,6 @@ public class CheckoutPaymentsResult {
     public String getPaymentData() {
         return paymentData;
     }
-
     public void setPaymentData(String paymentData) {
         this.paymentData = paymentData;
     }
@@ -44,7 +46,6 @@ public class CheckoutPaymentsResult {
     public String getPspReference() {
         return pspReference;
     }
-
     public void setPspReference(String pspReference) {
         this.pspReference = pspReference;
     }
@@ -52,7 +53,6 @@ public class CheckoutPaymentsResult {
     public String getPaymentMethod() {
         return paymentMethod;
     }
-
     public void setPaymentMethod(String paymentMethod) {
         this.paymentMethod = paymentMethod;
     }
@@ -60,7 +60,6 @@ public class CheckoutPaymentsResult {
     public String getFormUrl() {
         return formUrl;
     }
-
     public void setFormUrl(String formUrl) {
         this.formUrl = formUrl;
     }
@@ -68,7 +67,6 @@ public class CheckoutPaymentsResult {
     public String getFormMethod() {
         return formMethod;
     }
-
     public void setFormMethod(String formMethod) {
         this.formMethod = formMethod;
     }
@@ -76,7 +74,6 @@ public class CheckoutPaymentsResult {
     public Map<String, String> getFormParameter() {
         return formParameter;
     }
-
     public void setFormParameter(Map<String, String> formParameter) {
         this.formParameter = formParameter;
     }
@@ -84,19 +81,36 @@ public class CheckoutPaymentsResult {
     public Map<String, String> getAuthResultKeys() {
         return authResultKeys;
     }
-
     public void setAuthResultKeys(Map<String, String> authResultKeys) {
         this.authResultKeys = authResultKeys;
     }
+
+    public String getMerchantAccount() { return merchantAccount; }
+    public void setMerchantAccount(final String merchantAccount) { this.merchantAccount = merchantAccount; }
+
+    public String getPaymentExternalKey() { return paymentExternalKey; }
+    public void setPaymentExternalKey(final String paymentExternalKey) { this.paymentExternalKey = paymentExternalKey; }
 
     public PurchaseResult toPurchaseResult() {
         //convert the result to PurchaseResult
         ObjectMapper mapper = new ObjectMapper();
         Map<String, String> additionalData = new HashMap<>();
-        additionalData.put("paymentData", paymentData);
-        additionalData.put("paymentMethod", paymentMethod);
-        additionalData.put("formUrl", formUrl);
-        additionalData.put("formMethod", formMethod);
+
+        if(paymentData != null) {
+            additionalData.put("paymentData", paymentData);
+        }
+        if(paymentMethod != null) {
+            additionalData.put("paymentMethod", paymentMethod);
+        }
+        if(formUrl != null) {
+            additionalData.put("formUrl", formUrl);
+        }
+        if(formMethod != null) {
+            additionalData.put("formMethod", formMethod);
+        }
+        if(merchantAccount != null) {
+            additionalData.put(AdyenPaymentPluginApi.PROPERTY_MERCHANT_ACCOUNT_CODE, merchantAccount);
+        }
 
         if(formParameter != null) {
             try {
@@ -123,7 +137,7 @@ public class CheckoutPaymentsResult {
                 pspReference,
                 null,
                 resultCode,
-                null,
+                paymentExternalKey,
                 null,
                 null,
                 additionalData);

@@ -15,7 +15,7 @@
  * under the License.
  */
 
-package org.killbill.billing.plugin.adyen.client.payment.service.checkout;
+package org.killbill.billing.plugin.adyen.client.payment.service;
 
 import java.math.BigDecimal;
 import java.util.Map;
@@ -28,6 +28,7 @@ import org.killbill.billing.plugin.adyen.client.model.PurchaseResult;
 import org.killbill.billing.plugin.adyen.client.model.UserData;
 import org.killbill.billing.plugin.adyen.client.model.paymentinfo.KlarnaPaymentInfo;
 import org.killbill.billing.plugin.adyen.client.payment.builder.AdyenRequestFactory;
+import org.killbill.billing.plugin.adyen.client.payment.service.AdyenCallResult;
 import org.killbill.billing.plugin.adyen.client.payment.service.AdyenCheckoutApiClient;
 import org.killbill.billing.plugin.adyen.client.payment.service.AdyenPaymentServiceProviderPort;
 
@@ -35,19 +36,23 @@ import com.adyen.model.checkout.PaymentsDetailsRequest;
 import com.adyen.model.checkout.PaymentsRequest;
 import com.adyen.model.checkout.PaymentsResponse;
 
+import org.killbill.billing.plugin.adyen.client.payment.service.SuccessfulAdyenCall;
+import org.killbill.billing.plugin.adyen.client.payment.service.checkout.CheckoutApiTestHelper;
 import org.testng.annotations.Test;
 import static org.testng.Assert.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class TestAdyenCheckoutApiRequest {
+public class TestAdyenCheckoutApiClient {
 
     @Test(groups = "fast")
     public void testAuthoriseKlarnaPayment() throws Exception {
         PaymentsRequest request = new PaymentsRequest();
         final AdyenCheckoutApiClient checkoutApi = mock(AdyenCheckoutApiClient.class);
+        PaymentsResponse authResponse = CheckoutApiTestHelper.getRedirectShopperResponse();
+        AdyenCallResult<PaymentsResponse> authResult = new SuccessfulAdyenCall<PaymentsResponse>(authResponse,100);
         PaymentsResponse authoriseResponse = CheckoutApiTestHelper.getRedirectShopperResponse();
-        when(checkoutApi.createPayment(request)).thenReturn(authoriseResponse);
+        when(checkoutApi.createPayment(request)).thenReturn(authResult);
 
         final String merchantAccount = "TestAccount";
         final UserData userData = new UserData();
@@ -76,8 +81,9 @@ public class TestAdyenCheckoutApiRequest {
     public void testCompleteAuthoriseKlarna() throws Exception {
         PaymentsDetailsRequest request = new PaymentsDetailsRequest();
         final AdyenCheckoutApiClient checkoutApi = mock(AdyenCheckoutApiClient.class);
-        PaymentsResponse authoriseResponse = CheckoutApiTestHelper.getAuthorisedResponse();
-        when(checkoutApi.paymentDetails(request)).thenReturn(authoriseResponse);
+        PaymentsResponse authResponse = CheckoutApiTestHelper.getAuthorisedResponse();
+        AdyenCallResult<PaymentsResponse> authResult = new SuccessfulAdyenCall<PaymentsResponse>(authResponse, 100);
+        when(checkoutApi.paymentDetails(request)).thenReturn(authResult);
 
         final String merchantAccount = "TestAccount";
         final UserData userData = new UserData();

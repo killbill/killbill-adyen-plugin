@@ -85,6 +85,10 @@ public class CheckoutPaymentsBuilder extends RequestBuilder<PaymentsRequest> {
         request.setCountryCode(paymentInfo.getCountryCode());
         request.setReturnUrl(paymentInfo.getReturnUrl());
 
+        // Set this flag to avoid creation of token for
+        // payment method on Adyen backend.
+        request.setStorePaymentMethod(false);
+
         setAmount();
         setShopperData();
         setInvoiceLines(paymentInfo);
@@ -96,7 +100,7 @@ public class CheckoutPaymentsBuilder extends RequestBuilder<PaymentsRequest> {
         Address address = new Address();
         address.setHouseNumberOrName(shippingAddress.getAddress1());
         address.setStreet(shippingAddress.getAddress2());
-        address.setStateOrProvince(shippingAddress.getState());
+        address.setStateOrProvince(shippingAddress.getState()); //optional
         address.setCity(shippingAddress.getCity());
         address.setCountry(shippingAddress.getCountry());
         address.setPostalCode(shippingAddress.getPostalCode());
@@ -151,6 +155,7 @@ public class CheckoutPaymentsBuilder extends RequestBuilder<PaymentsRequest> {
         if (userData.getGender() != null) {
             name.setGender(Name.GenderEnum.valueOf(userData.getGender().toUpperCase()));
         }
+
         if (userData.getFirstName() != null ||
             userData.getInfix() != null ||
             userData.getLastName() != null ||
@@ -158,9 +163,20 @@ public class CheckoutPaymentsBuilder extends RequestBuilder<PaymentsRequest> {
             request.setShopperName(name);
         }
 
-        request.setShopperLocale(userData.getShopperLocale().toString());
+        // Split the locale text with only 2 chars
+        // e.g. Use 'de' if given locale is de_DE
+        if(userData.getShopperLocale() != null) {
+            final String localeText = userData.getShopperLocale().toString();
+            String locale = localeText;
+            if(localeText.contains("_")) {
+                String[] localeParts = localeText.split("_");
+                request.setShopperLocale(localeParts.length > 0 ? localeParts[0] : localeText);
+            } else {
+                request.setShopperLocale(localeText);
+            }
+        }
+
         request.setShopperEmail(userData.getShopperEmail());
-        request.setShopperIP(userData.getShopperIP());
         request.setShopperReference(userData.getShopperReference());
     }
 }

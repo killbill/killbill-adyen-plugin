@@ -156,70 +156,54 @@ public class AdyenPaymentServiceProviderPort extends BaseAdyenPaymentServiceProv
                                                  final PaymentData paymentData,
                                                  final UserData userData) {
         PaymentsRequest klarnaRequest = adyenRequestFactory.createKlarnaPayment(merchantAccount, paymentData, userData);
-        PurchaseResult purchaseResult = null;
-        try {
-            PaymentsResponse response = adyenCheckoutApiClient.createPayment(klarnaRequest);
-            purchaseResult = extractKlarnaResponse(response);
-        }
-        catch (ApiException ex) {
-            new PurchaseResult(PaymentServiceProviderResult.valueOf("error"),
-                    null,
-                    null,
-                    ex.getMessage(),
-                    null,
-                    klarnaRequest.getReference(), null);
-        } catch (IOException ex) {
-            new PurchaseResult(PaymentServiceProviderResult.valueOf("error"),
-                    null,
-                    null,
-                    ex.getMessage(),
-                    null,
-                    klarnaRequest.getReference(), null);
+        final AdyenCallResult<PaymentsResponse> adyenCallResult = adyenCheckoutApiClient.createPayment(klarnaRequest);
+        if (!adyenCallResult.receivedWellFormedResponse()) {
+            return handleKlarnaAuthoriseError(adyenCallResult, paymentData);
         }
 
-        return purchaseResult;
+        return handleKlarnaAuthoriseResponse(adyenCallResult, merchantAccount);
     }
 
     public PurchaseResult completeKlarnaPaymentAuth(final String merchantAccount,
                                                  final PaymentData paymentData,
                                                  final UserData userData) {
         PaymentsDetailsRequest detailsRequest = adyenRequestFactory.completeKlarnaPayment(merchantAccount, paymentData, userData);
-        PurchaseResult purchaseResult = null;
-        try {
-            PaymentsResponse response = adyenCheckoutApiClient.paymentDetails(detailsRequest);
-            purchaseResult = extractKlarnaResponse(response);
+        final AdyenCallResult<PaymentsResponse> adyenCallResult = adyenCheckoutApiClient.paymentDetails(detailsRequest);
+        if (!adyenCallResult.receivedWellFormedResponse()) {
+            return handleKlarnaAuthoriseError(adyenCallResult, paymentData);
         }
-        catch (ApiException ex) {
-            ApiError apiError = ex.getError();
-            String errorDetails = new StringBuilder()
-                    .append("status :" + apiError.getStatus())
-                    .append("errorCode :" + apiError.getErrorCode())
-                    .append("message: " + apiError.getMessage())
-                    .append("type: " +  apiError.getErrorType())
-                    .append("pspReference: " + apiError.getPspReference())
-                    .toString();
-            logger.error("completeKlarnaPayment auth error, ", errorDetails);
-            new PurchaseResult(PaymentServiceProviderResult.valueOf("error"),
-                    null,
-                    apiError.getPspReference(),
-                    apiError.getMessage(),
-                    null,
-                    paymentData.getPaymentTransactionExternalKey(),
-                    null);
-        } catch (IOException ex) {
-            new PurchaseResult(PaymentServiceProviderResult.valueOf("error"),
-                    null,
-                    null,
-                    ex.getMessage(),
-                    null,
-                    paymentData.getPaymentTransactionExternalKey(),
-                    null);
-        }
-
-        return purchaseResult;
+        return handleKlarnaAuthoriseResponse(adyenCallResult, merchantAccount);
     }
 
-    private PurchaseResult extractKlarnaResponse(PaymentsResponse response) {
+    private PurchaseResult handleKlarnaAuthoriseError(AdyenCallResult<PaymentsResponse> callResult, final PaymentData paymentData) {
+        FailedCheckoutApiCall<PaymentsResponse> errorResult = (FailedCheckoutApiCall<PaymentsResponse>) callResult;
+        final String paymentTransactionId = paymentData.getPaymentTransactionExternalKey();
+
+        if (errorResult.getApiException() != null) {
+            ApiException ex = errorResult.getApiException();
+            ApiError apiError = ex.getError();
+            return new PurchaseResult(PaymentServiceProviderResult.valueOf("error"),
+                                      null,
+                                      apiError.getPspReference(),
+                                      apiError.getMessage(),
+                                      null,
+                                      paymentTransactionId,
+                                      null);
+        } else {
+            IOException ex = errorResult.getIOException();
+            return new PurchaseResult(PaymentServiceProviderResult.valueOf("error"),
+                                      null,
+                                      null,
+                                      ex.getMessage(),
+                                      null,
+                                      paymentTransactionId,
+                                      null);
+        }
+    }
+
+    private PurchaseResult handleKlarnaAuthoriseResponse(AdyenCallResult<PaymentsResponse> adyenCallResult, final String merchantAccount) {
+        final PaymentsResponse response = adyenCallResult.getResult().get();
+
         CheckoutPaymentsResult result = new CheckoutPaymentsResult();
         PaymentsResponse.ResultCodeEnum resultCode = response.getResultCode();
         result.setResultCode(resultCode.toString());
