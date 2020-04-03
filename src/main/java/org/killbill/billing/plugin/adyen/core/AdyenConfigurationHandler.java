@@ -65,8 +65,6 @@ public class AdyenConfigurationHandler extends PluginTenantConfigurableConfigura
         final HttpHeaderInterceptor httpHeaderInterceptor = new HttpHeaderInterceptor();
         final PaymentPortRegistry adyenPaymentPortRegistry = new AdyenPaymentPortRegistry(adyenConfigProperties, loggingInInterceptor, loggingOutInterceptor, httpHeaderInterceptor);
         final AdyenPaymentRequestSender adyenPaymentRequestSender = new AdyenPaymentRequestSender(adyenPaymentPortRegistry);
-        final AdyenCheckoutApiClient adyenCheckoutApiClient = new AdyenCheckoutApiClient(adyenConfigProperties);
-
-        return new AdyenPaymentServiceProviderPort(adyenRequestFactory, adyenPaymentRequestSender, adyenCheckoutApiClient);
+        return new AdyenPaymentServiceProviderPort(adyenRequestFactory, adyenPaymentRequestSender, adyenConfigProperties);
     }
 }

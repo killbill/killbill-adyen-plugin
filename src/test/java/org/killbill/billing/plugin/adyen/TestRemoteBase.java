@@ -115,9 +115,7 @@ public abstract class TestRemoteBase {
         final HttpHeaderInterceptor httpHeaderInterceptor = new HttpHeaderInterceptor();
         final PaymentPortRegistry adyenPaymentPortRegistry = new AdyenPaymentPortRegistry(adyenConfigProperties, loggingInInterceptor, loggingOutInterceptor, httpHeaderInterceptor);
         final AdyenPaymentRequestSender adyenPaymentRequestSender = new AdyenPaymentRequestSender(adyenPaymentPortRegistry);
-        final AdyenCheckoutApiClient adyenCheckoutApiClient = new AdyenCheckoutApiClient(adyenConfigProperties);
-
-        adyenPaymentServiceProviderPort = new AdyenPaymentServiceProviderPort(adyenRequestFactory, adyenPaymentRequestSender, adyenCheckoutApiClient);
+        adyenPaymentServiceProviderPort = new AdyenPaymentServiceProviderPort(adyenRequestFactory, adyenPaymentRequestSender, adyenConfigProperties);
         final DirectoryClient directoryClient = new DirectoryClient(adyenConfigProperties.getDirectoryUrl(),
                                                                     adyenConfigProperties.getProxyServer(),
                                                                     adyenConfigProperties.getProxyPort(),

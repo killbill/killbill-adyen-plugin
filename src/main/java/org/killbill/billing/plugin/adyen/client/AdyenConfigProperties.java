@@ -30,6 +30,7 @@ import java.util.Set;
 import javax.annotation.Nullable;
 
 import org.joda.time.Period;
+import org.jooq.tools.StringUtils;
 
 import com.google.common.base.MoreObjects;
 import com.google.common.base.Strings;
@@ -57,6 +58,7 @@ public class AdyenConfigProperties {
     public static final String FALL_BACK_MERCHANT_ACCOUNT_KEY = "FALLBACK";
 
     private static final String PROPERTY_PREFIX = "org.killbill.billing.plugin.adyen.";
+    private static final String CHECKOUT_PREFIX = PROPERTY_PREFIX + "checkout.";
     private static final String ENTRY_DELIMITER = "|";
     private static final String KEY_VALUE_DELIMITER = "#";
     private static final String DEFAULT_CONNECTION_TIMEOUT = "30000";
@@ -75,6 +77,8 @@ public class AdyenConfigProperties {
     private final Map<String, String> regionToDirectoryUrlMap = new LinkedHashMap<String, String>();
     private final List<String> sensitivePropertyKeys = new ArrayList<>();
     private final List<String> persistablePluginProperties = new ArrayList<>();
+    private final List<String> checkoutApiCountries = new ArrayList<>();
+    private final Map<String, String> countryToApiKeyMap = new LinkedHashMap<String, String>();
 
     private final String paymentProcessorAccountIdToMerchantAccount;
     private final String merchantAccounts;
@@ -102,7 +106,6 @@ public class AdyenConfigProperties {
     private final String fallBackMerchantAccount;
     private final String rbacUsername;
     private final String rbacPassword;
-    private final String apiKey;
     private final String environment;
 
     private final Period pendingPaymentExpirationPeriod;
@@ -225,8 +228,20 @@ public class AdyenConfigProperties {
 
         this.rbacUsername = properties.getProperty(PROPERTY_PREFIX + "rbacUsername");
         this.rbacPassword = properties.getProperty(PROPERTY_PREFIX + "rbacPassword");
-        this.apiKey = properties.getProperty(PROPERTY_PREFIX + "apiKey");
-        this.environment = properties.getProperty(PROPERTY_PREFIX + "environment");
+
+        this.environment = properties.getProperty(CHECKOUT_PREFIX + "environment", "TEST");
+        readCheckoutApiKeyConfig(properties);
+    }
+
+    private void readCheckoutApiKeyConfig(final Properties properties) {
+        readConfigurationValuesToList(properties.getProperty(CHECKOUT_PREFIX + "country"), checkoutApiCountries);
+        for (final String countryCode: checkoutApiCountries) {
+            final String apiKeyPrefix = CHECKOUT_PREFIX + "apiKey." + countryCode.toUpperCase();
+            final String apiKeyValue = properties.getProperty(apiKeyPrefix);
+            if(!StringUtils.isEmpty(apiKeyValue)) {
+                countryToApiKeyMap.put(countryCode, apiKeyValue);
+            }
+        }
     }
 
     private void readConfigurationValuesToList(final String property, final List<String> outputList) {
@@ -507,6 +522,10 @@ public class AdyenConfigProperties {
         return rbacPassword;
     }
 
-    public String getApiKey() { return apiKey; }
     public String getEnvironment() { return environment; }
+
+    public String getApiKey(final String countryCode) {
+        final String apiKey = countryToApiKeyMap.get(countryCode);
+        return StringUtils.isEmpty(apiKey) ? "KEY_NOT_FOUND" : apiKey;
+    }
 }

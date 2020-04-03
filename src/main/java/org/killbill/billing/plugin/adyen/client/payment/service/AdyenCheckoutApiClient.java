@@ -8,6 +8,7 @@ import com.adyen.model.checkout.PaymentsRequest;
 import com.adyen.model.checkout.PaymentsResponse;
 import com.adyen.service.Checkout;
 import com.adyen.service.exception.ApiException;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Throwables;
 import org.jooq.tools.StringUtils;
 import org.killbill.billing.plugin.adyen.client.AdyenConfigProperties;
@@ -23,7 +24,7 @@ public class AdyenCheckoutApiClient {
     private static final Logger logger = LoggerFactory.getLogger(AdyenCheckoutApiClient.class);
 
 
-    public AdyenCheckoutApiClient(final AdyenConfigProperties adyenConfigProperties) {
+    public AdyenCheckoutApiClient(final AdyenConfigProperties adyenConfigProperties, final String countryCode) {
         // initialize the REST client here
         Environment environment = Environment.TEST; //default environment
         String envProperty = adyenConfigProperties.getEnvironment();
@@ -31,8 +32,13 @@ public class AdyenCheckoutApiClient {
             environment = Environment.LIVE;
         }
 
-        final Client client = new Client(adyenConfigProperties.getApiKey(), environment);
+        final Client client = new Client(adyenConfigProperties.getApiKey(countryCode), environment);
         checkoutApi = new Checkout(client);
+    }
+
+    @VisibleForTesting
+    AdyenCheckoutApiClient(final Checkout checkoutApi) {
+        this.checkoutApi = checkoutApi;
     }
 
     public AdyenCallResult<PaymentsResponse> createPayment(PaymentsRequest request) {

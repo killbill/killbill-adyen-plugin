@@ -75,7 +75,7 @@ public class TestAdyenConfigProperties {
         Assert.assertEquals(adyenConfigProperties.getPersistablePluginProperties(), ImmutableList.of("3ds2.csrf", "3ds2.resUrl", "3ds2.formUrl"));
         Assert.assertEquals(adyenConfigProperties.getRbacUsername(), "foo");
         Assert.assertEquals(adyenConfigProperties.getRbacPassword(), "bar");
-        Assert.assertEquals(adyenConfigProperties.getApiKey(), "TEST_API_KEY");
+        //Assert.assertEquals(adyenConfigProperties.getApiKey(), "TEST_API_KEY");
         Assert.assertEquals(adyenConfigProperties.getEnvironment(), "TEST_ENV");
     }
 
@@ -226,5 +226,26 @@ public class TestAdyenConfigProperties {
         Assert.assertNull(adyenConfigPropertiesOther.getPaymentUrl());
         Assert.assertNull(adyenConfigPropertiesOther.getRecurringUrl());
         Assert.assertNull(adyenConfigPropertiesOther.getDirectoryUrl());
+    }
+
+    @Test(groups = "fast")
+    public void testConfigKeysForKlarna() throws Exception {
+        final Properties properties = new Properties();
+        properties.put("org.killbill.billing.plugin.adyen.checkout.environment", "DEV");
+        properties.put("org.killbill.billing.plugin.adyen.checkout.country", "UK|NL|DE");
+        properties.put("org.killbill.billing.plugin.adyen.checkout.apiKey.UK", "API_KEY_UK");
+        properties.put("org.killbill.billing.plugin.adyen.checkout.apiKey.DE", "API_KEY_DE");
+        final AdyenConfigProperties adyenConfigProperties = new AdyenConfigProperties(properties);
+
+        Assert.assertEquals(adyenConfigProperties.getEnvironment(), "DEV");
+        Assert.assertEquals(adyenConfigProperties.getApiKey("UK"), "API_KEY_UK");
+        Assert.assertEquals(adyenConfigProperties.getApiKey("DE"), "API_KEY_DE");
+        Assert.assertEquals(adyenConfigProperties.getApiKey("JP"), "KEY_NOT_FOUND");
+        Assert.assertEquals(adyenConfigProperties.getApiKey("NL"), "KEY_NOT_FOUND");
+        Assert.assertEquals(adyenConfigProperties.getApiKey(""), "KEY_NOT_FOUND");
+
+        final AdyenConfigProperties adyenConfigWithoutKey = new AdyenConfigProperties(new Properties());
+        Assert.assertEquals(adyenConfigWithoutKey.getEnvironment(), "TEST");
+        Assert.assertEquals(adyenConfigWithoutKey.getApiKey("UK"), "KEY_NOT_FOUND");
     }
 }
