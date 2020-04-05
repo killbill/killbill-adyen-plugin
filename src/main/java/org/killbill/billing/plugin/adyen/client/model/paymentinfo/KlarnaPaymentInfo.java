@@ -17,7 +17,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
+import java.util.UUID;
 
 public class KlarnaPaymentInfo extends PaymentInfo {
     private static final Logger logger = LoggerFactory.getLogger(KlarnaPaymentInfo.class);
@@ -33,6 +33,8 @@ public class KlarnaPaymentInfo extends PaymentInfo {
     private List<Seller> sellers;
     private List<PropertyMapper.LineItem> items = new ArrayList<>();
     private PropertyMapper.Address shippingAddress;
+    private boolean identifierHashed = false;
+    private Map<String, String> identifierMap = new HashMap<>();
 
     //data for payment details check
     private String paymentsData;
@@ -146,7 +148,14 @@ public class KlarnaPaymentInfo extends PaymentInfo {
     }
     public void setVouchers(List<Voucher> vouchers) { this.vouchers = vouchers; }
 
+    public boolean isIdentifierHashed() { return identifierHashed; }
+
+    public Map<String, String> getIdentifierMap() {
+        return identifierMap;
+    }
+
     public String getAdditionalData() {
+        hashIdentifiers();
         String additionalData = null;
         MerchantData merchantData = new MerchantData();
         merchantData.setCustomerInfo(accounts);
@@ -160,5 +169,26 @@ public class KlarnaPaymentInfo extends PaymentInfo {
         }
 
         return additionalData;
+    }
+
+    private void hashIdentifiers() {
+        // hash sensitive identifiers
+        if(!identifierHashed) {
+            for (Seller seller : sellers) {
+                final String merchantId = seller.getMerchantId();
+                final String hashedId = UUID.nameUUIDFromBytes(merchantId.getBytes()).toString();
+                seller.setMerchantId(hashedId);
+                identifierMap.put(merchantId, hashedId);
+            }
+
+            for (Account account : accounts) {
+                final String accountId = account.getIdentifier();
+                final String hashedId = UUID.nameUUIDFromBytes(accountId.getBytes()).toString();
+                account.setIdentifier(accountId);
+                identifierMap.put(accountId, hashedId);
+            }
+
+            this.identifierHashed = true;
+        }
     }
 }

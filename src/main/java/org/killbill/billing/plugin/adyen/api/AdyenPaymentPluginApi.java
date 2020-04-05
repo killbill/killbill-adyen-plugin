@@ -847,7 +847,8 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
                                                      } if(authoriseKlarnaPayment) {
                                                          Map<String, String> responseData = AdyenDao.fromAdditionalData(existingAuth.getAdditionalData());
                                                          paymentData.getPaymentInfo().setAuthResponseData(responseData);
-                                                         return adyenPort.completeKlarnaPaymentAuth(merchantAccount, paymentData, userData);
+                                                         final String merchantAccountName = originalMerchantAccount != null ? originalMerchantAccount : merchantAccount;
+                                                         return adyenPort.completeKlarnaPaymentAuth(merchantAccountName, paymentData, userData);
                                                      } else {
                                                          return adyenPort.authorize3DSecure(
                                                                  originalMerchantAccount != null ? originalMerchantAccount : merchantAccount,

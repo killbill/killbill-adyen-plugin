@@ -8,6 +8,7 @@ import com.adyen.model.checkout.PaymentsRequest;
 import com.adyen.model.checkout.PaymentsResponse;
 import com.adyen.service.Checkout;
 import com.adyen.service.exception.ApiException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Throwables;
 import org.jooq.tools.StringUtils;
@@ -22,6 +23,7 @@ import static org.killbill.billing.plugin.adyen.client.payment.service.AdyenCall
 public class AdyenCheckoutApiClient {
     final Checkout checkoutApi;
     private static final Logger logger = LoggerFactory.getLogger(AdyenCheckoutApiClient.class);
+    private static final ObjectMapper mapper = new ObjectMapper();
 
 
     public AdyenCheckoutApiClient(final AdyenConfigProperties adyenConfigProperties, final String countryCode) {
@@ -50,7 +52,14 @@ public class AdyenCheckoutApiClient {
             }
         });
 
+        logResponse(result);
         return result;
+    }
+
+    private void logResponse(final AdyenCallResult<PaymentsResponse> result) {
+        //mask sensitive data from response
+        final String logResult = jsonObject(result);
+        logger.info("Checkout API response: " + logResult);
     }
 
     public AdyenCallResult<PaymentsResponse> paymentDetails(PaymentsDetailsRequest request) {
@@ -62,19 +71,19 @@ public class AdyenCheckoutApiClient {
             }
         });
 
+        logResponse(result);
         return result;
     }
 
     private <REQ, RES> AdyenCallResult<RES> callApi(REQ request, ApiRequest<REQ, RES> apiRequest) {
-        final String logRequest = request.toString();
-        logger.info("Checkout API request:" + logRequest);
+        final String logRequest = jsonObject(request);
+        logger.info("Checkout request: \n\n" + logRequest);
 
         final long startTime = System.currentTimeMillis();
         try {
             final RES result = apiRequest.call();
             final long duration = System.currentTimeMillis() - startTime;
-            final String logResult = result.toString();
-            logger.info("Checkout API duration:"+ duration +" response: " + logResult);
+            logger.info("Checkout call duration: "+ duration);
             return new SuccessfulAdyenCall<RES>(result, duration);
         } catch (ApiException ex) {
             final long duration = System.currentTimeMillis() - startTime;
@@ -85,6 +94,18 @@ public class AdyenCheckoutApiClient {
             logger.warn("Exception during Adyen request", ex);
             return handleException(ex, duration);
         }
+    }
+
+    private <T> String jsonObject(T logObject) {
+        String resultStr;
+        try {
+            resultStr = mapper.writeValueAsString(logObject);
+        } catch (IOException e) {
+            logger.info("Unable to convert log object to JSON");
+            resultStr = logObject.toString();
+        }
+
+        return resultStr;
     }
 
     private <T> UnSuccessfulAdyenCall<T> handleException(final Exception ex, final long duration) {

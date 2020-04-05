@@ -23,7 +23,7 @@ public class KlarnaPaymentMappingServiceTest extends TestKlarnaPaymentInfoBase {
     private final String merchantAccount = "MerchantAccount";
     private final String shippingAddress = "{\"address1\":\"Address Line1\",\"address2\":\"Address Line2\",\"city\":\"My City\",\"state\":\"My State\",\"country\":\"My Country\",\"postalCode\":\"AB111CD\"}";
     private final String customerAccount= "{\"accountId\":\"ACCOUNT_ID009\",\"registrationDate\":\"2019-08-08T09:16:15Z\",\"lastModifiedDate\":\"2019-08-08T09:50:15Z\"}";
-    private final String lineItems = "[{\"id\":\"Item_ID090909\",\"quantity\":\"2\",\"taxAmount\":\"69\",\"taxPercentage\":\"2100\",\"amountExcludingTax\":\"331\",\"amountIncludingTax\":\"400\",\"description\":\"Black Shoes\",\"productName\":\"School Shoes\",\"productCategory\":\"Shoes\",\"merchantId\":\"MERCHANT_ID0909\",\"merchantName\":\"Local Shopee\",\"inventoryService\":\"goods\"},{\"id\":\"Item_ID090910\",\"quantity\":\"1\",\"taxAmount\":\"52\",\"taxPercentage\":\"2100\",\"amountExcludingTax\":\"248\",\"amountIncludingTax\":\"300\",\"description\":\"Wine Tasting\",\"productName\":\"Winery\",\"productCategory\":\"Experience\",\"merchantId\":\"MERCHANT_ID0909\",\"merchantName\":\"Local Vineyard\",\"inventoryService\":\"vis\"}]";
+    private final String lineItems = "[{\"id\":\"Item_ID090909\",\"quantity\":\"2\",\"taxAmount\":\"69\",\"taxPercentage\":\"2100\",\"amountExcludingTax\":\"331\",\"amountIncludingTax\":\"400\",\"description\":\"Black Shoes\",\"productName\":\"School Shoes\",\"productCategory\":\"Shoes\",\"merchantId\":\"MERCHANT_ID0909\",\"merchantName\":\"Local Shopee\",\"inventoryService\":\"goods\"},{\"id\":\"Item_ID090910\",\"quantity\":\"1\",\"taxAmount\":\"52\",\"taxPercentage\":\"2100\",\"amountExcludingTax\":\"248\",\"amountIncludingTax\":\"300\",\"description\":\"Wine Tasting\",\"productName\":\"Winery\",\"productCategory\":\"Experience\",\"merchantId\":\"MERCHANT_ID0910\",\"merchantName\":\"Local Vineyard\",\"inventoryService\":\"vis\"}]";
     private final String paymentDataResponse = "AbcdefghijklmnopqrstuvwxyZ1234567890";
     private String authKeyResponse = "{\"key1\":\"text\",\"key2\":\"blob\"}";
     private Iterable<PluginProperty> authCompleteProperties = PluginProperties.buildPluginProperties(
@@ -93,7 +93,21 @@ public class KlarnaPaymentMappingServiceTest extends TestKlarnaPaymentInfoBase {
         assertEquals(address.getState(), "My State");
         assertEquals(address.getCountry(), "My Country");
         assertEquals(address.getPostalCode(), "AB111CD");
+    }
 
+    @Test(groups = "fast")
+    public void testAdditionalData() throws Exception {
+        KlarnaPaymentInfo paymentInfo = getPaymentInfo(merchantAccount,
+                                                       countryCode,
+                                                       customerAccount,
+                                                       shippingAddress,
+                                                       lineItems,
+                                                       null);
+
+        assertFalse(paymentInfo.isIdentifierHashed());
+        assertTrue(paymentInfo.getAdditionalData().length() > 0);
+        assertTrue(paymentInfo.isIdentifierHashed());
+        assertEquals(paymentInfo.getIdentifierMap().size(), 2);
     }
 
     @Test(groups = "fast")
