@@ -48,18 +48,19 @@ public class AdyenCheckoutApiClient {
         result = callApi(request, new ApiRequest<PaymentsRequest, PaymentsResponse>() {
             @Override
             public PaymentsResponse call() throws ApiException, IOException {
-                return checkoutApi.payments(request);
+                final PaymentsResponse response = checkoutApi.payments(request);
+                logResponse(response);
+                return response;
             }
         });
 
-        logResponse(result);
         return result;
     }
 
-    private void logResponse(final AdyenCallResult<PaymentsResponse> result) {
+    private void logResponse(final PaymentsResponse response) {
         //mask sensitive data from response
-        final String logResult = jsonObject(result);
-        logger.info("Checkout API response: " + logResult);
+        final String logResponse = jsonObject(response);
+        logger.info("Checkout API response: \n\n" + logResponse);
     }
 
     public AdyenCallResult<PaymentsResponse> paymentDetails(PaymentsDetailsRequest request) {
@@ -67,17 +68,18 @@ public class AdyenCheckoutApiClient {
         result = callApi(request, new ApiRequest<PaymentsDetailsRequest, PaymentsResponse>() {
             @Override
             public PaymentsResponse call() throws ApiException, IOException {
-                return checkoutApi.paymentsDetails(request);
+                final PaymentsResponse response = checkoutApi.paymentsDetails(request);
+                logResponse(response);
+                return response;
             }
         });
 
-        logResponse(result);
         return result;
     }
 
     private <REQ, RES> AdyenCallResult<RES> callApi(REQ request, ApiRequest<REQ, RES> apiRequest) {
         final String logRequest = jsonObject(request);
-        logger.info("Checkout request: \n\n" + logRequest);
+        logger.info("Checkout API request: \n\n" + logRequest);
 
         final long startTime = System.currentTimeMillis();
         try {

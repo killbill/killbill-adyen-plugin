@@ -116,7 +116,8 @@ public class CheckoutPaymentsResult {
         if(merchantAccount != null) {
             additionalData.put(AdyenPaymentPluginApi.PROPERTY_MERCHANT_ACCOUNT_CODE, merchantAccount);
         }
-        if(paymentInfo.getIdentifierMap() != null) {
+
+        if(paymentInfo.getIdentifierMap() != null && !paymentInfo.getIdentifierMap().isEmpty()) {
             try {
                 String hashedIdStr = mapper.writeValueAsString(paymentInfo.getIdentifierMap());
                 additionalData.put("identifierMap", hashedIdStr);
@@ -124,7 +125,7 @@ public class CheckoutPaymentsResult {
                 logger.error("Failed to save hashIdentifiers: " + ex.getMessage());
             }
         }
-        if(formParameter != null) {
+        if(formParameter != null && !formParameter.isEmpty()) {
             try {
                 String formParams = mapper.writeValueAsString(formParameter);
                 additionalData.put("formParameter", formParams);
@@ -132,7 +133,7 @@ public class CheckoutPaymentsResult {
                 logger.error("Failed to save formParameters: " + ex.getMessage());
             }
         }
-        if(authResultKeys != null) {
+        if(authResultKeys != null && !authResultKeys.isEmpty()) {
             try {
                 String authKeyNames = mapper.writeValueAsString(authResultKeys);
                 additionalData.put("resultKeys", authKeyNames);

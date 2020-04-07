@@ -223,6 +223,7 @@ public class AdyenPaymentServiceProviderPort extends BaseAdyenPaymentServiceProv
         result.setPspReference(response.getPspReference());
         result.setMerchantAccount(merchantAccount);
         result.setPaymentInfo(paymentInfo);
+        result.setPaymentExternalKey(paymentData.getPaymentTransactionExternalKey());
 
         if(resultCode == PaymentsResponse.ResultCodeEnum.REDIRECTSHOPPER) {
             logger.info("Klarna payment response: RedirectShopper");

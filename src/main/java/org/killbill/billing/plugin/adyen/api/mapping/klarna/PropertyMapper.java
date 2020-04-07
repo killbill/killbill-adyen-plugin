@@ -19,8 +19,11 @@ package org.killbill.billing.plugin.adyen.api.mapping.klarna;
 
 import org.jooq.tools.StringUtils;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 public abstract class PropertyMapper {
 
+    @JsonIgnoreProperties(ignoreUnknown = true)
     public static class Address {
         private String address1;
         private String address2;
@@ -90,6 +93,7 @@ public abstract class PropertyMapper {
         }
     }
 
+    @JsonIgnoreProperties(ignoreUnknown = true)
     public static class LineItem {
         private String id;
         private String description;
@@ -100,7 +104,7 @@ public abstract class PropertyMapper {
         private Long amountIncludingTax;
 
         // fields included for merchant data
-        private String inventoryService;
+        private String inventoryType;
         private String productName;
         private String productCategory;
         private String merchantId;
@@ -165,12 +169,12 @@ public abstract class PropertyMapper {
             this.amountIncludingTax = amountIncludingTax;
         }
 
-        public String getInventoryService() { return inventoryService; }
-        public void setInventoryService(String inventoryService) { this.inventoryService = inventoryService; }
+        public String getInventoryType() { return inventoryType; }
+        public void setInventoryType(String inventoryType) { this.inventoryType = inventoryType; }
 
         public boolean isVoucher() {
             boolean itemIsVoucher = true;
-            if(!StringUtils.isEmpty(inventoryService) && inventoryService.toLowerCase().equals("goods")) {
+            if(!StringUtils.isEmpty(inventoryType) && inventoryType.toLowerCase().equals("goods")) {
                 itemIsVoucher = false;
             }
 
@@ -187,7 +191,7 @@ public abstract class PropertyMapper {
                    ", taxPercentage=" + taxPercentage +
                    ", amountExcludingTax=" + amountExcludingTax +
                    ", amountIncludingTax=" + amountIncludingTax +
-                   ", inventoryService='" + inventoryService + '\'' +
+                   ", inventoryType='" + inventoryType + '\'' +
                    ", productName='" + productName + '\'' +
                    ", productCategory='" + productCategory + '\'' +
                    ", merchantId='" + merchantId + '\'' +
@@ -196,6 +200,7 @@ public abstract class PropertyMapper {
         }
     }
 
+    @JsonIgnoreProperties(ignoreUnknown = true)
     public static class CustomerAccount {
         private String accountId;
         private String registrationDate;
