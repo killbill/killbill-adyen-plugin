@@ -2,6 +2,7 @@ package org.killbill.billing.plugin.adyen.client.model.paymentinfo;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import org.jooq.tools.StringUtils;
 import org.killbill.billing.payment.api.PluginProperty;
 import org.killbill.billing.plugin.adyen.api.mapping.klarna.Account;
 import org.killbill.billing.plugin.adyen.api.mapping.klarna.PropertyMapper;
@@ -33,6 +34,7 @@ public class KlarnaPaymentInfo extends PaymentInfo {
     private List<Seller> sellers;
     private List<PropertyMapper.LineItem> items = new ArrayList<>();
     private PropertyMapper.Address shippingAddress;
+    private boolean usingShippingAddress = false;
 
     //data for payment details check
     private String paymentsData;
@@ -86,6 +88,7 @@ public class KlarnaPaymentInfo extends PaymentInfo {
     public String getPaymentsData() { return paymentsData; }
     public void setPaymentsData(String paymentsData) { this.paymentsData = paymentsData; }
 
+    public boolean usingShippingAddress() { return usingShippingAddress; }
     public PropertyMapper.Address getShippingAddress() { return shippingAddress; }
     public void setShippingAddress(final PropertyMapper.Address shippingAddress) { this.shippingAddress = shippingAddress; }
 
@@ -127,6 +130,14 @@ public class KlarnaPaymentInfo extends PaymentInfo {
     }
     public void setItems(List<PropertyMapper.LineItem> items) {
         this.items = items;
+
+        for(PropertyMapper.LineItem item: items) {
+            final String inventoryType = item.getInventoryService();
+            if(!StringUtils.isEmpty(inventoryType) && inventoryType.equals("goods")) {
+                this.usingShippingAddress = true;
+                break;
+            }
+        }
     }
 
     public List<Account> getAccounts() {
