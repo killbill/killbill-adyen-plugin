@@ -17,6 +17,8 @@
 
 package org.killbill.billing.plugin.adyen.api.mapping.klarna;
 
+import java.util.List;
+
 import org.jooq.tools.StringUtils;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
@@ -110,6 +112,9 @@ public abstract class PropertyMapper {
         private String merchantId;
         private String merchantName;
 
+        // line item adjustments
+        private List<LineAdjustment> adjustments;
+
         public String getId() {
             return id;
         }
@@ -172,6 +177,9 @@ public abstract class PropertyMapper {
         public String getInventoryType() { return inventoryType; }
         public void setInventoryType(String inventoryType) { this.inventoryType = inventoryType; }
 
+        public List<LineAdjustment> getAdjustments() { return adjustments; }
+        public void setAdjustments(final List<LineAdjustment> adjustments) { this.adjustments = adjustments; }
+
         public boolean isVoucher() {
             boolean itemIsVoucher = true;
             if(!StringUtils.isEmpty(inventoryType) && inventoryType.toLowerCase().equals("goods")) {
@@ -233,6 +241,39 @@ public abstract class PropertyMapper {
                    "accountId='" + accountId + '\'' +
                    ", registrationDate='" + registrationDate + '\'' +
                    ", lastModifiedDate='" + lastModifiedDate + '\'' +
+                   '}';
+        }
+    }
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public static class LineAdjustment {
+        private Long amount;
+        private String type;
+        private String description;
+
+        public LineAdjustment() { }
+
+        public LineAdjustment(Long amount, String type, String description) {
+            this.amount = amount;
+            this.type = type;
+            this.description = description;
+        }
+
+        public Long getAmount() { return amount; }
+        public void setAmount(final Long amount) { this.amount = amount; }
+
+        public String getType() { return type; }
+        public void setType(final String type) { this.type = type; }
+
+        public String getDescription() { return description; }
+        public void setDescription(final String description) { this.description = description; }
+
+        @Override
+        public String toString() {
+            return "LineAdjustment{" +
+                   "amount=" + amount +
+                   ", type='" + type + '\'' +
+                   ", description='" + description + '\'' +
                    '}';
         }
     }

@@ -1,12 +1,15 @@
 package org.killbill.billing.plugin.adyen.api.mapping;
 
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.jooq.tools.StringUtils;
 import org.killbill.billing.payment.api.PluginProperty;
 import org.killbill.billing.plugin.adyen.api.mapping.klarna.Account;
 import org.killbill.billing.plugin.adyen.api.mapping.klarna.PaymentType;
 import org.killbill.billing.plugin.adyen.api.mapping.klarna.PropertyMapper;
+import org.killbill.billing.plugin.adyen.api.mapping.klarna.PropertyMapper.LineAdjustment;
 import org.killbill.billing.plugin.adyen.api.mapping.klarna.Seller;
 import org.killbill.billing.plugin.adyen.api.mapping.klarna.Voucher;
 import org.killbill.billing.plugin.adyen.client.model.paymentinfo.KlarnaPaymentInfo;
@@ -130,5 +133,45 @@ public class KlarnaPaymentMappingServiceTest extends TestKlarnaPaymentInfoBase {
         assertEquals(paymentInfo.getPaymentsData(), paymentDataResponse);
         assertEquals(paymentInfo.getDetailsData().get("key1"), "ResponseData1");
         assertEquals(paymentInfo.getDetailsData().get("key2"), "ResponseData2");
+    }
+
+    @Test(groups = "fast")
+    public void testLineItemAdjustments() throws Exception {
+        final String lineItemWithAdjustment = "[{\"id\":\"Item_ID090909\",\"quantity\":\"1\",\"taxAmount\":\"69\",\"taxPercentage\":\"2100\",\"amountExcludingTax\":\"331\",\"amountIncludingTax\":\"500\",\"description\":\"Black Shoes\",\"productName\":\"School Shoes\",\"productCategory\":\"Shoes\",\"merchantId\":\"MERCHANT_ID0909\",\"merchantName\":\"Local Shopee\",\"inventoryType\":\"goods\",\"adjustments\":[{\"amount\":199,\"description\":\"Shipping & Handling\",\"type\":\"shipping_cost\"},{\"amount\":-100,\"description\":\"Promotional Discount\",\"type\":\"promo_discount\"}]},{\"id\":\"Item_ID090909\",\"quantity\":\"1\",\"taxAmount\":\"69\",\"taxPercentage\":\"2100\",\"amountExcludingTax\":\"331\",\"amountIncludingTax\":\"500\",\"description\":\"Black Shoes\",\"productName\":\"School Shoes\",\"productCategory\":\"Shoes\",\"merchantId\":\"MERCHANT_ID0909\",\"merchantName\":\"Local Shopee\",\"inventoryType\":\"goods\",\"adjustments\":[{\"amount\":199,\"description\":\"Shipping & Handling\",\"type\":\"shipping_cost\"},{\"amount\":-100,\"description\":\"Promotional Discount\",\"type\":\"promo_discount\"}]}]";
+        KlarnaPaymentInfo paymentInfo = getPaymentInfo(merchantAccount,
+                                                       countryCode,
+                                                       customerAccount,
+                                                       shippingAddress,
+                                                       lineItemWithAdjustment,
+                                                       null);
+
+        List<PropertyMapper.LineItem> lineItems = paymentInfo.getItems();
+        assertTrue(lineItems.size() == 4); //2 line items, 2 adjustments
+        assertTrue(lineItems.get(0).getAdjustments().size() == 2);
+        LineAdjustment adjustment = lineItems.get(0).getAdjustments().get(0);
+        assertEquals(adjustment.getAmount(), Long.valueOf(199L));
+        assertEquals(adjustment.getType(), "shipping_cost");
+        assertEquals(adjustment.getDescription(), "Shipping & Handling");
+        LineAdjustment adjustment2 = lineItems.get(0).getAdjustments().get(1);
+        assertEquals(adjustment2.getAmount(), Long.valueOf(-100L));
+        assertEquals(adjustment2.getType(), "promo_discount");
+        assertEquals(adjustment2.getDescription(), "Promotional Discount");
+
+        List<PropertyMapper.LineItem> adjustmentList = lineItems.stream().
+                filter(item -> item.getInventoryType().equals("adjustment")
+                      ).collect(Collectors.toList());
+
+        assertTrue(adjustmentList.size() == 2);
+        PropertyMapper.LineItem shippingAdjustment = adjustmentList.get(0);
+        assertEquals(shippingAdjustment.getQuantity(), Long.valueOf(1L));
+        assertEquals(shippingAdjustment.getId(), "shipping_cost");
+        assertEquals(shippingAdjustment.getAmountIncludingTax(), Long.valueOf(398));
+        assertEquals(shippingAdjustment.getDescription(), "Shipping & Handling");
+
+        PropertyMapper.LineItem discountAdjustment = adjustmentList.get(1);
+        assertEquals(discountAdjustment.getQuantity(), Long.valueOf(1L));
+        assertEquals(discountAdjustment.getId(), "promo_discount");
+        assertEquals(discountAdjustment.getAmountIncludingTax(), Long.valueOf(-200));
+        assertEquals(discountAdjustment.getDescription(), "Promotional Discount");
     }
 }
