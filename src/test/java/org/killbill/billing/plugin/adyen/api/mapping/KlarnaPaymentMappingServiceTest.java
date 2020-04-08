@@ -50,6 +50,7 @@ public class KlarnaPaymentMappingServiceTest extends TestKlarnaPaymentInfoBase {
         assertEquals(lineItem.getTaxAmount(), Long.valueOf(69));
         assertEquals(lineItem.getTaxPercentage(), Long.valueOf(2100));
         assertEquals(lineItem.getInventoryService(), "goods");
+        assertTrue(paymentInfo.usingShippingAddress());
 
         //account info
         Account account = paymentInfo.getAccounts().get(0);

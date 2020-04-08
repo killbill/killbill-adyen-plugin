@@ -77,7 +77,8 @@ public class CheckoutPaymentsBuilder extends RequestBuilder<PaymentsRequest> {
         }
 
         //shipping address
-        if(paymentInfo.getShippingAddress() != null) {
+        if(paymentInfo.usingShippingAddress() &&
+           paymentInfo.getShippingAddress() != null) {
             setDeliveryAddress(paymentInfo.getShippingAddress());
         }
 
