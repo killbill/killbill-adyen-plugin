@@ -17,14 +17,16 @@
 
 package org.killbill.billing.plugin.adyen.client.payment.builder.checkout;
 
+import com.adyen.model.Address;
+import com.adyen.model.Amount;
+import com.adyen.model.Name;
 import com.adyen.model.checkout.DefaultPaymentMethodDetails;
 import com.adyen.model.checkout.LineItem;
 import com.adyen.model.checkout.PaymentMethodDetails;
 import com.adyen.model.checkout.PaymentsRequest;
 import com.google.common.base.Charsets;
-import com.adyen.model.*;
 import java.util.Base64;
-
+import org.jooq.tools.StringUtils;
 import org.killbill.billing.plugin.adyen.api.mapping.klarna.PropertyMapper;
 import org.killbill.billing.plugin.adyen.client.model.PaymentData;
 import org.killbill.billing.plugin.adyen.client.model.UserData;
@@ -62,7 +64,7 @@ public class CheckoutPaymentsBuilder extends RequestBuilder<PaymentsRequest> {
             return request;
         }
 
-        if(merchantAccount != null) {
+        if(!StringUtils.isEmpty(merchantAccount)) {
             request.setMerchantAccount(merchantAccount);
         } else {
             logger.error("merchantAccount is null, can not create payment request");
@@ -70,15 +72,14 @@ public class CheckoutPaymentsBuilder extends RequestBuilder<PaymentsRequest> {
         }
 
         //payment method
-        if(paymentInfo.getPaymentMethod() != null) {
+        if(!StringUtils.isEmpty(paymentInfo.getPaymentMethod())) {
             PaymentMethodDetails paymentMethod = new DefaultPaymentMethodDetails();
             paymentMethod.setType(paymentInfo.getPaymentMethod());
             request.setPaymentMethod(paymentMethod);
         }
 
         //shipping address
-        if(paymentInfo.usingShippingAddress() &&
-           paymentInfo.getShippingAddress() != null) {
+        if(paymentInfo.getShippingAddress() != null) {
             setDeliveryAddress(paymentInfo.getShippingAddress());
         }
 
@@ -107,7 +108,7 @@ public class CheckoutPaymentsBuilder extends RequestBuilder<PaymentsRequest> {
     private void setAdditionalData(KlarnaPaymentInfo paymentInfo) {
         //base64 encoded data (customer+voucher+seller)
         String additionalData = paymentInfo.getAdditionalData();
-        if(additionalData != null) {
+        if(!StringUtils.isEmpty(additionalData)) {
             String encodedData = Base64.getEncoder().encodeToString(additionalData.getBytes(Charsets.UTF_8));
             request.putAdditionalDataItem(OPEN_INVOICE_MERCHANT_DATA, encodedData);
         } else {
@@ -133,7 +134,8 @@ public class CheckoutPaymentsBuilder extends RequestBuilder<PaymentsRequest> {
     }
 
     private void setAmount() {
-        if (paymentData.getAmount() == null || paymentData.getCurrency() == null) {
+        if (paymentData.getAmount() == null ||
+            paymentData.getCurrency() == null) {
             return;
         }
 
@@ -149,13 +151,13 @@ public class CheckoutPaymentsBuilder extends RequestBuilder<PaymentsRequest> {
         name.setFirstName(userData.getFirstName());
         name.setInfix(userData.getInfix());
         name.setLastName(userData.getLastName());
-        if (userData.getGender() != null) {
+        if (!StringUtils.isEmpty(userData.getGender())) {
             name.setGender(Name.GenderEnum.valueOf(userData.getGender().toUpperCase()));
         }
-        if (userData.getFirstName() != null ||
-            userData.getInfix() != null ||
-            userData.getLastName() != null ||
-            userData.getGender() != null) {
+        if (!StringUtils.isEmpty(userData.getFirstName()) ||
+            !StringUtils.isEmpty(userData.getInfix()) ||
+            !StringUtils.isEmpty(userData.getLastName()) ||
+            !StringUtils.isEmpty(userData.getGender())) {
             request.setShopperName(name);
         }
 

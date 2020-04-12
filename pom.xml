@@ -46,6 +46,7 @@
         <!-- More recent versions than the core (JDK1.8+) -->
         <guava.version>21.0</guava.version>
         <jackson.version>2.9.2</jackson.version>
+        <adyen_api.version>4.1.0</adyen_api.version>
     </properties>
     <dependencies>
         <dependency>
@@ -263,7 +264,7 @@
         <dependency>
             <groupId>com.adyen</groupId>
             <artifactId>adyen-java-api-library</artifactId>
-            <version>4.1.0</version>
+            <version>${adyen_api.version}</version>
         </dependency>
     </dependencies>
     <build>
