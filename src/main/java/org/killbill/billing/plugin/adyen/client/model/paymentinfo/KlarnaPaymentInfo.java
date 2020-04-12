@@ -7,6 +7,8 @@ import org.killbill.billing.payment.api.PluginProperty;
 import org.killbill.billing.plugin.adyen.api.mapping.klarna.Account;
 import org.killbill.billing.plugin.adyen.api.mapping.klarna.PropertyMapper;
 import org.killbill.billing.plugin.adyen.api.mapping.klarna.MerchantData;
+import org.killbill.billing.plugin.adyen.api.mapping.klarna.PropertyMapper.Address;
+import org.killbill.billing.plugin.adyen.api.mapping.klarna.PropertyMapper.LineItem;
 import org.killbill.billing.plugin.adyen.api.mapping.klarna.Seller;
 import org.killbill.billing.plugin.adyen.api.mapping.klarna.Voucher;
 import org.killbill.billing.plugin.adyen.client.model.PaymentInfo;
@@ -29,12 +31,25 @@ public class KlarnaPaymentInfo extends PaymentInfo {
     private List<Voucher> vouchers;
     private List<Account> accounts;
     private List<Seller> sellers;
-    private List<PropertyMapper.LineItem> items = new ArrayList<>();
+    private List<PropertyMapper.LineItem> items;
     private PropertyMapper.Address shippingAddress;
-    private boolean usingShippingAddress = false;
 
     //data for payment details check
     private Iterable<PluginProperty> properties;
+
+    private KlarnaPaymentInfo(KlarnaPaymentInfoBuilder builder) {
+        this.merchantAccount = builder.merchantAccount;
+        this.paymentMethod = builder.paymentMethod;
+        this.orderReference = builder.orderReference;
+        this.countryCode = builder.countryCode;
+        this.returnUrl = builder.returnUrl;
+        this.vouchers = builder.vouchers;
+        this.accounts = builder.accounts;
+        this.sellers = builder.sellers;
+        this.items = builder.items;
+        this.shippingAddress = builder.shippingAddress;
+        this.setPaymentType(builder.paymentType);
+    }
 
     public Iterable<PluginProperty> getProperties() {
         return properties;
@@ -43,7 +58,6 @@ public class KlarnaPaymentInfo extends PaymentInfo {
         this.properties = properties;
     }
 
-    public boolean usingShippingAddress() { return usingShippingAddress; }
     public PropertyMapper.Address getShippingAddress() { return shippingAddress; }
     public void setShippingAddress(final PropertyMapper.Address shippingAddress) { this.shippingAddress = shippingAddress; }
 
@@ -85,14 +99,6 @@ public class KlarnaPaymentInfo extends PaymentInfo {
     }
     public void setItems(List<PropertyMapper.LineItem> items) {
         this.items = items;
-
-        for(PropertyMapper.LineItem item: items) {
-            final String inventoryType = item.getInventoryService();
-            if(!StringUtils.isEmpty(inventoryType) && inventoryType.equals("goods")) {
-                this.usingShippingAddress = true;
-                break;
-            }
-        }
     }
 
     public List<Account> getAccounts() {
@@ -122,9 +128,89 @@ public class KlarnaPaymentInfo extends PaymentInfo {
         try {
             additionalData = mapper.writeValueAsString(merchantData);
         } catch (IOException e) {
-            e.printStackTrace();
+            logger.error("Failed to generate marchant_data, error{}\n{}",
+                         e.getMessage(), e.getStackTrace());
         }
 
         return additionalData;
+    }
+
+    public static class KlarnaPaymentInfoBuilder {
+        private String merchantAccount;
+        private String paymentType;
+        private String paymentMethod;
+        private String orderReference;
+        private String countryCode;
+        private String returnUrl;
+        private List<Voucher> vouchers;
+        private List<Account> accounts;
+        private List<Seller> sellers;
+        private List<PropertyMapper.LineItem> items;
+        private PropertyMapper.Address shippingAddress;
+        private Iterable<PluginProperty> properties;
+
+        public KlarnaPaymentInfo build() {
+            return new KlarnaPaymentInfo(this);
+        }
+
+        public KlarnaPaymentInfoBuilder setMerchantAccount(final String merchantAccount) {
+            this.merchantAccount = merchantAccount;
+            return this;
+        }
+
+        public KlarnaPaymentInfoBuilder setPaymentType(final String paymentType) {
+            this.paymentType = paymentType;
+            return this;
+        }
+
+        public KlarnaPaymentInfoBuilder setPaymentMethod(final String paymentMethod) {
+            this.paymentMethod = paymentMethod;
+            return this;
+        }
+
+        public KlarnaPaymentInfoBuilder setOrderReference(final String orderReference) {
+            this.orderReference = orderReference;
+            return this;
+        }
+
+        public KlarnaPaymentInfoBuilder setCountryCode(final String countryCode) {
+            this.countryCode = countryCode;
+            return this;
+        }
+
+        public KlarnaPaymentInfoBuilder setReturnUrl(final String returnUrl) {
+            this.returnUrl = returnUrl;
+            return this;
+        }
+
+        public KlarnaPaymentInfoBuilder setVouchers(final List<Voucher> vouchers) {
+            this.vouchers = vouchers;
+            return this;
+        }
+
+        public KlarnaPaymentInfoBuilder setAccounts(final List<Account> accounts) {
+            this.accounts = accounts;
+            return this;
+        }
+
+        public KlarnaPaymentInfoBuilder setSellers(final List<Seller> sellers) {
+            this.sellers = sellers;
+            return this;
+        }
+
+        public KlarnaPaymentInfoBuilder setItems(final List<LineItem> items) {
+            this.items = items;
+            return this;
+        }
+
+        public KlarnaPaymentInfoBuilder setShippingAddress(final Address shippingAddress) {
+            this.shippingAddress = shippingAddress;
+            return this;
+        }
+
+        public KlarnaPaymentInfoBuilder setProperties(final Iterable<PluginProperty> properties) {
+            this.properties = properties;
+            return this;
+        }
     }
 }

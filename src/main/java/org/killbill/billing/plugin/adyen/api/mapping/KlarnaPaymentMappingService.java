@@ -1,61 +1,62 @@
 package org.killbill.billing.plugin.adyen.api.mapping;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.cxf.common.util.CollectionUtils;
 import org.killbill.billing.payment.api.PluginProperty;
 import org.killbill.billing.plugin.adyen.api.mapping.klarna.Account;
 import org.killbill.billing.plugin.adyen.api.mapping.klarna.PropertyMapper;
+import org.killbill.billing.plugin.adyen.api.mapping.klarna.PropertyMapper.LineItem;
 import org.killbill.billing.plugin.adyen.api.mapping.klarna.Seller;
 import org.killbill.billing.plugin.adyen.api.mapping.klarna.Voucher;
 import org.killbill.billing.plugin.adyen.client.model.PaymentInfo;
-import org.killbill.billing.plugin.adyen.client.model.paymentinfo.KlarnaPaymentInfo;
+import org.killbill.billing.plugin.adyen.client.model.paymentinfo.KlarnaPaymentInfo.KlarnaPaymentInfoBuilder;
 import org.killbill.billing.plugin.api.PluginProperties;
 import org.jooq.tools.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 import static org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi.*;
 
 public abstract class KlarnaPaymentMappingService {
     private static final Logger logger = LoggerFactory.getLogger(KlarnaPaymentMappingService.class);
     private static final ObjectMapper mapper = new ObjectMapper();
-
     public static final String KLARNA_PAYMENT_TYPE = "klarna";
 
     public static PaymentInfo toPaymentInfo(final String merchantAccount, final String countryCode, Iterable<PluginProperty> properties) {
-        final KlarnaPaymentInfo paymentInfo = new KlarnaPaymentInfo();
-        paymentInfo.setProperties(properties);
-        paymentInfo.setCountryCode(countryCode);
-        paymentInfo.setMerchantAccount(merchantAccount);
-        paymentInfo.setPaymentType(PluginProperties.findPluginPropertyValue(PROPERTY_PAYMENT_TYPE, properties));
-        paymentInfo.setPaymentMethod(PluginProperties.findPluginPropertyValue(PROPERTY_PAYMENT_METHOD, properties));
-        paymentInfo.setReturnUrl(PluginProperties.findPluginPropertyValue(PROPERTY_RETURN_URL, properties));
-        paymentInfo.setOrderReference(PluginProperties.findPluginPropertyValue(PROPERTY_ORDER_REFERENCE, properties));
-        setAccountInfo(properties, paymentInfo);
-        setShippingAddress(properties, paymentInfo);
+        final KlarnaPaymentInfoBuilder builder = new KlarnaPaymentInfoBuilder();
+        builder.setProperties(properties);
+        builder.setCountryCode(countryCode);
+        builder.setMerchantAccount(merchantAccount);
+        builder.setPaymentType(PluginProperties.findPluginPropertyValue(PROPERTY_PAYMENT_TYPE, properties));
+        builder.setPaymentMethod(PluginProperties.findPluginPropertyValue(PROPERTY_PAYMENT_METHOD, properties));
+        builder.setReturnUrl(PluginProperties.findPluginPropertyValue(PROPERTY_RETURN_URL, properties));
+        builder.setOrderReference(PluginProperties.findPluginPropertyValue(PROPERTY_ORDER_REFERENCE, properties));
+        setAccountInfo(properties, builder);
+        setShippingAddress(properties, builder);
 
         List<PropertyMapper.LineItem> lineItems = extractLineItems(properties);
-        if(lineItems != null) {
-            paymentInfo.setItems(lineItems);
-            setVoucherInfo(lineItems, paymentInfo);
-            setSellerInfo(lineItems, paymentInfo);
+        if(!CollectionUtils.isEmpty(lineItems)) {
+            builder.setItems(lineItems);
+            setVoucherInfo(lineItems, builder);
+            setSellerInfo(lineItems, builder);
         }
 
-
-        return paymentInfo;
+        return builder.build();
     }
 
-    private static List<PropertyMapper.LineItem> extractLineItems(Iterable<PluginProperty> properties) {
+    private static List<LineItem> extractLineItems(Iterable<PluginProperty> properties) {
         List<PropertyMapper.LineItem> lineItems = null;
         final String itemsJson = PluginProperties.findPluginPropertyValue(PROPERTY_LINE_ITEMS, properties);
-        if(itemsJson != null) {
+        if(!StringUtils.isEmpty(itemsJson)) {
             try {
                 PropertyMapper.LineItem[] items = mapper.readValue(itemsJson, PropertyMapper.LineItem[].class);
                 lineItems = Arrays.asList(items);
             } catch (IOException e) {
-                logger.error("Failed to parse lineItems from request, error=", e.getMessage());
-                e.printStackTrace();
+                logger.error("Failed to parse lineItems, error={}\n{}", e.getMessage(), e.getStackTrace());
             }
         } else {
             logger.error("No line items found in plugin property:" + PROPERTY_LINE_ITEMS);
@@ -64,12 +65,12 @@ public abstract class KlarnaPaymentMappingService {
         return lineItems;
     }
 
-    private static void setVoucherInfo(List<PropertyMapper.LineItem> lineItems, KlarnaPaymentInfo paymentInfo) {
+    private static void setVoucherInfo(List<PropertyMapper.LineItem> lineItems, KlarnaPaymentInfoBuilder builder) {
         List<Voucher> vouchers = new ArrayList<>();
         for(PropertyMapper.LineItem item: lineItems) {
             if(item.isVoucher()) {
-                if (item.getDescription() != null ||
-                        item.getMerchantName() != null) {
+                if (!StringUtils.isEmpty(item.getDescription()) ||
+                    !StringUtils.isEmpty(item.getMerchantName())) {
                     Voucher voucher = new Voucher();
                     voucher.setName(item.getDescription());
                     voucher.setCompany(item.getMerchantName());
@@ -78,15 +79,15 @@ public abstract class KlarnaPaymentMappingService {
             }
         }
 
-        paymentInfo.setVouchers(vouchers);
+        builder.setVouchers(vouchers);
     }
 
-    private static void setSellerInfo(List<PropertyMapper.LineItem> lineItems, KlarnaPaymentInfo paymentInfo) {
+    private static void setSellerInfo(List<PropertyMapper.LineItem> lineItems, KlarnaPaymentInfoBuilder builder) {
         List<Seller> sellers = new ArrayList<>();
         for(PropertyMapper.LineItem item: lineItems) {
-            if(item.getProductName() != null ||
-                    item.getProductCategory() != null ||
-                    item.getMerchantId() != null) {
+            if(!StringUtils.isEmpty(item.getProductName()) ||
+               !StringUtils.isEmpty(item.getProductCategory()) ||
+               !StringUtils.isEmpty(item.getMerchantId())) {
                 Seller seller = new Seller();
                 seller.setProductName(item.getProductName());
                 seller.setProductCategory(item.getProductCategory());
@@ -95,39 +96,36 @@ public abstract class KlarnaPaymentMappingService {
             }
         }
 
-        paymentInfo.setSellers(sellers);
+        builder.setSellers(sellers);
     }
 
-    private static void setAccountInfo(Iterable<PluginProperty> properties, KlarnaPaymentInfo paymentInfo) {
+    private static void setAccountInfo(Iterable<PluginProperty> properties, KlarnaPaymentInfoBuilder builder) {
         List<Account> accountList = new ArrayList<>();
         String accountInfoValue = PluginProperties.findPluginPropertyValue(PROPERTY_CUSTOMER_ACCOUNT, properties);
         if(!StringUtils.isEmpty(accountInfoValue)) {
             try {
                 PropertyMapper.CustomerAccount customerAccount = mapper.readValue(accountInfoValue, PropertyMapper.CustomerAccount.class);
-
                 Account account = new Account();
                 account.setIdentifier(customerAccount.getAccountId());
                 account.setRegistrationDate(customerAccount.getRegistrationDate());
                 account.setLastModifiedDate(customerAccount.getLastModifiedDate());
                 accountList.add(account);
             } catch (IOException e) {
-                logger.error("Failed to parse customerAccount from request, error=", e.getMessage());
-                e.printStackTrace();
+                logger.error("Failed to parse customerAccount, error={}\n{}", e.getMessage(), e.getStackTrace());
             }
         }
 
-        paymentInfo.setAccounts(accountList);
+        builder.setAccounts(accountList);
     }
 
-    private static void setShippingAddress(Iterable<PluginProperty> properties, KlarnaPaymentInfo paymentInfo) {
+    private static void setShippingAddress(Iterable<PluginProperty> properties, KlarnaPaymentInfoBuilder builder) {
         String shippingAddressJson = PluginProperties.findPluginPropertyValue(PROPERTY_SHIPPING_ADDRESS, properties);
         if(!StringUtils.isEmpty(shippingAddressJson)) {
             try {
                 PropertyMapper.Address shippingAddress = mapper.readValue(shippingAddressJson, PropertyMapper.Address.class);
-                paymentInfo.setShippingAddress(shippingAddress);
+                builder.setShippingAddress(shippingAddress);
             } catch (IOException e) {
-                logger.error("Failed to parse shippingAddress from request, error=", e.getMessage());
-                e.printStackTrace();
+                logger.error("Failed to parse shippingAddress, error={}\n{}", e.getMessage(), e.getStackTrace());
             }
         }
     }
