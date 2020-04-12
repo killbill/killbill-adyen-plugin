@@ -25,7 +25,7 @@ public class AdyenCheckoutApiClient {
 
     public AdyenCheckoutApiClient(final AdyenConfigProperties adyenConfigProperties) {
         // initialize the REST client here
-        Environment environment = Environment.TEST; //default environment
+        Environment environment = Environment.TEST; //default Adyen environmnet
         String envProperty = adyenConfigProperties.getEnvironment();
         if(!StringUtils.isEmpty(envProperty) && envProperty.equals("LIVE")) {
             environment = Environment.LIVE;

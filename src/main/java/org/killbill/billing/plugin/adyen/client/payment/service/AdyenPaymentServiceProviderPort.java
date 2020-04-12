@@ -22,9 +22,12 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
 import com.adyen.model.ApiError;
-import com.adyen.model.checkout.*;
+import com.adyen.model.checkout.CheckoutPaymentsAction;
+import com.adyen.model.checkout.InputDetail;
+import com.adyen.model.checkout.PaymentsDetailsRequest;
+import com.adyen.model.checkout.PaymentsRequest;
+import com.adyen.model.checkout.PaymentsResponse;
 import com.adyen.service.exception.ApiException;
 import org.killbill.adyen.payment.*;
 import org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi;
@@ -165,8 +168,8 @@ public class AdyenPaymentServiceProviderPort extends BaseAdyenPaymentServiceProv
     }
 
     public PurchaseResult completeKlarnaPaymentAuth(final String merchantAccount,
-                                                 final PaymentData paymentData,
-                                                 final UserData userData) {
+                                                    final PaymentData paymentData,
+                                                    final UserData userData) {
         PaymentsDetailsRequest detailsRequest = adyenRequestFactory.completeKlarnaPayment(merchantAccount, paymentData, userData);
         final AdyenCallResult<PaymentsResponse> adyenCallResult = adyenCheckoutApiClient.paymentDetails(detailsRequest);
         if (!adyenCallResult.receivedWellFormedResponse()) {
@@ -182,7 +185,7 @@ public class AdyenPaymentServiceProviderPort extends BaseAdyenPaymentServiceProv
         if (errorResult.getApiException() != null) {
             ApiException ex = errorResult.getApiException();
             ApiError apiError = ex.getError();
-            return new PurchaseResult(PaymentServiceProviderResult.valueOf("error"),
+            return new PurchaseResult(PaymentServiceProviderResult.ERROR,
                                       null,
                                       apiError.getPspReference(),
                                       apiError.getMessage(),
@@ -191,7 +194,7 @@ public class AdyenPaymentServiceProviderPort extends BaseAdyenPaymentServiceProv
                                       null);
         } else {
             IOException ex = errorResult.getIOException();
-            return new PurchaseResult(PaymentServiceProviderResult.valueOf("error"),
+            return new PurchaseResult(PaymentServiceProviderResult.ERROR,
                                       null,
                                       null,
                                       ex.getMessage(),
