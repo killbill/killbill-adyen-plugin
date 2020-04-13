@@ -848,7 +848,7 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
                                                          Map<String, String> responseData = AdyenDao.fromAdditionalData(existingAuth.getAdditionalData());
                                                          paymentData.getPaymentInfo().setAuthResponseData(responseData);
                                                          final String merchantAccountName = originalMerchantAccount != null ? originalMerchantAccount : merchantAccount;
-                                                         return adyenPort.completeKlarnaPaymentAuth(merchantAccountName, paymentData, userData);
+                                                         return adyenPort.authoriseKlarnaPayment(true, merchantAccountName, paymentData, userData);
                                                      } else {
                                                          return adyenPort.authorize3DSecure(
                                                                  originalMerchantAccount != null ? originalMerchantAccount : merchantAccount,
@@ -864,7 +864,7 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
                                                          return adyenPort.credit(merchantAccount, paymentData, userData, splitSettlementData, additionalData);
                                                      } else {
                                                          if(authoriseKlarnaPayment) {
-                                                             return adyenPort.authoriseKlarnaPayment(merchantAccount, paymentData, userData);
+                                                             return adyenPort.authoriseKlarnaPayment(false, merchantAccount, paymentData, userData);
                                                          } else {
                                                              return adyenPort.authorise(merchantAccount, paymentData, userData, splitSettlementData, additionalData);
                                                          }

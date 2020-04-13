@@ -60,7 +60,6 @@ public class KlarnaPaymentInfo extends PaymentInfo {
         this.properties = builder.properties;
     }
 
-    @Override
     public boolean completeKlarnaAuthorisation() {
         return detailsData.size() > 0;
     }

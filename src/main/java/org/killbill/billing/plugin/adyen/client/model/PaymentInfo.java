@@ -91,10 +91,6 @@ public class PaymentInfo {
         return isKlarnaPayment(this.paymentType);
     }
 
-    public boolean completeKlarnaAuthorisation() {
-        return false;
-    }
-
     public static boolean isKlarnaPayment(String paymentType) {
         return !StringUtils.isEmpty(paymentType) && paymentType.equals(KlarnaPaymentMappingService.KLARNA_PAYMENT_TYPE);
     }
