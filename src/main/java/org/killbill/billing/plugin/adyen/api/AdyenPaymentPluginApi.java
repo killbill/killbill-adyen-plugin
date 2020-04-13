@@ -847,7 +847,7 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
                                                      } if(authoriseKlarnaPayment) {
                                                          Map<String, String> responseData = AdyenDao.fromAdditionalData(existingAuth.getAdditionalData());
                                                          paymentData.getPaymentInfo().setAuthResponseData(responseData);
-                                                         return adyenPort.completeKlarnaPaymentAuth(merchantAccount, paymentData, userData);
+                                                         return adyenPort.authoriseKlarnaPayment(true, merchantAccount, paymentData, userData);
                                                      } else {
                                                          return adyenPort.authorize3DSecure(
                                                                  originalMerchantAccount != null ? originalMerchantAccount : merchantAccount,
@@ -863,7 +863,7 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
                                                          return adyenPort.credit(merchantAccount, paymentData, userData, splitSettlementData, additionalData);
                                                      } else {
                                                          if(authoriseKlarnaPayment) {
-                                                             return adyenPort.authoriseKlarnaPayment(merchantAccount, paymentData, userData);
+                                                             return adyenPort.authoriseKlarnaPayment(false, merchantAccount, paymentData, userData);
                                                          } else {
                                                              return adyenPort.authorise(merchantAccount, paymentData, userData, splitSettlementData, additionalData);
                                                          }

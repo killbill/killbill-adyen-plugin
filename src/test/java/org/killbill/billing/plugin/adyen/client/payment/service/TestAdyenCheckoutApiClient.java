@@ -69,7 +69,7 @@ public class TestAdyenCheckoutApiClient {
         final AdyenPaymentServiceProviderPort adyenPort = new AdyenPaymentServiceProviderPort(
                 adyenRequestFactory, null, adyenConfigProperties);
 
-        PurchaseResult result = adyenPort.authoriseKlarnaPayment(merchantAccount, paymentData, userData);
+        PurchaseResult result = adyenPort.authoriseKlarnaPayment(false, merchantAccount, paymentData, userData);
         assertEquals(result.getResultCode(), "RedirectShopper");
         assertTrue(result.getAdditionalData().size() > 0);
 
@@ -101,7 +101,7 @@ public class TestAdyenCheckoutApiClient {
         final AdyenPaymentServiceProviderPort adyenServiceProvider = new AdyenPaymentServiceProviderPort(
                 adyenRequestFactory, null, adyenConfigProperties);
 
-        PurchaseResult result = adyenServiceProvider.completeKlarnaPaymentAuth(merchantAccount, paymentData, userData);
+        PurchaseResult result = adyenServiceProvider.authoriseKlarnaPayment(true, merchantAccount, paymentData, userData);
         assertEquals(result.getResultCode(), "Authorised");
         assertEquals(result.getPspReference(), CheckoutApiTestHelper.PSP_REFERENCE);
     }
@@ -137,7 +137,7 @@ public class TestAdyenCheckoutApiClient {
 
         final AdyenPaymentServiceProviderPort adyenServiceProvider = new AdyenPaymentServiceProviderPort(
                 adyenRequestFactory, null, adyenConfigProperties);
-        PurchaseResult result = adyenServiceProvider.authoriseKlarnaPayment(merchantAccount, paymentData, userData);
+        PurchaseResult result = adyenServiceProvider.authoriseKlarnaPayment(false, merchantAccount, paymentData, userData);
         assertTrue(result.getResult().isPresent());
         assertNull(result.getResultCode());
         assertEquals(result.getResult().get().getResponses()[0], "Error");

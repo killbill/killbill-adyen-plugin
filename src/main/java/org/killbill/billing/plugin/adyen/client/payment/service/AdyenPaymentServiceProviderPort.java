@@ -156,30 +156,27 @@ public class AdyenPaymentServiceProviderPort extends BaseAdyenPaymentServiceProv
         return purchaseResult;
     }
 
-    public PurchaseResult authoriseKlarnaPayment(final String merchantAccount,
+    public PurchaseResult authoriseKlarnaPayment(final boolean authComplete,
+                                                 final String merchantAccount,
                                                  final PaymentData paymentData,
                                                  final UserData userData) {
-        PaymentsRequest klarnaRequest = adyenRequestFactory.createKlarnaPayment(merchantAccount, paymentData, userData);
         final String countryCode = ((KlarnaPaymentInfo) paymentData.getPaymentInfo()).getCountryCode();
         final AdyenCheckoutApiClient checkoutClient = getAdyenCheckoutClient(countryCode);
-        final AdyenCallResult<PaymentsResponse> adyenCallResult = checkoutClient.createPayment(klarnaRequest);
+        final AdyenCallResult<PaymentsResponse> adyenCallResult;
+        if(authComplete) {
+            //completing auth session
+            PaymentsDetailsRequest detailsRequest = adyenRequestFactory.completeKlarnaPayment(merchantAccount, paymentData, userData);
+            adyenCallResult = checkoutClient.paymentDetails(detailsRequest);
+        } else {
+            //starting auth session
+            PaymentsRequest klarnaRequest = adyenRequestFactory.createKlarnaPayment(merchantAccount, paymentData, userData);
+            adyenCallResult = checkoutClient.createPayment(klarnaRequest);
+        }
+
         if (!adyenCallResult.receivedWellFormedResponse()) {
             return handleKlarnaAuthoriseError(adyenCallResult, paymentData);
         }
 
-        return handleKlarnaAuthoriseResponse(adyenCallResult, merchantAccount);
-    }
-
-    public PurchaseResult completeKlarnaPaymentAuth(final String merchantAccount,
-                                                    final PaymentData paymentData,
-                                                    final UserData userData) {
-        PaymentsDetailsRequest detailsRequest = adyenRequestFactory.completeKlarnaPayment(merchantAccount, paymentData, userData);
-        final String countryCode = ((KlarnaPaymentInfo) paymentData.getPaymentInfo()).getCountryCode();
-        final AdyenCheckoutApiClient checkoutClient = getAdyenCheckoutClient(countryCode);
-        final AdyenCallResult<PaymentsResponse> adyenCallResult = checkoutClient.paymentDetails(detailsRequest);
-        if (!adyenCallResult.receivedWellFormedResponse()) {
-            return handleKlarnaAuthoriseError(adyenCallResult, paymentData);
-        }
         return handleKlarnaAuthoriseResponse(adyenCallResult, merchantAccount);
     }
 
