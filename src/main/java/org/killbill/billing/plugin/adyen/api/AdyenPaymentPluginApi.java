@@ -1166,7 +1166,7 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
 
     // For HPP
     private PaymentData buildPaymentData(final String merchantAccount, final String countryCode, final AccountData account, final BigDecimal amount, final Currency currency, final Iterable<PluginProperty> properties, final TenantContext context) {
-        final PaymentInfo paymentInfo = buildPaymentInfo(merchantAccount, countryCode, account,null, properties, context);
+        final PaymentInfo paymentInfo = buildPaymentInfo(merchantAccount, countryCode, account, null, properties, context);
         final String paymentTransactionExternalKey = PluginProperties.getValue(PROPERTY_PAYMENT_EXTERNAL_KEY, UUID.randomUUID().toString(), properties);
         return new PaymentData<PaymentInfo>(amount, currency, paymentTransactionExternalKey, paymentInfo);
     }

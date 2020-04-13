@@ -6,7 +6,7 @@ import org.killbill.billing.plugin.adyen.client.model.PurchaseResult;
 import org.testng.annotations.Test;
 import java.util.Map;
 
-import static org.testng.Assert.*;
+import static org.testng.Assert.assertEquals;
 
 public class TestCheckoutPaymentsResult {
     private final ObjectMapper mapper = new ObjectMapper();
