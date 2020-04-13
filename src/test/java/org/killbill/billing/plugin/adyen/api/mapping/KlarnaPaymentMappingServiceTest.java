@@ -3,7 +3,6 @@ package org.killbill.billing.plugin.adyen.api.mapping;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-
 import org.jooq.tools.StringUtils;
 import org.killbill.billing.payment.api.PluginProperty;
 import org.killbill.billing.plugin.adyen.api.mapping.klarna.Account;
@@ -15,10 +14,10 @@ import org.killbill.billing.plugin.adyen.api.mapping.klarna.Voucher;
 import org.killbill.billing.plugin.adyen.client.model.paymentinfo.KlarnaPaymentInfo;
 import org.killbill.billing.plugin.api.PluginProperties;
 import org.testng.annotations.Test;
-
 import com.google.common.collect.ImmutableMap;
 
-import static org.testng.Assert.*;
+import static org.testng.Assert.assertFalse;
+import static org.testng.Assert.assertTrue;
 import static org.testng.Assert.assertEquals;
 
 public class KlarnaPaymentMappingServiceTest extends TestKlarnaPaymentInfoBase {
@@ -67,7 +66,6 @@ public class KlarnaPaymentMappingServiceTest extends TestKlarnaPaymentInfoBase {
         assertEquals(lineItem.getTaxAmount(), Long.valueOf(69));
         assertEquals(lineItem.getTaxPercentage(), Long.valueOf(2100));
         assertEquals(lineItem.getInventoryType(), "goods");
-        assertTrue(paymentInfo.usingShippingAddress());
 
         //account info
         Account account = paymentInfo.getAccounts().get(0);
@@ -111,7 +109,7 @@ public class KlarnaPaymentMappingServiceTest extends TestKlarnaPaymentInfoBase {
         assertFalse(paymentInfo.isIdentifierHashed());
         assertTrue(paymentInfo.getAdditionalData().length() > 0);
         assertTrue(paymentInfo.isIdentifierHashed());
-        assertEquals(paymentInfo.getIdentifierMap().size(), 2);
+        assertEquals(paymentInfo.getIdentifierMap().size(), 3);
     }
 
     @Test(groups = "fast")

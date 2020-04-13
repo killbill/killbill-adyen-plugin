@@ -20,7 +20,7 @@ package org.killbill.billing.plugin.adyen.client.payment.service;
 import java.math.BigDecimal;
 import java.util.Map;
 import java.util.Properties;
-
+import java.util.UUID;
 import org.jooq.tools.StringUtils;
 import org.killbill.billing.catalog.api.Currency;
 import org.killbill.billing.plugin.adyen.client.AdyenConfigProperties;
@@ -28,20 +28,20 @@ import org.killbill.billing.plugin.adyen.client.model.PaymentData;
 import org.killbill.billing.plugin.adyen.client.model.PaymentInfo;
 import org.killbill.billing.plugin.adyen.client.model.PurchaseResult;
 import org.killbill.billing.plugin.adyen.client.model.UserData;
-import org.killbill.billing.plugin.adyen.client.model.paymentinfo.KlarnaPaymentInfo;
 import org.killbill.billing.plugin.adyen.client.payment.builder.AdyenRequestFactory;
-import org.killbill.billing.plugin.adyen.client.payment.service.AdyenCallResult;
-import org.killbill.billing.plugin.adyen.client.payment.service.AdyenCheckoutApiClient;
-import org.killbill.billing.plugin.adyen.client.payment.service.AdyenPaymentServiceProviderPort;
-
+import com.adyen.model.ApiError;
 import com.adyen.model.checkout.PaymentsDetailsRequest;
 import com.adyen.model.checkout.PaymentsRequest;
 import com.adyen.model.checkout.PaymentsResponse;
-
-import org.killbill.billing.plugin.adyen.client.payment.service.SuccessfulAdyenCall;
 import org.killbill.billing.plugin.adyen.client.payment.service.checkout.CheckoutApiTestHelper;
+import com.adyen.service.exception.ApiException;
 import org.testng.annotations.Test;
-import static org.testng.Assert.*;
+
+import static org.killbill.billing.plugin.adyen.client.payment.service.AdyenCallErrorStatus.RESPONSE_ABOUT_INVALID_REQUEST;
+import static org.testng.Assert.assertEquals;
+import static org.testng.Assert.assertNull;
+import static org.testng.Assert.assertTrue;
+import static org.testng.Assert.assertFalse;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -60,7 +60,8 @@ public class TestAdyenCheckoutApiClient {
         final String merchantAccount = "TestAccount";
         final UserData userData = new UserData();
         final PaymentData paymentData = new PaymentData<PaymentInfo>(
-                BigDecimal.TEN, Currency.EUR,null, new KlarnaPaymentInfo());
+                BigDecimal.TEN, Currency.EUR,null,
+                null);
 
         final AdyenRequestFactory adyenRequestFactory = mock(AdyenRequestFactory.class);
         when(adyenRequestFactory.createKlarnaPayment(merchantAccount, paymentData, userData)).thenReturn(request);
@@ -92,7 +93,7 @@ public class TestAdyenCheckoutApiClient {
         final String merchantAccount = "TestAccount";
         final UserData userData = new UserData();
         final PaymentData paymentData = new PaymentData<PaymentInfo>(
-                BigDecimal.TEN, Currency.EUR,null, new KlarnaPaymentInfo());
+                BigDecimal.TEN, Currency.EUR,null, null);
 
         final AdyenRequestFactory adyenRequestFactory = mock(AdyenRequestFactory.class);
         when(adyenRequestFactory.completeKlarnaPayment(merchantAccount, paymentData, userData)).thenReturn(request);
@@ -111,5 +112,35 @@ public class TestAdyenCheckoutApiClient {
         properties.put("org.killbill.billing.plugin.adyen.checkout.country", "UK");
         properties.put("org.killbill.billing.plugin.adyen.checkout.apiKey.UK", "API_KEY_UK");
         return new AdyenConfigProperties(properties);
+    }
+
+    @Test(groups = "fast", enabled = false)
+    public void testAuthoriseErrorOnKlarnaPayment() throws Exception {
+        final AdyenConfigProperties adyenConfigProperties = getAdyenConfigForCheckout();
+        final PaymentsRequest request = new PaymentsRequest();
+        final ApiException exception = new ApiException("API exception", 411);
+        final ApiError error = new ApiError();
+        error.setMessage("Invalid payload");
+        error.setPspReference("ABCDE6789FG");
+        exception.setError(error);
+        final FailedCheckoutApiCall callResult = new FailedCheckoutApiCall(
+                RESPONSE_ABOUT_INVALID_REQUEST, exception, exception);
+        final AdyenCheckoutApiClient checkoutApi = mock(AdyenCheckoutApiClient.class);
+        when(checkoutApi.createPayment(request)).thenReturn(callResult);
+
+        final String merchantAccount = "TestAccount";
+        final UserData userData = new UserData();
+        final PaymentData paymentData = new PaymentData<PaymentInfo>(
+                BigDecimal.TEN, Currency.EUR, UUID.randomUUID().toString(), null);
+        final AdyenRequestFactory adyenRequestFactory = mock(AdyenRequestFactory.class);
+        when(adyenRequestFactory.createKlarnaPayment(merchantAccount, paymentData, userData)).thenReturn(request);
+
+        final AdyenPaymentServiceProviderPort adyenServiceProvider = new AdyenPaymentServiceProviderPort(
+                adyenRequestFactory, null, adyenConfigProperties);
+        PurchaseResult result = adyenServiceProvider.authoriseKlarnaPayment(merchantAccount, paymentData, userData);
+        assertTrue(result.getResult().isPresent());
+        assertNull(result.getResultCode());
+        assertEquals(result.getResult().get().getResponses()[0], "Error");
+        assertEquals(result.getReason(), "Invalid payload");
     }
 }

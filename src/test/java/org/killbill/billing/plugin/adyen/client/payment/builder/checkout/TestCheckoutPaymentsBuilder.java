@@ -13,7 +13,8 @@ import org.testng.annotations.Test;
 import java.math.BigDecimal;
 import java.util.UUID;
 
-import static org.testng.Assert.*;
+import static org.testng.Assert.assertEquals;
+import static org.testng.Assert.assertNotNull;
 
 public class TestCheckoutPaymentsBuilder extends TestKlarnaPaymentInfoBase {
     private final String countryCode = "GB";
