@@ -54,7 +54,6 @@ public class KlarnaPaymentInfo extends PaymentInfo {
         this.setPaymentType(builder.paymentType);
     }
 
-    @Override
     public boolean completeKlarnaAuthorisation() {
         return detailsData.size() > 0;
     }
