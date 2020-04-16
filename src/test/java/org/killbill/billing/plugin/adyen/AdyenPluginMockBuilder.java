@@ -78,6 +78,7 @@ public class AdyenPluginMockBuilder {
     }
 
     private static Properties getDefaultAdyenConfigProperties() throws IOException {
+        //adyen default config properties
         final Properties properties = new Properties();
         properties.put("org.killbill.billing.plugin.adyen.username", "username");
         properties.put("org.killbill.billing.plugin.adyen.password", "password");
