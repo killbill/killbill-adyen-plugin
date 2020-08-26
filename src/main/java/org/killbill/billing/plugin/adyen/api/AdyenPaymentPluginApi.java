@@ -1,6 +1,6 @@
 /*
- * Copyright 2014-2018 Groupon, Inc
- * Copyright 2014-2018 The Billing Project, LLC
+ * Copyright 2014-2020 Groupon, Inc
+ * Copyright 2014-2020 The Billing Project, LLC
  *
  * The Billing Project licenses this file to you under the Apache License, version 2.0
  * (the "License"); you may not use this file except in compliance with the
@@ -39,7 +39,6 @@ import org.killbill.billing.account.api.AccountData;
 import org.killbill.billing.catalog.api.Currency;
 import org.killbill.billing.osgi.libs.killbill.OSGIConfigPropertiesService;
 import org.killbill.billing.osgi.libs.killbill.OSGIKillbillAPI;
-import org.killbill.billing.osgi.libs.killbill.OSGIKillbillLogService;
 import org.killbill.billing.payment.api.Payment;
 import org.killbill.billing.payment.api.PaymentApiException;
 import org.killbill.billing.payment.api.PaymentMethod;
@@ -89,7 +88,6 @@ import org.killbill.billing.plugin.util.KillBillMoney;
 import org.killbill.billing.util.callcontext.CallContext;
 import org.killbill.billing.util.callcontext.TenantContext;
 import org.killbill.clock.Clock;
-import org.osgi.service.log.LogService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -220,10 +218,9 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
                                  final AdyenRecurringConfigurationHandler adyenRecurringConfigurationHandler,
                                  final OSGIKillbillAPI killbillApi,
                                  final OSGIConfigPropertiesService osgiConfigPropertiesService,
-                                 final OSGIKillbillLogService logService,
                                  final Clock clock,
                                  final AdyenDao dao) throws JAXBException {
-        super(killbillApi, osgiConfigPropertiesService, logService, clock, dao);
+        super(killbillApi, osgiConfigPropertiesService, clock, dao);
         this.adyenConfigurationHandler = adyenConfigurationHandler;
         this.adyenHppConfigurationHandler = adyenHppConfigurationHandler;
         this.adyenRecurringConfigurationHandler = adyenRecurringConfigurationHandler;
@@ -266,7 +263,7 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
                                PluginProperties.merge(expiredTransaction.getProperties(), updatedStatusProperties),
                                context.getTenantId());
         } catch (final SQLException e) {
-            logService.log(LogService.LOG_ERROR, "Unable to update canceled payment", e);
+            logger.warn("Unable to update canceled payment", e);
         }
     }
 
@@ -385,7 +382,7 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
             try {
                 recurringDetailList = adyenRecurringClient.getRecurringDetailList(customerId.toString(), merchantAccount, recurringType.toString());
             } catch (final ServiceException e) {
-                logService.log(LogService.LOG_ERROR, "Unable to retrieve recurring details in Adyen", e);
+                logger.warn("Unable to retrieve recurring details in Adyen", e);
                 continue;
             }
             for (final RecurringDetail recurringDetail : recurringDetailList) {
@@ -393,7 +390,7 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
                 try {
                     formerResponse = dao.getResponse(recurringDetail.getFirstPspReference());
                 } catch (final SQLException e) {
-                    logService.log(LogService.LOG_ERROR, "Unable to retrieve adyen response", e);
+                    logger.warn("Unable to retrieve adyen response", e);
                     continue;
                 }
                 if (formerResponse == null) {
@@ -404,14 +401,14 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
                 try {
                     payment = killbillAPI.getPaymentApi().getPayment(UUID.fromString(formerResponse.getKbPaymentId()), false, false, properties, context);
                 } catch (final PaymentApiException e) {
-                    logService.log(LogService.LOG_ERROR, "Unable to retrieve Payment for externalKey " + recurringDetail.getFirstPspReference(), e);
+                    logger.warn("Unable to retrieve Payment for externalKey {}", recurringDetail.getFirstPspReference(), e);
                     continue;
                 }
                 if (payment.getPaymentMethodId().toString().equals(record.getKbPaymentMethodId())) {
                     try {
                         dao.setPaymentMethodToken(record.getKbPaymentMethodId(), recurringDetail.getRecurringDetailReference(), context.getTenantId().toString());
                     } catch (final SQLException e) {
-                        logService.log(LogService.LOG_ERROR, "Unable to update token", e);
+                        logger.warn("Unable to update token", e);
                         continue;
                     }
                 }
@@ -957,7 +954,7 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
             try {
                 paymentMethodsRecord = dao.getPaymentMethod(kbPaymentMethodId, context.getTenantId());
             } catch (final SQLException e) {
-                logService.log(LogService.LOG_WARNING, "Failed to retrieve payment method " + kbPaymentMethodId, e);
+                logger.warn("Failed to retrieve payment method {}", kbPaymentMethodId, e);
             }
         }
 
@@ -1024,7 +1021,7 @@ public class AdyenPaymentPluginApi extends PluginPaymentPluginApi<AdyenResponses
 
             return null;
         } catch (final SQLException e) {
-            logService.log(LogService.LOG_ERROR, "Failed to get previous AdyenResponsesRecord", e);
+            logger.warn("Failed to get previous AdyenResponsesRecord", e);
             return null;
         }
     }

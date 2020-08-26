@@ -1,6 +1,6 @@
 /*
- * Copyright 2016-2018 Groupon, Inc
- * Copyright 2016-2018 The Billing Project, LLC
+ * Copyright 2014-2020 Groupon, Inc
+ * Copyright 2014-2020 The Billing Project, LLC
  *
  * The Billing Project licenses this file to you under the Apache License, version 2.0
  * (the "License"); you may not use this file except in compliance with the

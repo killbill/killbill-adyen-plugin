@@ -1,6 +1,6 @@
 /*
- * Copyright 2014-2018 Groupon, Inc
- * Copyright 2014-2018 The Billing Project, LLC
+ * Copyright 2014-2020 Groupon, Inc
+ * Copyright 2014-2020 The Billing Project, LLC
  *
  * The Billing Project licenses this file to you under the Apache License, version 2.0
  * (the "License"); you may not use this file except in compliance with the
@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import org.asynchttpclient.util.Utf8UrlEncoder;
 import org.joda.time.Period;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -47,11 +48,8 @@ import org.killbill.billing.plugin.TestUtils;
 import org.killbill.billing.plugin.adyen.dao.AdyenDao;
 import org.killbill.billing.plugin.adyen.dao.gen.tables.records.AdyenPaymentMethodsRecord;
 import org.killbill.billing.plugin.api.PluginProperties;
-import org.testng.Assert;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
-
-import com.ning.http.util.UTF8UrlEncoder;
 
 import com.google.common.base.Predicate;
 import com.google.common.base.Strings;
@@ -544,8 +542,8 @@ public class TestAdyenPaymentPluginApi extends TestAdyenPaymentPluginApiBase {
         assertFalse(redirectFormParams.isEmpty(), "No FORM found in redirect HTML response");
         assertEquals(termUrl, redirectFormParams.remove("formAction"));
         // simulate url encoding that happens in the KillBill Client
-        redirectFormParams.put("MD", UTF8UrlEncoder.encodeQueryElement(redirectFormParams.get("MD")));
-        redirectFormParams.put("PaRes", UTF8UrlEncoder.encodeQueryElement(redirectFormParams.get("PaRes")));
+        redirectFormParams.put("MD", Utf8UrlEncoder.encodeQueryElement(redirectFormParams.get("MD")));
+        redirectFormParams.put("PaRes", Utf8UrlEncoder.encodeQueryElement(redirectFormParams.get("PaRes")));
 
         final List<PluginProperty> propertiesWithCompleteParams = PluginProperties.buildPluginProperties(redirectFormParams);
 
@@ -961,7 +959,7 @@ public class TestAdyenPaymentPluginApi extends TestAdyenPaymentPluginApiBase {
     private static PaymentMethodPlugin adyenPaymentMethodPlugin(final String paymentMethodId, final String additionalData) {
         final AdyenPaymentMethodsRecord record = new AdyenPaymentMethodsRecord();
         record.setKbPaymentMethodId(paymentMethodId);
-        record.setIsDefault(AdyenDao.TRUE);
+        record.setIsDefault((short) AdyenDao.TRUE);
         if (!Strings.isNullOrEmpty(additionalData)) {
             record.setAdditionalData(additionalData);
         }

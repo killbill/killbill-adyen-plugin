@@ -1,6 +1,6 @@
 /*
- * Copyright 2014-2016 Groupon, Inc
- * Copyright 2014-2016 The Billing Project, LLC
+ * Copyright 2014-2020 Groupon, Inc
+ * Copyright 2014-2020 The Billing Project, LLC
  *
  * The Billing Project licenses this file to you under the Apache License, version 2.0
  * (the "License"); you may not use this file except in compliance with the
@@ -88,7 +88,7 @@ public class AdyenDao extends PluginPaymentDao<AdyenResponsesRecord, AdyenRespon
                            .set(ADYEN_PAYMENT_METHODS.TOKEN, token)
                            .where(ADYEN_PAYMENT_METHODS.KB_PAYMENT_METHOD_ID.equal(kbPaymentMethodId))
                            .and(ADYEN_PAYMENT_METHODS.KB_TENANT_ID.equal(kbTenantId))
-                           .and(ADYEN_PAYMENT_METHODS.IS_DELETED.equal(FALSE))
+                           .and(ADYEN_PAYMENT_METHODS.IS_DELETED.equal((short) FALSE))
                            .execute();
                         return null;
                     }
@@ -124,7 +124,7 @@ public class AdyenDao extends PluginPaymentDao<AdyenResponsesRecord, AdyenRespon
                                    kbPaymentTransactionId != null ? kbPaymentTransactionId.toString() : null,
                                    transactionExternalKey,
                                    additionalData,
-                                   toTimestamp(utcNow),
+                                   toLocalDateTime(utcNow),
                                    kbTenantId.toString())
                            .execute();
                         return null;
@@ -475,7 +475,7 @@ public class AdyenDao extends PluginPaymentDao<AdyenResponsesRecord, AdyenRespon
                                    notification.getAmount(),
                                    notification.getCurrency(),
                                    notification.getEventCode(),
-                                   toTimestamp(notification.getEventDate()),
+                                   toLocalDateTime(notification.getEventDate()),
                                    notification.getMerchantAccountCode(),
                                    notification.getMerchantReference(),
                                    getString(notification.getOperations()),
@@ -483,9 +483,9 @@ public class AdyenDao extends PluginPaymentDao<AdyenResponsesRecord, AdyenRespon
                                    notification.getPaymentMethod(),
                                    notification.getPspReference(),
                                    notification.getReason(),
-                                   notification.getSuccess() == null ? FALSE : fromBoolean(notification.getSuccess()),
+                                   notification.getSuccess() == null ? (short) FALSE : fromBoolean(notification.getSuccess()),
                                    additionalData,
-                                   toTimestamp(utcNow),
+                                   toLocalDateTime(utcNow),
                                    kbTenantId == null ? null : kbTenantId.toString())
                            .execute();
                         return null;

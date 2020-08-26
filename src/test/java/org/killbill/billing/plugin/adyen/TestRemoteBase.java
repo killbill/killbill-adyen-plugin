@@ -1,6 +1,6 @@
 /*
- * Copyright 2014-2018 Groupon, Inc
- * Copyright 2014-2018 The Billing Project, LLC
+ * Copyright 2014-2020 Groupon, Inc
+ * Copyright 2014-2020 The Billing Project, LLC
  *
  * The Billing Project licenses this file to you under the Apache License, version 2.0
  * (the "License"); you may not use this file except in compliance with the
@@ -22,7 +22,6 @@ import java.util.Properties;
 import org.killbill.billing.account.api.Account;
 import org.killbill.billing.catalog.api.Currency;
 import org.killbill.billing.osgi.libs.killbill.OSGIKillbillAPI;
-import org.killbill.billing.osgi.libs.killbill.OSGIKillbillLogService;
 import org.killbill.billing.plugin.TestUtils;
 import org.killbill.billing.plugin.adyen.client.AdyenConfigProperties;
 import org.killbill.billing.plugin.adyen.client.AdyenPaymentPortRegistry;
@@ -84,20 +83,12 @@ public abstract class TestRemoteBase {
     protected AdyenPaymentServiceProviderPort adyenPaymentServiceProviderPort;
     protected AdyenPaymentServiceProviderHostedPaymentPagePort adyenPaymentServiceProviderHostedPaymentPagePort;
     protected AdyenRecurringClient adyenRecurringClient;
-    protected OSGIKillbillLogService logService;
 
     protected Properties properties;
     protected String merchantAccount;
 
-    @BeforeClass(groups = "slow")
-    public void setUpBeforeClassCommon() throws Exception {
-        logService = TestUtils.buildLogService();
-    }
-
     @BeforeClass(groups = "integration")
     public void setUpBeforeClass() throws Exception {
-        setUpBeforeClassCommon();
-
         properties = TestUtils.loadProperties(PROPERTIES_FILE_NAME);
         adyenConfigProperties = getAdyenConfigProperties();
 
@@ -126,16 +117,16 @@ public abstract class TestRemoteBase {
         final Account account = TestUtils.buildAccount(Currency.BTC, "US");
         final OSGIKillbillAPI killbillAPI = TestUtils.buildOSGIKillbillAPI(account);
 
-        adyenConfigurationHandler = new AdyenConfigurationHandler(AdyenActivator.PLUGIN_NAME, killbillAPI, logService, null);
+        adyenConfigurationHandler = new AdyenConfigurationHandler(AdyenActivator.PLUGIN_NAME, killbillAPI, null);
         adyenConfigurationHandler.setDefaultConfigurable(adyenPaymentServiceProviderPort);
 
-        adyenConfigPropertiesConfigurationHandler = new AdyenConfigPropertiesConfigurationHandler(AdyenActivator.PLUGIN_NAME, killbillAPI, logService, null);
+        adyenConfigPropertiesConfigurationHandler = new AdyenConfigPropertiesConfigurationHandler(AdyenActivator.PLUGIN_NAME, killbillAPI, null);
         adyenConfigPropertiesConfigurationHandler.setDefaultConfigurable(adyenConfigProperties);
 
-        adyenHostedPaymentPageConfigurationHandler = new AdyenHostedPaymentPageConfigurationHandler(AdyenActivator.PLUGIN_NAME, killbillAPI, logService, null);
+        adyenHostedPaymentPageConfigurationHandler = new AdyenHostedPaymentPageConfigurationHandler(AdyenActivator.PLUGIN_NAME, killbillAPI, null);
         adyenHostedPaymentPageConfigurationHandler.setDefaultConfigurable(adyenPaymentServiceProviderHostedPaymentPagePort);
 
-        adyenRecurringConfigurationHandler = new AdyenRecurringConfigurationHandler(AdyenActivator.PLUGIN_NAME, killbillAPI, logService, null);
+        adyenRecurringConfigurationHandler = new AdyenRecurringConfigurationHandler(AdyenActivator.PLUGIN_NAME, killbillAPI, null);
         adyenRecurringConfigurationHandler.setDefaultConfigurable(adyenRecurringClient);
 
         merchantAccount = adyenConfigProperties.getMerchantAccount(DEFAULT_COUNTRY);

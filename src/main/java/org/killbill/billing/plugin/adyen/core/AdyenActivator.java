@@ -1,7 +1,8 @@
 /*
- * Copyright 2014-2016 Groupon, Inc
+ * Copyright 2014-2020 Groupon, Inc
+ * Copyright 2014-2020 The Billing Project, LLC
  *
- * Groupon licenses this file to you under the Apache License, version 2.0
+ * The Billing Project licenses this file to you under the Apache License, version 2.0
  * (the "License"); you may not use this file except in compliance with the
  * License.  You may obtain a copy of the License at:
  *
@@ -58,10 +59,10 @@ public class AdyenActivator extends KillbillActivatorBase {
         final AdyenDao dao = new AdyenDao(dataSource.getDataSource());
 
         final String region = PluginEnvironmentConfig.getRegion(configProperties.getProperties());
-        adyenConfigurationHandler = new AdyenConfigurationHandler(PLUGIN_NAME, killbillAPI, logService, region);
-        adyenConfigPropertiesConfigurationHandler = new AdyenConfigPropertiesConfigurationHandler(PLUGIN_NAME, killbillAPI, logService, region);
-        adyenHostedPaymentPageConfigurationHandler = new AdyenHostedPaymentPageConfigurationHandler(PLUGIN_NAME, killbillAPI, logService, region);
-        adyenRecurringConfigurationHandler = new AdyenRecurringConfigurationHandler(PLUGIN_NAME, killbillAPI, logService, region);
+        adyenConfigurationHandler = new AdyenConfigurationHandler(PLUGIN_NAME, killbillAPI, region);
+        adyenConfigPropertiesConfigurationHandler = new AdyenConfigPropertiesConfigurationHandler(PLUGIN_NAME, killbillAPI, region);
+        adyenHostedPaymentPageConfigurationHandler = new AdyenHostedPaymentPageConfigurationHandler(PLUGIN_NAME, killbillAPI, region);
+        adyenRecurringConfigurationHandler = new AdyenRecurringConfigurationHandler(PLUGIN_NAME, killbillAPI, region);
 
         final AdyenPaymentServiceProviderPort globalAdyenClient = adyenConfigurationHandler.createConfigurable(configProperties.getProperties());
         adyenConfigurationHandler.setDefaultConfigurable(globalAdyenClient);
@@ -82,7 +83,6 @@ public class AdyenActivator extends KillbillActivatorBase {
         // Register the servlet
         final PluginApp pluginApp = new PluginAppBuilder(PLUGIN_NAME,
                                                          killbillAPI,
-                                                         logService,
                                                          dataSource,
                                                          super.clock,
                                                          configProperties).withRouteClass(AdyenServlet.class)
@@ -99,7 +99,6 @@ public class AdyenActivator extends KillbillActivatorBase {
                                                                           adyenRecurringConfigurationHandler,
                                                                           killbillAPI,
                                                                           configProperties,
-                                                                          logService,
                                                                           clock,
                                                                           dao);
         registerPaymentPluginApi(context, pluginApi);

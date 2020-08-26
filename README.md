@@ -1,12 +1,9 @@
-killbill-adyen-plugin
-=====================
+# killbill-adyen-plugin
+![Maven Central](https://img.shields.io/maven-central/v/org.kill-bill.billing.plugin.java/adyen-plugin?color=blue&label=Maven%20Central)
 
-Plugin to use [Adyen](https://www.adyen.com/home/) as a gateway.
+Plugin to use [Adyen](https://www.adyen.com/) as a gateway.
 
-Release builds are available on [Maven Central](http://search.maven.org/#search%7Cga%7C1%7Cg%3A%22org.kill-bill.billing.plugin.java%22%20AND%20a%3A%22adyen-plugin%22) with coordinates `org.kill-bill.billing.plugin.java:adyen-plugin`.
-
-Kill Bill compatibility
------------------------
+## Kill Bill compatibility
 
 | Plugin version | Kill Bill version |
 | -------------: | ----------------: |
@@ -17,14 +14,24 @@ Kill Bill compatibility
 | 0.5.y          | 0.18.z            |
 | 0.6.y          | 0.19.z            |
 | 0.7.y          | 0.20.z            |
+| 0.8.y          | 0.22.z            |
 
-Requirements
-------------
+We've upgraded numerous dependencies in 0.8.x (required for Java 11 support).
+
+## Requirements
 
 The plugin needs a database. The latest version of the schema can be found [here](https://github.com/killbill/killbill-adyen-plugin/blob/master/src/main/resources/ddl.sql).
 
-Configuration
--------------
+## Development
+
+To install the plugin from sources:
+
+```
+mvn clean install -DskipTests=true
+kpm install_java_plugin adyen --from-source-file target/adyen-plugin-*-SNAPSHOT.jar --destination /var/tmp/bundles
+```
+
+## Configuration
 
 The following properties are required:
 
@@ -97,8 +104,7 @@ org.killbill.billing.plugin.adyen.password=ZZZ' \
 
 To avoid runtime errors (such as `ClassCastException`), starting Kill Bill with the System Property `com.sun.xml.bind.v2.bytecode.ClassTailor.noOptimize=true` is recommended.
 
-Usage
------
+## Usage
 
 A full end-to-end integration demo is also available [here](https://github.com/killbill/killbill-adyen-demo).
 
@@ -421,8 +427,7 @@ curl -v \
 
 At this point, the payment method is ready for recurring payments.
 
-Plugin properties
------------------
+## Plugin properties
 
 | Key                      | Description                                   |
 | -----------------------: | :-------------------------------------------- |
@@ -467,3 +472,7 @@ Plugin properties
 | acquirerMID              | Value of Adyen's authorisationMid field       |
 | selectedBrand            | Value of Adyen's selectedBrand field          |
 | lookupDirectory          | If true, query the directory (HPP flow)       |
+
+## About
+
+Kill Bill is the leading Open-Source Subscription Billing & Payments Platform. For more information about the project, go to https://killbill.io/.

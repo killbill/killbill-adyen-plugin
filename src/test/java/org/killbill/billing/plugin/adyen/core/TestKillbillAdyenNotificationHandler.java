@@ -1,6 +1,6 @@
 /*
- * Copyright 2014-2018 Groupon, Inc
- * Copyright 2014-2018 The Billing Project, LLC
+ * Copyright 2014-2020 Groupon, Inc
+ * Copyright 2014-2020 The Billing Project, LLC
  *
  * The Billing Project licenses this file to you under the Apache License, version 2.0
  * (the "License"); you may not use this file except in compliance with the
@@ -90,7 +90,7 @@ public class TestKillbillAdyenNotificationHandler extends TestAdyenPaymentPlugin
         TestUtils.buildPaymentMethod(account.getId(), account.getPaymentMethodId(), AdyenActivator.PLUGIN_NAME, killbillApi);
         payment = TestUtils.buildPayment(account.getId(), account.getPaymentMethodId(), account.getCurrency(), killbillApi);
 
-        adyenConfigPropertiesConfigurationHandler = new AdyenConfigPropertiesConfigurationHandler(AdyenActivator.PLUGIN_NAME, killbillApi, logService, null);
+        adyenConfigPropertiesConfigurationHandler = new AdyenConfigPropertiesConfigurationHandler(AdyenActivator.PLUGIN_NAME, killbillApi, null);
         adyenConfigPropertiesConfigurationHandler.setDefaultConfigurable(new AdyenConfigProperties(new Properties()));
 
         killbillAdyenNotificationHandler = new KillbillAdyenNotificationHandler(adyenConfigPropertiesConfigurationHandler, killbillApi, dao, clock);
@@ -480,7 +480,6 @@ public class TestKillbillAdyenNotificationHandler extends TestAdyenPaymentPlugin
         propertiesForSEPA.put("org.killbill.billing.plugin.adyen.chargebackAsFailurePaymentMethods", "ach,sepadirectdebit");
         final AdyenConfigPropertiesConfigurationHandler configurationHandlerForSEPA = new AdyenConfigPropertiesConfigurationHandler(AdyenActivator.PLUGIN_NAME,
                                                                                                                                     killbillApi,
-                                                                                                                                    logService,
                                                                                                                                     null);
         configurationHandlerForSEPA.setDefaultConfigurable(new AdyenConfigProperties(propertiesForSEPA));
         final AdyenNotificationHandler handlerForSEPA = new KillbillAdyenNotificationHandler(configurationHandlerForSEPA,
