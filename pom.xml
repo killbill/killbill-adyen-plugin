@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  ~ Copyright 2014-2015 Groupon, Inc
-  ~ Copyright 2014-2015 The Billing Project, LLC
+  ~ Copyright 2014-2020 Groupon, Inc
+  ~ Copyright 2014-2020 The Billing Project, LLC
   ~
   ~ The Billing Project licenses this file to you under the Apache License, version 2.0
   ~ (the "License"); you may not use this file except in compliance with the
@@ -15,19 +15,18 @@
   ~ License for the specific language governing permissions and limitations
   ~ under the License.
   -->
-
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
-        <artifactId>killbill-oss-parent</artifactId>
         <groupId>org.kill-bill.billing</groupId>
-        <version>0.142.1</version>
+        <artifactId>killbill-oss-parent</artifactId>
+        <version>0.144.29</version>
     </parent>
     <groupId>org.kill-bill.billing.plugin.java</groupId>
     <artifactId>adyen-plugin</artifactId>
-    <name>Kill Bill OSGI Adyen plugin</name>
-    <version>0.7.1-SNAPSHOT</version>
+    <version>0.8.0-SNAPSHOT</version>
     <packaging>bundle</packaging>
+    <name>Kill Bill OSGI Adyen plugin</name>
     <description>Kill Bill Adyen plugin</description>
     <url>http://github.com/killbill/killbill-adyen-plugin</url>
     <scm>
@@ -40,36 +39,98 @@
         <url>https://github.com/killbill/killbill-adyen-plugin/issues</url>
     </issueManagement>
     <properties>
-        <cxf.version>3.0.4</cxf.version>
-        <rest-assured.version>2.5.0</rest-assured.version>
+        <cxf.version>3.4.0</cxf.version>
         <jsoup.version>1.8.3</jsoup.version>
-        <!-- More recent versions than the core (JDK1.8+) -->
-        <guava.version>21.0</guava.version>
-        <jackson.version>2.9.5</jackson.version>
+        <osgi.extra-import>javax.net.ssl;
+            javax.management;
+            javax.jws;
+            javax.jws.soap;
+            javax.annotation;
+            javax.activation;
+            javax.xml.soap;
+            javax.xml.ws;
+            javax.xml.ws.spi;
+            javax.xml.ws.handler.soap;
+            javax.xml.ws.handler;
+            javax.xml.ws.http;
+            javax.xml.ws.soap;
+            javax.xml.ws.wsaddressing;
+            javax.xml.stream;
+            javax.xml.stream.events;
+            javax.xml.stream.util;
+            javax.xml.bind.annotation.adapters;
+            javax.xml.bind;
+            javax.xml.bind.helpers;
+            javax.xml.bind.annotation;
+            javax.xml.bind.attachment;
+            javax.xml.datatype;
+            javax.xml.namespace;
+            javax.xml.parsers;
+            javax.xml.transform;
+            javax.xml.transform.sax;
+            javax.xml.transform.dom;
+            javax.xml.transform.stream;
+            javax.xml.validation;
+            javax.xml.xpath;
+            version="[0,3)",</osgi.extra-import>
+        <osgi.private>org.killbill.billing.plugin.adyen.*</osgi.private>
+        <rest-assured.version>2.5.0</rest-assured.version>
     </properties>
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.ow2.asm</groupId>
+                <artifactId>asm</artifactId>
+                <version>8.0.1</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
     <dependencies>
         <dependency>
-            <groupId>com.google.inject</groupId>
-            <artifactId>guice</artifactId>
-            <scope>compile</scope>
-        </dependency>
-        <dependency>
-            <groupId>com.google.inject.extensions</groupId>
-            <artifactId>guice-multibindings</artifactId>
-            <scope>compile</scope>
-        </dependency>
-        <dependency>
-            <groupId>com.ning</groupId>
-            <artifactId>async-http-client</artifactId>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-core</artifactId>
         </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
-            <version>${jackson.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.woodstox</groupId>
+            <artifactId>woodstox-core</artifactId>
+            <version>6.2.1</version>
+        </dependency>
+        <dependency>
+            <groupId>com.github.tomakehurst</groupId>
+            <artifactId>wiremock</artifactId>
+            <version>1.57</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.google.code.findbugs</groupId>
+            <artifactId>jsr305</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.google.guava</groupId>
+            <artifactId>guava</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.google.inject</groupId>
+            <artifactId>guice</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.jayway.restassured</groupId>
+            <artifactId>rest-assured</artifactId>
+            <version>${rest-assured.version}</version>
+            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>io.airlift</groupId>
             <artifactId>command</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.airlift</groupId>
+            <artifactId>testing-mysql-server</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -83,76 +144,12 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>org.joda</groupId>
-            <artifactId>joda-money</artifactId>
+            <groupId>jakarta.xml.bind</groupId>
+            <artifactId>jakarta.xml.bind-api</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.mockito</groupId>
-            <artifactId>mockito-all</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.kill-bill.billing</groupId>
-            <artifactId>killbill-api</artifactId>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.kill-bill.billing.plugin</groupId>
-            <artifactId>killbill-plugin-api-payment</artifactId>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.kill-bill.billing.plugin</groupId>
-            <artifactId>killbill-plugin-api-notification</artifactId>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.kill-bill.billing.plugin.java</groupId>
-            <artifactId>killbill-base-plugin</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.kill-bill.billing.plugin.java</groupId>
-            <artifactId>killbill-base-plugin</artifactId>
-            <type>test-jar</type>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.kill-bill.commons</groupId>
-            <artifactId>killbill-clock</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.kill-bill.commons</groupId>
-            <artifactId>killbill-clock</artifactId>
-            <type>test-jar</type>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.kill-bill.billing</groupId>
-            <artifactId>killbill-platform-test</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.kill-bill.billing</groupId>
-            <artifactId>killbill-platform-osgi-api</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.kill-bill.billing</groupId>
-            <artifactId>killbill-platform-osgi-bundles-lib-killbill</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.kill-bill.billing</groupId>
-            <artifactId>killbill-platform-osgi-bundles-lib-slf4j-osgi</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>mysql</groupId>
-            <artifactId>mysql-connector-mxj</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.kill-bill.commons</groupId>
-            <artifactId>killbill-embeddeddb-mysql</artifactId>
-            <type>test-jar</type>
-            <scope>test</scope>
+            <groupId>javax.inject</groupId>
+            <artifactId>javax.inject</artifactId>
         </dependency>
         <dependency>
             <groupId>javax.servlet</groupId>
@@ -162,42 +159,39 @@
         <dependency>
             <groupId>joda-time</groupId>
             <artifactId>joda-time</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.osgi</groupId>
-            <artifactId>org.osgi.core</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.osgi</groupId>
-            <artifactId>org.osgi.compendium</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-api</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-simple</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>com.google.guava</groupId>
-            <artifactId>guava</artifactId>
-            <version>${guava.version}</version>
-            <scope>compile</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.jooq</groupId>
-            <artifactId>jooq</artifactId>
+            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.apache.cxf</groupId>
             <artifactId>cxf-core</artifactId>
             <version>${cxf.version}</version>
+            <exclusions>
+                <exclusion>
+                    <artifactId>javax.activation</artifactId>
+                    <!-- Use jakarta.activation-api instead -->
+                    <groupId>com.sun.activation</groupId>
+                </exclusion>
+                <exclusion>
+                    <artifactId>jakarta.activation</artifactId>
+                    <!-- Use jakarta.activation:jakarta.activation-api instead -->
+                    <groupId>com.sun.activation</groupId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.cxf</groupId>
+            <artifactId>cxf-rt-bindings-soap</artifactId>
+            <version>${cxf.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.cxf</groupId>
             <artifactId>cxf-rt-frontend-jaxws</artifactId>
+            <version>${cxf.version}</version>
+            <scope>runtime</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.cxf</groupId>
+            <artifactId>cxf-rt-frontend-simple</artifactId>
             <version>${cxf.version}</version>
         </dependency>
         <dependency>
@@ -206,25 +200,25 @@
             <version>${cxf.version}</version>
         </dependency>
         <dependency>
-            <groupId>com.google.code.findbugs</groupId>
-            <artifactId>jsr305</artifactId>
+            <groupId>org.apache.felix</groupId>
+            <artifactId>org.apache.felix.framework</artifactId>
+            <scope>provided</scope>
         </dependency>
         <dependency>
-            <groupId>org.testng</groupId>
-            <artifactId>testng</artifactId>
-            <scope>test</scope>
+            <groupId>org.asynchttpclient</groupId>
+            <artifactId>async-http-client</artifactId>
         </dependency>
         <dependency>
-            <groupId>com.github.tomakehurst</groupId>
-            <artifactId>wiremock</artifactId>
-            <version>1.57</version>
-            <scope>test</scope>
+            <groupId>org.joda</groupId>
+            <artifactId>joda-money</artifactId>
         </dependency>
         <dependency>
-            <groupId>com.jayway.restassured</groupId>
-            <artifactId>rest-assured</artifactId>
-            <version>${rest-assured.version}</version>
-            <scope>test</scope>
+            <groupId>org.jooby</groupId>
+            <artifactId>jooby</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.jooq</groupId>
+            <artifactId>jooq</artifactId>
         </dependency>
         <dependency>
             <groupId>org.jsoup</groupId>
@@ -233,8 +227,79 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>org.yaml</groupId>
-            <artifactId>snakeyaml</artifactId>
+            <groupId>org.kill-bill.billing</groupId>
+            <artifactId>killbill-api</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.kill-bill.billing</groupId>
+            <artifactId>killbill-platform-osgi-api</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.kill-bill.billing</groupId>
+            <artifactId>killbill-platform-osgi-bundles-lib-killbill</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.kill-bill.billing</groupId>
+            <artifactId>killbill-platform-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.kill-bill.billing.plugin</groupId>
+            <artifactId>killbill-plugin-api-notification</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.kill-bill.billing.plugin</groupId>
+            <artifactId>killbill-plugin-api-payment</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.kill-bill.billing.plugin.java</groupId>
+            <artifactId>killbill-base-plugin</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.kill-bill.billing.plugin.java</groupId>
+            <artifactId>killbill-base-plugin</artifactId>
+            <type>test-jar</type>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.kill-bill.commons</groupId>
+            <artifactId>killbill-clock</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.kill-bill.commons</groupId>
+            <artifactId>killbill-clock</artifactId>
+            <type>test-jar</type>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.kill-bill.commons</groupId>
+            <artifactId>killbill-embeddeddb-common</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-core</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-simple</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.testng</groupId>
+            <artifactId>testng</artifactId>
+            <scope>test</scope>
         </dependency>
     </dependencies>
     <build>
@@ -247,6 +312,9 @@
                     <execution>
                         <id>generate-wsdl-sources</id>
                         <phase>generate-sources</phase>
+                        <goals>
+                            <goal>wsdl2java</goal>
+                        </goals>
                         <configuration>
                             <sourceRoot>${basedir}/target/generated-sources/cxf-sources</sourceRoot>
                             <wsdlOptions>
@@ -254,10 +322,8 @@
                                     <wsdl>${basedir}/src/main/resources/cxf/Notification.wsdl</wsdl>
                                     <wsdlLocation>classpath:cxf/Notification.wsdl</wsdlLocation>
                                     <bindingFiles>
-                                        <bindingFile>${basedir}/src/main/resources/cxf/jaxbNotification.xjb
-                                        </bindingFile>
-                                        <bindingFile>${basedir}/src/main/resources/cxf/jaxwsNotification.xjb
-                                        </bindingFile>
+                                        <bindingFile>${basedir}/src/main/resources/cxf/jaxbNotification.xjb</bindingFile>
+                                        <bindingFile>${basedir}/src/main/resources/cxf/jaxwsNotification.xjb</bindingFile>
                                     </bindingFiles>
                                     <extraargs>
                                         <extraarg>-xjc-extension</extraarg>
@@ -279,8 +345,7 @@
                                     <wsdlLocation>classpath:cxf/OpenInvoiceDetail.wsdl</wsdlLocation>
                                     <bindingFiles>
                                         <bindingFile>${basedir}/src/main/resources/cxf/jaxbOpenInvoice.xjb</bindingFile>
-                                        <bindingFile>${basedir}/src/main/resources/cxf/jaxwsOpenInvoice.xjb
-                                        </bindingFile>
+                                        <bindingFile>${basedir}/src/main/resources/cxf/jaxwsOpenInvoice.xjb</bindingFile>
                                     </bindingFiles>
                                     <extraargs>
                                         <extraarg>-xjc-extension</extraarg>
@@ -299,228 +364,12 @@
                                 </wsdlOption>
                             </wsdlOptions>
                         </configuration>
-                        <goals>
-                            <goal>wsdl2java</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-jar-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>jar</goal>
-                            <goal>test-jar</goal>
-                        </goals>
-                        <configuration>
-                            <archive>
-                                <!-- use the manifest file created by the bundle plugin -->
-                                <!--<useDefaultManifestFile>true</useDefaultManifestFile>-->
-                                <manifestFile>${project.build.outputDirectory}/META-INF/MANIFEST.MF</manifestFile>
-                                <!-- bundle plugin already generated the maven descriptor -->
-                                <addMavenDescriptor>false</addMavenDescriptor>
-                            </archive>
-                        </configuration>
                     </execution>
                 </executions>
             </plugin>
             <plugin>
                 <groupId>org.apache.felix</groupId>
                 <artifactId>maven-bundle-plugin</artifactId>
-                <extensions>true</extensions>
-                <configuration>
-                    <instructions>
-                        <Bundle-Activator>org.killbill.billing.plugin.adyen.core.AdyenActivator</Bundle-Activator>
-                        <Export-Package>
-                            org.killbill.billing.plugin.service
-                        </Export-Package>
-                        <Private-Package>org.killbill.billing.plugin.adyen.*</Private-Package>
-                        <!-- Optional resolution because exported by the Felix system bundle -->
-                        <Import-Package>
-                            org.killbill.billing.account.api;
-                            org.killbill.billing.catalog.api;
-                            org.killbill.billing.invoice.api;
-                            org.killbill.billing.entitlement.api;
-                            org.killbill.billing.notification.api;
-                            org.killbill.billing.notification.plugin.api;
-                            org.killbill.billing.notification.plugin;
-                            org.killbill.billing.osgi.api;
-                            org.killbill.billing.osgi.api.config;
-                            org.killbill.billing.payment.api;
-                            org.killbill.billing.payment.plugin.api;
-                            org.killbill.billing.control.plugin.api;
-                            org.killbill.billing.tenant.api;
-                            org.killbill.billing.usage.api;
-                            org.killbill.billing.util.api;
-                            org.killbill.billing.currency.plugin.api;
-                            org.killbill.billing.currency.api;
-                            org.killbill.billing.security.api;
-                            com.sun.xml.internal.ws;
-                            com.sun.xml.internal.ws.addressing;
-                            com.sun.xml.internal.ws.addressing.model;
-                            com.sun.xml.internal.ws.addressing.policy;
-                            com.sun.xml.internal.ws.addressing.v200408;
-                            com.sun.xml.internal.ws.api;
-                            com.sun.xml.internal.ws.api.addressing;
-                            com.sun.xml.internal.ws.api.client;
-                            com.sun.xml.internal.ws.api.config.management;
-                            com.sun.xml.internal.ws.api.config.management.policy;
-                            com.sun.xml.internal.ws.api.fastinfoset;
-                            com.sun.xml.internal.ws.api.ha;
-                            com.sun.xml.internal.ws.api.handler;
-                            com.sun.xml.internal.ws.api.message;
-                            com.sun.xml.internal.ws.api.message.stream;
-                            com.sun.xml.internal.ws.api.model;
-                            com.sun.xml.internal.ws.api.model.soap;
-                            com.sun.xml.internal.ws.api.model.wsdl;
-                            com.sun.xml.internal.ws.api.pipe;
-                            com.sun.xml.internal.ws.api.pipe.helper;
-                            com.sun.xml.internal.ws.api.policy;
-                            com.sun.xml.internal.ws.api.server;
-                            com.sun.xml.internal.ws.api.streaming;
-                            com.sun.xml.internal.ws.api.wsdl.parser;
-                            com.sun.xml.internal.ws.api.wsdl.writer;
-                            com.sun.xml.internal.ws.binding;
-                            com.sun.xml.internal.ws.client;
-                            com.sun.xml.internal.ws.client.dispatch;
-                            com.sun.xml.internal.ws.client.sei;
-                            com.sun.xml.internal.ws.config.management.policy;
-                            com.sun.xml.internal.ws.developer;
-                            com.sun.xml.internal.ws.encoding;
-                            com.sun.xml.internal.ws.encoding.fastinfoset;
-                            com.sun.xml.internal.ws.encoding.policy;
-                            com.sun.xml.internal.ws.encoding.soap;
-                            com.sun.xml.internal.ws.encoding.soap.streaming;
-                            com.sun.xml.internal.ws.encoding.xml;
-                            com.sun.xml.internal.ws.fault;
-                            com.sun.xml.internal.ws.handler;
-                            com.sun.xml.internal.ws.message;
-                            com.sun.xml.internal.ws.message.jaxb;
-                            com.sun.xml.internal.ws.message.saaj;
-                            com.sun.xml.internal.ws.message.source;
-                            com.sun.xml.internal.ws.message.stream;
-                            com.sun.xml.internal.ws.model;
-                            com.sun.xml.internal.ws.model.soap;
-                            com.sun.xml.internal.ws.model.wsdl;
-                            com.sun.xml.internal.ws.org.objectweb.asm;
-                            com.sun.xml.internal.ws.policy;
-                            com.sun.xml.internal.ws.policy.jaxws;
-                            com.sun.xml.internal.ws.policy.jaxws.spi;
-                            com.sun.xml.internal.ws.policy.privateutil;
-                            com.sun.xml.internal.ws.policy.sourcemodel;
-                            com.sun.xml.internal.ws.policy.sourcemodel.attach;
-                            com.sun.xml.internal.ws.policy.sourcemodel.wspolicy;
-                            com.sun.xml.internal.ws.policy.spi;
-                            com.sun.xml.internal.ws.policy.subject;
-                            com.sun.xml.internal.ws.protocol.soap;
-                            com.sun.xml.internal.ws.protocol.xml;
-                            com.sun.xml.internal.ws.resources;
-                            com.sun.xml.internal.ws.server;
-                            com.sun.xml.internal.ws.server.provider;
-                            com.sun.xml.internal.ws.server.sei;
-                            com.sun.xml.internal.ws.spi;
-                            com.sun.xml.internal.ws.streaming;
-                            com.sun.xml.internal.ws.transport;
-                            com.sun.xml.internal.ws.transport.http;
-                            com.sun.xml.internal.ws.transport.http.client;
-                            com.sun.xml.internal.ws.transport.http.server;
-                            com.sun.xml.internal.ws.util;
-                            com.sun.xml.internal.ws.util.exception;
-                            com.sun.xml.internal.ws.util.localization;
-                            com.sun.xml.internal.ws.util.pipe;
-                            com.sun.xml.internal.ws.util.xml;
-                            com.sun.xml.internal.ws.wsdl;
-                            com.sun.xml.internal.ws.wsdl.parser;
-                            com.sun.xml.internal.ws.wsdl.writer;
-                            com.sun.xml.internal.ws.wsdl.writer.document;
-                            com.sun.xml.internal.ws.wsdl.writer.document.http;
-                            com.sun.xml.internal.ws.wsdl.writer.document.soap;
-                            com.sun.xml.internal.ws.wsdl.writer.document.soap12;
-                            com.sun.xml.internal.ws.wsdl.writer.document.xsd,
-                            org.xml.sax.ext;
-                            org.xml.sax.helpers;
-                            org.xml.sax;
-                            org.w3c.dom;
-                            org.w3c.dom.ls;
-                            javax.net.ssl;
-                            javax.management;
-                            javax.jws;
-                            javax.jws.soap;
-                            javax.annotation;
-                            javax.activation;
-                            javax.xml.soap;
-                            javax.xml.ws;
-                            javax.xml.ws.spi;
-                            javax.xml.ws.handler.soap;
-                            javax.xml.ws.handler;
-                            javax.xml.ws.http;
-                            javax.xml.ws.soap;
-                            javax.xml.ws.wsaddressing;
-                            javax.xml.stream;
-                            javax.xml.stream.events;
-                            javax.xml.stream.util;
-                            javax.xml.bind.annotation.adapters;
-                            javax.xml.bind;
-                            javax.xml.bind.helpers;
-                            javax.xml.bind.annotation;
-                            javax.xml.bind.attachment;
-                            javax.xml.datatype;
-                            javax.xml.namespace;
-                            javax.xml.parsers;
-                            javax.xml.transform;
-                            javax.xml.transform.sax;
-                            javax.xml.transform.dom;
-                            javax.xml.transform.stream;
-                            javax.xml.validation;
-                            javax.xml.xpath;
-                            javax.naming.directory;
-                            javax.naming.event;
-                            javax.naming.ldap;
-                            javax.naming.spi;
-                            javax.naming;
-                            sun.misc;
-                            sun.misc.unsafe;
-                            sun.security;
-                            sun.security.util;
-                            org.osgi.service.log;
-                            version="[0,3)",
-                            *;resolution:=optional
-                        </Import-Package>
-                    </instructions>
-                </configuration>
-                <executions>
-                    <execution>
-                        <phase>process-classes</phase>
-                        <goals>
-                            <goal>manifest</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-shade-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <id>assemble-killbill-osgi-bundles-adyen-plugin</id>
-                        <goals>
-                            <goal>shade</goal>
-                        </goals>
-                        <phase>package</phase>
-                        <configuration>
-                            <createSourcesJar>true</createSourcesJar>
-                            <shadedArtifactAttached>false</shadedArtifactAttached>
-                            <shadedClassifierName>jar-with-dependencies</shadedClassifierName>
-                            <filters>
-                                <filter>
-                                    <artifact>${project.groupId}:${project.artifactId}</artifact>
-                                </filter>
-                            </filters>
-                        </configuration>
-                    </execution>
-                </executions>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -528,10 +377,10 @@
                 <executions>
                     <execution>
                         <id>jar-with-dep</id>
+                        <phase>package</phase>
                         <goals>
                             <goal>single</goal>
                         </goals>
-                        <phase>package</phase>
                         <configuration>
                             <finalName>${project.artifactId}-${project.version}</finalName>
                             <appendAssemblyId>false</appendAssemblyId>
@@ -545,47 +394,15 @@
                     </execution>
                 </executions>
             </plugin>
+            <plugin>
+                <groupId>org.basepom.maven</groupId>
+                <artifactId>duplicate-finder-maven-plugin</artifactId>
+                <configuration>
+                    <ignoredResourcePatterns>
+                        <ignoredResourcePattern>.*\.xjb</ignoredResourcePattern>
+                    </ignoredResourcePatterns>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
-    <profiles>
-        <profile>
-            <id>jdk18</id>
-            <activation>
-                <activeByDefault>true</activeByDefault>
-            </activation>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-compiler-plugin</artifactId>
-                        <configuration>
-                            <source>1.8</source>
-                            <target>1.8</target>
-                            <showDeprecation>true</showDeprecation>
-                            <showWarnings>true</showWarnings>
-                            <fork>true</fork>
-                        </configuration>
-                    </plugin>
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-jar-plugin</artifactId>
-                        <executions>
-                            <execution>
-                                <goals>
-                                    <goal>jar</goal>
-                                    <goal>test-jar</goal>
-                                </goals>
-                                <configuration>
-                                    <classifier>jdk18</classifier>
-                                </configuration>
-                            </execution>
-                        </executions>
-                        <configuration>
-                            <skipIfEmpty>true</skipIfEmpty>
-                        </configuration>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-    </profiles>
 </project>

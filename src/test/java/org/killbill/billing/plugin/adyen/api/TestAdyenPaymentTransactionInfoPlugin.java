@@ -1,6 +1,6 @@
 /*
- * Copyright 2016 Groupon, Inc
- * Copyright 2016 The Billing Project, LLC
+ * Copyright 2014-2020 Groupon, Inc
+ * Copyright 2014-2020 The Billing Project, LLC
  *
  * The Billing Project licenses this file to you under the Apache License, version 2.0
  * (the "License"); you may not use this file except in compliance with the
@@ -18,10 +18,10 @@
 package org.killbill.billing.plugin.adyen.api;
 
 import java.math.BigDecimal;
-import java.sql.Timestamp;
+import java.time.LocalDateTime;
 import java.util.UUID;
 
-import org.jooq.types.UInteger;
+import org.jooq.types.ULong;
 import org.killbill.billing.catalog.api.Currency;
 import org.killbill.billing.payment.api.TransactionType;
 import org.killbill.billing.payment.plugin.api.PaymentTransactionInfoPlugin;
@@ -34,7 +34,7 @@ public class TestAdyenPaymentTransactionInfoPlugin {
     @Test(groups = "fast")
     public void testGatewayErrorCodeTruncation() throws Exception {
         final String errorCode = "configuration 905 Payment details are not supported";
-        final AdyenResponsesRecord responsesRecord = new AdyenResponsesRecord(UInteger.valueOf(1),
+        final AdyenResponsesRecord responsesRecord = new AdyenResponsesRecord(ULong.valueOf(1),
                                                                               UUID.randomUUID().toString(),
                                                                               UUID.randomUUID().toString(),
                                                                               UUID.randomUUID().toString(),
@@ -57,7 +57,7 @@ public class TestAdyenPaymentTransactionInfoPlugin {
                                                                               UUID.randomUUID().toString(),
                                                                               UUID.randomUUID().toString(),
                                                                               null,
-                                                                              new Timestamp(1242L),
+                                                                              LocalDateTime.now(),
                                                                               UUID.randomUUID().toString());
         final PaymentTransactionInfoPlugin paymentTransactionInfoPlugin = new AdyenPaymentTransactionInfoPlugin(responsesRecord);
         Assert.assertNull(paymentTransactionInfoPlugin.getGatewayErrorCode());
@@ -65,7 +65,7 @@ public class TestAdyenPaymentTransactionInfoPlugin {
 
     @Test(groups = "fast")
     public void testGatewayErrorCodeRawAcquirerReason() throws Exception {
-        final AdyenResponsesRecord responsesRecord = new AdyenResponsesRecord(UInteger.valueOf(1),
+        final AdyenResponsesRecord responsesRecord = new AdyenResponsesRecord(ULong.valueOf(1),
                                                                               UUID.randomUUID().toString(),
                                                                               UUID.randomUUID().toString(),
                                                                               UUID.randomUUID().toString(),
@@ -88,7 +88,7 @@ public class TestAdyenPaymentTransactionInfoPlugin {
                                                                               UUID.randomUUID().toString(),
                                                                               UUID.randomUUID().toString(),
                                                                               "{\"refusalReasonRaw\":\"05 : Do not honor\"}",
-                                                                              new Timestamp(1242L),
+                                                                              LocalDateTime.now(),
                                                                               UUID.randomUUID().toString());
         final PaymentTransactionInfoPlugin paymentTransactionInfoPlugin = new AdyenPaymentTransactionInfoPlugin(responsesRecord);
         Assert.assertEquals(paymentTransactionInfoPlugin.getGatewayError(), "Do not honor");
@@ -97,7 +97,7 @@ public class TestAdyenPaymentTransactionInfoPlugin {
 
     @Test(groups = "fast")
     public void testNullGatewayErrorCode() throws Exception {
-        final AdyenResponsesRecord responsesRecord = new AdyenResponsesRecord(UInteger.valueOf(1),
+        final AdyenResponsesRecord responsesRecord = new AdyenResponsesRecord(ULong.valueOf(1),
                                                                               UUID.randomUUID().toString(),
                                                                               UUID.randomUUID().toString(),
                                                                               UUID.randomUUID().toString(),
@@ -120,7 +120,7 @@ public class TestAdyenPaymentTransactionInfoPlugin {
                                                                               UUID.randomUUID().toString(),
                                                                               UUID.randomUUID().toString(),
                                                                               "{\"refusalReasonRaw\":\"ill-formatted raw refusal reason\"}",
-                                                                              new Timestamp(1242L),
+                                                                              LocalDateTime.now(),
                                                                               UUID.randomUUID().toString());
         final PaymentTransactionInfoPlugin paymentTransactionInfoPlugin = new AdyenPaymentTransactionInfoPlugin(responsesRecord);
         Assert.assertEquals(paymentTransactionInfoPlugin.getGatewayError(), "Not enough balance");

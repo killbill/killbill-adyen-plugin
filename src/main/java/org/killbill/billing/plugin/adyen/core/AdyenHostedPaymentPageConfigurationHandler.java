@@ -1,7 +1,8 @@
 /*
- * Copyright 2015-2016 Groupon, Inc
+ * Copyright 2014-2020 Groupon, Inc
+ * Copyright 2014-2020 The Billing Project, LLC
  *
- * Groupon licenses this file to you under the Apache License, version 2.0
+ * The Billing Project licenses this file to you under the Apache License, version 2.0
  * (the "License"); you may not use this file except in compliance with the
  * License.  You may obtain a copy of the License at:
  *
@@ -20,7 +21,6 @@ import java.security.GeneralSecurityException;
 import java.util.Properties;
 
 import org.killbill.billing.osgi.libs.killbill.OSGIKillbillAPI;
-import org.killbill.billing.osgi.libs.killbill.OSGIKillbillLogService;
 import org.killbill.billing.plugin.adyen.client.AdyenConfigProperties;
 import org.killbill.billing.plugin.adyen.client.payment.builder.AdyenRequestFactory;
 import org.killbill.billing.plugin.adyen.client.payment.converter.PaymentInfoConverterManagement;
@@ -40,9 +40,8 @@ public class AdyenHostedPaymentPageConfigurationHandler extends PluginTenantConf
 
     public AdyenHostedPaymentPageConfigurationHandler(final String pluginName,
                                                       final OSGIKillbillAPI osgiKillbillAPI,
-                                                      final OSGIKillbillLogService osgiKillbillLogService,
                                                       final String region) {
-        super(pluginName, osgiKillbillAPI, osgiKillbillLogService);
+        super(pluginName, osgiKillbillAPI);
         this.region = region;
     }
 

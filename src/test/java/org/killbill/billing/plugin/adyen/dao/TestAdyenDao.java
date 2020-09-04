@@ -1,6 +1,6 @@
 /*
- * Copyright 2014-2018 Groupon, Inc
- * Copyright 2014-2018 The Billing Project, LLC
+ * Copyright 2014-2020 Groupon, Inc
+ * Copyright 2014-2020 The Billing Project, LLC
  *
  * The Billing Project licenses this file to you under the Apache License, version 2.0
  * (the "License"); you may not use this file except in compliance with the
@@ -20,6 +20,7 @@ package org.killbill.billing.plugin.adyen.dao;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.sql.SQLException;
+import java.time.ZoneOffset;
 import java.util.GregorianCalendar;
 import java.util.List;
 import java.util.Map;
@@ -76,9 +77,9 @@ public class TestAdyenDao extends TestWithEmbeddedDBBase {
         final DateTime dateTime = DefaultClock.truncateMs(new DateTime(DateTimeZone.UTC));
         final UUID kbTenantId = UUID.randomUUID();
         final Map<String, String> expectedAdditionalData = ImmutableMap.<String, String>builder()
-                                                                       .putAll(purchaseResult.getAdditionalData())
-                                                                       .putAll(purchaseResult.getFormParameter())
-                                                                       .build();
+                .putAll(purchaseResult.getAdditionalData())
+                .putAll(purchaseResult.getFormParameter())
+                .build();
         dao.addResponse(kbAccountId, kbPaymentId, kbPaymentTransactionId, transactionType, amount, currency, purchaseResult, dateTime, kbTenantId);
 
         final List<AdyenResponsesRecord> result = dao.getResponses(kbPaymentId, kbTenantId);
@@ -91,7 +92,10 @@ public class TestAdyenDao extends TestWithEmbeddedDBBase {
         Assert.assertEquals(record.getTransactionType(), transactionType.toString());
         Assert.assertEquals(record.getAmount().compareTo(amount), 0);
         Assert.assertEquals(record.getCurrency(), currency.toString());
-        Assert.assertEquals(new DateTime(record.getCreatedDate(), DateTimeZone.UTC).compareTo(dateTime), 0);
+        Assert.assertEquals(new DateTime(record.getCreatedDate()
+                                               .atZone(ZoneOffset.UTC)
+                                               .toInstant()
+                                               .toEpochMilli(), DateTimeZone.UTC).compareTo(dateTime), 0);
         Assert.assertEquals(record.getKbTenantId(), kbTenantId.toString());
         Assert.assertEquals(record.getDccAmount().compareTo(BigDecimal.TEN), 0);
         Assert.assertEquals(record.getDccCurrency(), "EUR");
@@ -147,7 +151,10 @@ public class TestAdyenDao extends TestWithEmbeddedDBBase {
         Assert.assertEquals(record.getPspReference(), notificationItem.getPspReference());
         Assert.assertEquals(record.getReason(), notificationItem.getReason());
         Assert.assertTrue(record.getSuccess() == '1');
-        Assert.assertEquals(new DateTime(record.getCreatedDate(), DateTimeZone.UTC).compareTo(dateTime), 0);
+        Assert.assertEquals(new DateTime(record.getCreatedDate()
+                                               .atZone(ZoneOffset.UTC)
+                                               .toInstant()
+                                               .toEpochMilli(), DateTimeZone.UTC).compareTo(dateTime), 0);
         Assert.assertEquals(record.getKbTenantId(), kbTenantId.toString());
     }
 }

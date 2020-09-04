@@ -1,4 +1,4 @@
-/*! SET storage_engine=INNODB */;
+/*! SET default_storage_engine=INNODB */;
 
 drop table if exists adyen_hpp_requests;
 create table adyen_hpp_requests (

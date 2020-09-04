@@ -8,16 +8,14 @@ jobs:
   build:
     <<: *defaults
     docker:
-      - image: killbill/kbbuild:0.1.0
+      - image: killbill/kbbuild:0.7.0
     steps:
       - checkout
-      - restore_cache:
-          key: v1-dependencies-{{ .Branch }}-{{ checksum "pom.xml" }}
       - run:
           name: Setup dependencies
           command: |
             if [ "${CIRCLE_BRANCH}" != "master" ]; then
-              for i in killbill-oss-parent killbill-api killbill-plugin-api; do
+              for i in killbill-oss-parent killbill-api killbill-plugin-api killbill-commons killbill-plugin-framework-java killbill-platform; do
                 if [ -n "$(git ls-remote --heads https://github.com/killbill/$i.git ${CIRCLE_BRANCH})" ]; then
                   echo "*** Setting up $i"
                   mkdir -p /home/killbill/$i
@@ -29,20 +27,20 @@ jobs:
                 fi
               done
             fi
-      - run: mvn -DskipTests=true clean install dependency:go-offline
+      - run: mvn -DskipTests=true clean install
       - save_cache:
           paths:
             - ~/.m2
-          key: v1-dependencies-{{ .Branch }}-{{ checksum "pom.xml" }}
+          key: v1-dependencies-{{ .Revision }}
 
   test-h2:
     <<: *defaults
     docker:
-      - image: killbill/kbbuild:0.1.0
+      - image: killbill/kbbuild:0.7.0
     steps:
       - checkout
       - restore_cache:
-          key: v1-dependencies-{{ .Branch }}-{{ checksum "pom.xml" }}
+          key: v1-dependencies-{{ .Revision }}
       - run: mvn clean install -Ptravis
       - run:
           name: Save test results
@@ -58,11 +56,11 @@ jobs:
   test-mysql:
     <<: *defaults
     docker:
-      - image: killbill/kbbuild:0.1.0
+      - image: killbill/kbbuild:0.7.0
     steps:
       - checkout
       - restore_cache:
-          key: v1-dependencies-{{ .Branch }}-{{ checksum "pom.xml" }}
+          key: v1-dependencies-{{ .Revision }}
       - run: mvn clean install -Pmysql
       - run:
           name: Save test results
@@ -78,11 +76,11 @@ jobs:
   test-postgresql:
     <<: *defaults
     docker:
-      - image: killbill/kbbuild:0.1.0
+      - image: killbill/kbbuild:0.7.0
     steps:
       - checkout
       - restore_cache:
-          key: v1-dependencies-{{ .Branch }}-{{ checksum "pom.xml" }}
+          key: v1-dependencies-{{ .Revision }}
       - run: mvn clean install -Ppostgresql
       - run:
           name: Save test results

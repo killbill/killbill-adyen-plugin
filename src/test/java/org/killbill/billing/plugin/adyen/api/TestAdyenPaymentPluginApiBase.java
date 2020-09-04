@@ -1,6 +1,6 @@
 /*
- * Copyright 2014-2016 Groupon, Inc
- * Copyright 2014-2016 The Billing Project, LLC
+ * Copyright 2014-2020 Groupon, Inc
+ * Copyright 2014-2020 The Billing Project, LLC
  *
  * The Billing Project licenses this file to you under the Apache License, version 2.0
  * (the "License"); you may not use this file except in compliance with the
@@ -22,7 +22,6 @@ import java.util.UUID;
 import org.killbill.billing.account.api.Account;
 import org.killbill.billing.osgi.libs.killbill.OSGIConfigPropertiesService;
 import org.killbill.billing.osgi.libs.killbill.OSGIKillbillAPI;
-import org.killbill.billing.osgi.libs.killbill.OSGIKillbillLogService;
 import org.killbill.billing.payment.api.PluginProperty;
 import org.killbill.billing.payment.plugin.api.GatewayNotification;
 import org.killbill.billing.payment.plugin.api.PaymentPluginApiException;
@@ -59,8 +58,6 @@ public class TestAdyenPaymentPluginApiBase extends TestWithEmbeddedDBBase {
 
         TestUtils.buildPaymentMethod(account.getId(), account.getPaymentMethodId(), AdyenActivator.PLUGIN_NAME, killbillApi);
 
-        final OSGIKillbillLogService logService = TestUtils.buildLogService();
-
         final OSGIConfigPropertiesService configPropertiesService = Mockito.mock(OSGIConfigPropertiesService.class);
         adyenPaymentPluginApi = new AdyenPaymentPluginApi(adyenConfigurationHandler,
                                                           adyenConfigPropertiesConfigurationHandler,
@@ -68,7 +65,6 @@ public class TestAdyenPaymentPluginApiBase extends TestWithEmbeddedDBBase {
                                                           adyenRecurringConfigurationHandler,
                                                           killbillApi,
                                                           configPropertiesService,
-                                                          logService,
                                                           clock,
                                                           dao);
 
