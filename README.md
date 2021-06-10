@@ -317,7 +317,7 @@ Notes:
 
 ### Recurring
 
-For [Adyen's Recurring Functionality](https://docs.adyen.com/display/TD/Recurring+Manual) the following recurring types are provided (see [RecurringType.java](https://github.com/killbill/killbill-adyen-plugin/blob/master/src/main/java/org/killbill/billing/plugin/adyen/client/model/RecurringType.java))
+For [Adyen's Recurring Functionality](https://docs.adyen.com/display/TD/Recurring+Manual) the following recurring types are provided (see [RecurringType.java](https://github.com/killbill/killbill-adyen-plugin/blob/master/src/main/java/org/killbill/billing/plugin/adyen/client/model/paymentinfo/Recurring.java))
 * `ONECLICK`
 * `RECURRING`
 
