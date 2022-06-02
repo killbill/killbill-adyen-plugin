@@ -3,6 +3,8 @@
 
 Plugin to use [Adyen](https://www.adyen.com/) as a gateway.
 
+**Note**: this plugin supports the Adyen classic integration. For Adyen checkout, including Drop-in and Components, see https://github.com/Wovenware/killbill-adyen-plugin
+
 ## Kill Bill compatibility
 
 | Plugin version | Kill Bill version |
