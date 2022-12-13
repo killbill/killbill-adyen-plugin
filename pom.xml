@@ -39,7 +39,7 @@
         <url>https://github.com/killbill/killbill-adyen-plugin/issues</url>
     </issueManagement>
     <properties>
-        <cxf.version>3.4.0</cxf.version>
+        <cxf.version>3.4.10</cxf.version>
         <jsoup.version>1.8.3</jsoup.version>
         <osgi.extra-import>javax.net.ssl;
             javax.management;
