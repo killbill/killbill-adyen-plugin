@@ -3,36 +3,26 @@
  */
 package org.killbill.billing.plugin.adyen.dao.gen;
 
-
 import org.killbill.billing.plugin.adyen.dao.gen.tables.AdyenHppRequests;
 import org.killbill.billing.plugin.adyen.dao.gen.tables.AdyenNotifications;
 import org.killbill.billing.plugin.adyen.dao.gen.tables.AdyenPaymentMethods;
 import org.killbill.billing.plugin.adyen.dao.gen.tables.AdyenResponses;
 
-
-/**
- * Convenience access to all tables in killbill
- */
-@SuppressWarnings({ "all", "unchecked", "rawtypes" })
+/** Convenience access to all tables in killbill. */
+@SuppressWarnings({"all", "unchecked", "rawtypes"})
 public class Tables {
 
-    /**
-     * The table <code>killbill.adyen_hpp_requests</code>.
-     */
-    public static final AdyenHppRequests ADYEN_HPP_REQUESTS = AdyenHppRequests.ADYEN_HPP_REQUESTS;
+  /** The table <code>killbill.adyen_hpp_requests</code>. */
+  public static final AdyenHppRequests ADYEN_HPP_REQUESTS = AdyenHppRequests.ADYEN_HPP_REQUESTS;
 
-    /**
-     * The table <code>killbill.adyen_notifications</code>.
-     */
-    public static final AdyenNotifications ADYEN_NOTIFICATIONS = AdyenNotifications.ADYEN_NOTIFICATIONS;
+  /** The table <code>killbill.adyen_notifications</code>. */
+  public static final AdyenNotifications ADYEN_NOTIFICATIONS =
+      AdyenNotifications.ADYEN_NOTIFICATIONS;
 
-    /**
-     * The table <code>killbill.adyen_payment_methods</code>.
-     */
-    public static final AdyenPaymentMethods ADYEN_PAYMENT_METHODS = AdyenPaymentMethods.ADYEN_PAYMENT_METHODS;
+  /** The table <code>killbill.adyen_payment_methods</code>. */
+  public static final AdyenPaymentMethods ADYEN_PAYMENT_METHODS =
+      AdyenPaymentMethods.ADYEN_PAYMENT_METHODS;
 
-    /**
-     * The table <code>killbill.adyen_responses</code>.
-     */
-    public static final AdyenResponses ADYEN_RESPONSES = AdyenResponses.ADYEN_RESPONSES;
+  /** The table <code>killbill.adyen_responses</code>. */
+  public static final AdyenResponses ADYEN_RESPONSES = AdyenResponses.ADYEN_RESPONSES;
 }
