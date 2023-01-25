@@ -30,6 +30,7 @@
         <check.skip-enforcer>true</check.skip-enforcer>
         <check.skip-rat>false</check.skip-rat>
         <check.skip-spotbugs>false</check.skip-spotbugs>
+        <jacoco.skip>true</jacoco.skip>
         <osgi.private>org.killbill.billing.plugin.adyen.*</osgi.private>
     </properties>
     <dependencyManagement>
