@@ -13,7 +13,13 @@ Plugin to use [Adyen](https://www.adyen.com/) as a gateway.
 
 ## Requirements
 
-The plugin needs a database. The latest version of the schema can be found (killbill-adyen-plugin\src\main\resources\ddl.sql).
+The plugin needs a database. The latest version of the schema can be found [here](https://github.com/killbill/killbill-adyen-plugin/tree/master/src/main/resources).
+
+## Build
+
+```
+mvn clean install
+```
 
 ## Installation
 
