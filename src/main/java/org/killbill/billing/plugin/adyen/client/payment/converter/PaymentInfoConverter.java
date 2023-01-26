@@ -74,28 +74,52 @@ public class PaymentInfoConverter<T extends PaymentInfo> {
     }
 
     private void setBillingAddress(final PaymentInfo paymentInfo, final PaymentRequest paymentRequest) {
-        final Address address = new Address();
-        address.setStreet(paymentInfo.getStreet());
-        address.setHouseNumberOrName(paymentInfo.getHouseNumberOrName());
-        address.setCity(paymentInfo.getCity());
-        address.setPostalCode(paymentInfo.getPostalCode());
-        address.setStateOrProvince(paymentInfo.getStateOrProvince());
-
+        final String street = paymentInfo.getStreet();
+        final String houseNumberOrName = paymentInfo.getHouseNumberOrName();
+        final String city = paymentInfo.getCity();
+        final String postalCode = paymentInfo.getPostalCode();
+        final String stateOrProvince = paymentInfo.getStateOrProvince();
+        final String country = paymentInfo.getCountry();
         final String adjustedCountry;
-        if ("UK".equalsIgnoreCase(paymentInfo.getCountry())) {
+        if ("UK".equalsIgnoreCase(country)) {
             // Passing UK will result in: validation 134 Billing address problem (Country UK invalid)
             adjustedCountry = "GB";
-        } else if ("QC".equalsIgnoreCase(paymentInfo.getCountry())) {
+        } else if ("QC".equalsIgnoreCase(country)) {
             // Passing QC will result in: validation 134 Billing address problem (Country QC invalid)
             adjustedCountry = "CA";
         } else {
-            adjustedCountry = paymentInfo.getCountry();
+            adjustedCountry = country;
         }
-        address.setCountry(adjustedCountry);
 
-        // Required by Adyen: house number and city
-        // house number can be passed in the street or in the houseNumberOrName field
-        if ((address.getStreet() != null || address.getHouseNumberOrName() != null) && address.getCity() != null) {
+        // Adyen validation docs:
+        //    - https://docs.adyen.com/api-reference/payments-api/paymentrequest/
+        //    - https://docs.adyen.com/developers/api-reference/common-api/address
+        // TL;DR: the billing address per se is optional, but when sending it, the country is always mandatory,
+        // while the remaining fields must either be sent all or none (although in our experience the ZIP always has
+        // been treated as optional by Adyen: maybe it is mandatory only for US and CA)
+        // TODO? Introduce some data validation
+        final boolean stateProvinceValid = !("US".equals(adjustedCountry) || "CA".equals(adjustedCountry))
+                                           || stateOrProvince != null;
+
+        final boolean addressComplete = street != null && houseNumberOrName != null && city != null
+                                        && postalCode != null && stateProvinceValid;
+
+        final boolean addressEmpty = street == null && houseNumberOrName == null && city == null && postalCode == null
+                                     && stateOrProvince == null;
+
+        final boolean addressValid = adjustedCountry != null && (addressComplete || addressEmpty);
+
+        // TODO: validate the right format for fields
+
+        if (addressValid) {
+            final Address address = new Address();
+            address.setStreet(street);
+            address.setHouseNumberOrName(houseNumberOrName);
+            address.setCity(city);
+            address.setPostalCode(postalCode);
+            address.setStateOrProvince(stateOrProvince);
+            address.setCountry(adjustedCountry);
+
             paymentRequest.setBillingAddress(address);
         }
     }
