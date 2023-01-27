@@ -18,7 +18,7 @@
     </parent>
     <groupId>org.kill-bill.billing.plugin.java</groupId>
     <artifactId>adyen-plugin</artifactId>
-    <version>0.8.1-SNAPSHOT</version>
+    <version>0.9.0-SNAPSHOT</version>
     <packaging>bundle</packaging>
     <name>Kill Bill OSGI ADYEN SA bundle</name>
     <description>Kill Bill ADYEN SA plugin</description>
@@ -30,7 +30,6 @@
         <check.skip-enforcer>true</check.skip-enforcer>
         <check.skip-rat>false</check.skip-rat>
         <check.skip-spotbugs>false</check.skip-spotbugs>
-        <jacoco.skip>true</jacoco.skip>
         <osgi.private>org.killbill.billing.plugin.adyen.*</osgi.private>
     </properties>
     <dependencyManagement>
@@ -425,66 +424,10 @@
                 <artifactId>apache-rat-plugin</artifactId>
                 <executions>
                     <execution>
-
                         <configuration>
-
                             <excludes combine.children="append">
-
                                 <exclude>logs/**</exclude>
-
                             </excludes>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.jacoco</groupId>
-                <artifactId>jacoco-maven-plugin</artifactId>
-                <version>0.8.8</version>
-                <configuration>
-                    <excludes>
-                        <exclude>org/killbill/billing/plugin/adyen/dao/gen/**</exclude>
-                        <exclude>org/killbill/billing/plugin/adyen/core/**</exclude>
-
-                    </excludes>
-                </configuration>
-                <executions>
-                    <execution>
-                        <id>default-prepare-agent</id>
-                        <goals>
-                            <goal>prepare-agent</goal>
-                        </goals>
-                    </execution>
-                    <execution>
-                        <id>default-report</id>
-                        <goals>
-                            <goal>report</goal>
-                        </goals>
-                    </execution>
-                    <execution>
-                        <id>default-check</id>
-                        <goals>
-                            <goal>check</goal>
-                        </goals>
-
-                        <configuration>
-                            <rules>
-                                <rule>
-                                    <element>BUNDLE</element>
-                                    <excludes>
-                                        <exclude>org/killbill/billing/plugin/adyen/dao/gen/**</exclude>
-                                        <exclude>org/killbill/billing/plugin/adyen/core/**</exclude>
-
-                                    </excludes>
-                                    <limits>
-                                        <limit>
-                                            <counter>INSTRUCTION</counter>
-                                            <value>COVEREDRATIO</value>
-                                            <minimum>0.60</minimum>
-                                        </limit>
-                                    </limits>
-                                </rule>
-                            </rules>
                         </configuration>
                     </execution>
                 </executions>
