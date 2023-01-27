@@ -2,15 +2,22 @@
 
 Plugin to use [Adyen](https://www.adyen.com/) as a gateway.
 
-Note: This plugin supports the new Adyen checkout, including Drop-in and Components. For Adyen classic integration, you can use the `0.8.0` version.
-
 
 ## Kill Bill compatibility
 
-| Plugin version | Kill Bill version  | Adyen sdk version                                         | Checkout API Version|
-| -------------: | -----------------: | --------------------------------------------------------: |-------------------- |
-| 0.8.1         | 0.22.z             | 17.3.0 [2022-04-07](https://github.com/Adyen/adyen-java-api-library) |Version 68|
+| Plugin version | Kill Bill version |
+| -------------: | ----------------: |
+| 0.1.y          | 0.14.z            |
+| 0.2.y          | 0.15.z            |
+| 0.3.y          | 0.16.z            |
+| 0.4.y          | 0.17.z            |
+| 0.5.y          | 0.18.z            |
+| 0.6.y          | 0.19.z            |
+| 0.7.y          | 0.20.z            |
+| 0.8.y          | 0.22.z            |
+| 0.9.y          | 0.22.z            |
 
+Note: Version `0.8.0` of the plugin uses Adyen classic integration while version `0.9.0` supports the new Adyen checkout, including Drop-in and Components.  It uses [17.3.0 2022-04-07](https://github.com/Adyen/adyen-java-api-library) version of the Adyen SDK and version 68 of the Checkout API.
 
 
 ## Requirements
