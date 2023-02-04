@@ -3,12 +3,10 @@
  */
 package org.killbill.billing.plugin.adyen.dao.gen;
 
-
-import org.jooq.Identity;
 import org.jooq.TableField;
 import org.jooq.UniqueKey;
+import org.jooq.impl.DSL;
 import org.jooq.impl.Internal;
-import org.jooq.types.ULong;
 import org.killbill.billing.plugin.adyen.dao.gen.tables.AdyenHppRequests;
 import org.killbill.billing.plugin.adyen.dao.gen.tables.AdyenNotifications;
 import org.killbill.billing.plugin.adyen.dao.gen.tables.AdyenPaymentMethods;
@@ -18,62 +16,67 @@ import org.killbill.billing.plugin.adyen.dao.gen.tables.records.AdyenNotificatio
 import org.killbill.billing.plugin.adyen.dao.gen.tables.records.AdyenPaymentMethodsRecord;
 import org.killbill.billing.plugin.adyen.dao.gen.tables.records.AdyenResponsesRecord;
 
-
-/**
- * A class modelling foreign key relationships and constraints of tables of 
- * the <code>killbill</code> schema.
- */
-@SuppressWarnings({ "all", "unchecked", "rawtypes" })
+/** A class modelling foreign key relationships and constraints of tables in killbill. */
+@SuppressWarnings({"all", "unchecked", "rawtypes"})
 public class Keys {
 
-    // -------------------------------------------------------------------------
-    // IDENTITY definitions
-    // -------------------------------------------------------------------------
+  // -------------------------------------------------------------------------
+  // UNIQUE and PRIMARY KEY definitions
+  // -------------------------------------------------------------------------
 
-    public static final Identity<AdyenHppRequestsRecord, ULong> IDENTITY_ADYEN_HPP_REQUESTS = Identities0.IDENTITY_ADYEN_HPP_REQUESTS;
-    public static final Identity<AdyenNotificationsRecord, ULong> IDENTITY_ADYEN_NOTIFICATIONS = Identities0.IDENTITY_ADYEN_NOTIFICATIONS;
-    public static final Identity<AdyenPaymentMethodsRecord, ULong> IDENTITY_ADYEN_PAYMENT_METHODS = Identities0.IDENTITY_ADYEN_PAYMENT_METHODS;
-    public static final Identity<AdyenResponsesRecord, ULong> IDENTITY_ADYEN_RESPONSES = Identities0.IDENTITY_ADYEN_RESPONSES;
-
-    // -------------------------------------------------------------------------
-    // UNIQUE and PRIMARY KEY definitions
-    // -------------------------------------------------------------------------
-
-    public static final UniqueKey<AdyenHppRequestsRecord> KEY_ADYEN_HPP_REQUESTS_PRIMARY = UniqueKeys0.KEY_ADYEN_HPP_REQUESTS_PRIMARY;
-    public static final UniqueKey<AdyenHppRequestsRecord> KEY_ADYEN_HPP_REQUESTS_RECORD_ID = UniqueKeys0.KEY_ADYEN_HPP_REQUESTS_RECORD_ID;
-    public static final UniqueKey<AdyenNotificationsRecord> KEY_ADYEN_NOTIFICATIONS_PRIMARY = UniqueKeys0.KEY_ADYEN_NOTIFICATIONS_PRIMARY;
-    public static final UniqueKey<AdyenNotificationsRecord> KEY_ADYEN_NOTIFICATIONS_RECORD_ID = UniqueKeys0.KEY_ADYEN_NOTIFICATIONS_RECORD_ID;
-    public static final UniqueKey<AdyenPaymentMethodsRecord> KEY_ADYEN_PAYMENT_METHODS_PRIMARY = UniqueKeys0.KEY_ADYEN_PAYMENT_METHODS_PRIMARY;
-    public static final UniqueKey<AdyenPaymentMethodsRecord> KEY_ADYEN_PAYMENT_METHODS_RECORD_ID = UniqueKeys0.KEY_ADYEN_PAYMENT_METHODS_RECORD_ID;
-    public static final UniqueKey<AdyenPaymentMethodsRecord> KEY_ADYEN_PAYMENT_METHODS_ADYEN_PAYMENT_METHODS_KB_PAYMENT_ID = UniqueKeys0.KEY_ADYEN_PAYMENT_METHODS_ADYEN_PAYMENT_METHODS_KB_PAYMENT_ID;
-    public static final UniqueKey<AdyenResponsesRecord> KEY_ADYEN_RESPONSES_PRIMARY = UniqueKeys0.KEY_ADYEN_RESPONSES_PRIMARY;
-    public static final UniqueKey<AdyenResponsesRecord> KEY_ADYEN_RESPONSES_RECORD_ID = UniqueKeys0.KEY_ADYEN_RESPONSES_RECORD_ID;
-
-    // -------------------------------------------------------------------------
-    // FOREIGN KEY definitions
-    // -------------------------------------------------------------------------
-
-
-    // -------------------------------------------------------------------------
-    // [#1459] distribute members to avoid static initialisers > 64kb
-    // -------------------------------------------------------------------------
-
-    private static class Identities0 {
-        public static Identity<AdyenHppRequestsRecord, ULong> IDENTITY_ADYEN_HPP_REQUESTS = Internal.createIdentity(AdyenHppRequests.ADYEN_HPP_REQUESTS, AdyenHppRequests.ADYEN_HPP_REQUESTS.RECORD_ID);
-        public static Identity<AdyenNotificationsRecord, ULong> IDENTITY_ADYEN_NOTIFICATIONS = Internal.createIdentity(AdyenNotifications.ADYEN_NOTIFICATIONS, AdyenNotifications.ADYEN_NOTIFICATIONS.RECORD_ID);
-        public static Identity<AdyenPaymentMethodsRecord, ULong> IDENTITY_ADYEN_PAYMENT_METHODS = Internal.createIdentity(AdyenPaymentMethods.ADYEN_PAYMENT_METHODS, AdyenPaymentMethods.ADYEN_PAYMENT_METHODS.RECORD_ID);
-        public static Identity<AdyenResponsesRecord, ULong> IDENTITY_ADYEN_RESPONSES = Internal.createIdentity(AdyenResponses.ADYEN_RESPONSES, AdyenResponses.ADYEN_RESPONSES.RECORD_ID);
-    }
-
-    private static class UniqueKeys0 {
-        public static final UniqueKey<AdyenHppRequestsRecord> KEY_ADYEN_HPP_REQUESTS_PRIMARY = Internal.createUniqueKey(AdyenHppRequests.ADYEN_HPP_REQUESTS, "KEY_adyen_hpp_requests_PRIMARY", new TableField[] { AdyenHppRequests.ADYEN_HPP_REQUESTS.RECORD_ID }, true);
-        public static final UniqueKey<AdyenHppRequestsRecord> KEY_ADYEN_HPP_REQUESTS_RECORD_ID = Internal.createUniqueKey(AdyenHppRequests.ADYEN_HPP_REQUESTS, "KEY_adyen_hpp_requests_record_id", new TableField[] { AdyenHppRequests.ADYEN_HPP_REQUESTS.RECORD_ID }, true);
-        public static final UniqueKey<AdyenNotificationsRecord> KEY_ADYEN_NOTIFICATIONS_PRIMARY = Internal.createUniqueKey(AdyenNotifications.ADYEN_NOTIFICATIONS, "KEY_adyen_notifications_PRIMARY", new TableField[] { AdyenNotifications.ADYEN_NOTIFICATIONS.RECORD_ID }, true);
-        public static final UniqueKey<AdyenNotificationsRecord> KEY_ADYEN_NOTIFICATIONS_RECORD_ID = Internal.createUniqueKey(AdyenNotifications.ADYEN_NOTIFICATIONS, "KEY_adyen_notifications_record_id", new TableField[] { AdyenNotifications.ADYEN_NOTIFICATIONS.RECORD_ID }, true);
-        public static final UniqueKey<AdyenPaymentMethodsRecord> KEY_ADYEN_PAYMENT_METHODS_PRIMARY = Internal.createUniqueKey(AdyenPaymentMethods.ADYEN_PAYMENT_METHODS, "KEY_adyen_payment_methods_PRIMARY", new TableField[] { AdyenPaymentMethods.ADYEN_PAYMENT_METHODS.RECORD_ID }, true);
-        public static final UniqueKey<AdyenPaymentMethodsRecord> KEY_ADYEN_PAYMENT_METHODS_RECORD_ID = Internal.createUniqueKey(AdyenPaymentMethods.ADYEN_PAYMENT_METHODS, "KEY_adyen_payment_methods_record_id", new TableField[] { AdyenPaymentMethods.ADYEN_PAYMENT_METHODS.RECORD_ID }, true);
-        public static final UniqueKey<AdyenPaymentMethodsRecord> KEY_ADYEN_PAYMENT_METHODS_ADYEN_PAYMENT_METHODS_KB_PAYMENT_ID = Internal.createUniqueKey(AdyenPaymentMethods.ADYEN_PAYMENT_METHODS, "KEY_adyen_payment_methods_adyen_payment_methods_kb_payment_id", new TableField[] { AdyenPaymentMethods.ADYEN_PAYMENT_METHODS.KB_PAYMENT_METHOD_ID }, true);
-        public static final UniqueKey<AdyenResponsesRecord> KEY_ADYEN_RESPONSES_PRIMARY = Internal.createUniqueKey(AdyenResponses.ADYEN_RESPONSES, "KEY_adyen_responses_PRIMARY", new TableField[] { AdyenResponses.ADYEN_RESPONSES.RECORD_ID }, true);
-        public static final UniqueKey<AdyenResponsesRecord> KEY_ADYEN_RESPONSES_RECORD_ID = Internal.createUniqueKey(AdyenResponses.ADYEN_RESPONSES, "KEY_adyen_responses_record_id", new TableField[] { AdyenResponses.ADYEN_RESPONSES.RECORD_ID }, true);
-    }
+  public static final UniqueKey<AdyenHppRequestsRecord> KEY_ADYEN_HPP_REQUESTS_PRIMARY =
+      Internal.createUniqueKey(
+          AdyenHppRequests.ADYEN_HPP_REQUESTS,
+          DSL.name("KEY_adyen_hpp_requests_PRIMARY"),
+          new TableField[] {AdyenHppRequests.ADYEN_HPP_REQUESTS.RECORD_ID},
+          true);
+  public static final UniqueKey<AdyenHppRequestsRecord> KEY_ADYEN_HPP_REQUESTS_RECORD_ID =
+      Internal.createUniqueKey(
+          AdyenHppRequests.ADYEN_HPP_REQUESTS,
+          DSL.name("KEY_adyen_hpp_requests_record_id"),
+          new TableField[] {AdyenHppRequests.ADYEN_HPP_REQUESTS.RECORD_ID},
+          true);
+  public static final UniqueKey<AdyenNotificationsRecord> KEY_ADYEN_NOTIFICATIONS_PRIMARY =
+      Internal.createUniqueKey(
+          AdyenNotifications.ADYEN_NOTIFICATIONS,
+          DSL.name("KEY_adyen_notifications_PRIMARY"),
+          new TableField[] {AdyenNotifications.ADYEN_NOTIFICATIONS.RECORD_ID},
+          true);
+  public static final UniqueKey<AdyenNotificationsRecord> KEY_ADYEN_NOTIFICATIONS_RECORD_ID =
+      Internal.createUniqueKey(
+          AdyenNotifications.ADYEN_NOTIFICATIONS,
+          DSL.name("KEY_adyen_notifications_record_id"),
+          new TableField[] {AdyenNotifications.ADYEN_NOTIFICATIONS.RECORD_ID},
+          true);
+  public static final UniqueKey<AdyenPaymentMethodsRecord>
+      KEY_ADYEN_PAYMENT_METHODS_ADYEN_PAYMENT_METHODS_KB_PAYMENT_ID =
+          Internal.createUniqueKey(
+              AdyenPaymentMethods.ADYEN_PAYMENT_METHODS,
+              DSL.name("KEY_adyen_payment_methods_adyen_payment_methods_kb_payment_id"),
+              new TableField[] {AdyenPaymentMethods.ADYEN_PAYMENT_METHODS.KB_PAYMENT_METHOD_ID},
+              true);
+  public static final UniqueKey<AdyenPaymentMethodsRecord> KEY_ADYEN_PAYMENT_METHODS_PRIMARY =
+      Internal.createUniqueKey(
+          AdyenPaymentMethods.ADYEN_PAYMENT_METHODS,
+          DSL.name("KEY_adyen_payment_methods_PRIMARY"),
+          new TableField[] {AdyenPaymentMethods.ADYEN_PAYMENT_METHODS.RECORD_ID},
+          true);
+  public static final UniqueKey<AdyenPaymentMethodsRecord> KEY_ADYEN_PAYMENT_METHODS_RECORD_ID =
+      Internal.createUniqueKey(
+          AdyenPaymentMethods.ADYEN_PAYMENT_METHODS,
+          DSL.name("KEY_adyen_payment_methods_record_id"),
+          new TableField[] {AdyenPaymentMethods.ADYEN_PAYMENT_METHODS.RECORD_ID},
+          true);
+  public static final UniqueKey<AdyenResponsesRecord> KEY_ADYEN_RESPONSES_PRIMARY =
+      Internal.createUniqueKey(
+          AdyenResponses.ADYEN_RESPONSES,
+          DSL.name("KEY_adyen_responses_PRIMARY"),
+          new TableField[] {AdyenResponses.ADYEN_RESPONSES.RECORD_ID},
+          true);
+  public static final UniqueKey<AdyenResponsesRecord> KEY_ADYEN_RESPONSES_RECORD_ID =
+      Internal.createUniqueKey(
+          AdyenResponses.ADYEN_RESPONSES,
+          DSL.name("KEY_adyen_responses_record_id"),
+          new TableField[] {AdyenResponses.ADYEN_RESPONSES.RECORD_ID},
+          true);
 }

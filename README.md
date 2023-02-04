@@ -1,9 +1,7 @@
 # killbill-adyen-plugin
-![Maven Central](https://img.shields.io/maven-central/v/org.kill-bill.billing.plugin.java/adyen-plugin?color=blue&label=Maven%20Central)
 
 Plugin to use [Adyen](https://www.adyen.com/) as a gateway.
 
-**Note**: this plugin supports the Adyen classic integration. For Adyen checkout, including Drop-in and Components, see https://github.com/Wovenware/killbill-adyen-plugin
 
 ## Kill Bill compatibility
 
@@ -17,77 +15,41 @@ Plugin to use [Adyen](https://www.adyen.com/) as a gateway.
 | 0.6.y          | 0.19.z            |
 | 0.7.y          | 0.20.z            |
 | 0.8.y          | 0.22.z            |
+| 0.9.y          | 0.22.z            |
 
-We've upgraded numerous dependencies in 0.8.x (required for Java 11 support).
+Note: Version `0.8.0` of the plugin uses Adyen classic integration while version `0.9.0` supports the new Adyen checkout, including Drop-in and Components.  It uses [17.3.0 2022-04-07](https://github.com/Adyen/adyen-java-api-library) version of the Adyen SDK and version 68 of the Checkout API.
+
 
 ## Requirements
 
-The plugin needs a database. The latest version of the schema can be found [here](https://github.com/killbill/killbill-adyen-plugin/blob/master/src/main/resources/ddl.sql).
+The plugin needs a database. The latest version of the schema can be found [here](https://github.com/killbill/killbill-adyen-plugin/tree/master/src/main/resources).
 
-## Development
-
-To install the plugin from sources:
+## Build
 
 ```
-mvn clean install -DskipTests=true
+mvn clean install
+```
+
+## Installation
+
+Locally:
+
+```
 kpm install_java_plugin adyen --from-source-file target/adyen-plugin-*-SNAPSHOT.jar --destination /var/tmp/bundles
 ```
 
 ## Configuration
 
-The following properties are required:
+1. Create a new Adyen test account by signing up [here](https://www.adyen.com/signup). 
+2. Create a new merchant account as explained [here](https://docs.adyen.com/account/manage-account-structure#request-merchant-account).
+3. Generate API key as explained [here](https://docs.adyen.com/development-resources/api-credentials#generate-api-key). Save the key for future reference.
+4. Create a new webhook as explained [here](https://ca-test.adyen.com/ca/ca/config/showthirdparty.shtml). This includes the following steps:
+    * Generate an HMAC key and store it for future use. 
+    * Configure a username/password in the "Basic Authentication" section and store it for future use. 
+    * Configure the server URL (This is the URL where the plugin receives notifications. Typically this should be `http://127.0.0.1:8080/plugins/adyen-plugin/notification`)
+5. Configure the Adyen plugin as follows:
 
-* `org.killbill.billing.plugin.adyen.merchantAccount`: your merchant account(s)
-* `org.killbill.billing.plugin.adyen.username`: your username(s)
-* `org.killbill.billing.plugin.adyen.password`: your password(s)
-* `org.killbill.billing.plugin.adyen.paymentUrl`: SOAP Payment service url (i.e. `https://pal-test.adyen.com/pal/servlet/Payment/v12` or `https://pal-live.adyen.com/pal/servlet/Payment/v12`)
-
-The following properties are optional:
-
-* `org.killbill.billing.plugin.adyen.paymentConnectionTimeout`: Connection time-out in milliseconds for calls to Adyen SOAP Payment Service
-* `org.killbill.billing.plugin.adyen.paymentReadTimeout`: Read time-out in milliseconds for calls to Adyen SOAP Payment Service
-* `org.killbill.billing.plugin.adyen.recurringConnectionTimeout`: Connection time-out in milliseconds for calls to Adyen SOAP Recurring Service
-* `org.killbill.billing.plugin.adyen.recurringReadTimeout`: Read time-out in milliseconds for calls to Adyen SOAP Recurring Service
-* `org.killbill.billing.plugin.adyen.proxyServer`: Proxy server address
-* `org.killbill.billing.plugin.adyen.proxyPort`: Proxy server port
-* `org.killbill.billing.plugin.adyen.proxyType`: Proxy server type (HTTP or SOCKS)
-* `org.killbill.billing.plugin.adyen.trustAllCertificates`: Whether to disable SSL certificates validation
-* `org.killbill.billing.plugin.adyen.sensitiveProperties`: A list of sensitive property keys; if specified, they won't be persisted in the additional field of Adyen hpp request table.
-* `org.killbill.billing.plugin.adyen.paymentProcessorAccountIdToMerchantAccount`: Mappings from the `paymentProcessorAccountId` to Adyen merchant accounts. The `paymentProcessorAccountId`, if exists in the plugin property, is a `String` set by the upstream logic to specify the merchant account used in the transaction.
-
-Only needed for the Tests:
-
-* `org.killbill.billing.plugin.adyen.recurringUrl`: SOAP Recurring Service URL (i.e. `https://pal-test.adyen.com/pal/servlet/Recurring/v12`)
-
-The format for the merchant account(s), username(s) and password(s) is `XX#YY|XX#YY|...` where:
-
-* `XX` is the country code (DE, FR, etc.)
-* `YY` is the value (merchant account, username of the form `ws@Company.[YourCompanyAccount]` or password)
-
-Notes:
-
-* If you have a single country, omit the country code part
-* If you have several merchant accounts per country, you can also specify:
-  * `XX#YY` in the username property where `XX` is the merchant account
-  * `XX#YY` in the password property where `XX` is the username
-  * `XX#YY` in the skin property where `XX` is the merchant account
-  * `XX#YY` in the hmac secret property where `XX` is the skin name
-* You can also configure a FALLBACK merchant account like `FALLBACK#FallBackMerchantAccount`, which will be chosen if no matched merchant account is found based on the country code.
-
-To configure Hosted Payment Pages (HPP):
-
-* `org.killbill.billing.plugin.adyen.hpp.target`: host payment page url (e.g. https://test.adyen.com/hpp/pay.shtml)
-* `org.killbill.billing.plugin.adyen.hmac.secret`: your hmac secret(s)
-* `org.killbill.billing.plugin.adyen.skin`: you skin code(s)
-* `org.killbill.billing.plugin.adyen.directoryUrl`: directory lookup url (e.g. https://test.adyen.com/hpp/directory.shtml)
-
-The format for secrets and skins is the same as above if you support multiple countries.
-
-The URLs can also be configured on a per region basis by specifying the region as a prefix, e.g. `XX.org.killbill.billing.plugin.adyen.paymentUrl=...` where `XX` is the region (value matching the `org.killbill.server.region` property).
-
-These properties can be specified globally via System Properties or on a per tenant basis:
-
-```
+```bash
 curl -v \
      -X POST \
      -u admin:password \
@@ -95,386 +57,63 @@ curl -v \
      -H 'X-Killbill-ApiSecret: lazar' \
      -H 'X-Killbill-CreatedBy: admin' \
      -H 'Content-Type: text/plain' \
-     -d 'org.killbill.billing.plugin.adyen.paymentUrl=WWW
-org.killbill.billing.plugin.adyen.merchantAccount=XXX
-org.killbill.billing.plugin.adyen.username=YYY
-org.killbill.billing.plugin.adyen.password=ZZZ' \
-     http://127.0.0.1:8080/1.0/kb/tenants/uploadPluginConfig/killbill-adyen
+     -d 'org.killbill.billing.plugin.adyen.apiKey=test_XXX
+org.killbill.billing.plugin.adyen.returnUrl=test_XXX
+org.killbill.billing.plugin.adyen.merchantAccount=server_url_XXX
+org.killbill.billing.plugin.adyen.hcmaKey=test_XXX
+org.killbill.billing.plugin.adyen.captureDelayHours=XX
+org.killbill.billing.plugin.adyen.password=xxx
+org.killbill.billing.plugin.adyen.username=xxx ' \
+     http://127.0.0.1:8080/1.0/kb/tenants/uploadPluginConfig/adyen-plugin
 ```
 
-### Kill Bill
+## Testing
 
-To avoid runtime errors (such as `ClassCastException`), starting Kill Bill with the System Property `com.sun.xml.bind.v2.bytecode.ClassTailor.noOptimize=true` is recommended.
+1. Build, install and configure the plugin as explained above.
+2. Start the AdyenTestUI demo. Specify amount as `20`. 
+3. Verify that a new account is created in Kill Bill with a `$20` payment in `PENDING` status.
 
-## Usage
+## Plugin Internals
 
-A full end-to-end integration demo is also available [here](https://github.com/killbill/killbill-adyen-demo).
+This plugin implementation uses [Adyen Web Drop-in](https://docs.adyen.com/online-payments/web-drop-in). It creates the first payment via a servlet using the `/sessions` endpoint as explained [here](https://docs.adyen.com/online-payments/web-drop-in#create-payment-session). If the payment is recurring, we store the token generated by Adyen so that it can be used multiples times on `/payments` as explained [here](https://docs.adyen.com/online-payments/tokenization/create-and-use-tokens#pay-one-off). After generating the session, the component (UI Drop-in) can be used to send the payment. Adyen will process the received payment and inform the plugin/killbill the result of said payment via a notification. The notification URL needs to be configured in Adyen as explained above.
 
-### Credit cards
+## Integration
 
-Add a payment method:
+The following steps need to be followed in order to use the Adyen plugin:
 
-```
+1. Ensure that the plugin is installed and configured as explained above.
+
+2. Create a Kill Bill account and Kill Bill Payment (Specify a `PluginProperty` corresponding to `enableRecurring` if this is going to be a recurrinng payment. The default value of this property is `false`):
+
+```bash
 curl -v \
-     -u admin:password \
-     -H "X-Killbill-ApiKey: bob" \
-     -H "X-Killbill-ApiSecret: lazar" \
-     -H "Content-Type: application/json" \
-     -H "X-Killbill-CreatedBy: demo" \
+    -X POST \
+    -u admin:password \
+    -H "X-Killbill-ApiKey: bob" \
+    -H "X-Killbill-ApiSecret: lazar" \
+    -H "Content-Type: application/json" \
+    -H "Accept: application/json" \
+    -H "X-Killbill-CreatedBy: demo" \
+    -H "X-Killbill-Reason: demo" \
+    -H "X-Killbill-Comment: demo" \
+    -d '{ "accountId": "2ad52f53-85ae-408a-9879-32a7e59dd03d", "pluginName": "adyen-plugin" ,"isDefault": true, "pluginInfo": { "isDefaultPaymentMethod": true, "properties": [ { "key": "enableRecurring", "value": "true", "isUpdatable": false } }' \
+    "http://127.0.0.1:8080/1.0/kb/accounts/8785164f-b5d7-4da1-9495-33f5105e8d80/paymentMethods" 
+```
+2. Call `/plugins/adyen-plugin/checkout` to generate a session (Note that the amount needs needs to be specified in [minor units](https://docs.adyen.com/development-resources/currency-codes)):
+
+```bash
+curl -v \
      -X POST \
-     --data-binary '{
-       "pluginName": "killbill-adyen",
-       "pluginInfo": {
-         "properties": [
-           {
-             "key": "ccLastName",
-             "value": "KillBill"
-           },
-           {
-             "key": "ccExpirationMonth",
-             "value": 8
-           },
-           {
-             "key": "ccExpirationYear",
-             "value": 2018
-           },
-           {
-             "key": "ccNumber",
-             "value": 4111111111111111
-           },
-           {
-             "key": "ccVerificationValue",
-             "value": 737
-           }
-         ]
-       }
-     }' \
-     "http://127.0.0.1:8080/1.0/kb/accounts/<ACCOUNT_ID>/paymentMethods?isDefault=true"
-```
-
-Notes:
-* Make sure to replace *ACCOUNT_ID* with the id of the Kill Bill account
-* Details for working payment methods are available here: https://www.adyen.com/home/support/knowledgebase/implementation-articles.html
-
-To trigger a payment:
-
-```
-curl -v \
      -u admin:password \
      -H "X-Killbill-ApiKey: bob" \
      -H "X-Killbill-ApiSecret: lazar" \
      -H "Content-Type: application/json" \
+     -H "Accept: application/json" \
      -H "X-Killbill-CreatedBy: demo" \
-     -X POST \
-     --data-binary '{"transactionType":"AUTHORIZE","amount":"5","currency":"EUR","transactionExternalKey":"INV-'$(uuidgen)'-PURCHASE"}' \
-    "http://127.0.0.1:8080/1.0/kb/accounts/<ACCOUNT_ID>/payments?pluginProperty=country=DE"
+     -H "X-Killbill-Reason: demo" \
+     -H "X-Killbill-Comment: demo" \
+     "http://127.0.0.1:8080/plugins/adyen-plugin/checkout?kbAccountId=<KB_ACCOUNT_ID>&amount=<amount>&kbPaymentMethodId=<KB_PAYMENT_METHOD_ID>"
 ```
+This returns `sessionId` and `sessionData`. 
 
-Notes:
-* Make sure to replace *ACCOUNT_ID* with the id of the Kill Bill account
-* The country plugin property will be used to retrieve your merchant account
-
-At this point, the payment will be in *PENDING* state, until we receive a notification from Adyen. You can verify the state of the transaction by listing the payments:
-
-```
-curl -v \
-     -u admin:password \
-     -H "X-Killbill-ApiKey: bob" \
-     -H "X-Killbill-ApiSecret: lazar" \
-     -H "Content-Type: application/json" \
-     -H "X-Killbill-CreatedBy: demo" \
-    "http://127.0.0.1:8080/1.0/kb/accounts/<ACCOUNT_ID>/payments?withPluginInfo=true"
-```
-
-You can simulate a notification from Adyen as follows:
-
-```
-curl -v \
-     -u admin:password \
-     -H "X-Killbill-ApiKey: bob" \
-     -H "X-Killbill-ApiSecret: lazar" \
-     -H "Content-Type: application/json" \
-     -H "X-Killbill-CreatedBy: demo" \
-     -X POST \
-     --data-binary '<?xml version="1.0" encoding="UTF-8"?>
-<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
-  <soap:Body>
-    <ns1:sendNotification xmlns:ns1="http://notification.services.adyen.com">
-      <ns1:notification>
-        <live xmlns="http://notification.services.adyen.com">true</live>
-        <notificationItems xmlns="http://notification.services.adyen.com">
-          <NotificationRequestItem>
-            <additionalData xsi:nil="true"/>
-            <amount>
-              <currency xmlns="http://common.services.adyen.com">EUR</currency>
-              <value xmlns="http://common.services.adyen.com">2995</value>
-            </amount>
-            <eventCode>AUTHORISATION</eventCode>
-            <eventDate>2013-04-15T06:59:22.278+02:00</eventDate>
-            <merchantAccountCode>TestMerchant</merchantAccountCode>
-            <merchantReference>325147059</merchantReference>
-            <operations>
-              <string>CANCEL</string>
-              <string>CAPTURE</string>
-              <string>REFUND</string>
-            </operations>
-            <originalReference xsi:nil="true"/>
-            <paymentMethod>visa</paymentMethod>
-            <pspReference>4823660019473428</pspReference>
-            <reason>111647:7629:5/2014</reason>
-            <success>true</success>
-          </NotificationRequestItem>
-        </notificationItems>
-      </ns1:notification>
-    </ns1:sendNotification>
-  </soap:Body>
-</soap:Envelope>' \
-    "http://127.0.0.1:8080/1.0/kb/paymentGateways/notification/killbill-adyen"
-```
-
-Notes:
-* Make sure to replace *pspReference* with the psp reference of your payment (see the *adyen_responses* table)
-* If *success* is true, the payment transaction state will be *SUCCESS* and the payment state *AUTH_SUCCESS*
-* If *success* is false, the payment transaction state will be *PAYMENT_FAILURE* and the payment state *AUTH_FAILED*
-
-### SEPA
-
-The APIs are similar to the Credit Card use-case. Here is an example payload for the add payment method call:
-
-```
-curl -v \
-     -u admin:password \
-     -H "X-Killbill-ApiKey: bob" \
-     -H "X-Killbill-ApiSecret: lazar" \
-     -H "Content-Type: application/json" \
-     -H "X-Killbill-CreatedBy: demo" \
-     -X POST \
-     --data-binary '{
-       "pluginName": "killbill-adyen",
-       "pluginInfo": {
-         "properties": [
-           {
-             "key": "ddHolderName",
-             "value": "A. Schneider"
-           },
-           {
-             "key": "ddNumber",
-             "value": "DE87123456781234567890"
-           },
-           {
-             "key": "ddBic",
-             "value": "TESTDE01XXX"
-           }
-         ]
-       }
-     }' \
-     "http://127.0.0.1:8080/1.0/kb/accounts/<ACCOUNT_ID>/paymentMethods?isDefault=true"
-```
-
-### HPP
-
-To generate an HPP url:
-
-```
-curl -v \
-     -u admin:password \
-     -H "X-Killbill-ApiKey: bob" \
-     -H "X-Killbill-ApiSecret: lazar" \
-     -H "Content-Type: application/json" \
-     -H "X-Killbill-CreatedBy: demo" \
-     -X POST \
-     --data-binary '{
-       "formFields": [
-         {
-           "key": "country",
-           "value": "DE"
-         },
-         {
-           "key": "serverUrl",
-           "value": "http://killbill.io"
-         },
-         {
-           "key": "resultUrl",
-           "value": "?q=test+adyen+redirect+success"
-         },
-         {
-           "key": "amount",
-           "value": 10
-         },
-         {
-           "key": "currency",
-           "value": "USD"
-         }
-       ]
-     }' \
-     "http://127.0.0.1:8080/1.0/kb/paymentGateways/hosted/form/<ACCOUNT_ID>"
-```
-
-Notes:
-* Make sure to replace *ACCOUNT_ID* with the id of the Kill Bill account
-* *country* is used to retrieve the skin and the merchant account
-* *customerLocale* (e.g. *es_CO*) can be used to specify Adyen's *countryCode* parameter (to override the filtering of payment methods based on IP address). This will also be used to specify the *shopperLocale* parameter
-* *serverUrl* and *resultUrl* are used to redirect the user after the completion of the payment flow (success or failure)
-* At this point, no payment has been created in Kill Bill. The payment will be recorded when processing the notification
-
-### Recurring
-
-For [Adyen's Recurring Functionality](https://docs.adyen.com/display/TD/Recurring+Manual) the following recurring types are provided (see [RecurringType.java](https://github.com/killbill/killbill-adyen-plugin/blob/master/src/main/java/org/killbill/billing/plugin/adyen/client/model/RecurringType.java))
-* `ONECLICK`
-* `RECURRING`
-
-There are 3 different use cases:
-
-1. Use Adyen's recurring payments feature with contract `RECURRING`: CVV is not required (it's an implicit `contAuth`)
-2. Use Adyen's recurring payment feature with contract `ONECLICK`: CVV is always required
-3. Use your own card-on-file system + `contAuth` to simulate option 1. Instead of providing Adyen's `recurringDetailId`, the merchant retrieves stored payment data from its store and populates the fields like a normal payment request. `contAuth` is needed to turn Adyen's (not needed) validations off.
-
-#### Client-Side Encryption (CSE)
-
-Take a look at the end-to-end [demo](https://github.com/killbill/killbill-adyen-demo) to understand how to use CSE. At a high level, the steps are:
-
-1. Create account
-
-```
-curl -v \
-     -u admin:password \
-     -H "X-Killbill-ApiKey: bob" \
-     -H "X-Killbill-ApiSecret: lazar" \
-     -H "Content-Type: application/json" \
-     -H "X-Killbill-CreatedBy: demo" \
-     -X POST \
-     --data-binary '{}' \
-     "http://127.0.0.1:8080/1.0/kb/accounts"
-```
-
-2. Create an empty payment method
-
-```
-curl -v \
-     -u admin:password \
-     -H "X-Killbill-ApiKey: bob" \
-     -H "X-Killbill-ApiSecret: lazar" \
-     -H "Content-Type: application/json" \
-     -H "X-Killbill-CreatedBy: demo" \
-     -X POST \
-     --data-binary '{
-       "pluginName": "killbill-adyen",
-       "pluginInfo": {
-         "properties": []
-       }
-     }' \
-     "http://127.0.0.1:8080/1.0/kb/accounts/<ACCOUNT_ID>/paymentMethods?isDefault=true&pluginProperty=skip_gw=true"
-```
-
-3. Trigger a $1 auth using the encrypted JSON (Adyen requires a payment to tokenize the card)
-
-```
-curl -v \
-     -u admin:password \
-     -H "X-Killbill-ApiKey: bob" \
-     -H "X-Killbill-ApiSecret: lazar" \
-     -H "Content-Type: application/json" \
-     -H "X-Killbill-CreatedBy: demo" \
-     -X POST \
-     --data-binary '{
-       "transactionType":"AUTHORIZE",
-       "amount":"1",
-       "currency":"USD",
-       "properties": [
-         {
-           "key": "recurringType",
-           "value": "RECURRING"
-         },
-         {
-           "key": "contAuth",
-           "value": "false"
-         },
-         {
-           "key": "encryptedJson",
-           "value": <ENCRYPTED_JSON>
-         }
-       ]
-    }' \
-    "http://127.0.0.1:8080/1.0/kb/accounts/<ACCOUNT_ID>/payments"
-```
-
-4. Void the auth
-
-```
-curl -v \
-     -u admin:password \
-     -H "X-Killbill-ApiKey: bob" \
-     -H "X-Killbill-ApiSecret: lazar" \
-     -H "Content-Type: application/json" \
-     -H "X-Killbill-CreatedBy: demo" \
-     -X DELETE \
-     --data-binary '{}' \
-     "http://127.0.0.1:8080/1.0/kb/payments/<PAYMENT_ID>"
-```
-
-5. Sync the payment methods to get the freshly created Adyen token
-
-```
-curl -v \
-     -u admin:password \
-     -H "X-Killbill-ApiKey: bob" \
-     -H "X-Killbill-ApiSecret: lazar" \
-     -H "Content-Type: application/json" \
-     -H "X-Killbill-CreatedBy: demo" \
-     -X POST \
-     --data-binary '{}' \
-    "http://127.0.0.1:8080/1.0/kb/accounts/<ACCOUNT_ID>/paymentMethods/refresh"
-
-```
-
-At this point, the payment method is ready for recurring payments.
-
-## Plugin properties
-
-| Key                      | Description                                   |
-| -----------------------: | :-------------------------------------------- |
-| ccNumber                 | Credit card number                            |
-| ccType                   | Credit card brand                             |
-| ccFirstName              | Credit card holder first name                 |
-| ccLastName               | Credit card holder last name                  |
-| ccExpirationMonth        | Credit card expiration month                  |
-| ccExpirationYear         | Credit card expiration year                   |
-| ccStartMonth             | Credit card start month                       |
-| ccStartYear              | Credit card start year                        |
-| ccVerificationValue      | CVC/CVV/CVN                                   |
-| encryptedJson            | Encrypted JSON (EE)                           |
-| dccAmount                | Payable amount                                |
-| dccCurrency              | The three-character ISO currency code         |
-| ddNumber                 | Direct Debit card number                      |
-| ddHolderName             | Direct Debit holder name                      |
-| ddBic                    | Direct Debit bank identification code (SEPA)  |
-| ddBlz                    | Direct Debit Bankleitzahl (ELV)               |
-| email                    | Purchaser email                               |
-| address1                 | Billing address first line                    |
-| address2                 | Billing address second line                   |
-| city                     | Billing address city                          |
-| zip                      | Billing address zip code                      |
-| state                    | Billing address state                         |
-| country                  | Billing address country                       |
-| sepaCountryCode          | Billing address country code for SEPA requests. If absent, it will use country instead |
-| PaReq                    | 3D-Secure Pa Request                          |
-| PaRes                    | 3D-Secure Pa Response                         |
-| MD                       | 3D-Secure Message Digest                      |
-| TermUrl                  | 3D-Secure Term URL                            |
-| threeDThreshold          | Minimum amount for triggering 3D-Secure       |
-| userAgent                | User-Agent for 3D-Secure Browser Info         |
-| acceptHeader             | Accept-Header for 3D-Secure Browser Info      |
-| contAuth                 | Continuous authentication enabled (boolean)   |
-| recurringDetailId        | ID of payment details stored at Adyen         |
-| recurringType            | Contract to be used for Recurring             |
-| createPendingPayment     | Whether to create a PENDING payment for HPP   |
-| authMode                 | Create an auth instead of purchase for HPP    |
-| paymentExternalKey       | HPP payment external key                      |
-| acquirer                 | Value of Adyen's acquirerCode field           |
-| acquirerMID              | Value of Adyen's authorisationMid field       |
-| selectedBrand            | Value of Adyen's selectedBrand field          |
-| lookupDirectory          | If true, query the directory (HPP flow)       |
-
-## About
-
-Kill Bill is the leading Open-Source Subscription Billing & Payments Platform. For more information about the project, go to https://killbill.io/.
+3. Set up a drop-in with the `sessionId` and `sessionData` obtained above as explained [here](https://docs.adyen.com/online-payments/web-drop-in#set-up).

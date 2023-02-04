@@ -1,4 +1,21 @@
-/*! SET default_storage_engine=INNODB */;
+/*
+ * Copyright 2020-2020 Equinix, Inc
+ * Copyright 2014-2020 The Billing Project, LLC
+ *
+ * The Billing Project licenses this file to you under the Apache License, version 2.0
+ * (the "License"); you may not use this file except in compliance with the
+ * License.  You may obtain a copy of the License at:
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
+ */
+
+/*! SET default_storage_engine=INNODB */
 
 drop table if exists adyen_hpp_requests;
 create table adyen_hpp_requests (
@@ -23,8 +40,10 @@ create table adyen_responses (
 , kb_payment_id char(36) not null
 , kb_payment_transaction_id char(36) not null
 , transaction_type varchar(32) not null
+, transaction_status varchar(32) not null
 , amount numeric(15,9)
 , currency char(3)
+, session_id char(36) default null 
 , psp_result varchar(64)
 , psp_reference varchar(64)
 , auth_code varchar(64)
@@ -83,27 +102,10 @@ create table adyen_payment_methods (
   record_id serial
 , kb_account_id char(36) not null
 , kb_payment_method_id char(36) not null
-, token varchar(255) default null
-, cc_first_name varchar(255) default null
-, cc_last_name varchar(255) default null
-, cc_type varchar(255) default null
-, cc_exp_month varchar(255) default null
-, cc_exp_year varchar(255) default null
-, cc_number varchar(255) default null
-, cc_last_4 varchar(255) default null
-, cc_start_month varchar(255) default null
-, cc_start_year varchar(255) default null
-, cc_issue_number varchar(255) default null
-, cc_verification_value varchar(255) default null
-, cc_track_data varchar(255) default null
-, address1 varchar(255) default null
-, address2 varchar(255) default null
-, city varchar(255) default null
-, state varchar(255) default null
-, zip varchar(255) default null
-, country varchar(255) default null
+, is_recurring smallint not null default 0
 , is_default smallint not null default 0
 , is_deleted smallint not null default 0
+, recurring_detail_reference char(36) default null
 , additional_data longtext default null
 , created_date datetime not null
 , updated_date datetime not null
