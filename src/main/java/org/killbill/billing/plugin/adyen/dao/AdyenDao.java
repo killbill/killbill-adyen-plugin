@@ -34,7 +34,9 @@ import java.util.UUID;
 import javax.annotation.Nullable;
 import javax.sql.DataSource;
 import org.joda.time.DateTime;
+import org.jooq.DSLContext;
 import org.jooq.impl.DSL;
+import org.jooq.types.ULong;
 import org.killbill.billing.catalog.api.Currency;
 import org.killbill.billing.payment.api.TransactionType;
 import org.killbill.billing.payment.plugin.api.PaymentPluginStatus;
@@ -193,55 +195,6 @@ public class AdyenDao
         });
   }
 
-  // Responses
-  public AdyenResponsesRecord addResponse(
-      final UUID kbAccountId,
-      final UUID kbPaymentId,
-      final UUID kbPaymentTransactionId,
-      final TransactionType transactionType,
-      final BigDecimal amount,
-      final Currency currency,
-      final Map<String, String> additionalData,
-      final UUID kbTenantId)
-      throws SQLException {
-    String tempCurrency = (currency != null) ? currency.name() : null;
-
-    final BigDecimal dbAmount = (amount != null) ? new BigDecimal(amount.toString()) : null;
-    final String dbCurrency = tempCurrency;
-
-    return execute(
-        dataSource.getConnection(),
-        new WithConnectionCallback<AdyenResponsesRecord>() {
-          @Override
-          public AdyenResponsesRecord withConnection(final Connection conn) throws SQLException {
-            return DSL.using(conn, dialect, settings)
-                .insertInto(
-                    ADYEN_RESPONSES,
-                    ADYEN_RESPONSES.KB_ACCOUNT_ID,
-                    ADYEN_RESPONSES.KB_PAYMENT_ID,
-                    ADYEN_RESPONSES.KB_PAYMENT_TRANSACTION_ID,
-                    ADYEN_RESPONSES.TRANSACTION_TYPE,
-                    ADYEN_RESPONSES.AMOUNT,
-                    ADYEN_RESPONSES.CURRENCY,
-                    ADYEN_RESPONSES.ADDITIONAL_DATA,
-                    ADYEN_RESPONSES.CREATED_DATE,
-                    ADYEN_RESPONSES.KB_TENANT_ID)
-                .values(
-                    kbAccountId.toString(),
-                    kbPaymentId.toString(),
-                    kbPaymentTransactionId.toString(),
-                    transactionType.toString(),
-                    dbAmount,
-                    dbCurrency,
-                    asString(additionalData),
-                    toLocalDateTime(DateTime.now()),
-                    kbTenantId.toString())
-                .returning()
-                .fetchOne();
-          }
-        });
-  }
-
   public AdyenResponsesRecord addResponse(
       UUID kbAccountId,
       UUID kbPaymentId,
@@ -264,7 +217,8 @@ public class AdyenDao
         new WithConnectionCallback<AdyenResponsesRecord>() {
           @Override
           public AdyenResponsesRecord withConnection(final Connection conn) throws SQLException {
-            return DSL.using(conn, dialect, settings)
+            final DSLContext dslContext = DSL.using(conn, dialect, settings);
+            dslContext
                 .insertInto(
                     ADYEN_RESPONSES,
                     ADYEN_RESPONSES.KB_ACCOUNT_ID,
@@ -294,8 +248,11 @@ public class AdyenDao
                         : null,
                     toLocalDateTime(DateTime.now()),
                     tenantId.toString())
-                .returning()
-                .fetchOne();
+                .execute();
+
+            final long lastId = dslContext.lastID().longValue();
+            return dslContext.fetchOne(
+                ADYEN_RESPONSES, ADYEN_RESPONSES.RECORD_ID.eq(ULong.valueOf(lastId)));
           }
         });
   }
