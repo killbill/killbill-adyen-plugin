@@ -43,7 +43,7 @@ kpm install_java_plugin adyen --from-source-file target/adyen-plugin-*-SNAPSHOT.
 1. Create a new Adyen test account by signing up [here](https://www.adyen.com/signup). 
 2. Create a new merchant account as explained [here](https://docs.adyen.com/account/manage-account-structure#request-merchant-account).
 3. Generate API key as explained [here](https://docs.adyen.com/development-resources/api-credentials#generate-api-key). Save the key for future reference.
-4. Create a new webhook as explained [here](https://ca-test.adyen.com/ca/ca/config/showthirdparty.shtml). This includes the following steps:
+4. Create a new webhook as explained [here](https://docs.adyen.com/development-resources/webhooks#set-up-notifications-in-your-customer-area). This includes the following steps:
     * Generate an HMAC key and store it for future use. 
     * Configure a username/password in the "Basic Authentication" section and store it for future use. 
     * Configure the server URL (This is the URL where the plugin receives notifications. Typically this should be `http://127.0.0.1:8080/plugins/adyen-plugin/notification`)
@@ -59,7 +59,7 @@ curl -v \
      -H 'Content-Type: text/plain' \
      -d 'org.killbill.billing.plugin.adyen.apiKey=test_XXX
 org.killbill.billing.plugin.adyen.returnUrl=test_XXX
-org.killbill.billing.plugin.adyen.merchantAccount=server_url_XXX
+org.killbill.billing.plugin.adyen.merchantAccount=account_XXX
 org.killbill.billing.plugin.adyen.hcmaKey=test_XXX
 org.killbill.billing.plugin.adyen.captureDelayHours=XX
 org.killbill.billing.plugin.adyen.password=xxx
