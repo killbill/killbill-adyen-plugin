@@ -62,16 +62,33 @@ org.killbill.billing.plugin.adyen.returnUrl=test_XXX
 org.killbill.billing.plugin.adyen.merchantAccount=account_XXX
 org.killbill.billing.plugin.adyen.hcmaKey=test_XXX
 org.killbill.billing.plugin.adyen.captureDelayHours=XX
+org.killbill.billing.plugin.adyen.enviroment=TEST
 org.killbill.billing.plugin.adyen.password=xxx
 org.killbill.billing.plugin.adyen.username=xxx ' \
      http://127.0.0.1:8080/1.0/kb/tenants/uploadPluginConfig/adyen-plugin
 ```
 
+Where:
+* apiKey: API Key generated at step 3
+* returnUrl: URL set in Step 4c above. Typically `http://127.0.0.1:8080/plugins/adyen-plugin/notification`
+* merchantAccount: Merchant account created at step 2
+* hcmaKey: HMAC Key generated at step 4a
+* captureDelayHours: Desire capture delay in hours after Authorize , number must be between 0 - 168 hr
+* environment: Environment to use. Possible values are `TEST`/`LIVE`. default value is `TEST`
+* password: Password set at step 4b
+* username: Username set at step 4b 
+
 ## Testing
 
 1. Build, install and configure the plugin as explained above.
-2. Start the AdyenTestUI demo. Specify amount as `20`. 
-3. Verify that a new account is created in Kill Bill with a `$20` payment in `PENDING` status.
+2. Start the AdyenTestUI demo. Specify amount as `20` and click on `Checkout`
+3. Enter test card details (See [Adyen Test Card Numbers](https://docs.adyen.com/development-resources/testing/test-card-numbers)) as follows:
+  * Card Number: 5100 0600 0000 0002
+  * Expiry Date: 12/2029
+  * CVV: 737
+  * Name on card: John Doe
+4. Click `Pay`. Verify that a successful payment page is displayed
+4. Verify that a new account is created in Kill Bill with a `$20` payment in `PENDING` status.
 
 ## Plugin Internals
 
