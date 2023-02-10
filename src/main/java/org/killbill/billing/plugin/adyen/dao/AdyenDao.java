@@ -34,6 +34,7 @@ import java.util.UUID;
 import javax.annotation.Nullable;
 import javax.sql.DataSource;
 import org.joda.time.DateTime;
+import org.jooq.DSLContext;
 import org.jooq.impl.DSL;
 import org.killbill.billing.catalog.api.Currency;
 import org.killbill.billing.payment.api.TransactionType;
@@ -193,55 +194,6 @@ public class AdyenDao
         });
   }
 
-  // Responses
-  public AdyenResponsesRecord addResponse(
-      final UUID kbAccountId,
-      final UUID kbPaymentId,
-      final UUID kbPaymentTransactionId,
-      final TransactionType transactionType,
-      final BigDecimal amount,
-      final Currency currency,
-      final Map<String, String> additionalData,
-      final UUID kbTenantId)
-      throws SQLException {
-    String tempCurrency = (currency != null) ? currency.name() : null;
-
-    final BigDecimal dbAmount = (amount != null) ? new BigDecimal(amount.toString()) : null;
-    final String dbCurrency = tempCurrency;
-
-    return execute(
-        dataSource.getConnection(),
-        new WithConnectionCallback<AdyenResponsesRecord>() {
-          @Override
-          public AdyenResponsesRecord withConnection(final Connection conn) throws SQLException {
-            return DSL.using(conn, dialect, settings)
-                .insertInto(
-                    ADYEN_RESPONSES,
-                    ADYEN_RESPONSES.KB_ACCOUNT_ID,
-                    ADYEN_RESPONSES.KB_PAYMENT_ID,
-                    ADYEN_RESPONSES.KB_PAYMENT_TRANSACTION_ID,
-                    ADYEN_RESPONSES.TRANSACTION_TYPE,
-                    ADYEN_RESPONSES.AMOUNT,
-                    ADYEN_RESPONSES.CURRENCY,
-                    ADYEN_RESPONSES.ADDITIONAL_DATA,
-                    ADYEN_RESPONSES.CREATED_DATE,
-                    ADYEN_RESPONSES.KB_TENANT_ID)
-                .values(
-                    kbAccountId.toString(),
-                    kbPaymentId.toString(),
-                    kbPaymentTransactionId.toString(),
-                    transactionType.toString(),
-                    dbAmount,
-                    dbCurrency,
-                    asString(additionalData),
-                    toLocalDateTime(DateTime.now()),
-                    kbTenantId.toString())
-                .returning()
-                .fetchOne();
-          }
-        });
-  }
-
   public AdyenResponsesRecord addResponse(
       UUID kbAccountId,
       UUID kbPaymentId,
@@ -261,43 +213,51 @@ public class AdyenDao
 
     return execute(
         dataSource.getConnection(),
-        new WithConnectionCallback<AdyenResponsesRecord>() {
-          @Override
-          public AdyenResponsesRecord withConnection(final Connection conn) throws SQLException {
-            return DSL.using(conn, dialect, settings)
-                .insertInto(
-                    ADYEN_RESPONSES,
-                    ADYEN_RESPONSES.KB_ACCOUNT_ID,
-                    ADYEN_RESPONSES.KB_PAYMENT_ID,
-                    ADYEN_RESPONSES.KB_PAYMENT_TRANSACTION_ID,
-                    ADYEN_RESPONSES.TRANSACTION_TYPE,
-                    ADYEN_RESPONSES.TRANSACTION_STATUS,
-                    ADYEN_RESPONSES.SESSION_ID,
-                    ADYEN_RESPONSES.REFERENCE,
-                    ADYEN_RESPONSES.AMOUNT,
-                    ADYEN_RESPONSES.CURRENCY,
-                    ADYEN_RESPONSES.ADDITIONAL_DATA,
-                    ADYEN_RESPONSES.CREATED_DATE,
-                    ADYEN_RESPONSES.KB_TENANT_ID)
-                .values(
-                    kbAccountId.toString(),
-                    kbPaymentId.toString(),
-                    kbTransactionId.toString(),
-                    transactionType.toString(),
-                    status.toString(),
-                    sessionId,
-                    outputDTO.getSecondPaymentReferenceId(),
-                    dbAmount,
-                    dbCurrency,
-                    outputDTO.getAdditionalData() != null
-                        ? (asString(outputDTO.getAdditionalData()))
-                        : null,
-                    toLocalDateTime(DateTime.now()),
-                    tenantId.toString())
-                .returning()
-                .fetchOne();
-          }
-        });
+        conn ->
+            DSL.using(conn, dialect, settings)
+                .transactionResult(
+                    configuration -> {
+                      final DSLContext dslContext = DSL.using(conn, dialect, settings);
+                      dslContext
+                          .insertInto(
+                              ADYEN_RESPONSES,
+                              ADYEN_RESPONSES.KB_ACCOUNT_ID,
+                              ADYEN_RESPONSES.KB_PAYMENT_ID,
+                              ADYEN_RESPONSES.KB_PAYMENT_TRANSACTION_ID,
+                              ADYEN_RESPONSES.TRANSACTION_TYPE,
+                              ADYEN_RESPONSES.TRANSACTION_STATUS,
+                              ADYEN_RESPONSES.SESSION_ID,
+                              ADYEN_RESPONSES.REFERENCE,
+                              ADYEN_RESPONSES.AMOUNT,
+                              ADYEN_RESPONSES.CURRENCY,
+                              ADYEN_RESPONSES.ADDITIONAL_DATA,
+                              ADYEN_RESPONSES.CREATED_DATE,
+                              ADYEN_RESPONSES.KB_TENANT_ID)
+                          .values(
+                              kbAccountId.toString(),
+                              kbPaymentId.toString(),
+                              kbTransactionId.toString(),
+                              transactionType.toString(),
+                              status.toString(),
+                              sessionId,
+                              outputDTO.getSecondPaymentReferenceId(),
+                              dbAmount,
+                              dbCurrency,
+                              outputDTO.getAdditionalData() != null
+                                  ? (asString(outputDTO.getAdditionalData()))
+                                  : null,
+                              toLocalDateTime(DateTime.now()),
+                              tenantId.toString())
+                          .execute();
+
+                      return dslContext.fetchOne(
+                          ADYEN_RESPONSES,
+                          ADYEN_RESPONSES.RECORD_ID.eq(
+                              ADYEN_RESPONSES
+                                  .RECORD_ID
+                                  .getDataType()
+                                  .convert(dslContext.lastID())));
+                    }));
   }
 
   public AdyenNotificationsRecord addNotification(
@@ -320,48 +280,56 @@ public class AdyenDao
     Short success = (short) (item.isSuccess() ? 1 : 0);
     return execute(
         dataSource.getConnection(),
-        new WithConnectionCallback<AdyenNotificationsRecord>() {
-          @Override
-          public AdyenNotificationsRecord withConnection(final Connection conn)
-              throws SQLException {
-            return DSL.using(conn, dialect, settings)
-                .insertInto(
-                    ADYEN_NOTIFICATIONS,
-                    ADYEN_NOTIFICATIONS.KB_ACCOUNT_ID,
-                    ADYEN_NOTIFICATIONS.KB_PAYMENT_ID,
-                    ADYEN_NOTIFICATIONS.KB_PAYMENT_TRANSACTION_ID,
-                    ADYEN_NOTIFICATIONS.SUCCESS,
-                    ADYEN_NOTIFICATIONS.EVENT_CODE,
-                    ADYEN_NOTIFICATIONS.MERCHANT_ACCOUNT_CODE,
-                    ADYEN_NOTIFICATIONS.MERCHANT_REFERENCE,
-                    ADYEN_NOTIFICATIONS.ORIGINAL_REFERENCE,
-                    ADYEN_NOTIFICATIONS.REASON,
-                    ADYEN_NOTIFICATIONS.PSP_REFERENCE,
-                    ADYEN_NOTIFICATIONS.AMOUNT,
-                    ADYEN_NOTIFICATIONS.CURRENCY,
-                    ADYEN_NOTIFICATIONS.CREATED_DATE,
-                    ADYEN_NOTIFICATIONS.ADDITIONAL_DATA,
-                    ADYEN_NOTIFICATIONS.KB_TENANT_ID)
-                .values(
-                    kbAccountId.toString(),
-                    kbPaymentId.toString(),
-                    kbTransactionId.toString(),
-                    success,
-                    item.getEventCode(),
-                    item.getMerchantAccountCode(),
-                    item.getMerchantReference(),
-                    item.getOriginalReference(),
-                    item.getReason(),
-                    item.getPspReference(),
-                    dbAmount,
-                    dbCurrency,
-                    toLocalDateTime(DateTime.now()),
-                    item.getAdditionalData() != null ? (asString(item.getAdditionalData())) : null,
-                    tenantId.toString())
-                .returning()
-                .fetchOne();
-          }
-        });
+        conn ->
+            DSL.using(conn, dialect, settings)
+                .transactionResult(
+                    configuration -> {
+                      final DSLContext dslContext = DSL.using(conn, dialect, settings);
+                      dslContext
+                          .insertInto(
+                              ADYEN_NOTIFICATIONS,
+                              ADYEN_NOTIFICATIONS.KB_ACCOUNT_ID,
+                              ADYEN_NOTIFICATIONS.KB_PAYMENT_ID,
+                              ADYEN_NOTIFICATIONS.KB_PAYMENT_TRANSACTION_ID,
+                              ADYEN_NOTIFICATIONS.SUCCESS,
+                              ADYEN_NOTIFICATIONS.EVENT_CODE,
+                              ADYEN_NOTIFICATIONS.MERCHANT_ACCOUNT_CODE,
+                              ADYEN_NOTIFICATIONS.MERCHANT_REFERENCE,
+                              ADYEN_NOTIFICATIONS.ORIGINAL_REFERENCE,
+                              ADYEN_NOTIFICATIONS.REASON,
+                              ADYEN_NOTIFICATIONS.PSP_REFERENCE,
+                              ADYEN_NOTIFICATIONS.AMOUNT,
+                              ADYEN_NOTIFICATIONS.CURRENCY,
+                              ADYEN_NOTIFICATIONS.CREATED_DATE,
+                              ADYEN_NOTIFICATIONS.ADDITIONAL_DATA,
+                              ADYEN_NOTIFICATIONS.KB_TENANT_ID)
+                          .values(
+                              kbAccountId.toString(),
+                              kbPaymentId.toString(),
+                              kbTransactionId.toString(),
+                              success,
+                              item.getEventCode(),
+                              item.getMerchantAccountCode(),
+                              item.getMerchantReference(),
+                              item.getOriginalReference(),
+                              item.getReason(),
+                              item.getPspReference(),
+                              dbAmount,
+                              dbCurrency,
+                              toLocalDateTime(DateTime.now()),
+                              item.getAdditionalData() != null
+                                  ? (asString(item.getAdditionalData()))
+                                  : null,
+                              tenantId.toString())
+                          .execute();
+                      return dslContext.fetchOne(
+                          ADYEN_NOTIFICATIONS,
+                          ADYEN_NOTIFICATIONS.RECORD_ID.eq(
+                              ADYEN_RESPONSES
+                                  .RECORD_ID
+                                  .getDataType()
+                                  .convert(dslContext.lastID())));
+                    }));
   }
 
   public AdyenResponsesRecord getSuccessfulPurchaseResponse(
