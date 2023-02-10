@@ -281,7 +281,8 @@ public class AdyenDao
           @Override
           public AdyenNotificationsRecord withConnection(final Connection conn)
               throws SQLException {
-            return DSL.using(conn, dialect, settings)
+            final DSLContext dslContext = DSL.using(conn, dialect, settings);
+            dslContext
                 .insertInto(
                     ADYEN_NOTIFICATIONS,
                     ADYEN_NOTIFICATIONS.KB_ACCOUNT_ID,
@@ -315,8 +316,10 @@ public class AdyenDao
                     toLocalDateTime(DateTime.now()),
                     item.getAdditionalData() != null ? (asString(item.getAdditionalData())) : null,
                     tenantId.toString())
-                .returning()
-                .fetchOne();
+                .execute();
+            final long lastId = dslContext.lastID().longValue();
+            return dslContext.fetchOne(
+                ADYEN_NOTIFICATIONS, ADYEN_NOTIFICATIONS.RECORD_ID.eq(ULong.valueOf(lastId)));
           }
         });
   }
