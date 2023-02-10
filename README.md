@@ -17,7 +17,8 @@ Plugin to use [Adyen](https://www.adyen.com/) as a gateway.
 | 0.8.y          | 0.22.z            |
 | 0.9.y          | 0.22.z            |
 
-Note: Version `0.8.0` of the plugin uses Adyen classic integration while version `0.9.0` supports the new Adyen checkout, including Drop-in and Components.  It uses [17.3.0 2022-04-07](https://github.com/Adyen/adyen-java-api-library) version of the Adyen SDK and version 68 of the Checkout API.
+**Note:** 
+Version `0.8.0` of the plugin uses Adyen classic integration while version `0.9.0` supports the new Adyen checkout, including Drop-in and Components.  It uses [17.3.0 2022-04-07](https://github.com/Adyen/adyen-java-api-library) version of the Adyen SDK and version 68 of the Checkout API.
 
 
 ## Requirements
@@ -38,7 +39,9 @@ Locally:
 kpm install_java_plugin adyen --from-source-file target/adyen-plugin-*-SNAPSHOT.jar --destination /var/tmp/bundles
 ```
 
-## Configuration
+## Setup
+
+In order to use the plugin, Adyen credentials are required. You can create a test Adyen account and obtain credentials as explained below:
 
 1. Create a new Adyen test account by signing up [here](https://www.adyen.com/signup). 
 2. Create a new merchant account as explained [here](https://docs.adyen.com/account/manage-account-structure#request-merchant-account).
@@ -46,8 +49,12 @@ kpm install_java_plugin adyen --from-source-file target/adyen-plugin-*-SNAPSHOT.
 4. Create a new webhook as explained [here](https://docs.adyen.com/development-resources/webhooks#set-up-notifications-in-your-customer-area). This includes the following steps:
     * Generate an HMAC key and store it for future use. 
     * Configure a username/password in the "Basic Authentication" section and store it for future use. 
-    * Configure the server URL (This is the URL where the plugin receives notifications. Typically this should be `http://127.0.0.1:8080/plugins/adyen-plugin/notification`)
-5. Configure the Adyen plugin as follows:
+    * Configure the server URL (This is the URL where the plugin receives notifications. Typically this should be `http://<KillBill_URL>/plugins/adyen-plugin/notification`)
+
+
+## Configuration
+
+1. Configure the Adyen plugin with the Adyen credentials obtained above as follows:
 
 ```bash
 curl -v \
@@ -70,7 +77,7 @@ org.killbill.billing.plugin.adyen.username=xxx ' \
 
 Where:
 * apiKey: API Key generated at step 3
-* returnUrl: URL set in Step 4c above. Typically `http://127.0.0.1:8080/plugins/adyen-plugin/notification`
+* returnUrl: URL set in Step 4c above. Typically `http://<KillBill_URL>/plugins/adyen-plugin/notification`
 * merchantAccount: Merchant account created at step 2
 * hcmaKey: HMAC Key generated at step 4a
 * captureDelayHours: Desire capture delay in hours after Authorize , number must be between 0 - 168 hr
@@ -80,19 +87,34 @@ Where:
 
 ## Testing
 
-1. Build, install and configure the plugin as explained above.
-2. Start the AdyenTestUI demo. Specify amount as `20` and click on `Checkout`
-3. Enter test card details (See [Adyen Test Card Numbers](https://docs.adyen.com/development-resources/testing/test-card-numbers)) as follows:
-  * Card Number: 5100 0600 0000 0002
-  * Expiry Date: 12/2029
-  * CVV: 737
-  * Name on card: John Doe
-4. Click `Pay`. Verify that a successful payment page is displayed
-4. Verify that a new account is created in Kill Bill with a `$20` payment in `PENDING` status.
+### Ngrok setup
+Since Adyen uses webhooks, you will need a tool [ngrok](https://ngrok.com/) to test it. This can be set up as follows:
+
+1. Install ngrok from [here](https://ngrok.com/download). 
+2. Open a terminal window and type `ngrok http 8080` (Since Kill Bill listens on port `8080`)
+3. This will display a message like `Forwarding https://39dc-117-195-30-48.in.ngrok.io -> http://localhost:8080`
+4. Copy the URL displayed above (`https://39dc-117-195-30-48.in.ngrok.io`) and save it for further use. 
+
+### Testing
+1. Build, install and configure the plugin as explained above. Note that the URL `<your-ngrok-url>/plugins/adyen-plugin/notification` needs to be specified as the webhook server URL in Adyen and configured as the `returnUrl`.
+2. Test the application using the [Kill Bill Adyen Demo](https://github.com/killbill/killbill-adyen-demo) as explained [here](https://github.com/killbill/killbill-adyen-demo/tree/new-adyen-staging#test).
+3. Verify that a new account is created in Kill Bill with a payment in `PENDING` status.
+4. If all goes well, Adyen would then send a notification to convert the `PENDING` payment to `SUCCESS`. 
+5. Retrieve the payment using the `withPluginInfo` parameter to trigger the [Janitor](https://docs.killbill.io/latest/userguide_payment.html#_on_the_fly_janitor) as follows:
+
+```
+curl \
+    -u admin:password \
+    -H 'X-Killbill-ApiKey: bob' \
+    -H 'X-Killbill-ApiSecret: lazar' \
+    -H 'Accept: application/json' \
+    'http://127.0.0.1:8080/1.0/kb/payments/<paymentId>?withPluginInfo=true' 
+```
+5. Verify that the payment status is converted to `SUCCESS`.
 
 ## Plugin Internals
 
-This plugin implementation uses [Adyen Web Drop-in](https://docs.adyen.com/online-payments/web-drop-in). It creates the first payment via a servlet using the `/sessions` endpoint as explained [here](https://docs.adyen.com/online-payments/web-drop-in#create-payment-session). If the payment is recurring, we store the token generated by Adyen so that it can be used multiples times on `/payments` as explained [here](https://docs.adyen.com/online-payments/tokenization/create-and-use-tokens#pay-one-off). After generating the session, the component (UI Drop-in) can be used to send the payment. Adyen will process the received payment and inform the plugin/killbill the result of said payment via a notification. The notification URL needs to be configured in Adyen as explained above.
+This plugin implementation uses [Adyen Web Drop-in](https://docs.adyen.com/online-payments/web-drop-in). It creates the first payment via a servlet using the `/sessions` endpoint as explained [here](https://docs.adyen.com/online-payments/web-drop-in#create-payment-session). If the payment is recurring, it stores the token generated by Adyen so that it can be used multiples times on `/payments` as explained [here](https://docs.adyen.com/online-payments/tokenization/create-and-use-tokens#pay-one-off). After generating the session, the component (UI Drop-in) can be used to send the payment. Adyen will process the received payment and inform the plugin/killbill the result of said payment via a notification. The notification URL needs to be configured in Adyen as explained above.
 
 ## Integration
 
