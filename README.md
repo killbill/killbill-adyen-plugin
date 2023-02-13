@@ -156,3 +156,7 @@ curl -v \
 This returns `sessionId` and `sessionData`. 
 
 3. Set up a drop-in with the `sessionId` and `sessionData` obtained above as explained [here](https://docs.adyen.com/online-payments/web-drop-in#set-up).
+
+## Credits
+
+Code originally developed by [Wovenware](https://www.wovenware.com/).
