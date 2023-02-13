@@ -22,6 +22,17 @@
     <packaging>bundle</packaging>
     <name>Kill Bill OSGI ADYEN SA bundle</name>
     <description>Kill Bill ADYEN SA plugin</description>
+    <url>https://github.com/killbill/killbill-adyen-plugin/</url>
+    <scm>
+        <connection>scm:git:git://github.com/killbill/killbill-adyen-plugin.git</connection>
+        <developerConnection>scm:git:git@github.com:killbill/killbill-adyen-plugin.git</developerConnection>
+        <tag>HEAD</tag>
+        <url>http://github.com/killbill/killbill-adyen-plugin/tree/master</url>
+    </scm>
+    <issueManagement>
+        <system>Github</system>
+        <url>https://github.com/killbill/killbill-adyen-plugin/issues</url>
+    </issueManagement>
     <properties>
         <check.skip-dependency>false</check.skip-dependency>
         <check.skip-dependency-scope>false</check.skip-dependency-scope>
