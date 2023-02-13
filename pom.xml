@@ -17,7 +17,7 @@
     </parent>
     <groupId>org.kill-bill.billing.plugin.java</groupId>
     <artifactId>adyen-plugin</artifactId>
-    <version>0.9.0-SNAPSHOT</version>
+    <version>0.9.1-SNAPSHOT</version>
     <packaging>bundle</packaging>
     <name>Kill Bill OSGI ADYEN SA bundle</name>
     <description>Kill Bill ADYEN SA plugin</description>
