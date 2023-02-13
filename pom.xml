@@ -18,7 +18,7 @@
     </parent>
     <groupId>org.kill-bill.billing.plugin.java</groupId>
     <artifactId>adyen-plugin</artifactId>
-    <version>0.9.0-SNAPSHOT</version>
+    <version>0.9.0</version>
     <packaging>bundle</packaging>
     <name>Kill Bill OSGI ADYEN SA bundle</name>
     <description>Kill Bill ADYEN SA plugin</description>
@@ -26,7 +26,7 @@
     <scm>
         <connection>scm:git:git://github.com/killbill/killbill-adyen-plugin.git</connection>
         <developerConnection>scm:git:git@github.com:killbill/killbill-adyen-plugin.git</developerConnection>
-        <tag>HEAD</tag>
+        <tag>adyen-plugin-0.9.0</tag>
         <url>http://github.com/killbill/killbill-adyen-plugin/tree/master</url>
     </scm>
     <issueManagement>
