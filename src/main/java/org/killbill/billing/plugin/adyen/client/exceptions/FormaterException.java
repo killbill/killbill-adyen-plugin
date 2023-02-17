@@ -15,7 +15,13 @@
  * under the License.
  */
 
-/* We cannot use timestamp in MySQL because of the implicit TimeZone conversions it does behind the scenes */
-CREATE DOMAIN datetime AS timestamp without time zone;
+package org.killbill.billing.plugin.adyen.client.exceptions;
 
-CREATE DOMAIN longtext AS text;
+import java.io.IOException;
+
+public class FormaterException extends RuntimeException {
+
+  public FormaterException(IOException e) {
+    super(e);
+  }
+}

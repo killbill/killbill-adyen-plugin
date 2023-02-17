@@ -15,7 +15,9 @@
  * under the License.
  */
 
-/* We cannot use timestamp in MySQL because of the implicit TimeZone conversions it does behind the scenes */
-CREATE DOMAIN datetime AS timestamp without time zone;
+package org.killbill.billing.plugin.adyen.api;
 
-CREATE DOMAIN longtext AS text;
+public enum PaymentMethod {
+  RECURRING,
+  ONE_TIME
+}

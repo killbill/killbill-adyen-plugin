@@ -1,6 +1,6 @@
 /*
- * Copyright 2014-2020 Groupon, Inc
- * Copyright 2014-2020 The Billing Project, LLC
+ * Copyright 2020-2023 Equinix, Inc
+ * Copyright 2014-2023 The Billing Project, LLC
  *
  * The Billing Project licenses this file to you under the Apache License, version 2.0
  * (the "License"); you may not use this file except in compliance with the
@@ -14,117 +14,106 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-
 package org.killbill.billing.plugin.adyen.core;
 
 import java.util.Hashtable;
-
 import javax.servlet.Servlet;
 import javax.servlet.http.HttpServlet;
-
 import org.killbill.billing.osgi.api.Healthcheck;
 import org.killbill.billing.osgi.api.OSGIPluginProperties;
 import org.killbill.billing.osgi.libs.killbill.KillbillActivatorBase;
 import org.killbill.billing.payment.plugin.api.PaymentPluginApi;
 import org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi;
-import org.killbill.billing.plugin.adyen.client.AdyenConfigProperties;
-import org.killbill.billing.plugin.adyen.client.payment.service.AdyenPaymentServiceProviderHostedPaymentPagePort;
-import org.killbill.billing.plugin.adyen.client.payment.service.AdyenPaymentServiceProviderPort;
-import org.killbill.billing.plugin.adyen.client.recurring.AdyenRecurringClient;
+import org.killbill.billing.plugin.adyen.core.resources.AdyenCheckoutService;
+import org.killbill.billing.plugin.adyen.core.resources.AdyenCheckoutServlet;
 import org.killbill.billing.plugin.adyen.core.resources.AdyenHealthcheckServlet;
-import org.killbill.billing.plugin.adyen.core.resources.AdyenServlet;
+import org.killbill.billing.plugin.adyen.core.resources.AdyenNotificationServlet;
 import org.killbill.billing.plugin.adyen.dao.AdyenDao;
 import org.killbill.billing.plugin.api.notification.PluginConfigurationEventHandler;
 import org.killbill.billing.plugin.core.config.PluginEnvironmentConfig;
 import org.killbill.billing.plugin.core.resources.jooby.PluginApp;
 import org.killbill.billing.plugin.core.resources.jooby.PluginAppBuilder;
-import org.killbill.clock.Clock;
-import org.killbill.clock.DefaultClock;
 import org.osgi.framework.BundleContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class AdyenActivator extends KillbillActivatorBase {
 
-    public static final String PLUGIN_NAME = "killbill-adyen";
+  private static final Logger logger = LoggerFactory.getLogger(AdyenActivator.class);
 
-    private AdyenConfigurationHandler adyenConfigurationHandler;
-    private AdyenConfigPropertiesConfigurationHandler adyenConfigPropertiesConfigurationHandler;
-    private AdyenHostedPaymentPageConfigurationHandler adyenHostedPaymentPageConfigurationHandler;
-    private AdyenRecurringConfigurationHandler adyenRecurringConfigurationHandler;
+  public static final String PLUGIN_NAME = "adyen-plugin";
 
-    @Override
-    public void start(final BundleContext context) throws Exception {
-        super.start(context);
+  private AdyenConfigurationHandler adyenConfigurationHandler;
 
-        final Clock clock = new DefaultClock();
-        final AdyenDao dao = new AdyenDao(dataSource.getDataSource());
+  @Override
+  public void start(final BundleContext context) throws Exception {
+    super.start(context);
 
-        final String region = PluginEnvironmentConfig.getRegion(configProperties.getProperties());
-        adyenConfigurationHandler = new AdyenConfigurationHandler(PLUGIN_NAME, killbillAPI, region);
-        adyenConfigPropertiesConfigurationHandler = new AdyenConfigPropertiesConfigurationHandler(PLUGIN_NAME, killbillAPI, region);
-        adyenHostedPaymentPageConfigurationHandler = new AdyenHostedPaymentPageConfigurationHandler(PLUGIN_NAME, killbillAPI, region);
-        adyenRecurringConfigurationHandler = new AdyenRecurringConfigurationHandler(PLUGIN_NAME, killbillAPI, region);
+    logger.info(" starting plugin {}", PLUGIN_NAME);
+    final AdyenDao adyenDao = new AdyenDao(dataSource.getDataSource());
 
-        final AdyenPaymentServiceProviderPort globalAdyenClient = adyenConfigurationHandler.createConfigurable(configProperties.getProperties());
-        adyenConfigurationHandler.setDefaultConfigurable(globalAdyenClient);
+    final String region = PluginEnvironmentConfig.getRegion(configProperties.getProperties());
 
-        final AdyenConfigProperties adyenConfigProperties = adyenConfigPropertiesConfigurationHandler.createConfigurable(configProperties.getProperties());
-        adyenConfigPropertiesConfigurationHandler.setDefaultConfigurable(adyenConfigProperties);
+    // Register an event listener for plugin configuration (optional)
+    logger.info("Registering an event listener for plugin configuration");
+    adyenConfigurationHandler = new AdyenConfigurationHandler(region, PLUGIN_NAME, killbillAPI);
+    final AdyenConfigProperties globalConfiguration =
+        adyenConfigurationHandler.createConfigurable(configProperties.getProperties());
+    adyenConfigurationHandler.setDefaultConfigurable(globalConfiguration);
 
-        final AdyenPaymentServiceProviderHostedPaymentPagePort globalAdyenHppClient = adyenHostedPaymentPageConfigurationHandler.createConfigurable(configProperties.getProperties());
-        adyenHostedPaymentPageConfigurationHandler.setDefaultConfigurable(globalAdyenHppClient);
+    // As an example, this plugin registers a PaymentPluginApi (this could be changed to any other
+    // plugin api)
+    logger.info("Registering an APIs");
+    final PaymentPluginApi paymentPluginApi =
+        new AdyenPaymentPluginApi(
+            adyenConfigurationHandler, killbillAPI, configProperties, clock.getClock(), adyenDao);
+    registerPaymentPluginApi(context, paymentPluginApi);
 
-        final AdyenRecurringClient globalAdyenRecurringClient = adyenRecurringConfigurationHandler.createConfigurable(configProperties.getProperties());
-        adyenRecurringConfigurationHandler.setDefaultConfigurable(globalAdyenRecurringClient);
+    // Expose a healthcheck (optional), so other plugins can check on the plugin status
+    logger.info("Registering healthcheck");
+    final Healthcheck healthcheck = new AdyenHealthcheck();
+    registerHealthcheck(context, healthcheck);
+    final AdyenCheckoutService checkoutService =
+        new AdyenCheckoutService(killbillAPI, adyenConfigurationHandler);
+    // Register a servlet (optional)
+    final PluginApp pluginApp =
+        new PluginAppBuilder(PLUGIN_NAME, killbillAPI, dataSource, super.clock, configProperties)
+            .withRouteClass(AdyenHealthcheckServlet.class)
+            .withRouteClass(AdyenNotificationServlet.class)
+            .withRouteClass(AdyenCheckoutServlet.class)
+            .withService(healthcheck)
+            .withService(clock)
+            .withService(checkoutService)
+            .withService(paymentPluginApi)
+            .build();
+    final HttpServlet httpServlet = PluginApp.createServlet(pluginApp);
 
-        // Expose the healthcheck, so other plugins can check on the Adyen status
-        final AdyenHealthcheck adyenHealthcheck = new AdyenHealthcheck(adyenConfigPropertiesConfigurationHandler);
-        registerHealthcheck(context, adyenHealthcheck);
+    registerServlet(context, httpServlet);
 
-        // Register the servlet
-        final PluginApp pluginApp = new PluginAppBuilder(PLUGIN_NAME,
-                                                         killbillAPI,
-                                                         dataSource,
-                                                         super.clock,
-                                                         configProperties).withRouteClass(AdyenServlet.class)
-                                                                          .withRouteClass(AdyenHealthcheckServlet.class)
-                                                                          .withService(adyenHealthcheck)
-                                                                          .build();
-        final HttpServlet adyenServlet = PluginApp.createServlet(pluginApp);
-        registerServlet(context, adyenServlet);
+    registerHandlers();
+  }
 
-        // Register the payment plugin
-        final AdyenPaymentPluginApi pluginApi = new AdyenPaymentPluginApi(adyenConfigurationHandler,
-                                                                          adyenConfigPropertiesConfigurationHandler,
-                                                                          adyenHostedPaymentPageConfigurationHandler,
-                                                                          adyenRecurringConfigurationHandler,
-                                                                          killbillAPI,
-                                                                          configProperties,
-                                                                          clock,
-                                                                          dao);
-        registerPaymentPluginApi(context, pluginApi);
-        registerHandlers();
-    }
+  private void registerHandlers() {
+    final PluginConfigurationEventHandler configHandler =
+        new PluginConfigurationEventHandler(adyenConfigurationHandler);
+    dispatcher.registerEventHandlers(configHandler);
+  }
 
-    public void registerHandlers() {
-        final PluginConfigurationEventHandler handler = new PluginConfigurationEventHandler(adyenConfigPropertiesConfigurationHandler, adyenConfigurationHandler, adyenHostedPaymentPageConfigurationHandler, adyenRecurringConfigurationHandler);
-        dispatcher.registerEventHandlers(handler);
-    }
+  private void registerServlet(final BundleContext context, final Servlet servlet) {
+    final Hashtable<String, String> props = new Hashtable<>();
+    props.put(OSGIPluginProperties.PLUGIN_NAME_PROP, PLUGIN_NAME);
+    registrar.registerService(context, Servlet.class, servlet, props);
+  }
 
-    private void registerServlet(final BundleContext context, final HttpServlet servlet) {
-        final Hashtable<String, String> props = new Hashtable<String, String>();
-        props.put(OSGIPluginProperties.PLUGIN_NAME_PROP, PLUGIN_NAME);
-        registrar.registerService(context, Servlet.class, servlet, props);
-    }
+  private void registerPaymentPluginApi(final BundleContext context, final PaymentPluginApi api) {
+    final Hashtable<String, String> props = new Hashtable<>();
+    props.put(OSGIPluginProperties.PLUGIN_NAME_PROP, PLUGIN_NAME);
+    registrar.registerService(context, PaymentPluginApi.class, api, props);
+  }
 
-    private void registerPaymentPluginApi(final BundleContext context, final PaymentPluginApi api) {
-        final Hashtable<String, String> props = new Hashtable<String, String>();
-        props.put(OSGIPluginProperties.PLUGIN_NAME_PROP, PLUGIN_NAME);
-        registrar.registerService(context, PaymentPluginApi.class, api, props);
-    }
-
-    private void registerHealthcheck(final BundleContext context, final AdyenHealthcheck healthcheck) {
-        final Hashtable<String, String> props = new Hashtable<String, String>();
-        props.put(OSGIPluginProperties.PLUGIN_NAME_PROP, PLUGIN_NAME);
-        registrar.registerService(context, Healthcheck.class, healthcheck, props);
-    }
+  private void registerHealthcheck(final BundleContext context, final Healthcheck healthcheck) {
+    final Hashtable<String, String> props = new Hashtable<>();
+    props.put(OSGIPluginProperties.PLUGIN_NAME_PROP, PLUGIN_NAME);
+    registrar.registerService(context, Healthcheck.class, healthcheck, props);
+  }
 }

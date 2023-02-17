@@ -15,7 +15,26 @@
  * under the License.
  */
 
-/* We cannot use timestamp in MySQL because of the implicit TimeZone conversions it does behind the scenes */
-CREATE DOMAIN datetime AS timestamp without time zone;
+package org.killbill.billing.plugin.adyen.api;
 
-CREATE DOMAIN longtext AS text;
+import java.util.Map;
+import lombok.Getter;
+import lombok.Setter;
+import org.joda.time.DateTime;
+import org.killbill.billing.payment.api.TransactionType;
+import org.killbill.billing.payment.plugin.api.PaymentPluginStatus;
+
+@Getter
+@Setter
+public class ProcessorOutputDTO {
+
+  private Map<String, String> additionalData;
+  private TransactionType type;
+  private PaymentPluginStatus status;
+  private String gatewayError;
+  private String gatewayErrorCode;
+  private String firstPaymentReferenceId;
+  private String secondPaymentReferenceId;
+  private String pspReferenceCode;
+  private DateTime transactionDate;
+}

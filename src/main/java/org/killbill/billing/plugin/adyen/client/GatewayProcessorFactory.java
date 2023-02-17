@@ -14,8 +14,16 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
+package org.killbill.billing.plugin.adyen.client;
 
-/* We cannot use timestamp in MySQL because of the implicit TimeZone conversions it does behind the scenes */
-CREATE DOMAIN datetime AS timestamp without time zone;
+import org.killbill.billing.plugin.adyen.core.AdyenConfigProperties;
 
-CREATE DOMAIN longtext AS text;
+public class GatewayProcessorFactory {
+  private GatewayProcessorFactory() {}
+
+  public static GatewayProcessor get(AdyenConfigProperties adyenConfigProperties) {
+    AdyenSDKClientImpl httpClient = new AdyenSDKClientImpl(adyenConfigProperties);
+
+    return new AdyenProcessorImpl(httpClient);
+  }
+}

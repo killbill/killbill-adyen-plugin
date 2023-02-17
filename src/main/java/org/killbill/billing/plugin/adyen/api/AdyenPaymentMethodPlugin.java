@@ -1,6 +1,6 @@
 /*
- * Copyright 2014-2020 Groupon, Inc
- * Copyright 2014-2020 The Billing Project, LLC
+ * Copyright 2020-2023 Equinix, Inc
+ * Copyright 2014-2023 The Billing Project, LLC
  *
  * The Billing Project licenses this file to you under the Apache License, version 2.0
  * (the "License"); you may not use this file except in compliance with the
@@ -19,18 +19,31 @@ package org.killbill.billing.plugin.adyen.api;
 
 import java.util.List;
 import java.util.UUID;
-
 import org.killbill.billing.payment.api.PluginProperty;
 import org.killbill.billing.plugin.adyen.dao.AdyenDao;
 import org.killbill.billing.plugin.adyen.dao.gen.tables.records.AdyenPaymentMethodsRecord;
+import org.killbill.billing.plugin.api.PluginProperties;
 import org.killbill.billing.plugin.api.payment.PluginPaymentMethodPlugin;
+import org.killbill.billing.plugin.dao.PluginDao;
 
 public class AdyenPaymentMethodPlugin extends PluginPaymentMethodPlugin {
 
-    public AdyenPaymentMethodPlugin(final AdyenPaymentMethodsRecord record) {
-        super(record.getKbPaymentMethodId() == null ? null : UUID.fromString(record.getKbPaymentMethodId()),
-              record.getToken(),
-              (record.getIsDefault() != null) && AdyenDao.TRUE == record.getIsDefault(),
-              AdyenModelPluginBase.buildPluginProperties(record.getAdditionalData()));
-    }
+  public static AdyenPaymentMethodPlugin build(
+      final AdyenPaymentMethodsRecord adyenPaymentMethodsRecord) {
+
+    return new AdyenPaymentMethodPlugin(
+        UUID.fromString(adyenPaymentMethodsRecord.getKbPaymentMethodId()),
+        null,
+        adyenPaymentMethodsRecord.getIsDefault() == PluginDao.TRUE,
+        PluginProperties.buildPluginProperties(
+            AdyenDao.mapFromAdditionalDataString(adyenPaymentMethodsRecord.getAdditionalData())));
+  }
+
+  public AdyenPaymentMethodPlugin(
+      final UUID kbPaymentMethodId,
+      final String externalPaymentMethodId,
+      final boolean isDefault,
+      final List<PluginProperty> properties) {
+    super(kbPaymentMethodId, externalPaymentMethodId, isDefault, properties);
+  }
 }

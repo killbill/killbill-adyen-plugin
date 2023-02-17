@@ -1,6 +1,6 @@
 /*
- * Copyright 2014-2020 Groupon, Inc
- * Copyright 2014-2020 The Billing Project, LLC
+ * Copyright 2020-2023 Equinix, Inc
+ * Copyright 2014-2023 The Billing Project, LLC
  *
  * The Billing Project licenses this file to you under the Apache License, version 2.0
  * (the "License"); you may not use this file except in compliance with the
@@ -17,11 +17,10 @@
 
 package org.killbill.billing.plugin.adyen.core.resources;
 
+import com.google.inject.Inject;
 import java.util.Optional;
-
 import javax.inject.Named;
 import javax.inject.Singleton;
-
 import org.jooby.Result;
 import org.jooby.mvc.GET;
 import org.jooby.mvc.Local;
@@ -30,22 +29,19 @@ import org.killbill.billing.plugin.adyen.core.AdyenHealthcheck;
 import org.killbill.billing.plugin.core.resources.PluginHealthcheck;
 import org.killbill.billing.tenant.api.Tenant;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.google.inject.Inject;
-
 @Singleton
 @Path("/healthcheck")
 public class AdyenHealthcheckServlet extends PluginHealthcheck {
 
-    private final AdyenHealthcheck healthcheck;
+  private final AdyenHealthcheck healthcheck;
 
-    @Inject
-    public AdyenHealthcheckServlet(final AdyenHealthcheck healthcheck) {
-        this.healthcheck = healthcheck;
-    }
+  @Inject
+  public AdyenHealthcheckServlet(final AdyenHealthcheck healthcheck) {
+    this.healthcheck = healthcheck;
+  }
 
-    @GET
-    public Result check(@Local @Named("killbill_tenant") final Optional<Tenant> tenant) throws JsonProcessingException {
-        return check(healthcheck, tenant.orElse(null), null);
-    }
+  @GET
+  public Result check(@Local @Named("killbill_tenant") final Optional<Tenant> tenant) {
+    return check(healthcheck, tenant.orElse(null), null);
+  }
 }

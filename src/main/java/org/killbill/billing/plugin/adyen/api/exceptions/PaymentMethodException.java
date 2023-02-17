@@ -15,7 +15,19 @@
  * under the License.
  */
 
-/* We cannot use timestamp in MySQL because of the implicit TimeZone conversions it does behind the scenes */
-CREATE DOMAIN datetime AS timestamp without time zone;
+package org.killbill.billing.plugin.adyen.api.exceptions;
 
-CREATE DOMAIN longtext AS text;
+public class PaymentMethodException extends RuntimeException {
+
+  public PaymentMethodException(String string) {
+    super(string);
+  }
+
+  public PaymentMethodException(String string, Exception e) {
+    super(string, e);
+  }
+
+  public PaymentMethodException(Exception e) {
+    super(e);
+  }
+}

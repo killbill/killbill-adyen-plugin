@@ -18,16 +18,16 @@
 
 <configuration>
     <jdbc>
-        <driver>com.mysql.cj.jdbc.Driver</driver>
-        <url>jdbc:mysql://127.0.0.1:3306/killbill</url>
+        <driver>org.postgresql.Driver</driver>
+        <url>jdbc:postgresql://localhost:5432/killbill</url>
         <user>root</user>
         <password>killbill</password>
     </jdbc>
     <generator>
         <database>
-            <name>org.jooq.meta.mysql.MySQLDatabase</name>
+            <name>org.jooq.meta.postgres.PostgresDatabase</name>
             <includes>adyen_.*</includes>
-            <inputSchema>killbill</inputSchema>
+            <inputSchema>public</inputSchema>
         </database>
         <target>
             <packageName>org.killbill.billing.plugin.adyen.dao.gen</packageName>

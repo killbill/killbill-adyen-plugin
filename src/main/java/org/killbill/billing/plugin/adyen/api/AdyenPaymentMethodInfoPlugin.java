@@ -1,6 +1,6 @@
 /*
- * Copyright 2014-2020 Groupon, Inc
- * Copyright 2014-2020 The Billing Project, LLC
+ * Copyright 2020-2023 Equinix, Inc
+ * Copyright 2014-2023 The Billing Project, LLC
  *
  * The Billing Project licenses this file to you under the Apache License, version 2.0
  * (the "License"); you may not use this file except in compliance with the
@@ -18,17 +18,26 @@
 package org.killbill.billing.plugin.adyen.api;
 
 import java.util.UUID;
-
-import org.killbill.billing.plugin.adyen.dao.AdyenDao;
 import org.killbill.billing.plugin.adyen.dao.gen.tables.records.AdyenPaymentMethodsRecord;
 import org.killbill.billing.plugin.api.payment.PluginPaymentMethodInfoPlugin;
+import org.killbill.billing.plugin.dao.PluginDao;
 
 public class AdyenPaymentMethodInfoPlugin extends PluginPaymentMethodInfoPlugin {
 
-    public AdyenPaymentMethodInfoPlugin(final AdyenPaymentMethodsRecord record) {
-        super(UUID.fromString(record.getKbAccountId()),
-              UUID.fromString(record.getKbPaymentMethodId()),
-              record.getIsDefault() == AdyenDao.TRUE,
-              record.getToken());
-    }
+  public static AdyenPaymentMethodInfoPlugin build(
+      final AdyenPaymentMethodsRecord adyenPaymentMethodsRecord) {
+    return new AdyenPaymentMethodInfoPlugin(
+        UUID.fromString(adyenPaymentMethodsRecord.getKbAccountId()),
+        UUID.fromString(adyenPaymentMethodsRecord.getKbPaymentMethodId()),
+        adyenPaymentMethodsRecord.getIsDefault() == PluginDao.TRUE,
+        null);
+  }
+
+  public AdyenPaymentMethodInfoPlugin(
+      final UUID accountId,
+      final UUID paymentMethodId,
+      final boolean isDefault,
+      final String externalPaymentMethodId) {
+    super(accountId, paymentMethodId, isDefault, externalPaymentMethodId);
+  }
 }

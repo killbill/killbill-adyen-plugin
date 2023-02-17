@@ -1,3 +1,4 @@
+<!--
 /*
  * Copyright 2020-2023 Equinix, Inc
  * Copyright 2014-2023 The Billing Project, LLC
@@ -14,8 +15,13 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
+  -->
 
-/* We cannot use timestamp in MySQL because of the implicit TimeZone conversions it does behind the scenes */
-CREATE DOMAIN datetime AS timestamp without time zone;
-
-CREATE DOMAIN longtext AS text;
+<FindBugsFilter>
+    <Match>
+        <Package name="~org\.killbill\.billing\.plugin\.adyen\.dao\.gen.*"/>
+	</Match>
+	<Match>
+		<Class name="~org\.killbill\.billing\.plugin\.adyen\.dao\.gen.*"/>
+	</Match>
+</FindBugsFilter>
