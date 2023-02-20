@@ -11,3 +11,9 @@ jobs:
     with:
       test-profile-matrix: '[ "travis", "integration-mysql", "integration-postgresql" ]'
 
+  integration_test:
+    uses: killbill/gh-actions-shared/.github/workflows/integration_test.yml@main
+    with:
+      plugin_name: 'adyen'
+      integration_tests_goal: 'test:plugins:adyen'
+      integration_tests_ref: 'refs/heads/test-for-adyen'
