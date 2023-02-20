@@ -87,19 +87,23 @@ Where:
 
 ## Testing
 
-### Ngrok setup
-Since Adyen uses webhooks, you will need a tool [ngrok](https://ngrok.com/) to test it. This can be set up as follows:
 
-1. Install ngrok from [here](https://ngrok.com/download). 
-2. Open a terminal window and type `ngrok http 8080` (Since Kill Bill listens on port `8080`)
-3. This will display a message like `Forwarding https://39dc-117-195-30-48.in.ngrok.io -> http://localhost:8080`
-4. Copy the URL displayed above (`https://39dc-117-195-30-48.in.ngrok.io`) and save it for further use. 
+### Test Setup
+
+Since Adyen uses webhooks, the `http://<IP_ADDR>/plugins/adyen-plugin/notification` URL needs to be publicly accessible for Adyen to send notifications to it. Thus, testing can be done in one of the following ways:
+
+* **Using AWS**: Test on Kill Bill running on an AWS instance. In this case, you would need to specify the AWS URL (`http://<AWS_INSTANCE_ADDR>:8080/plugins/adyen-plugin/notification`) as the webhook server URL in Adyen and configure it as the `returnURL` in the Adyen plugin as explained above.
+* **Using ngrok**: If you would like to test on a local installation instead of AWS, you can use a tool like [ngrok](https://ngrok.com/) to create a temporary public DNS and redirect traffic from that DNS to the local Kill Bill server. Ngrok can be set up as follows:
+    * Install ngrok from [here](https://ngrok.com/download). 
+    * Open a terminal window and type `ngrok http 8080` (Since Kill Bill listens on port `8080`)
+    * This will display a message like `Forwarding https://39dc-117-195-30-48.in.ngrok.io -> http://localhost:8080`
+    * Copy the URL displayed above (`https://39dc-117-195-30-48.in.ngrok.io`).  In this case, you would need to specify the ngrok URL (`<your-ngrok-url>/plugins/adyen-plugin/notification`) as the webhook server URL in Adyen and configure it as the `returnURL` in the Adyen plugin as explained above.
 
 ### Testing
-1. Build, install and configure the plugin as explained above. Note that the URL `<your-ngrok-url>/plugins/adyen-plugin/notification` needs to be specified as the webhook server URL in Adyen and configured as the `returnUrl`.
-2. Test the application using the [Kill Bill Adyen Demo](https://github.com/killbill/killbill-adyen-demo) as explained [here](https://github.com/killbill/killbill-adyen-demo/tree/new-adyen-staging#test).
+1. Build, install and configure the plugin as explained above. Note that either your AWS URL or ngrok URL needs to be specified as the webhook server URL in Adyen and configured as the plugin `returnUrl`.
+2. Test the application using the [Kill Bill Adyen Demo](https://github.com/killbill/killbill-adyen-demo) as explained [here](https://github.com/killbill/killbill-adyen-demo/#test).
 3. Verify that a new account is created in Kill Bill with a payment in `PENDING` status.
-4. If all goes well, Adyen would then send a notification to convert the `PENDING` payment to `SUCCESS`. 
+4. If all goes well, Adyen would then send a notification to convert the `PENDING` payment status to `SUCCESS`. 
 5. Retrieve the payment using the `withPluginInfo` parameter to trigger the [Janitor](https://docs.killbill.io/latest/userguide_payment.html#_on_the_fly_janitor) as follows:
 
 ```
