@@ -18,13 +18,10 @@
 package org.killbill.billing.plugin.adyen;
 
 import java.io.IOException;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
 import java.util.UUID;
-import org.junit.After;
-import org.junit.Before;
 import org.killbill.billing.ObjectType;
 import org.killbill.billing.account.api.Account;
 import org.killbill.billing.account.api.AccountUserApi;
@@ -51,6 +48,9 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.testng.annotations.AfterSuite;
+import org.testng.annotations.BeforeMethod;
+import org.testng.annotations.BeforeSuite;
 
 public class TestBase {
 
@@ -73,10 +73,8 @@ public class TestBase {
 
   private static final Logger logger = LoggerFactory.getLogger(TestBase.class);
 
-  @Before
+  @BeforeMethod(groups = {"slow", "integration"})
   public void setUp() throws Exception {
-    setUpBeforeSuite();
-
     logger.info("[setUp] initialization");
     EmbeddedDbHelper.instance().resetDB();
     dao = EmbeddedDbHelper.instance().getAdyenDao();
@@ -160,23 +158,22 @@ public class TestBase {
             })
         .when(customFieldUserApi)
         .addCustomFields(Mockito.anyList(), Mockito.any(CallContext.class));
-    setUpIntegration(PROPERTIES_FILE_NAME);
   }
 
-  protected void setUpIntegration(String fileName) throws IOException {
+  @BeforeMethod(groups = "integration")
+  public void setUpIntegration() throws Exception {
     logger.info("[setUpIntegration] initialization");
-    final Properties properties = TestUtils.loadProperties(fileName);
+    final Properties properties = TestUtils.loadProperties(PROPERTIES_FILE_NAME);
     final AdyenConfigProperties AdyenConfigProperties = new AdyenConfigProperties(properties, "");
     adyenConfigPropertiesConfigurationHandler.setDefaultConfigurable(AdyenConfigProperties);
   }
 
-  private void setUpBeforeSuite() throws IOException, SQLException {
-    logger.info("[setUpBeforeSuite] initialization");
-
+  @BeforeSuite(groups = {"slow", "integration"})
+  public void setUpBeforeSuite() throws Exception {
     EmbeddedDbHelper.instance().startDb();
   }
 
-  @After
+  @AfterSuite(groups = {"slow", "integration"})
   public void tearDownAfterSuite() throws IOException {
     EmbeddedDbHelper.instance().stopDB();
   }

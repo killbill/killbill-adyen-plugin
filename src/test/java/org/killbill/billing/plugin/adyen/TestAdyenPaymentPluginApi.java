@@ -22,8 +22,6 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
-import org.junit.Assert;
-import org.junit.Test;
 import org.killbill.billing.osgi.api.Healthcheck;
 import org.killbill.billing.payment.api.Payment;
 import org.killbill.billing.payment.api.PaymentApiException;
@@ -41,16 +39,18 @@ import org.killbill.billing.plugin.adyen.core.AdyenHealthcheck;
 import org.killbill.billing.plugin.adyen.dao.gen.tables.records.AdyenPaymentMethodsRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.testng.Assert;
+import org.testng.annotations.Test;
 
-public class AdyenPaymentPluginApiTest extends TestBase {
+public class TestAdyenPaymentPluginApi extends TestBase {
 
-  private static final Logger logger = LoggerFactory.getLogger(AdyenPaymentPluginApiTest.class);
+  private static final Logger logger = LoggerFactory.getLogger(TestAdyenPaymentPluginApi.class);
   private String defaultToken = "F8C833979563DDE0008FC110580B69F5";
   private String ccOneTime = "CC_ONE_TIME";
   private String testing = "Testing";
   private String ccRecurring = "CC_RECURRING";
 
-  @Test
+  @Test(groups = "integration")
   public void testCreatePaymentMethod() throws PaymentPluginApiException {
     logger.info("testCreatePaymentMethod");
     final UUID kbAccountId = account.getId();
@@ -71,7 +71,7 @@ public class AdyenPaymentPluginApiTest extends TestBase {
     Assert.assertEquals(1, syncPaymentMethods(kbAccountId).size());
   }
 
-  @Test
+  @Test(groups = "integration")
   public void testDeletePaymentMethod() throws PaymentPluginApiException {
     final UUID kbAccountId = account.getId();
 
@@ -94,7 +94,7 @@ public class AdyenPaymentPluginApiTest extends TestBase {
     Assert.assertEquals(0, syncPaymentMethods(kbAccountId).size());
   }
 
-  @Test
+  @Test(groups = "integration")
   public void testSuccessfulAuthVoid() throws PaymentPluginApiException, PaymentApiException {
     final UUID kbAccountId = account.getId();
 
@@ -145,7 +145,7 @@ public class AdyenPaymentPluginApiTest extends TestBase {
     Assert.assertEquals(PaymentPluginStatus.CANCELED, voidInfoPlugin.getStatus());
   }
 
-  @Test
+  @Test(groups = "integration")
   public void testSuccessfulCapture() throws PaymentPluginApiException, PaymentApiException {
     final UUID kbAccountId = account.getId();
 
@@ -183,7 +183,7 @@ public class AdyenPaymentPluginApiTest extends TestBase {
     Assert.assertEquals(PaymentPluginStatus.CANCELED, captureInfoPlugin.getStatus());
   }
 
-  @Test
+  @Test(groups = "integration")
   public void testSuccessfulCredit() throws PaymentPluginApiException, PaymentApiException {
     final UUID kbAccountId = account.getId();
 
@@ -221,7 +221,7 @@ public class AdyenPaymentPluginApiTest extends TestBase {
     Assert.assertEquals(PaymentPluginStatus.CANCELED, creditInfoPlugin.getStatus());
   }
 
-  @Test
+  @Test(groups = "integration")
   public void testGetPaymentMethodDetail() throws PaymentPluginApiException {
     final UUID kbAccountId = account.getId();
 
@@ -247,13 +247,13 @@ public class AdyenPaymentPluginApiTest extends TestBase {
         test.getKbPaymentMethodId(), AdyenPaymentMethodPlugin.getKbPaymentMethodId());
   }
 
-  @Test
+  @Test(groups = "integration")
   public void testHealthcheck() {
     final Healthcheck healthcheck = new AdyenHealthcheck();
     Assert.assertTrue(healthcheck.getHealthStatus(null, null).isHealthy());
   }
 
-  @Test
+  @Test(groups = "integration")
   public void testInfoPlugin() throws PaymentPluginApiException, PaymentApiException {
     AdyenPaymentMethodsRecord methodRecord = new AdyenPaymentMethodsRecord();
     methodRecord.setKbAccountId(account.getId().toString());

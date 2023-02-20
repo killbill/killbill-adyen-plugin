@@ -36,8 +36,6 @@ public class EmbeddedDbHelper {
 
   public void startDb() throws IOException, SQLException {
 
-    System.setProperty("org.killbill.billing.dbi.test.h2", "true");
-
     embeddedDB = PlatformDBTestingHelper.get().getInstance();
     embeddedDB.initialize();
     embeddedDB.start();
