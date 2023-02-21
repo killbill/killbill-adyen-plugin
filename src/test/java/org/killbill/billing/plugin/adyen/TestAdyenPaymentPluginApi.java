@@ -54,7 +54,7 @@ public class TestAdyenPaymentPluginApi extends TestBase {
   public void testCreatePaymentMethod() throws PaymentPluginApiException {
     logger.info("testCreatePaymentMethod");
     final UUID kbAccountId = account.getId();
-    Assert.assertEquals(0, syncPaymentMethods(kbAccountId).size());
+    Assert.assertEquals(syncPaymentMethods(kbAccountId).size(), 0);
     final UUID kbPaymentMethodId = UUID.randomUUID();
     AdyenPaymentMethodPlugin AdyenPaymentMethodPlugin =
         new AdyenPaymentMethodPlugin(
@@ -68,14 +68,14 @@ public class TestAdyenPaymentPluginApi extends TestBase {
         ImmutableList.of(),
         context);
 
-    Assert.assertEquals(1, syncPaymentMethods(kbAccountId).size());
+    Assert.assertEquals(syncPaymentMethods(kbAccountId).size(), 1);
   }
 
   @Test(groups = "integration")
   public void testDeletePaymentMethod() throws PaymentPluginApiException {
     final UUID kbAccountId = account.getId();
 
-    Assert.assertEquals(0, syncPaymentMethods(kbAccountId).size());
+    Assert.assertEquals(syncPaymentMethods(kbAccountId).size(), 0);
     final UUID kbPaymentMethodId = UUID.randomUUID();
     AdyenPaymentMethodPlugin AdyenPaymentMethodPlugin =
         new AdyenPaymentMethodPlugin(
@@ -89,16 +89,16 @@ public class TestAdyenPaymentPluginApi extends TestBase {
         ImmutableList.of(),
         context);
 
-    Assert.assertEquals(1, syncPaymentMethods(kbAccountId).size());
+    Assert.assertEquals(syncPaymentMethods(kbAccountId).size(), 1);
     adyenPaymentPluginApi.deletePaymentMethod(kbAccountId, kbPaymentMethodId, null, context);
-    Assert.assertEquals(0, syncPaymentMethods(kbAccountId).size());
+    Assert.assertEquals(syncPaymentMethods(kbAccountId).size(), 0);
   }
 
   @Test(groups = "integration")
   public void testSuccessfulAuthVoid() throws PaymentPluginApiException, PaymentApiException {
     final UUID kbAccountId = account.getId();
 
-    Assert.assertEquals(0, syncPaymentMethods(kbAccountId).size());
+    Assert.assertEquals(syncPaymentMethods(kbAccountId).size(), 0);
     final UUID kbPaymentMethodId = UUID.randomUUID();
     AdyenPaymentMethodPlugin AdyenPaymentMethodPlugin =
         new AdyenPaymentMethodPlugin(
@@ -132,7 +132,7 @@ public class TestAdyenPaymentPluginApi extends TestBase {
             ImmutableList.of(),
             context);
     TestUtils.updatePaymentTransaction(authorizationTransaction, authorizationInfoPlugin);
-    Assert.assertEquals(PaymentPluginStatus.CANCELED, authorizationInfoPlugin.getStatus());
+    Assert.assertEquals(authorizationInfoPlugin.getStatus(), PaymentPluginStatus.CANCELED);
 
     final PaymentTransactionInfoPlugin voidInfoPlugin =
         adyenPaymentPluginApi.voidPayment(
@@ -142,14 +142,14 @@ public class TestAdyenPaymentPluginApi extends TestBase {
             kbPaymentMethodId,
             ImmutableList.of(),
             context);
-    Assert.assertEquals(PaymentPluginStatus.CANCELED, voidInfoPlugin.getStatus());
+    Assert.assertEquals(voidInfoPlugin.getStatus(), PaymentPluginStatus.CANCELED);
   }
 
   @Test(groups = "integration")
   public void testSuccessfulCapture() throws PaymentPluginApiException, PaymentApiException {
     final UUID kbAccountId = account.getId();
 
-    Assert.assertEquals(0, syncPaymentMethods(kbAccountId).size());
+    Assert.assertEquals(syncPaymentMethods(kbAccountId).size(), 0);
     final UUID kbPaymentMethodId = UUID.randomUUID();
     AdyenPaymentMethodPlugin AdyenPaymentMethodPlugin =
         new AdyenPaymentMethodPlugin(
@@ -180,14 +180,14 @@ public class TestAdyenPaymentPluginApi extends TestBase {
             ImmutableList.of(),
             context);
     TestUtils.updatePaymentTransaction(captureTransaction, captureInfoPlugin);
-    Assert.assertEquals(PaymentPluginStatus.CANCELED, captureInfoPlugin.getStatus());
+    Assert.assertEquals(captureInfoPlugin.getStatus(), PaymentPluginStatus.CANCELED);
   }
 
   @Test(groups = "integration")
   public void testSuccessfulCredit() throws PaymentPluginApiException, PaymentApiException {
     final UUID kbAccountId = account.getId();
 
-    Assert.assertEquals(0, syncPaymentMethods(kbAccountId).size());
+    Assert.assertEquals(syncPaymentMethods(kbAccountId).size(), 0);
     final UUID kbPaymentMethodId = UUID.randomUUID();
     AdyenPaymentMethodPlugin AdyenPaymentMethodPlugin =
         new AdyenPaymentMethodPlugin(
@@ -218,14 +218,14 @@ public class TestAdyenPaymentPluginApi extends TestBase {
             ImmutableList.of(),
             context);
     TestUtils.updatePaymentTransaction(creditTransaction, creditInfoPlugin);
-    Assert.assertEquals(PaymentPluginStatus.CANCELED, creditInfoPlugin.getStatus());
+    Assert.assertEquals(creditInfoPlugin.getStatus(), PaymentPluginStatus.CANCELED);
   }
 
   @Test(groups = "integration")
   public void testGetPaymentMethodDetail() throws PaymentPluginApiException {
     final UUID kbAccountId = account.getId();
 
-    Assert.assertEquals(0, syncPaymentMethods(kbAccountId).size());
+    Assert.assertEquals(syncPaymentMethods(kbAccountId).size(), 0);
     final UUID kbPaymentMethodId = UUID.randomUUID();
     AdyenPaymentMethodPlugin AdyenPaymentMethodPlugin =
         new AdyenPaymentMethodPlugin(
@@ -239,12 +239,11 @@ public class TestAdyenPaymentPluginApi extends TestBase {
         ImmutableList.of(),
         context);
 
-    Assert.assertEquals(1, syncPaymentMethods(kbAccountId).size());
+    Assert.assertEquals(syncPaymentMethods(kbAccountId).size(), 1);
 
     PaymentMethodPlugin test =
         adyenPaymentPluginApi.getPaymentMethodDetail(kbAccountId, kbPaymentMethodId, null, context);
-    Assert.assertEquals(
-        test.getKbPaymentMethodId(), AdyenPaymentMethodPlugin.getKbPaymentMethodId());
+    Assert.assertEquals(test.getKbPaymentMethodId(), AdyenPaymentMethodPlugin.getKbPaymentMethodId());
   }
 
   @Test(groups = "integration")
@@ -263,8 +262,7 @@ public class TestAdyenPaymentPluginApi extends TestBase {
     methodRecord.setKbTenantId(context.getTenantId().toString());
 
     methodRecord.setCreatedDate(LocalDateTime.now());
-    Assert.assertEquals(
-        account.getId(), AdyenPaymentMethodInfoPlugin.build(methodRecord).getAccountId());
+    Assert.assertEquals(AdyenPaymentMethodInfoPlugin.build(methodRecord).getAccountId(), account.getId());
   }
 
   private List<PaymentMethodInfoPlugin> syncPaymentMethods(UUID kbAccountId)
@@ -272,24 +270,4 @@ public class TestAdyenPaymentPluginApi extends TestBase {
     return adyenPaymentPluginApi.getPaymentMethods(kbAccountId, true, ImmutableList.of(), context);
   }
 
-  private void verifyPaymentTransactionInfoPlugin(
-      final Payment payment,
-      final PaymentTransaction paymentTransaction,
-      final PaymentTransactionInfoPlugin paymentTransactionInfoPlugin,
-      final PaymentPluginStatus expectedPaymentPluginStatus) {
-    Assert.assertEquals(paymentTransactionInfoPlugin.getKbPaymentId(), payment.getId());
-    Assert.assertEquals(
-        paymentTransactionInfoPlugin.getKbTransactionPaymentId(), paymentTransaction.getId());
-    Assert.assertEquals(
-        paymentTransactionInfoPlugin.getTransactionType(), paymentTransaction.getTransactionType());
-
-    Assert.assertEquals(
-        0, paymentTransactionInfoPlugin.getAmount().compareTo(paymentTransaction.getAmount()));
-    Assert.assertEquals(
-        paymentTransactionInfoPlugin.getCurrency(), paymentTransaction.getCurrency());
-
-    Assert.assertNotNull(paymentTransactionInfoPlugin.getCreatedDate());
-
-    Assert.assertEquals(paymentTransactionInfoPlugin.getStatus(), expectedPaymentPluginStatus);
-  }
 }
