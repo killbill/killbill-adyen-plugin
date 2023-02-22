@@ -8,4 +8,6 @@ on:
 jobs:
   ci:
     uses: killbill/gh-actions-shared/.github/workflows/ci.yml@main
+    with:
+      test-profile-matrix: '[ "travis", "integration-mysql", "integration-postgresql" ]'
 
