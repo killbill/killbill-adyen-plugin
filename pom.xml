@@ -33,6 +33,7 @@
         <url>https://github.com/killbill/killbill-adyen-plugin/issues</url>
     </issueManagement>
     <properties>
+        <maven.javadoc.failOnError>false</maven.javadoc.failOnError>
         <osgi.private>org.killbill.billing.plugin.adyen.*</osgi.private>
     </properties>
     <dependencyManagement>
