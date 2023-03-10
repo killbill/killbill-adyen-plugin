@@ -1,7 +1,9 @@
 # killbill-adyen-plugin
+![Maven Central](https://img.shields.io/maven-central/v/org.kill-bill.billing.plugin.java/adyen-plugin?color=blue&label=Maven%20Central)
 
 Plugin to use [Adyen](https://www.adyen.com/) as a gateway.
 
+A full end-to-end integration demo is available [here](https://github.com/killbill/killbill-adyen-demo).
 
 ## Kill Bill compatibility
 
@@ -127,7 +129,9 @@ The following steps need to be followed in order to use the Adyen plugin:
 
 1. Ensure that the plugin is installed and configured as explained above.
 
-2. Create a Kill Bill account and Kill Bill Payment (Specify a `PluginProperty` corresponding to `enableRecurring` if this is going to be a recurrinng payment. The default value of this property is `false`):
+2. [Create](https://killbill.github.io/slate/?shell#account-create-an-account) a Kill Bill account and save the `accountId` for further use.
+
+3. Create a Kill Bill Payment (Specify a `PluginProperty` corresponding to `enableRecurring` if this is going to be a recurring payment. The default value of this property is `false`):
 
 ```bash
 curl -v \
@@ -140,10 +144,24 @@ curl -v \
     -H "X-Killbill-CreatedBy: demo" \
     -H "X-Killbill-Reason: demo" \
     -H "X-Killbill-Comment: demo" \
-    -d '{ "accountId": "2ad52f53-85ae-408a-9879-32a7e59dd03d", "pluginName": "adyen-plugin" ,"isDefault": true, "pluginInfo": { "isDefaultPaymentMethod": true, "properties": [ { "key": "enableRecurring", "value": "true", "isUpdatable": false } }' \
-    "http://127.0.0.1:8080/1.0/kb/accounts/8785164f-b5d7-4da1-9495-33f5105e8d80/paymentMethods" 
+    -d '{
+  			"accountId": "2ad52f53-85ae-408a-9879-32a7e59dd03d",
+  			"pluginName": "adyen-plugin",
+  			"isDefault": true,
+  			"pluginInfo": {
+    			"isDefaultPaymentMethod": true,
+    			"properties": [
+      				{
+        				"key": "enableRecurring",
+        				"value": "true",
+        				"isUpdatable": false
+      				}
+    			]
+  			}
+		}' \
+    	"http://127.0.0.1:8080/1.0/kb/accounts/8785164f-b5d7-4da1-9495-33f5105e8d80/paymentMethods" 
 ```
-2. Call `/plugins/adyen-plugin/checkout` to generate a session (Note that the amount needs needs to be specified in [minor units](https://docs.adyen.com/development-resources/currency-codes)):
+4. Call `/plugins/adyen-plugin/checkout` to generate a session and create the first payment (Note that the amount needs needs to be specified in [minor units](https://docs.adyen.com/development-resources/currency-codes)):
 
 ```bash
 curl -v \
@@ -158,9 +176,16 @@ curl -v \
      -H "X-Killbill-Comment: demo" \
      "http://127.0.0.1:8080/plugins/adyen-plugin/checkout?kbAccountId=<KB_ACCOUNT_ID>&amount=<amount>&kbPaymentMethodId=<KB_PAYMENT_METHOD_ID>"
 ```
-This returns `sessionId` and `sessionData`. 
 
-3. Set up a drop-in with the `sessionId` and `sessionData` obtained above as explained [here](https://docs.adyen.com/online-payments/web-drop-in#set-up).
+Note that this creates a payment in Kill Bill for the specified amount in `PENDING` status. 
+
+4. Set up a drop-in with the `sessionId` and `sessionData` obtained above as explained [here](https://docs.adyen.com/online-payments/web-drop-in#set-up).
+
+5. Collect customer's payment details via the drop-in. 
+
+6. If the payment is successful, Adyen sends a notification to Kill Bill to convert the `PENDING` status to `SUCCESS`.
+
+
 
 ## Credits
 
