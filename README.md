@@ -131,7 +131,7 @@ The following steps need to be followed in order to use the Adyen plugin:
 
 2. [Create](https://killbill.github.io/slate/?shell#account-create-an-account) a Kill Bill account and save the `accountId` for further use.
 
-3. Create a Kill Bill Payment (Specify a `PluginProperty` corresponding to `enableRecurring` if this is going to be a recurring payment. The default value of this property is `false`):
+3. Create a Kill Bill Payment Method (Specify a `PluginProperty` corresponding to `enableRecurring` if this is going to be a recurring payment. The default value of this property is `false`):
 
 ```bash
 curl -v \
