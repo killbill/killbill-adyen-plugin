@@ -17,12 +17,12 @@
 
 package org.killbill.billing.plugin.adyen.core.resources;
 
-import com.google.inject.Inject;
+import jakarta.inject.Inject;
 import java.math.BigDecimal;
 import java.util.Map;
 import java.util.UUID;
-import javax.inject.Named;
-import javax.inject.Singleton;
+import jakarta.inject.Named;
+import jakarta.inject.Singleton;
 import org.jooby.mvc.Local;
 import org.jooby.mvc.POST;
 import org.jooby.mvc.Path;

@@ -17,9 +17,9 @@
 
 package org.killbill.billing.plugin.adyen.core.resources;
 
-import com.google.inject.Inject;
+import jakarta.inject.Inject;
 import java.util.UUID;
-import javax.inject.Singleton;
+import jakarta.inject.Singleton;
 import org.jooby.Result;
 import org.jooby.Results;
 import org.jooby.mvc.Body;
