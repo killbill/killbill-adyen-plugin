@@ -20,8 +20,29 @@
 <FindBugsFilter>
     <Match>
         <Package name="~org\.killbill\.billing\.plugin\.adyen\.dao\.gen.*"/>
-	</Match>
-	<Match>
-		<Class name="~org\.killbill\.billing\.plugin\.adyen\.dao\.gen.*"/>
-	</Match>
+    </Match>
+    <Match>
+        <Class name="~org\.killbill\.billing\.plugin\.adyen\.dao\.gen.*"/>
+    </Match>
+    <!-- justification: plugin API classes store references to handler/dao/service objects passed at construction; defensive copying is not applicable here -->
+    <Match>
+        <Or>
+            <Class name="org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi"/>
+            <Class name="org.killbill.billing.plugin.adyen.api.AdyenPaymentTransactionInfoPlugin"/>
+            <Class name="org.killbill.billing.plugin.adyen.core.resources.AdyenCheckoutService"/>
+            <Class name="org.killbill.billing.plugin.adyen.core.resources.AdyenNotificationServlet"/>
+        </Or>
+        <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+    </Match>
+    <!-- justification: notification processing legitimately catches Exception to handle unexpected errors from external webhook payloads -->
+    <Match>
+        <Class name="org.killbill.billing.plugin.adyen.api.AdyenPaymentPluginApi"/>
+        <Method name="processNotification"/>
+        <Bug pattern="REC_CATCH_EXCEPTION"/>
+    </Match>
+    <!-- justification: servlet fields (clock, service) are injected dependencies, not intended for serialization -->
+    <Match>
+        <Class name="org.killbill.billing.plugin.adyen.core.resources.AdyenCheckoutServlet"/>
+        <Bug pattern="SE_BAD_FIELD"/>
+    </Match>
 </FindBugsFilter>
