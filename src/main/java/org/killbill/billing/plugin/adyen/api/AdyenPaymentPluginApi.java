@@ -590,7 +590,7 @@ public class AdyenPaymentPluginApi
           outputDTO.setStatus(PaymentPluginStatus.ERROR);
         }
         this.adyenDao.updateResponse(
-            UUID.fromString(record.getKbPaymentId()),
+            UUID.fromString(record.getKbPaymentTransactionId()),
             outputDTO,
             UUID.fromString(record.getKbTenantId()));
         this.adyenDao.addNotification(
@@ -608,6 +608,14 @@ public class AdyenPaymentPluginApi
               notificationItem.getAdditionalData().get(RECURRING_DATA));
         }
 
+        // The plugin tables are now up to date. On success, let Kill Bill core know right away
+        // instead of waiting for the Janitor (by default 1 hour later). See #138.
+        // Failures are left to the scheduled Janitor: it keeps the payment retry schedule of
+        // invoice payments, which an API-initiated refresh would skip.
+        if (notificationItem.isSuccess()) {
+          refreshPaymentInKillBill(UUID.fromString(record.getKbPaymentId()), tempContext);
+        }
+
       } else {
         logger.error("HMAC Key is not valid");
       }
@@ -615,6 +623,27 @@ public class AdyenPaymentPluginApi
       logger.error("{}", e.getMessage(), e);
     }
     return new PluginGatewayNotification("[accepted]");
+  }
+
+  /**
+   * Fetches the payment with plugin info, which runs the on-the-fly Janitor: Kill Bill core calls
+   * {@link #getPaymentInfo} and moves the PENDING transaction to SUCCESS based on the status the
+   * plugin has just recorded, then completes the invoice payment. A failure here is logged and not
+   * rethrown: the webhook must still be acknowledged, and the scheduled Janitor remains the
+   * fallback.
+   */
+  private void refreshPaymentInKillBill(final UUID kbPaymentId, final CallContext context) {
+    try {
+      this.killbillAPI
+          .getPaymentApi()
+          .getPayment(kbPaymentId, true, false, ImmutableList.<PluginProperty>of(), context);
+    } catch (final Exception e) {
+      logger.warn(
+          "Unable to refresh paymentId='{}' in Kill Bill after the Adyen notification,"
+              + " the Janitor will reconcile it later",
+          kbPaymentId,
+          e);
+    }
   }
 
   public Map<String, String> getAdditionalDataMap(String additionalData) {
