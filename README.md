@@ -203,7 +203,28 @@ Note that this creates a payment in Kill Bill for the specified amount in `PENDI
 
 7. If the payment is successful, Adyen sends a notification to Kill Bill; the plugin stores the recurring token (if `enableRecurring` was set) and moves the payment from `PENDING` to `SUCCESS`. Payments initiated by Kill Bill afterwards (for example for subscription invoices) use the stored token automatically.
 
+## Payment methods tokenised outside the plugin
 
+If the card is tokenised in your own Adyen `/sessions` or `/payments` call (for example before the
+Kill Bill account exists), pass the token when creating the Kill Bill payment method:
+
+* `recurringDetailReference`: the Adyen token (`storedPaymentMethodId`)
+* `shopperReference`: the `shopperReference` used when Adyen stored the token
+
+```json
+"pluginInfo": {
+  "properties": [
+    { "key": "recurringDetailReference", "value": "K4C5QX3VQL9C5G65" },
+    { "key": "shopperReference", "value": "customer-42" }
+  ]
+}
+```
+
+The payment method is marked as recurring and payments initiated by Kill Bill (for example for
+subscription invoices) use the token right away; no first payment through `/checkout` is needed.
+Adyen only accepts a token together with the `shopperReference` it was stored under: without
+`shopperReference`, the plugin sends the Kill Bill account id and Adyen refuses the payment
+(`800 Contract not found`).
 
 
 ## Credits
