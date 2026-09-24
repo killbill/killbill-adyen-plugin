@@ -1,4 +1,4 @@
-name: cloudsmith_release
+name: cloudsmith_snapshot
 
 on:
   push:
