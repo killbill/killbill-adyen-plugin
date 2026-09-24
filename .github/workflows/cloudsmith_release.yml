@@ -1,0 +1,43 @@
+name: cloudsmith_release
+
+on:
+  workflow_dispatch:
+    inputs:
+      parent_version:
+        description: 'New killbill-oss-parent version'
+        required: false
+        default: ''
+      perform_version:
+        description: 'tag to (re-)perform (in case of release:perform failure)'
+        required: false
+        default: ''
+
+jobs:
+  release:
+    # maint-for-0-24-x: gh-actions-shared's own maint-for-0-24-x branch still ships the old
+    # Sonatype-based pipeline (MAVEN_USERNAME/MAVEN_PASSWORD secrets) and has no release.yml at
+    # all (confirmed 404 on that ref), so it cannot be used for a Cloudsmith-based release. Use
+    # @main instead, which has the Cloudsmith-aware reusable release workflow.
+    uses: killbill/gh-actions-shared/.github/workflows/release.yml@main
+    with:
+      parent_version: ${{ github.event.inputs.parent_version }}
+      perform_version: ${{ github.event.inputs.perform_version }}
+      java_version: '11'
+      java_distribution: 'temurin'
+      # maint-for-0-24-x: killbill-oss-parent's maint-for-0-24-x lineage (tracked by this
+      # plugin's 0.146.63 parent) only ships a "sonatype-oss-release" profile that targets
+      # Sonatype Central, incompatible with our Cloudsmith distributionManagement override in
+      # pom.xml. "oss-release" is a local, temporary profile defined in this repo's pom.xml
+      # (modeled after killbill-oss-parent@master's Cloudsmith-compatible profile) that this
+      # reusable workflow's default `sonatype-oss-release` value would otherwise miss. Remove
+      # this override once the parent moves to a released, Cloudsmith-enabled killbill-oss-parent.
+      release_profile: 'oss-release'
+    secrets:
+      BUILD_USER: ${{ secrets.BUILD_USER }}
+      BUILD_TOKEN: ${{ secrets.BUILD_TOKEN }}
+      CLOUDSMITH_CENTRAL_PASSWORD: ${{ secrets.CLOUDSMITH_CENTRAL_PASSWORD }}
+      CLOUDSMITH_KILLBILL_MAVEN_REPO_PASSWORD: ${{ secrets.CLOUDSMITH_KILLBILL_MAVEN_REPO_PASSWORD }}
+      CLOUDSMITH_DISTRIBUTION_MAN_USERNAME: ${{ secrets.CLOUDSMITH_DISTRIBUTION_MAN_USERNAME }}
+      CLOUDSMITH_DISTRIBUTION_MAN_PASSWORD: ${{ secrets.CLOUDSMITH_DISTRIBUTION_MAN_PASSWORD }}
+      GPG_SIGNING_KEY: ${{ secrets.GPG_SIGNING_KEY }}
+      GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}

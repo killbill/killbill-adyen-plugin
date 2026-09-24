@@ -1,0 +1,28 @@
+name: cloudsmith_snapshot
+
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  snapshot:
+    # maint-for-0-24-x: gh-actions-shared's own maint-for-0-24-x branch still ships the old
+    # Sonatype-based snapshot workflow (MAVEN_USERNAME/MAVEN_PASSWORD secrets, sonatypeSnapshots:
+    # true), not Cloudsmith. Use @main instead, which has the Cloudsmith-aware reusable snapshot
+    # workflow.
+    uses: killbill/gh-actions-shared/.github/workflows/snapshot.yml@main
+    # maint-for-0-24-x: this reusable workflow configures settings.xml server id "central" with
+    # a Cloudsmith password, but killbill-oss-parent's maint-for-0-24-x lineage (tracked by this
+    # plugin's 0.146.63 parent) still declares <distributionManagement/> repository id "central"
+    # pointing at real Sonatype Central, causing a 401 on deploy. This plugin's pom.xml carries a
+    # temporary local <distributionManagement/> override (repository id "cloudsmith", Cloudsmith
+    # URLs) so no per-workflow input is needed here; remove that pom.xml override once the parent
+    # moves to a released, Cloudsmith-enabled killbill-oss-parent.
+    with:
+      jdk: '11'
+      jdk-distribution: 'temurin'
+    secrets:
+      CLOUDSMITH_CENTRAL_PASSWORD: ${{ secrets.CLOUDSMITH_CENTRAL_PASSWORD }}
+      CLOUDSMITH_KILLBILL_MAVEN_REPO_PASSWORD: ${{ secrets.CLOUDSMITH_KILLBILL_MAVEN_REPO_PASSWORD }}
+      CLOUDSMITH_DISTRIBUTION_MAN_USERNAME: ${{ secrets.CLOUDSMITH_DISTRIBUTION_MAN_USERNAME }}
+      CLOUDSMITH_DISTRIBUTION_MAN_PASSWORD: ${{ secrets.CLOUDSMITH_DISTRIBUTION_MAN_PASSWORD }}
