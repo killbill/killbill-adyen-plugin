@@ -64,6 +64,8 @@ import org.killbill.billing.util.callcontext.TenantContext;
 import org.killbill.clock.Clock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import com.google.common.annotations.VisibleForTesting;
+
 
 public class AdyenPaymentPluginApi
     extends PluginPaymentPluginApi<
@@ -74,6 +76,10 @@ public class AdyenPaymentPluginApi
   public static final String SESSION_DATA = "sessionData";
   public static final String RECURRING_DATA = "recurring.recurringDetailReference";
   public static final String ENABLE_RECURRING = "enableRecurring";
+  // Token and shopper reference of a payment method tokenised outside the plugin (for example in
+  // the merchant's own Adyen /sessions call), passed as plugin properties on addPaymentMethod.
+  public static final String RECURRING_DETAIL_REFERENCE = "recurringDetailReference";
+  public static final String SHOPPER_REFERENCE = "shopperReference";
   protected static final ObjectMapper objectMapper = new ObjectMapper();
   private final AdyenConfigurationHandler adyenConfigurationHandler;
   private final AdyenDao adyenDao;
@@ -209,8 +215,12 @@ public class AdyenPaymentPluginApi
       throw new PaymentMethodException(
           "Missing one or more configuration properties (HMAC KEY/ Api Key / Merchant Account / Return URL) ");
     }
-    if (mergedProperties.get(ENABLE_RECURRING) != null
-        && mergedProperties.get(ENABLE_RECURRING).equals("true")) {
+    final String recurringDetailReference = mergedProperties.get(RECURRING_DETAIL_REFERENCE);
+    final boolean hasToken =
+        recurringDetailReference != null && !recurringDetailReference.trim().isEmpty();
+    if (hasToken
+        || (mergedProperties.get(ENABLE_RECURRING) != null
+            && mergedProperties.get(ENABLE_RECURRING).equals("true"))) {
       recurring = true;
     } else {
       recurring = false;
@@ -223,6 +233,12 @@ public class AdyenPaymentPluginApi
           recurring,
           context.getTenantId(),
           setDefault);
+      if (hasToken) {
+        // The payment method was tokenised outside the plugin: store the token now instead of
+        // waiting for an AUTHORISATION notification of a plugin-initiated payment.
+        this.adyenDao.updateRecurringDetailsPaymentMethod(
+            kbPaymentMethodId, context.getTenantId(), recurringDetailReference.trim());
+      }
     } catch (SQLException e) {
 
       throw new PaymentMethodException("[addPaymentMethod] Error inserting payment method", e);
@@ -335,6 +351,11 @@ public class AdyenPaymentPluginApi
           new PluginProperty(SESSION_DATA, outputDTO.getAdditionalData().get(SESSION_DATA), false));
     } else {
       input.setRecurringData(paymentMethodRecord.getRecurringDetailReference());
+      // Adyen only accepts a stored token with the shopperReference it was stored under. For
+      // payment methods tokenised outside the plugin, that reference was given at creation;
+      // otherwise the plugin stored the token under the Kill Bill account id.
+      // Note: the processor sends input.getKbAccountId() to Adyen as the shopperReference.
+      input.setKbAccountId(getShopperReference(paymentMethodRecord, kbAccountId));
       outputDTO = gatewayProcessor.processOneTimePayment(input);
     }
 
@@ -645,6 +666,23 @@ public class AdyenPaymentPluginApi
           e);
     }
   }
+
+  @VisibleForTesting
+  public String getShopperReference(
+	      final AdyenPaymentMethodsRecord paymentMethodRecord, final UUID kbAccountId) {
+	    final Map<String, String> data = getAdditionalDataMap(paymentMethodRecord.getAdditionalData());
+	    final Object shopperReference = data.get(SHOPPER_REFERENCE);
+	    final Object tokenAtCreation = data.get(RECURRING_DETAIL_REFERENCE);
+	    // Use the given reference only for the token it was given with; a token stored later by a
+	    // plugin-initiated payment is always stored under the Kill Bill account id.
+	    if (shopperReference != null
+	        && !shopperReference.toString().trim().isEmpty()
+	        && tokenAtCreation != null
+	        && tokenAtCreation.toString().trim().equals(paymentMethodRecord.getRecurringDetailReference())) {
+	      return shopperReference.toString().trim();
+	    }
+	    return kbAccountId.toString();
+	  }
 
   public Map<String, String> getAdditionalDataMap(String additionalData) {
     if (additionalData == null) {
