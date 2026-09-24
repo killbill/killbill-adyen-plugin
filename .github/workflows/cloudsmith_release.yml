@@ -1,0 +1,31 @@
+name: cloudsmith_release
+
+on:
+  workflow_dispatch:
+    inputs:
+      parent_version:
+        description: 'New killbill-oss-parent version'
+        required: false
+        default: ''
+      perform_version:
+        description: 'tag to (re-)perform (in case of release:perform failure)'
+        required: false
+        default: ''
+
+jobs:
+  release:
+    uses: killbill/gh-actions-shared/.github/workflows/release.yml@main
+    with:
+      parent_version: ${{ github.event.inputs.parent_version }}
+      perform_version: ${{ github.event.inputs.perform_version }}
+      java_version: '11'
+      java_distribution: 'temurin'
+    secrets:
+      BUILD_USER: ${{ secrets.BUILD_USER }}
+      BUILD_TOKEN: ${{ secrets.BUILD_TOKEN }}
+      CLOUDSMITH_CENTRAL_PASSWORD: ${{ secrets.CLOUDSMITH_CENTRAL_PASSWORD }}
+      CLOUDSMITH_KILLBILL_MAVEN_REPO_PASSWORD: ${{ secrets.CLOUDSMITH_KILLBILL_MAVEN_REPO_PASSWORD }}
+      CLOUDSMITH_DISTRIBUTION_MAN_USERNAME: ${{ secrets.CLOUDSMITH_DISTRIBUTION_MAN_USERNAME }}
+      CLOUDSMITH_DISTRIBUTION_MAN_PASSWORD: ${{ secrets.CLOUDSMITH_DISTRIBUTION_MAN_PASSWORD }}
+      GPG_SIGNING_KEY: ${{ secrets.GPG_SIGNING_KEY }}
+      GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
