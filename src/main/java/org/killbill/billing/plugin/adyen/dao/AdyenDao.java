@@ -149,7 +149,8 @@ public class AdyenDao
         });
   }
 
-  public void updateResponse(UUID kbPaymentId, ProcessorOutputDTO outputDTO, UUID tenantId)
+  public void updateResponse(
+      UUID kbPaymentTransactionId, ProcessorOutputDTO outputDTO, UUID tenantId)
       throws SQLException {
     execute(
         dataSource.getConnection(),
@@ -161,7 +162,9 @@ public class AdyenDao
                 .update(ADYEN_RESPONSES)
                 .set(ADYEN_RESPONSES.PSP_REFERENCE, outputDTO.getPspReferenceCode())
                 .set(ADYEN_RESPONSES.TRANSACTION_STATUS, outputDTO.getStatus().name())
-                .where(ADYEN_RESPONSES.KB_PAYMENT_ID.equal(kbPaymentId.toString()))
+                .where(
+                    ADYEN_RESPONSES.KB_PAYMENT_TRANSACTION_ID.equal(
+                        kbPaymentTransactionId.toString()))
                 .and(ADYEN_RESPONSES.KB_TENANT_ID.equal(tenantId.toString()))
                 .execute();
             return null;
