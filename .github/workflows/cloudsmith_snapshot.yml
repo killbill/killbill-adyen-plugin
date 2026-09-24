@@ -1,0 +1,10 @@
+name: cloudsmith_release
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  analyze:
+    uses: killbill/gh-actions-shared/.github/workflows/snapshot.yml@maint-for-0-24-x
