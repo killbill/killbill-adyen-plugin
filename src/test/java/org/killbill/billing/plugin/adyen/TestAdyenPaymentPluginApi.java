@@ -41,6 +41,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testng.Assert;
 import org.testng.annotations.Test;
+import org.killbill.billing.payment.api.PluginProperty;
 
 public class TestAdyenPaymentPluginApi extends TestBase {
 
@@ -268,6 +269,64 @@ public class TestAdyenPaymentPluginApi extends TestBase {
   private List<PaymentMethodInfoPlugin> syncPaymentMethods(UUID kbAccountId)
       throws PaymentPluginApiException {
     return adyenPaymentPluginApi.getPaymentMethods(kbAccountId, true, ImmutableList.of(), context);
+  }
+  
+  // Fails before the change: the token passed at creation was ignored.
+  @Test(groups = "integration")
+  public void testAddPaymentMethodWithExternalToken() throws Exception {
+    final UUID kbPaymentMethodId = UUID.randomUUID();
+    addPaymentMethod(kbPaymentMethodId, ImmutableList.of(
+        new PluginProperty("recurringDetailReference", "TOKEN_FROM_MERCHANT", false),
+        new PluginProperty("shopperReference", "customer-42", false)));
+
+    final AdyenPaymentMethodsRecord record = dao.getPaymentMethod(kbPaymentMethodId.toString());
+    Assert.assertEquals(record.getRecurringDetailReference(), "TOKEN_FROM_MERCHANT");
+  }
+
+  // Regression: without the property nothing is stored (old behaviour).
+  @Test(groups = "integration")
+  public void testAddPaymentMethodWithoutToken() throws Exception {
+    final UUID kbPaymentMethodId = UUID.randomUUID();
+    addPaymentMethod(kbPaymentMethodId, ImmutableList.of(
+        new PluginProperty("enableRecurring", "true", false)));
+
+    Assert.assertNull(dao.getPaymentMethod(kbPaymentMethodId.toString()).getRecurringDetailReference());
+  }
+
+  @Test(groups = "integration")
+  public void testShopperReferenceSelection() throws Exception {
+    final UUID kbAccountId = account.getId();
+
+    // 1. token + reference given together -> the given reference
+    final UUID pm1 = UUID.randomUUID();
+    addPaymentMethod(pm1, ImmutableList.of(
+        new PluginProperty("recurringDetailReference", "TOKEN_1", false),
+        new PluginProperty("shopperReference", "customer-42", false)));
+    Assert.assertEquals(adyenPaymentPluginApi.getShopperReference(
+        dao.getPaymentMethod(pm1.toString()), kbAccountId), "customer-42");
+
+    // 2. reference given, token stored later by a webhook -> Kill Bill account id
+    final UUID pm2 = UUID.randomUUID();
+    addPaymentMethod(pm2, ImmutableList.of(
+        new PluginProperty("enableRecurring", "true", false),
+        new PluginProperty("shopperReference", "customer-42", false)));
+    dao.updateRecurringDetailsPaymentMethod(pm2, context.getTenantId(), "TOKEN_FROM_WEBHOOK");
+    Assert.assertEquals(adyenPaymentPluginApi.getShopperReference(
+        dao.getPaymentMethod(pm2.toString()), kbAccountId), kbAccountId.toString());
+
+    // 3. nothing given (existing payment methods) -> Kill Bill account id
+    final UUID pm3 = UUID.randomUUID();
+    addPaymentMethod(pm3, ImmutableList.of(new PluginProperty("enableRecurring", "true", false)));
+    dao.updateRecurringDetailsPaymentMethod(pm3, context.getTenantId(), "TOKEN_FROM_WEBHOOK");
+    Assert.assertEquals(adyenPaymentPluginApi.getShopperReference(
+        dao.getPaymentMethod(pm3.toString()), kbAccountId), kbAccountId.toString());
+  }
+
+  private void addPaymentMethod(final UUID kbPaymentMethodId, final List<PluginProperty> props)
+      throws PaymentPluginApiException {
+    adyenPaymentPluginApi.addPaymentMethod(account.getId(), kbPaymentMethodId,
+        new AdyenPaymentMethodPlugin(kbPaymentMethodId, kbPaymentMethodId.toString(), true, props),
+        true, ImmutableList.of(), context);
   }
 
 }
