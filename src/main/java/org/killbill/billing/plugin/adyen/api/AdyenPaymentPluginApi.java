@@ -64,6 +64,8 @@ import org.killbill.billing.util.callcontext.TenantContext;
 import org.killbill.clock.Clock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import com.google.common.annotations.VisibleForTesting;
+
 
 public class AdyenPaymentPluginApi
     extends PluginPaymentPluginApi<
@@ -74,6 +76,10 @@ public class AdyenPaymentPluginApi
   public static final String SESSION_DATA = "sessionData";
   public static final String RECURRING_DATA = "recurring.recurringDetailReference";
   public static final String ENABLE_RECURRING = "enableRecurring";
+  // Token and shopper reference of a payment method tokenised outside the plugin (for example in
+  // the merchant's own Adyen /sessions call), passed as plugin properties on addPaymentMethod.
+  public static final String RECURRING_DETAIL_REFERENCE = "recurringDetailReference";
+  public static final String SHOPPER_REFERENCE = "shopperReference";
   protected static final ObjectMapper objectMapper = new ObjectMapper();
   private final AdyenConfigurationHandler adyenConfigurationHandler;
   private final AdyenDao adyenDao;
@@ -209,8 +215,12 @@ public class AdyenPaymentPluginApi
       throw new PaymentMethodException(
           "Missing one or more configuration properties (HMAC KEY/ Api Key / Merchant Account / Return URL) ");
     }
-    if (mergedProperties.get(ENABLE_RECURRING) != null
-        && mergedProperties.get(ENABLE_RECURRING).equals("true")) {
+    final String recurringDetailReference = mergedProperties.get(RECURRING_DETAIL_REFERENCE);
+    final boolean hasToken =
+        recurringDetailReference != null && !recurringDetailReference.trim().isEmpty();
+    if (hasToken
+        || (mergedProperties.get(ENABLE_RECURRING) != null
+            && mergedProperties.get(ENABLE_RECURRING).equals("true"))) {
       recurring = true;
     } else {
       recurring = false;
@@ -223,6 +233,12 @@ public class AdyenPaymentPluginApi
           recurring,
           context.getTenantId(),
           setDefault);
+      if (hasToken) {
+        // The payment method was tokenised outside the plugin: store the token now instead of
+        // waiting for an AUTHORISATION notification of a plugin-initiated payment.
+        this.adyenDao.updateRecurringDetailsPaymentMethod(
+            kbPaymentMethodId, context.getTenantId(), recurringDetailReference.trim());
+      }
     } catch (SQLException e) {
 
       throw new PaymentMethodException("[addPaymentMethod] Error inserting payment method", e);
@@ -334,7 +350,12 @@ public class AdyenPaymentPluginApi
       formFields.add(
           new PluginProperty(SESSION_DATA, outputDTO.getAdditionalData().get(SESSION_DATA), false));
     } else {
-      input.setRecurringData(paymentMethodRecord.getRecurringDetailReference());
+      input.setRecurringData(getStoredToken(paymentMethodRecord));
+      // Adyen only accepts a stored token with the shopperReference it was stored under. For
+      // payment methods tokenised outside the plugin, that reference was given at creation;
+      // otherwise the plugin stored the token under the Kill Bill account id.
+      // Note: the processor sends input.getKbAccountId() to Adyen as the shopperReference.
+      input.setKbAccountId(getShopperReference(paymentMethodRecord, kbAccountId));
       outputDTO = gatewayProcessor.processOneTimePayment(input);
     }
 
@@ -590,7 +611,7 @@ public class AdyenPaymentPluginApi
           outputDTO.setStatus(PaymentPluginStatus.ERROR);
         }
         this.adyenDao.updateResponse(
-            UUID.fromString(record.getKbPaymentId()),
+            UUID.fromString(record.getKbPaymentTransactionId()),
             outputDTO,
             UUID.fromString(record.getKbTenantId()));
         this.adyenDao.addNotification(
@@ -608,6 +629,14 @@ public class AdyenPaymentPluginApi
               notificationItem.getAdditionalData().get(RECURRING_DATA));
         }
 
+        // The plugin tables are now up to date. On success, let Kill Bill core know right away
+        // instead of waiting for the Janitor (by default 1 hour later). See #138.
+        // Failures are left to the scheduled Janitor: it keeps the payment retry schedule of
+        // invoice payments, which an API-initiated refresh would skip.
+        if (notificationItem.isSuccess()) {
+          refreshPaymentInKillBill(UUID.fromString(record.getKbPaymentId()), tempContext);
+        }
+
       } else {
         logger.error("HMAC Key is not valid");
       }
@@ -615,6 +644,52 @@ public class AdyenPaymentPluginApi
       logger.error("{}", e.getMessage(), e);
     }
     return new PluginGatewayNotification("[accepted]");
+  }
+
+  /**
+   * Fetches the payment with plugin info, which runs the on-the-fly Janitor: Kill Bill core calls
+   * {@link #getPaymentInfo} and moves the PENDING transaction to SUCCESS based on the status the
+   * plugin has just recorded, then completes the invoice payment. A failure here is logged and not
+   * rethrown: the webhook must still be acknowledged, and the scheduled Janitor remains the
+   * fallback.
+   */
+  private void refreshPaymentInKillBill(final UUID kbPaymentId, final CallContext context) {
+    try {
+      this.killbillAPI
+          .getPaymentApi()
+          .getPayment(kbPaymentId, true, false, ImmutableList.<PluginProperty>of(), context);
+    } catch (final Exception e) {
+      logger.warn(
+          "Unable to refresh paymentId='{}' in Kill Bill after the Adyen notification,"
+              + " the Janitor will reconcile it later",
+          kbPaymentId,
+          e);
+    }
+  }
+
+  @VisibleForTesting
+  public String getShopperReference(
+      final AdyenPaymentMethodsRecord paymentMethodRecord, final UUID kbAccountId) {
+    final Map<String, String> data = getAdditionalDataMap(paymentMethodRecord.getAdditionalData());
+    final Object shopperReference = data.get(SHOPPER_REFERENCE);
+    final Object tokenAtCreation = data.get(RECURRING_DETAIL_REFERENCE);
+    final String storedToken = getStoredToken(paymentMethodRecord);
+    // Use the given reference only for the token it was given with; a token stored later by a
+    // plugin-initiated payment is always stored under the Kill Bill account id.
+    if (shopperReference != null
+        && !shopperReference.toString().trim().isEmpty()
+        && tokenAtCreation != null
+        && tokenAtCreation.toString().trim().equals(storedToken)) {
+      return shopperReference.toString().trim();
+    }
+    return kbAccountId.toString();
+  }
+
+  // recurring_detail_reference is a char(36) column: PostgreSQL returns it right-padded with
+  // spaces (MySQL strips them), so trim before sending it to Adyen or comparing it.
+  private static String getStoredToken(final AdyenPaymentMethodsRecord paymentMethodRecord) {
+    final String token = paymentMethodRecord.getRecurringDetailReference();
+    return token == null ? null : token.trim();
   }
 
   public Map<String, String> getAdditionalDataMap(String additionalData) {
