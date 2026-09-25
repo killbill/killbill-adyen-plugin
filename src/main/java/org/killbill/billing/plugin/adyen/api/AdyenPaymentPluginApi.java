@@ -350,7 +350,7 @@ public class AdyenPaymentPluginApi
       formFields.add(
           new PluginProperty(SESSION_DATA, outputDTO.getAdditionalData().get(SESSION_DATA), false));
     } else {
-      input.setRecurringData(paymentMethodRecord.getRecurringDetailReference());
+      input.setRecurringData(getStoredToken(paymentMethodRecord));
       // Adyen only accepts a stored token with the shopperReference it was stored under. For
       // payment methods tokenised outside the plugin, that reference was given at creation;
       // otherwise the plugin stored the token under the Kill Bill account id.
@@ -669,20 +669,28 @@ public class AdyenPaymentPluginApi
 
   @VisibleForTesting
   public String getShopperReference(
-	      final AdyenPaymentMethodsRecord paymentMethodRecord, final UUID kbAccountId) {
-	    final Map<String, String> data = getAdditionalDataMap(paymentMethodRecord.getAdditionalData());
-	    final Object shopperReference = data.get(SHOPPER_REFERENCE);
-	    final Object tokenAtCreation = data.get(RECURRING_DETAIL_REFERENCE);
-	    // Use the given reference only for the token it was given with; a token stored later by a
-	    // plugin-initiated payment is always stored under the Kill Bill account id.
-	    if (shopperReference != null
-	        && !shopperReference.toString().trim().isEmpty()
-	        && tokenAtCreation != null
-	        && tokenAtCreation.toString().trim().equals(paymentMethodRecord.getRecurringDetailReference())) {
-	      return shopperReference.toString().trim();
-	    }
-	    return kbAccountId.toString();
-	  }
+      final AdyenPaymentMethodsRecord paymentMethodRecord, final UUID kbAccountId) {
+    final Map<String, String> data = getAdditionalDataMap(paymentMethodRecord.getAdditionalData());
+    final Object shopperReference = data.get(SHOPPER_REFERENCE);
+    final Object tokenAtCreation = data.get(RECURRING_DETAIL_REFERENCE);
+    final String storedToken = getStoredToken(paymentMethodRecord);
+    // Use the given reference only for the token it was given with; a token stored later by a
+    // plugin-initiated payment is always stored under the Kill Bill account id.
+    if (shopperReference != null
+        && !shopperReference.toString().trim().isEmpty()
+        && tokenAtCreation != null
+        && tokenAtCreation.toString().trim().equals(storedToken)) {
+      return shopperReference.toString().trim();
+    }
+    return kbAccountId.toString();
+  }
+
+  // recurring_detail_reference is a char(36) column: PostgreSQL returns it right-padded with
+  // spaces (MySQL strips them), so trim before sending it to Adyen or comparing it.
+  private static String getStoredToken(final AdyenPaymentMethodsRecord paymentMethodRecord) {
+    final String token = paymentMethodRecord.getRecurringDetailReference();
+    return token == null ? null : token.trim();
+  }
 
   public Map<String, String> getAdditionalDataMap(String additionalData) {
     if (additionalData == null) {

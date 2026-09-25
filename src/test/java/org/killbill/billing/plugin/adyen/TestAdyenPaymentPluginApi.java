@@ -280,7 +280,8 @@ public class TestAdyenPaymentPluginApi extends TestBase {
         new PluginProperty("shopperReference", "customer-42", false)));
 
     final AdyenPaymentMethodsRecord record = dao.getPaymentMethod(kbPaymentMethodId.toString());
-    Assert.assertEquals(record.getRecurringDetailReference(), "TOKEN_FROM_MERCHANT");
+    // char(36) column: PostgreSQL returns the value right-padded with spaces
+    Assert.assertEquals(record.getRecurringDetailReference().trim(), "TOKEN_FROM_MERCHANT");
   }
 
   // Regression: without the property nothing is stored (old behaviour).
