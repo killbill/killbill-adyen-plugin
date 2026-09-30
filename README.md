@@ -19,9 +19,12 @@ A full end-to-end integration demo is available [here](https://github.com/killbi
 | 0.8.y          | 0.22.z            |
 | 0.9.y          | 0.22.z            |
 | 0.10.y          | 0.24.z            |
+| 0.11.y          | 0.26.z            |
 
 **Note:** 
 Version `0.8.0` of the plugin uses Adyen classic integration while version `0.9.0` supports the new Adyen checkout, including Drop-in and Components.  It uses [17.3.0 2022-04-07](https://github.com/Adyen/adyen-java-api-library) version of the Adyen SDK and version 68 of the Checkout API.
+
+In 0.11.x, the Java EE `javax` namespace is replaced by the `jakarta` namespace.
 
 
 ## Requirements
