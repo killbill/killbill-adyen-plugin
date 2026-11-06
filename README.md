@@ -125,7 +125,7 @@ Since Adyen uses webhooks, the `http://<IP_ADDR>/plugins/adyen-plugin/notificati
 2. Test the application using the [Kill Bill Adyen Demo](https://github.com/killbill/killbill-adyen-demo) as explained [here](https://github.com/killbill/killbill-adyen-demo/#test).
 3. Verify that a new account is created in Kill Bill with a payment in `PENDING` status.
 4. If all goes well, Adyen would then send a notification and the plugin converts the `PENDING` payment status to `SUCCESS` in Kill Bill. 
-5. Retrieve the payment as follows (`withPluginInfo=true` also triggers the [on-the-fly Janitor](https://docs.killbill.io/latest/userguide_payment.html#_on_the_fly_janitor), which is useful if the notification was not received):
+5. Retrieve the payment as follows. `withPluginInfo=true` also triggers the [on-the-fly Janitor](https://docs.killbill.io/latest/userguide_payment.html#_on_the_fly_janitor), which updates the payment status in Kill Bill if the plugin has processed the notification but the immediate update in Kill Bill failed. It does not query Adyen: if the notification never reached the plugin, the payment stays `PENDING` until Adyen delivers it again (Adyen retries webhooks it could not deliver, and they can be resent from the Customer Area):
 
 ```
 curl \
