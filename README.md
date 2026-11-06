@@ -86,8 +86,8 @@ Where:
 * returnUrl: URL the shopper is sent back to after the Drop-in payment (passed to Adyen's `/sessions` as `returnUrl`). This is your application's URL, not the notification URL
 * merchantAccount: Merchant account created at step 2
 * hcmaKey: HMAC Key generated at step 4a
-* captureDelayHours: Desire capture delay in hours after Authorize , number must be between 0 - 168 hr
-* environment: Environment to use. Possible values are `TEST`/`LIVE`. default value is `TEST`
+* captureDelayHours: desired capture delay in hours after authorisation, between 0 and 168
+* enviroment (spelled this way in the property name): environment to use. Possible values are `TEST`/`LIVE`. The default value is `TEST`
 * username / password: a Kill Bill user login (for example `admin` / `password`). The `/checkout` servlet uses these to authenticate against Kill Bill when it creates the first payment. They are not the webhook Basic Authentication credentials from step 4b; the plugin does not check those
 
 ## Payment status after an Adyen notification
@@ -149,7 +149,7 @@ The following steps need to be followed in order to use the Adyen plugin:
 
 2. [Create](https://killbill.github.io/slate/?shell#account-create-an-account) a Kill Bill account and save the `accountId` for further use.
 
-3. Create a Kill Bill Payment Method. Specify a `PluginProperty` corresponding to `enableRecurring` if this is going to be a recurring payment (the default value of this property is `false`). Set `isDefault` to `true` if Kill Bill should use this payment method to pay invoices automatically:
+3. Create a Kill Bill Payment Method. Specify a `PluginProperty` corresponding to `enableRecurring` if this is going to be a recurring payment (the default value of this property is `false`). Add the `isDefault=true` query parameter if Kill Bill should use this payment method to pay invoices automatically:
 
 ```bash
 curl -v \
@@ -163,11 +163,9 @@ curl -v \
     -H "X-Killbill-Reason: demo" \
     -H "X-Killbill-Comment: demo" \
     -d '{
-  			"accountId": "2ad52f53-85ae-408a-9879-32a7e59dd03d",
+  			"accountId": "8785164f-b5d7-4da1-9495-33f5105e8d80",
   			"pluginName": "adyen-plugin",
-  			"isDefault": true,
   			"pluginInfo": {
-    			"isDefaultPaymentMethod": true,
     			"properties": [
       				{
         				"key": "enableRecurring",
@@ -177,9 +175,9 @@ curl -v \
     			]
   			}
 		}' \
-    	"http://127.0.0.1:8080/1.0/kb/accounts/8785164f-b5d7-4da1-9495-33f5105e8d80/paymentMethods" 
+    	"http://127.0.0.1:8080/1.0/kb/accounts/8785164f-b5d7-4da1-9495-33f5105e8d80/paymentMethods?isDefault=true" 
 ```
-4. Call `/plugins/adyen-plugin/checkout` to generate a session and create the first payment (Note that the amount needs needs to be specified in [minor units](https://docs.adyen.com/development-resources/currency-codes)):
+4. Call `/plugins/adyen-plugin/checkout` to generate a session and create the first payment (Note that the amount needs to be specified in [minor units](https://docs.adyen.com/development-resources/currency-codes)):
 
 ```bash
 curl -v \
@@ -201,7 +199,7 @@ Note that this creates a payment in Kill Bill for the specified amount in `PENDI
 
 6. Collect customer's payment details via the drop-in. 
 
-7. If the payment is successful, Adyen sends a notification to Kill Bill; the plugin stores the recurring token (if `enableRecurring` was set) and moves the payment from `PENDING` to `SUCCESS`. Payments initiated by Kill Bill afterwards (for example for subscription invoices) use the stored token automatically.
+7. If the payment is successful, Adyen sends a notification to Kill Bill; the plugin stores the recurring token (if `enableRecurring` was set) and moves the payment from `PENDING` to `SUCCESS`. Payments initiated by Kill Bill afterwards (for example for subscription invoices) use the stored token automatically, provided the payment method is the account's default (see step 3).
 
 ## Payment methods tokenised outside the plugin
 
@@ -222,6 +220,8 @@ Kill Bill account exists), pass the token when creating the Kill Bill payment me
 
 The payment method is marked as recurring and payments initiated by Kill Bill (for example for
 subscription invoices) use the token right away; no first payment through `/checkout` is needed.
+To have Kill Bill pay invoices with it automatically, create it as the account's default payment
+method (`POST /1.0/kb/accounts/{accountId}/paymentMethods?isDefault=true`).
 Adyen only accepts a token together with the `shopperReference` it was stored under: without
 `shopperReference`, the plugin sends the Kill Bill account id and Adyen refuses the payment
 (`800 Contract not found`).
