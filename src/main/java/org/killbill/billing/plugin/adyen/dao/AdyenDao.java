@@ -66,7 +66,8 @@ public class AdyenDao
       final Map<String, String> additionalDataMap,
       final boolean isRecurring,
       final UUID kbTenantId,
-      final boolean setDefault)
+      final boolean setDefault,
+      @Nullable final String recurringDetailReference)
       throws SQLException {
     final Map<String, String> clonedProperties = new HashMap<>(additionalDataMap);
 
@@ -87,7 +88,8 @@ public class AdyenDao
                     ADYEN_PAYMENT_METHODS.CREATED_DATE,
                     ADYEN_PAYMENT_METHODS.UPDATED_DATE,
                     ADYEN_PAYMENT_METHODS.IS_DEFAULT,
-                    ADYEN_PAYMENT_METHODS.KB_TENANT_ID)
+                    ADYEN_PAYMENT_METHODS.KB_TENANT_ID,
+                    ADYEN_PAYMENT_METHODS.RECURRING_DETAIL_REFERENCE)
                 .values(
                     kbAccountId.toString(),
                     kbPaymentMethodId.toString(),
@@ -97,7 +99,8 @@ public class AdyenDao
                     toLocalDateTime(new DateTime()),
                     toLocalDateTime(new DateTime()),
                     (short) fromBoolean(setDefault),
-                    kbTenantId.toString())
+                    kbTenantId.toString(),
+                    recurringDetailReference)
                 .execute();
 
             return null;

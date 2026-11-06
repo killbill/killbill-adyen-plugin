@@ -226,19 +226,17 @@ public class AdyenPaymentPluginApi
       recurring = false;
     }
     try {
+      // A payment method tokenised outside the plugin gets its token in the same insert, instead
+      // of waiting for an AUTHORISATION notification of a plugin-initiated payment. A single
+      // write means a failed creation leaves no row behind, so it can be retried with the same id.
       this.adyenDao.addPaymentMethod(
           kbAccountId,
           kbPaymentMethodId,
           mergedProperties,
           recurring,
           context.getTenantId(),
-          setDefault);
-      if (hasToken) {
-        // The payment method was tokenised outside the plugin: store the token now instead of
-        // waiting for an AUTHORISATION notification of a plugin-initiated payment.
-        this.adyenDao.updateRecurringDetailsPaymentMethod(
-            kbPaymentMethodId, context.getTenantId(), recurringDetailReference.trim());
-      }
+          setDefault,
+          hasToken ? recurringDetailReference.trim() : null);
     } catch (SQLException e) {
 
       throw new PaymentMethodException("[addPaymentMethod] Error inserting payment method", e);
