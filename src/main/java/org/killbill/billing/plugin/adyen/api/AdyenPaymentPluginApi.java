@@ -678,7 +678,8 @@ public class AdyenPaymentPluginApi
         && !shopperReference.toString().trim().isEmpty()
         && tokenAtCreation != null
         && tokenAtCreation.toString().trim().equals(storedToken)) {
-      return shopperReference.toString().trim();
+      // Opaque key Adyen stored the token under: return it exactly as given (no trim).
+      return shopperReference.toString();
     }
     return kbAccountId.toString();
   }

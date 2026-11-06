@@ -290,13 +290,8 @@ public class TestAdyenPaymentPluginApi extends TestBase {
     final UUID kbPaymentMethodId = UUID.randomUUID();
     // 41 characters: longer than the char(36) recurring_detail_reference column
     final String tooLongToken = "TOKEN_FROM_MERCHANT_0123456789_0123456789";
-    try {
-      addPaymentMethod(kbPaymentMethodId, ImmutableList.of(
-          new PluginProperty("recurringDetailReference", tooLongToken, false)));
-      Assert.fail("Expected the insert to fail for a token longer than the column");
-    } catch (final RuntimeException expected) {
-      // expected
-    }
+    Assert.expectThrows(RuntimeException.class, () -> addPaymentMethod(kbPaymentMethodId,
+        ImmutableList.of(new PluginProperty("recurringDetailReference", tooLongToken, false))));
     Assert.assertNull(dao.getPaymentMethod(kbPaymentMethodId.toString()));
 
     addPaymentMethod(kbPaymentMethodId, ImmutableList.of(
@@ -343,6 +338,14 @@ public class TestAdyenPaymentPluginApi extends TestBase {
     dao.updateRecurringDetailsPaymentMethod(pm3, context.getTenantId(), "TOKEN_FROM_WEBHOOK");
     Assert.assertEquals(adyenPaymentPluginApi.getShopperReference(
         dao.getPaymentMethod(pm3.toString()), kbAccountId), kbAccountId.toString());
+
+    // 4. the given reference is returned exactly as given (it is an opaque Adyen key)
+    final UUID pm4 = UUID.randomUUID();
+    addPaymentMethod(pm4, ImmutableList.of(
+        new PluginProperty("recurringDetailReference", "TOKEN_4", false),
+        new PluginProperty("shopperReference", "customer-43 ", false)));
+    Assert.assertEquals(adyenPaymentPluginApi.getShopperReference(
+        dao.getPaymentMethod(pm4.toString()), kbAccountId), "customer-43 ");
   }
 
   private void addPaymentMethod(final UUID kbPaymentMethodId, final List<PluginProperty> props)
