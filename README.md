@@ -28,8 +28,8 @@ Version `0.8.0` of the plugin uses Adyen classic integration while version `0.9.
 
 The plugin needs a database and does not create its tables automatically. Before starting the plugin for the first time, run the respective DDL on the Kill Bill database:
 
-* MySQL: [ddl.sql](https://github.com/killbill/killbill-adyen-plugin/blob/master/src/main/resources/ddl.sql)
-* PostgreSQL: [ddl-postgresql.sql](https://github.com/killbill/killbill-adyen-plugin/blob/master/src/main/resources/ddl-postgresql.sql)
+* MySQL: run [ddl.sql](src/main/resources/ddl.sql).
+* PostgreSQL: run [ddl-postgresql.sql](src/main/resources/ddl-postgresql.sql) first to create the required domains, then run [ddl.sql](src/main/resources/ddl.sql) to create the tables.
 
 ## Build
 

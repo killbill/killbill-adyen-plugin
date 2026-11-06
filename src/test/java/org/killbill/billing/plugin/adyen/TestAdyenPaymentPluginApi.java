@@ -284,6 +284,28 @@ public class TestAdyenPaymentPluginApi extends TestBase {
     Assert.assertEquals(record.getRecurringDetailReference().trim(), "TOKEN_FROM_MERCHANT");
   }
 
+  // A failed creation must not leave a row behind: the retry with the same id has to succeed.
+  @Test(groups = "integration")
+  public void testAddPaymentMethodWithInvalidTokenLeavesNoRow() throws Exception {
+    final UUID kbPaymentMethodId = UUID.randomUUID();
+    // 41 characters: longer than the char(36) recurring_detail_reference column
+    final String tooLongToken = "TOKEN_FROM_MERCHANT_0123456789_0123456789";
+    try {
+      addPaymentMethod(kbPaymentMethodId, ImmutableList.of(
+          new PluginProperty("recurringDetailReference", tooLongToken, false)));
+      Assert.fail("Expected the insert to fail for a token longer than the column");
+    } catch (final RuntimeException expected) {
+      // expected
+    }
+    Assert.assertNull(dao.getPaymentMethod(kbPaymentMethodId.toString()));
+
+    addPaymentMethod(kbPaymentMethodId, ImmutableList.of(
+        new PluginProperty("recurringDetailReference", "TOKEN_FROM_MERCHANT", false)));
+    Assert.assertEquals(
+        dao.getPaymentMethod(kbPaymentMethodId.toString()).getRecurringDetailReference().trim(),
+        "TOKEN_FROM_MERCHANT");
+  }
+
   // Regression: without the property nothing is stored (old behaviour).
   @Test(groups = "integration")
   public void testAddPaymentMethodWithoutToken() throws Exception {
