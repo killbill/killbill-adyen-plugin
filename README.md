@@ -180,7 +180,7 @@ curl -v \
 		}' \
     	"http://127.0.0.1:8080/1.0/kb/accounts/8785164f-b5d7-4da1-9495-33f5105e8d80/paymentMethods?isDefault=true" 
 ```
-4. Call `/plugins/adyen-plugin/checkout` to generate a session and create the first payment (Note that the amount needs to be specified in [minor units](https://docs.adyen.com/development-resources/currency-codes)):
+4. Call `/plugins/adyen-plugin/checkout` to generate a session and create the first payment. Specify the `amount` in the account currency, as for any Kill Bill payment (e.g. `20` or `20.00` for CHF 20.00). The plugin converts it to the [minor units](https://docs.adyen.com/development-resources/currency-codes) Adyen expects:
 
 ```bash
 curl -v \
