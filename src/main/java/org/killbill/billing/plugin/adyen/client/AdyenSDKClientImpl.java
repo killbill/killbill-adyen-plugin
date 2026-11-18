@@ -31,6 +31,7 @@ import com.adyen.model.checkout.PaymentsRequest;
 import com.adyen.model.checkout.PaymentsResponse;
 import com.adyen.service.Checkout;
 import com.adyen.service.exception.ApiException;
+import com.adyen.util.Util;
 import java.io.IOException;
 import java.math.BigDecimal;
 import org.killbill.billing.catalog.api.Currency;
@@ -59,7 +60,7 @@ public class AdyenSDKClientImpl implements AdyenSDKClient {
       boolean isRecurrent)
       throws IOException, ApiException {
 
-    Amount amount = new Amount().currency(currency.name()).value(convertToMinorUnit(kbAmount));
+    Amount amount = toAdyenAmount(currency, kbAmount);
     CreateCheckoutSessionRequest checkoutSession = new CreateCheckoutSessionRequest();
     checkoutSession.merchantAccount(adyenConfigProperties.getMerchantAccount());
     checkoutSession.setChannel(CreateCheckoutSessionRequest.ChannelEnum.WEB);
@@ -96,7 +97,7 @@ public class AdyenSDKClientImpl implements AdyenSDKClient {
       throws IOException, ApiException {
 
     CreatePaymentRefundRequest paymentRefundRequest = new CreatePaymentRefundRequest();
-    Amount amount = new Amount().currency(currency.name()).value(convertToMinorUnit(kbAmount));
+    Amount amount = toAdyenAmount(currency, kbAmount);
     paymentRefundRequest.setAmount(amount);
     paymentRefundRequest.setMerchantAccount(adyenConfigProperties.getMerchantAccount());
     paymentRefundRequest.setReference(transactionId);
@@ -112,7 +113,7 @@ public class AdyenSDKClientImpl implements AdyenSDKClient {
       String recurringDetailReference)
       throws IOException, ApiException {
     PaymentsRequest paymentsRequest = new PaymentsRequest();
-    Amount amount = new Amount().currency(currency.name()).value(convertToMinorUnit(kbAmount));
+    Amount amount = toAdyenAmount(currency, kbAmount);
     paymentsRequest.setAmount(amount);
     paymentsRequest.setReference(transactionId);
 
@@ -130,10 +131,14 @@ public class AdyenSDKClientImpl implements AdyenSDKClient {
     return checkout.payments(paymentsRequest);
   }
 
-  private Long convertToMinorUnit(BigDecimal amount) {
-
-    String minorUnit = amount.toString().replace(".", "");
-
-    return Long.valueOf(minorUnit);
+  /**
+   * Converts a Kill Bill amount to an Adyen amount in minor units, using the number of decimals
+   * Adyen expects for the currency (2 for CHF, 0 for JPY, 3 for KWD, ...), see
+   * https://docs.adyen.com/development-resources/currency-codes. The result does not depend on the
+   * scale of the Kill Bill amount (10, 10.0 and 10.00 CHF all give 1000); extra decimals are
+   * rounded HALF_UP.
+   */
+  static Amount toAdyenAmount(final Currency currency, final BigDecimal kbAmount) {
+    return Util.createAmount(kbAmount, currency.name());
   }
 }
