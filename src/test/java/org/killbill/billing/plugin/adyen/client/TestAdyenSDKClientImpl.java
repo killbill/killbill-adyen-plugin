@@ -45,6 +45,16 @@ public class TestAdyenSDKClientImpl {
   }
 
   @Test(groups = "fast")
+  public void testToAdyenAmountCurrenciesWithFewerDecimalsInAdyen() {
+    // Kill Bill keeps 2 decimals for IDR and CVE, Adyen uses 0: amounts are rounded HALF_UP
+    assertAdyenAmount(Currency.IDR, "1000", 1000L);
+    assertAdyenAmount(Currency.IDR, "1000.00", 1000L);
+    assertAdyenAmount(Currency.IDR, "1000.50", 1001L);
+    assertAdyenAmount(Currency.IDR, "1000.49", 1000L);
+    assertAdyenAmount(Currency.CVE, "500.50", 501L);
+  }
+
+  @Test(groups = "fast")
   public void testToAdyenAmountRoundsExtraDecimalsHalfUp() {
     assertAdyenAmount(Currency.CHF, "10.005", 1001L);
     assertAdyenAmount(Currency.CHF, "10.004", 1000L);
