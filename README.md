@@ -20,11 +20,14 @@ A full end-to-end integration demo is available [here](https://github.com/killbi
 | 0.9.y          | 0.22.z            |
 | 0.10.y          | 0.24.z            |
 | 0.11.y          | 0.26.z            |
+| 0.12.y          | 0.26.z            |
 
 **Note:** 
 Version `0.8.0` of the plugin uses Adyen classic integration while version `0.9.0` supports the new Adyen checkout, including Drop-in and Components.  It uses [17.3.0 2022-04-07](https://github.com/Adyen/adyen-java-api-library) version of the Adyen SDK and version 68 of the Checkout API.
 
 In 0.11.x, the Java EE `javax` namespace is replaced by the `jakarta` namespace.
+
+**Breaking change in 0.12.0:** `/plugins/adyen-plugin/checkout` now takes the `amount` in the account currency (e.g. `20.00` for CHF 20.00), like all Kill Bill APIs. Earlier versions documented it in minor units (e.g. `2000` for CHF 20.00); if your integration sends minor units, update it before upgrading, otherwise payments are charged 100 times the intended amount (1000 times for currencies with 3 decimals, such as KWD). Amounts with a scale other than 2 (e.g. `10` or `10.5`) are now also converted correctly for purchases and refunds.
 
 
 ## Requirements
@@ -180,7 +183,7 @@ curl -v \
 		}' \
     	"http://127.0.0.1:8080/1.0/kb/accounts/8785164f-b5d7-4da1-9495-33f5105e8d80/paymentMethods?isDefault=true" 
 ```
-4. Call `/plugins/adyen-plugin/checkout` to generate a session and create the first payment (Note that the amount needs to be specified in [minor units](https://docs.adyen.com/development-resources/currency-codes)):
+4. Call `/plugins/adyen-plugin/checkout` to generate a session and create the first payment. Specify the `amount` in the account currency, as for any Kill Bill payment (e.g. `20` or `20.00` for CHF 20.00). The plugin converts it to the [minor units](https://docs.adyen.com/development-resources/currency-codes) Adyen expects:
 
 ```bash
 curl -v \
@@ -196,7 +199,9 @@ curl -v \
      "http://127.0.0.1:8080/plugins/adyen-plugin/checkout?kbAccountId=<KB_ACCOUNT_ID>&amount=<amount>&kbPaymentMethodId=<KB_PAYMENT_METHOD_ID>"
 ```
 
-Note that this creates a payment in Kill Bill for the specified amount in `PENDING` status. 
+Note that this creates a payment in Kill Bill for the specified amount in `PENDING` status.
+
+**Note on currency decimals:** The plugin converts amounts using [Adyen's decimals for each currency](https://docs.adyen.com/development-resources/currency-codes) and rounds HALF_UP. For IDR and CVE, Adyen supports no decimals while Kill Bill keeps 2, so these amounts are rounded to whole units (e.g. IDR 1000.50 is charged as IDR 1001). Partial refunds in these currencies can therefore add up to more than the captured amount, in which case Adyen refuses the last refund.
 
 5. Set up a drop-in with the `sessionId` and `sessionData` obtained above as explained [here](https://docs.adyen.com/online-payments/web-drop-in#set-up).
 
