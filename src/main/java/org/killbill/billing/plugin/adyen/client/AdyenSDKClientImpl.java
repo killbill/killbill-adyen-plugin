@@ -37,18 +37,35 @@ import java.math.BigDecimal;
 import org.killbill.billing.catalog.api.Currency;
 import org.killbill.billing.plugin.adyen.core.AdyenConfigProperties;
 
-public class AdyenSDKClientImpl implements AdyenSDKClient {
+public final class AdyenSDKClientImpl implements AdyenSDKClient {
 
   private final AdyenConfigProperties adyenConfigProperties;
   private final Checkout checkout;
 
   public AdyenSDKClientImpl(AdyenConfigProperties adyenConfigProperties) {
     this.adyenConfigProperties = adyenConfigProperties;
-    Client client =
-        new Client(
-            adyenConfigProperties.getApiKey(),
-            Environment.valueOf(adyenConfigProperties.getEnviroment()));
-    this.checkout = new Checkout(client);
+    this.checkout = new Checkout(buildClient(adyenConfigProperties));
+  }
+
+  /**
+   * Builds the Adyen client for the configured environment. LIVE requires the merchant-specific
+   * live endpoint URL prefix (Customer Area, Developers > API URLs): without it, the Adyen SDK has
+   * no Checkout endpoint for LIVE.
+   */
+  static Client buildClient(final AdyenConfigProperties adyenConfigProperties) {
+    final Environment environment = Environment.valueOf(adyenConfigProperties.getEnviroment());
+    if (Environment.LIVE.equals(environment)) {
+      final String liveEndpointUrlPrefix = adyenConfigProperties.getLiveEndpointUrlPrefix();
+      if (liveEndpointUrlPrefix == null || liveEndpointUrlPrefix.trim().isEmpty()) {
+        throw new IllegalStateException(
+            "The Adyen LIVE environment requires a live endpoint URL prefix: set"
+                + " org.killbill.billing.plugin.adyen.liveEndpointUrlPrefix"
+                + " (or the ADYEN_LIVE_ENDPOINT_URL_PREFIX environment variable)");
+      }
+      return new Client(
+          adyenConfigProperties.getApiKey(), environment, liveEndpointUrlPrefix.trim());
+    }
+    return new Client(adyenConfigProperties.getApiKey(), environment);
   }
 
   @Override

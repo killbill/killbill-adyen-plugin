@@ -32,6 +32,7 @@ public class AdyenConfigProperties {
   public static final String ADYEN_CAPTURE_DELAY_HOURS = "ADYEN_CAPTURE_DELAY_HOURS";
   public static final String ADYEN_KB_USERNAME = "ADYEN_KB_USERNAME";
   public static final String ADYEN_KB_PASSWORD = "ADYEN_KB_PASSWORD";
+  public static final String ADYEN_LIVE_ENDPOINT_URL_PREFIX = "ADYEN_LIVE_ENDPOINT_URL_PREFIX";
 
   private final String region;
 
@@ -41,6 +42,7 @@ public class AdyenConfigProperties {
   private String hcmaKey;
   private String captureDelayHours;
   private String enviroment;
+  private String liveEndpointUrlPrefix;
 
   private String username;
 
@@ -55,6 +57,7 @@ public class AdyenConfigProperties {
     this.hcmaKey = properties.getProperty(PROPERTY_PREFIX + "hcmaKey");
     this.captureDelayHours = properties.getProperty(PROPERTY_PREFIX + "captureDelayHours");
     this.enviroment = properties.getProperty(PROPERTY_PREFIX + "enviroment");
+    this.liveEndpointUrlPrefix = properties.getProperty(PROPERTY_PREFIX + "liveEndpointUrlPrefix");
     this.username = properties.getProperty(PROPERTY_PREFIX + "username");
     this.password = properties.getProperty(PROPERTY_PREFIX + "password");
   }
@@ -124,6 +127,14 @@ public class AdyenConfigProperties {
     }
 
     return enviroment;
+  }
+
+  public String getLiveEndpointUrlPrefix() {
+    if (liveEndpointUrlPrefix == null || liveEndpointUrlPrefix.isEmpty()) {
+      return getClient(ADYEN_LIVE_ENDPOINT_URL_PREFIX, null);
+    }
+
+    return liveEndpointUrlPrefix;
   }
 
   private String getClient(String envKey, String defaultValue) {

@@ -16,10 +16,15 @@
  */
 package org.killbill.billing.plugin.adyen.client;
 
+import com.adyen.Client;
+import com.adyen.enums.Environment;
 import com.adyen.model.Amount;
 import java.math.BigDecimal;
+import java.util.Properties;
 import org.killbill.billing.catalog.api.Currency;
+import org.killbill.billing.plugin.adyen.core.AdyenConfigProperties;
 import org.testng.Assert;
+import org.testng.SkipException;
 import org.testng.annotations.Test;
 
 public class TestAdyenSDKClientImpl {
@@ -59,6 +64,50 @@ public class TestAdyenSDKClientImpl {
     assertAdyenAmount(Currency.CHF, "10.005", 1001L);
     assertAdyenAmount(Currency.CHF, "10.004", 1000L);
     assertAdyenAmount(Currency.JPY, "100.5", 101L);
+  }
+
+  @Test(groups = "fast")
+  public void testBuildClientTest() {
+    final Client client = AdyenSDKClientImpl.buildClient(configProperties("TEST", null));
+    Assert.assertEquals(client.getConfig().getEnvironment(), Environment.TEST);
+    Assert.assertEquals(
+        client.getConfig().getCheckoutEndpoint(), "https://checkout-test.adyen.com/checkout");
+  }
+
+  @Test(groups = "fast")
+  public void testBuildClientLiveWithPrefix() {
+    final Client client =
+        AdyenSDKClientImpl.buildClient(configProperties("LIVE", " 1797a841fbb37ca7-AdyenDemo "));
+    Assert.assertEquals(client.getConfig().getEnvironment(), Environment.LIVE);
+    Assert.assertEquals(
+        client.getConfig().getCheckoutEndpoint(),
+        "https://1797a841fbb37ca7-AdyenDemo-checkout-live.adyenpayments.com/checkout");
+  }
+
+  @Test(groups = "fast")
+  public void testBuildClientLiveWithoutPrefix() {
+    if (System.getenv(AdyenConfigProperties.ADYEN_LIVE_ENDPOINT_URL_PREFIX) != null) {
+      throw new SkipException(
+          AdyenConfigProperties.ADYEN_LIVE_ENDPOINT_URL_PREFIX + " is set in the environment");
+    }
+    Assert.expectThrows(
+        IllegalStateException.class,
+        () -> AdyenSDKClientImpl.buildClient(configProperties("LIVE", null)));
+    Assert.expectThrows(
+        IllegalStateException.class,
+        () -> AdyenSDKClientImpl.buildClient(configProperties("LIVE", "  ")));
+  }
+
+  private static AdyenConfigProperties configProperties(
+      final String environment, final String liveEndpointUrlPrefix) {
+    final Properties properties = new Properties();
+    properties.setProperty("org.killbill.billing.plugin.adyen.apiKey", "test_api_key");
+    properties.setProperty("org.killbill.billing.plugin.adyen.enviroment", environment);
+    if (liveEndpointUrlPrefix != null) {
+      properties.setProperty(
+          "org.killbill.billing.plugin.adyen.liveEndpointUrlPrefix", liveEndpointUrlPrefix);
+    }
+    return new AdyenConfigProperties(properties, "CH");
   }
 
   private static void assertAdyenAmount(

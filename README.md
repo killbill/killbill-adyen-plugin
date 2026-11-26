@@ -94,7 +94,15 @@ Where:
 * hcmaKey: HMAC Key generated at step 4a
 * captureDelayHours: desired capture delay in hours after authorisation, between 0 and 168
 * enviroment (spelled this way in the property name): environment to use. Possible values are `TEST`/`LIVE`. The default value is `TEST`
+* liveEndpointUrlPrefix: required when `enviroment=LIVE`, ignored for `TEST`. Your merchant-specific live endpoint prefix, shown in the Adyen Customer Area under **Developers** > **API URLs** (for example `1797a841fbb37ca7-AdyenDemo`, without `https://` or `-checkout-live.adyenpayments.com`). It can also be set with the `ADYEN_LIVE_ENDPOINT_URL_PREFIX` environment variable. The plugin then calls `https://<prefix>-checkout-live.adyenpayments.com/checkout`. If it is missing, LIVE calls fail with an error asking for it
 * username / password: a Kill Bill user login (for example `admin` / `password`). The `/checkout` servlet uses these to authenticate against Kill Bill when it creates the first payment. They are not the webhook Basic Authentication credentials from step 4b; the plugin does not check those
+
+For the LIVE environment, set `enviroment` to `LIVE`, use your LIVE API key, merchant account and HMAC key, and add the live endpoint URL prefix:
+
+```
+org.killbill.billing.plugin.adyen.enviroment=LIVE
+org.killbill.billing.plugin.adyen.liveEndpointUrlPrefix=1797a841fbb37ca7-AdyenDemo
+```
 
 ## Payment status after an Adyen notification
 
